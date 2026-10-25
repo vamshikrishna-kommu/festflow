@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+/* ─── Design Tokens ────────────────────────────────────────────────── */
+@theme {
+  /* Brand palette (oklch for P3 richness) */
+  --color-brand-purple:   oklch(58% 0.24 290);
+  --color-brand-violet:   oklch(52% 0.28 275);
+  --color-brand-pink:     oklch(65% 0.22 340);
+  --color-brand-amber:    oklch(75% 0.18 65);
+  --color-brand-cyan:     oklch(70% 0.18 200);
+
+  /* Surface scale – dark-first */
+  --color-surface-0:  oklch(7%  0.02 260);
+  --color-surface-1:  oklch(11% 0.025 260);
+  --color-surface-2:  oklch(15% 0.03 260);
+  --color-surface-3:  oklch(20% 0.03 260);
+  --color-surface-4:  oklch(26% 0.03 260);
+
+  /* Text */
+  --color-text-primary:   oklch(97% 0.005 260);
+  --color-text-secondary: oklch(70% 0.015 260);
+  --color-text-muted:     oklch(50% 0.015 260);
+
+  /* Typography */
+  --font-sans:    "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+
+  /* Spacing extras */
+  --spacing-section: 7rem;
+
+  /* Radius */
+  --radius-card:   1rem;
+  --radius-pill:   9999px;
+  --radius-button: 0.625rem;
+
+  /* Shadow */
+  --shadow-glow-purple: 0 0 40px oklch(58% 0.24 290 / 0.35);
+  --shadow-glow-pink:   0 0 40px oklch(65% 0.22 340 / 0.30);
+  --shadow-card:        0 4px 24px oklch(0% 0 0 / 0.45);
+}
+
+/* ─── Global Base ───────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-surface-0);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ─── Skip Link ─────────────────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--color-brand-purple);
+  color: #fff;
+  border-radius: var(--radius-button);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* ─── Focus Visible Ring ─────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-brand-purple);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ─── Selection ─────────────────────────────────────────────────────── */
+::selection {
+  background: oklch(58% 0.24 290 / 0.3);
+  color: var(--color-text-primary);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-surface-1); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-brand-purple); }
+
+/* ─── Typography Utilities ──────────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+
+/* ─── Gradient Utilities ─────────────────────────────────────────────── */
+.gradient-brand {
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-purple) 0%,
+    var(--color-brand-pink) 100%
+  );
+}
+
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-purple),
+    var(--color-brand-pink) 50%,
+    var(--color-brand-amber)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── Glass Morphism ─────────────────────────────────────────────────── */
+.glass {
+  background: oklch(15% 0.03 260 / 0.6);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid oklch(100% 0 0 / 0.06);
+}
+
+.glass-subtle {
+  background: oklch(11% 0.025 260 / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid oklch(100% 0 0 / 0.05);
+}
+
+/* ─── Noise Texture ──────────────────────────────────────────────────── */
+.noise-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ─── Glow Effects ───────────────────────────────────────────────────── */
+.glow-purple { box-shadow: var(--shadow-glow-purple); }
+.glow-pink   { box-shadow: var(--shadow-glow-pink); }
+
+/* ─── Reduced Motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
