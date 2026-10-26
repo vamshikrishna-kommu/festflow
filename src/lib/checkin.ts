@@ -16,11 +16,52 @@ const LOCAL_STORAGE_CHECKINS_KEY = 'festflow_local_checkins'
 export function cleanTicketPayload(raw: string): string {
   if (!raw) return ''
   let cleaned = raw.trim()
-  if (cleaned.toLowerCase().startsWith('festflow://ticket/')) {
-    cleaned = cleaned.substring(18)
-  } else if (cleaned.includes('/ticket/')) {
-    cleaned = cleaned.substring(cleaned.indexOf('/ticket/') + 8)
+
+  // 1. Try parsing JSON string if payload was encoded as JSON
+  if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(cleaned)
+      if (parsed.qr_token) return cleanTicketPayload(String(parsed.qr_token))
+      if (parsed.token) return cleanTicketPayload(String(parsed.token))
+      if (parsed.ticket_code) return cleanTicketPayload(String(parsed.ticket_code))
+      if (parsed.code) return cleanTicketPayload(String(parsed.code))
+    } catch {
+      // not valid JSON, proceed with string parsing
+    }
   }
+
+  // 2. Strip URI prefixes
+  const lower = cleaned.toLowerCase()
+  if (lower.startsWith('festflow://pass/')) {
+    cleaned = cleaned.substring(16)
+  } else if (lower.startsWith('festflow://ticket/')) {
+    cleaned = cleaned.substring(18)
+  } else if (lower.includes('/pass/')) {
+    cleaned = cleaned.substring(lower.indexOf('/pass/') + 6)
+  } else if (lower.includes('/ticket/')) {
+    cleaned = cleaned.substring(lower.indexOf('/ticket/') + 8)
+  }
+
+  // 3. Extract query param if full URL passed (e.g. ?token=FFQ_123 or ?code=TKT-123)
+  if (cleaned.includes('?')) {
+    try {
+      const queryStr = cleaned.substring(cleaned.indexOf('?') + 1)
+      const params = new URLSearchParams(queryStr)
+      const paramVal = params.get('token') || params.get('code') || params.get('qr') || params.get('t')
+      if (paramVal) {
+        cleaned = paramVal
+      } else {
+        // Strip query string from path
+        cleaned = cleaned.substring(0, cleaned.indexOf('?'))
+      }
+    } catch {
+      cleaned = cleaned.substring(0, cleaned.indexOf('?'))
+    }
+  }
+
+  // 4. Strip trailing slashes
+  cleaned = cleaned.replace(/\/+$/, '')
+
   return cleaned.trim().toUpperCase()
 }
 
@@ -111,6 +152,8 @@ function getLocalCheckIns(): CheckInRecord[] {
       staff_id: 'demo_club_member_default',
       checked_in_at: new Date(Date.now() - 3600000 * 2).toISOString(),
       checkin_notes: 'Gate 1 scan',
+      member_index: 0,
+      member_name: null,
       created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
     },
   ]
@@ -124,6 +167,9 @@ function saveLocalCheckIns(checkins: CheckInRecord[]) {
   }
 }
 
+// In-memory mutex for local simulation concurrency serialization (mirrors Postgres FOR UPDATE)
+const activeSimulationLocks = new Set<string>()
+
 // ── Check-In RPC / Client Call ───────────────────────────────────────────────
 export async function checkInTicket(
   eventId: string,
@@ -132,16 +178,26 @@ export async function checkInTicket(
 ): Promise<CheckInResponse> {
   const cleanCode = cleanTicketPayload(ticketCodeOrPayload)
 
-  if (!cleanCode || cleanCode.length < 4) {
+  if (!cleanCode || cleanCode.length < 3) {
     return {
       success: false,
       outcome: 'INVALID_TICKET',
-      message: 'Invalid ticket reference. Please enter a valid ticket code.',
+      message: 'Invalid ticket reference. Please provide a valid ticket code or pass QR.',
     }
   }
 
   if (isSupabaseConfigured) {
     try {
+      // Check offline network state if running in browser
+      if (typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine) {
+        return {
+          success: false,
+          outcome: 'UNAUTHORIZED',
+          isNetworkError: true,
+          message: 'Network offline. Please verify internet connection and retry.',
+        }
+      }
+
       const { data, error } = await (supabase.rpc as any)('check_in_ticket', {
         p_event_id: eventId,
         p_ticket_code_or_payload: cleanCode,
@@ -149,21 +205,37 @@ export async function checkInTicket(
       })
 
       if (error) {
+        const errMsg = error.message || ''
+        const isNetwork =
+          errMsg.toLowerCase().includes('failed to fetch') ||
+          errMsg.toLowerCase().includes('network') ||
+          errMsg.toLowerCase().includes('timeout')
         return {
           success: false,
           outcome: 'UNAUTHORIZED',
-          message: error.message,
+          isNetworkError: isNetwork,
+          message: isNetwork
+            ? 'Network connectivity issue. Please check your connection and retry.'
+            : errMsg,
         }
       }
 
       const res = data as CheckInResponse
       triggerScanFeedback(res.outcome)
       return res
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : 'Check-in request failed.'
+      const isNetwork =
+        msg.toLowerCase().includes('failed to fetch') ||
+        msg.toLowerCase().includes('network') ||
+        msg.toLowerCase().includes('timeout')
       return {
         success: false,
         outcome: 'UNAUTHORIZED',
-        message: err instanceof Error ? err.message : 'Check-in request failed.',
+        isNetworkError: isNetwork,
+        message: isNetwork
+          ? 'Network connectivity issue. Please check your connection and retry.'
+          : msg,
       }
     }
   }
@@ -180,108 +252,219 @@ export async function checkInTicket(
   // ── Local Fallback Simulation Mode (Development only) ─────────────────────
   const rawRegs = localStorage.getItem('festflow_local_registrations')
   const localRegs = rawRegs ? JSON.parse(rawRegs) : []
-  const allCheckins = getLocalCheckIns()
 
-  // Find registration by ticket code
-  const reg = localRegs.find(
-    (r: any) => (r.ticket_code || '').toUpperCase() === cleanCode
-  )
+  // Detect member sub-token suffix (e.g., "-M1", "-M2")
+  let memberIndex = 0
+  let baseCode = cleanCode
+  const memberMatch = cleanCode.match(/(-M[0-9]+)$/i)
+  if (memberMatch) {
+    memberIndex = parseInt(memberMatch[1].substring(2), 10)
+    baseCode = cleanCode.substring(0, cleanCode.length - memberMatch[1].length)
+  }
 
-  if (!reg) {
-    const res: CheckInResponse = {
-      success: false,
-      outcome: 'INVALID_TICKET',
-      ticket_code: cleanCode,
-      message: 'No registration was found matching this ticket code.',
+  // Concurrency serialization lock (mirrors PostgreSQL FOR UPDATE lock on registration row)
+  const lockKey = `${eventId}_${baseCode}_${memberIndex}`
+  while (activeSimulationLocks.has(lockKey)) {
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  activeSimulationLocks.add(lockKey)
+
+  try {
+    // Fetch event details to check if cancelled
+    const eventRes = await getEventById(eventId)
+    if (eventRes.event && eventRes.event.status === 'cancelled') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'CANCELLED',
+        ticket_code: cleanCode,
+        message: 'This event has been cancelled by organizers. Gate entry is closed.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
     }
+
+    // Find registration by ticket code or qr_token
+    const reg = localRegs.find((r: any) => {
+      const tCode = (r.ticket_code || '').toUpperCase()
+      const qToken = (r.qr_token || '').toUpperCase()
+      return (
+        tCode === baseCode ||
+        qToken === baseCode ||
+        tCode === cleanCode ||
+        qToken === cleanCode
+      )
+    })
+
+    if (!reg) {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'INVALID_TICKET',
+        ticket_code: cleanCode,
+        message: 'No registration was found matching this pass token.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    // Check event match
+    if (reg.event_id !== eventId) {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'WRONG_EVENT',
+        ticket_code: cleanCode,
+        message: 'This ticket belongs to a different event.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    // Resolve attendee / member display name
+    let memberName: string | undefined = undefined
+    if (memberIndex > 0 && Array.isArray(reg.team_members) && reg.team_members.length >= memberIndex) {
+      const memberObj = reg.team_members[memberIndex - 1]
+      memberName = memberObj?.name || `Team Member #${memberIndex}`
+    }
+
+    const primaryName =
+      reg.student?.display_name ||
+      (reg.team_name ? `Team ${reg.team_name}` : 'Student Attendee')
+
+    // Check status & eligibility
+    if (reg.status === 'cancelled') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'CANCELLED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        message: 'This registration has been cancelled. This pass is void for entry.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    if (reg.status === 'rejected') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'CANCELLED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        message: 'Registration was declined by organizers. Pass is invalid.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    if (reg.status === 'pending_approval') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'NOT_CONFIRMED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        message: 'Application under review. Pass has not been approved for admission yet.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    if (reg.status === 'pending_payment') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'NOT_CONFIRMED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        message: 'Payment verification pending. Attendee ticket fee must be verified before entry is permitted.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    if (reg.status === 'waitlisted') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'NOT_CONFIRMED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        message: 'Registration is on the waitlist. Pass is not confirmed for admission.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    if (reg.status !== 'confirmed') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'NOT_CONFIRMED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        message: `Registration status is "${reg.status}". Attendee pass is not confirmed.`,
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    // Read fresh check-ins from storage inside the mutex
+    const allCheckins = getLocalCheckIns()
+
+    // Check already used for this specific member index
+    const existing = allCheckins.find(
+      (c) => c.registration_id === reg.id && ((c as any).member_index || 0) === memberIndex
+    )
+    if (existing) {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'ALREADY_USED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        member_index: memberIndex,
+        checked_in_at: existing.checked_in_at,
+        message: memberName
+          ? `Team member (${memberName}) was already checked in.`
+          : `Ticket was already checked in at ${new Date(existing.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    // Insert successful check-in
+    const now = new Date().toISOString()
+    const newCheckIn: CheckInRecord = {
+      id: `chk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      registration_id: reg.id,
+      event_id: eventId,
+      ticket_code: reg.ticket_code || cleanCode,
+      staff_id: 'demo_club_member_default',
+      checked_in_at: now,
+      checkin_notes: notes || null,
+      member_index: memberIndex,
+      member_name: memberName || null,
+      created_at: now,
+    }
+
+    allCheckins.unshift(newCheckIn)
+    saveLocalCheckIns(allCheckins)
+
+    const res: CheckInResponse = {
+      success: true,
+      outcome: 'VALID',
+      student_name: memberName || primaryName,
+      team_name: reg.team_name || undefined,
+      member_index: memberIndex,
+      member_name: memberName,
+      ticket_code: reg.ticket_code || cleanCode,
+      checked_in_at: now,
+      event_title: eventRes.event?.title || 'Campus Event',
+      message: memberName
+        ? `Team member ${memberName} checked in successfully!`
+        : reg.team_name
+        ? `Team ${reg.team_name} pass verified! Entry granted.`
+        : 'Entry granted! Ticket verified successfully.',
+    }
+
     triggerScanFeedback(res.outcome)
     return res
+  } finally {
+    activeSimulationLocks.delete(lockKey)
   }
-
-  // Check event match
-  if (reg.event_id !== eventId) {
-    const res: CheckInResponse = {
-      success: false,
-      outcome: 'WRONG_EVENT',
-      ticket_code: cleanCode,
-      message: 'This ticket was issued for a different event.',
-    }
-    triggerScanFeedback(res.outcome)
-    return res
-  }
-
-  // Check status
-  if (reg.status === 'cancelled') {
-    const res: CheckInResponse = {
-      success: false,
-      outcome: 'CANCELLED',
-      student_name: 'Campus Student',
-      ticket_code: cleanCode,
-      message: 'This registration has been cancelled and is void for entry.',
-    }
-    triggerScanFeedback(res.outcome)
-    return res
-  }
-
-  if (reg.status !== 'confirmed') {
-    const res: CheckInResponse = {
-      success: false,
-      outcome: 'NOT_CONFIRMED',
-      student_name: 'Campus Student',
-      ticket_code: cleanCode,
-      message: `Registration status is "${reg.status}". Payment must be verified before entry is permitted.`,
-    }
-    triggerScanFeedback(res.outcome)
-    return res
-  }
-
-  // Check already used
-  const existing = allCheckins.find((c) => c.registration_id === reg.id)
-  if (existing) {
-    const res: CheckInResponse = {
-      success: false,
-      outcome: 'ALREADY_USED',
-      student_name: 'Campus Student',
-      ticket_code: cleanCode,
-      checked_in_at: existing.checked_in_at,
-      message: `Ticket was already checked in at ${new Date(
-        existing.checked_in_at
-      ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
-    }
-    triggerScanFeedback(res.outcome)
-    return res
-  }
-
-  // Insert successful check-in
-  const now = new Date().toISOString()
-  const newCheckIn: CheckInRecord = {
-    id: `chk_${Date.now()}`,
-    registration_id: reg.id,
-    event_id: eventId,
-    ticket_code: cleanCode,
-    staff_id: 'demo_club_member_default',
-    checked_in_at: now,
-    checkin_notes: notes || null,
-    created_at: now,
-  }
-
-  allCheckins.unshift(newCheckIn)
-  saveLocalCheckIns(allCheckins)
-
-  const eventRes = await getEventById(eventId)
-
-  const res: CheckInResponse = {
-    success: true,
-    outcome: 'VALID',
-    student_name: 'Priya Sharma',
-    ticket_code: cleanCode,
-    checked_in_at: now,
-    event_title: eventRes.event?.title || 'Campus Event',
-    message: 'Entry granted! Ticket verified successfully.',
-  }
-
-  triggerScanFeedback(res.outcome)
-  return res
 }
 
 // ── Query Event Check-Ins ───────────────────────────────────────────────────
@@ -343,14 +526,23 @@ export async function getEventRegistrationsWithCheckIn(
     getEventCheckIns(eventId),
   ])
 
-  const checkInMap = new Map<string, CheckInRecord>()
-  checkIns.forEach((c) => checkInMap.set(c.registration_id, c))
+  // Map all check-ins by registration_id
+  const checkInMap = new Map<string, CheckInRecord[]>()
+  checkIns.forEach((c) => {
+    const list = checkInMap.get(c.registration_id) || []
+    list.push(c)
+    checkInMap.set(c.registration_id, list)
+  })
 
   const regs = (regRes.registrations || []) as RegistrationWithStudent[]
-  const enriched: RegistrationWithCheckIn[] = regs.map((r) => ({
-    ...r,
-    check_in: checkInMap.get(r.id) || null,
-  }))
+  const enriched: RegistrationWithCheckIn[] = regs.map((r) => {
+    const rCheckIns = checkInMap.get(r.id) || []
+    return {
+      ...r,
+      check_in: rCheckIns[0] || null,
+      check_ins: rCheckIns,
+    }
+  })
 
   const confirmedCount = regs.filter((r) => r.status === 'confirmed').length
   const capacity = eventRes.event?.capacity || 100

@@ -78,7 +78,7 @@ export function EventGrid({
           <div
             role="group"
             aria-label="Filter by category"
-            className="flex gap-2 flex-wrap"
+            className="flex gap-2 overflow-x-auto sm:flex-wrap no-scrollbar pb-1 touch-pan-x -mx-4 px-4 sm:mx-0 sm:px-0"
           >
             {EVENT_CATEGORIES.map(({ value, label }) => (
               <button
@@ -86,7 +86,7 @@ export function EventGrid({
                 id={`cat-filter-${value}`}
                 onClick={() => setCategory(value)}
                 aria-pressed={category === value}
-                className={`px-4 py-1.5 rounded-[var(--radius-pill)] text-sm font-medium border transition-all duration-200 ${
+                className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-[var(--radius-pill)] text-xs sm:text-sm font-medium border transition-all duration-200 ${
                   category === value
                     ? 'bg-[var(--color-brand-purple)] border-[var(--color-brand-purple)] text-white'
                     : 'bg-transparent border-[oklch(100%_0_0_/_0.1)] text-[var(--color-text-secondary)] hover:border-[var(--color-brand-purple)] hover:text-[var(--color-text-primary)]'

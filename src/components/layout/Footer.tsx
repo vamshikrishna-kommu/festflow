@@ -30,16 +30,16 @@ const SOCIALS = [
 export function Footer() {
   return (
     <footer
-      className="relative mt-24 border-t border-[oklch(100%_0_0_/_0.06)] bg-[var(--color-surface-1)]"
+      className="relative mt-24 border-t border-[oklch(100%_0_0_/_0.06)] bg-[var(--color-surface-1)] overflow-hidden"
       aria-label="Site footer"
     >
       {/* Glow accent */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-[var(--color-brand-purple)] to-transparent opacity-60"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] max-w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--color-brand-purple)] to-transparent opacity-60"
         aria-hidden="true"
       />
 
-      <div className="max-w-6xl mx-auto px-6 pt-16 pb-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-10">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 lg:gap-16">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">

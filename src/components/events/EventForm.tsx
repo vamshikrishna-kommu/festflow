@@ -1405,17 +1405,17 @@ export function EventForm({
         </div>
 
         {/* ── Form Actions Bar (Sticky) ────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl glass border border-[oklch(100%_0_0_/_0.1)] sticky bottom-4 shadow-2xl z-20 backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl glass border border-[oklch(100%_0_0_/_0.1)] sticky bottom-16 sm:bottom-4 md:bottom-4 shadow-2xl z-20 backdrop-blur-md">
           <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
             <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
-            <span>
+            <span className="text-[11px] sm:text-xs">
               {mode === 'create'
                 ? 'Drafts are private to your club. Publishing makes the event discoverable immediately.'
                 : 'Updates are validated and saved directly.'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 w-full sm:w-auto">
             {/* Live Preview Button */}
             <Button
               type="button"
@@ -1423,6 +1423,7 @@ export function EventForm({
               size="md"
               onClick={() => setShowPreview(true)}
               leftIcon={<Eye size={15} />}
+              className="flex-1 sm:flex-initial min-h-[44px] justify-center"
             >
               Preview
             </Button>
@@ -1434,6 +1435,7 @@ export function EventForm({
               size="md"
               onClick={(e) => handleSubmit(e, 'save_draft')}
               disabled={isSubmitting}
+              className="flex-1 sm:flex-initial min-h-[44px] justify-center"
             >
               Save Draft
             </Button>
@@ -1447,7 +1449,7 @@ export function EventForm({
               disabled={isSubmitting}
               isLoading={isSubmitting}
               leftIcon={<CheckCircle2 size={16} />}
-              className="bg-[var(--color-brand-purple)] hover:opacity-90"
+              className="bg-[var(--color-brand-purple)] hover:opacity-90 w-full sm:w-auto min-h-[44px] justify-center"
             >
               {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
             </Button>

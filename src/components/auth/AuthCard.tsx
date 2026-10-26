@@ -19,18 +19,18 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
   const isClub = role === 'club_member'
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 flex flex-col justify-center items-center relative overflow-hidden bg-[var(--color-surface-0)]">
+    <div className="min-h-screen pt-20 sm:pt-24 pb-16 px-3 sm:px-4 flex flex-col justify-center items-center relative overflow-hidden bg-[var(--color-surface-0)]">
       {/* Background ambient glowing orbs */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[radial-gradient(circle,oklch(60%_0.22_295_/_0.15)_0%,transparent_70%)] pointer-events-none -z-10 blur-3xl" />
       <div className="absolute bottom-10 right-10 w-[350px] h-[350px] bg-[radial-gradient(circle,oklch(65%_0.20_330_/_0.1)_0%,transparent_70%)] pointer-events-none -z-10 blur-3xl" />
 
       {/* Brand logo header */}
-      <div className="mb-6 flex flex-col items-center text-center">
-        <Link to="/" className="flex items-center gap-2 group mb-3">
-          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] shadow-md shadow-[var(--color-brand-purple)]/20 group-hover:scale-105 transition-transform">
-            <Sparkles size={18} className="text-white" />
+      <div className="mb-5 sm:mb-6 flex flex-col items-center text-center">
+        <Link to="/" className="flex items-center gap-2 group mb-2.5 sm:mb-3">
+          <span className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] shadow-md shadow-[var(--color-brand-purple)]/20 group-hover:scale-105 transition-transform">
+            <Sparkles size={17} className="text-white" />
           </span>
-          <span className="font-display font-bold text-2xl text-[var(--color-text-primary)]">
+          <span className="font-display font-bold text-xl sm:text-2xl text-[var(--color-text-primary)]">
             FestFlow
           </span>
         </Link>
@@ -51,10 +51,10 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="w-full max-w-md relative glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] shadow-[0_16px_40px_oklch(0%_0_0_/_0.4)]"
+        className="w-full max-w-md relative glass p-4 sm:p-6 md:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] shadow-[0_16px_40px_oklch(0%_0_0_/_0.4)]"
       >
         {/* Role switcher toggle tabs */}
-        <div className="grid grid-cols-2 p-1 bg-[var(--color-surface-2)] rounded-xl mb-6 text-xs font-medium border border-[var(--color-surface-3)]">
+        <div className="grid grid-cols-2 p-1 bg-[var(--color-surface-2)] rounded-xl mb-5 sm:mb-6 text-xs font-medium border border-[var(--color-surface-3)]">
           <Link
             to={mode === 'login' ? '/student/login' : '/student/signup'}
             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-all ${

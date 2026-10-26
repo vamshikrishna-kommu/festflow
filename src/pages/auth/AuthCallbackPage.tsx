@@ -49,6 +49,13 @@ export default function AuthCallbackPage() {
           if (data?.session) {
             await refreshProfile()
             setStatus('success')
+            const typeParam = searchParams.get('type') || hashParams.get('type')
+            if (typeParam === 'recovery') {
+              setTimeout(() => {
+                navigate('/reset-password', { replace: true })
+              }, 800)
+              return
+            }
             const userRole = (data.session.user.user_metadata?.role as string) || role || 'student'
             const target = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
             setTimeout(() => {
@@ -70,6 +77,14 @@ export default function AuthCallbackPage() {
           await refreshProfile()
           setStatus('success')
           
+          const typeParam = searchParams.get('type') || hashParams.get('type')
+          if (typeParam === 'recovery') {
+            setTimeout(() => {
+              navigate('/reset-password', { replace: true })
+            }, 800)
+            return
+          }
+
           // Role-based redirect
           const userRole = (session.user.user_metadata?.role as string) || role || 'student'
           const target = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
@@ -80,9 +95,13 @@ export default function AuthCallbackPage() {
         } else {
           // Listen for onAuthStateChange in case hash fragment is still being processed
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-            if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && currentSession) {
+            if ((event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'PASSWORD_RECOVERY') && currentSession) {
               await refreshProfile()
               setStatus('success')
+              if (event === 'PASSWORD_RECOVERY' || (searchParams.get('type') || hashParams.get('type')) === 'recovery') {
+                navigate('/reset-password', { replace: true })
+                return
+              }
               const userRole = (currentSession.user.user_metadata?.role as string) || 'student'
               const target = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
               navigate(target, { replace: true })

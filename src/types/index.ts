@@ -59,21 +59,21 @@ export interface EventWithClub extends EventRecord {
 }
 
 export interface RegistrationWithEvent extends RegistrationRecord {
-  event: EventRecord & {
+  event?: (EventRecord & {
     club?: {
       display_name: string
       club_profiles?: ClubProfile[] | ClubProfile | null
     }
-  }
+  }) | null
   payment_submission?: PaymentSubmission | null
 }
 
 export interface RegistrationWithStudent extends RegistrationRecord {
-  student: {
+  student?: {
     display_name: string
     email: string
     avatar_url: string | null
-  }
+  } | null
 }
 
 export interface PaymentSubmissionWithDetails extends PaymentSubmission {
@@ -148,6 +148,10 @@ export interface CheckInResponse {
   ticket_code?: string
   checked_in_at?: string
   event_title?: string
+  member_index?: number
+  member_name?: string
+  team_name?: string
+  isNetworkError?: boolean
 }
 
 export interface CheckInStats {
@@ -160,6 +164,7 @@ export interface CheckInStats {
 
 export interface RegistrationWithCheckIn extends RegistrationWithStudent {
   check_in?: CheckInRecord | null
+  check_ins?: CheckInRecord[]
 }
 
 export interface TeamMember {
@@ -176,6 +181,7 @@ export interface RegistrationResponse {
   message: string
   registration_id?: string
   ticket_code?: string
+  qr_token?: string
   status?: RegistrationStatus
   approval_status?: string
   is_free?: boolean

@@ -37,6 +37,8 @@ export interface AuthContextType {
   signUpStudent: (params: SignUpStudentParams) => Promise<{ error: string | null; requiresVerification: boolean }>
   signOut: () => Promise<void>
   resendVerification: (email: string) => Promise<{ error: string | null; success: boolean }>
+  resetPassword: (email: string) => Promise<{ error: string | null; success: boolean }>
+  updatePassword: (newPassword: string) => Promise<{ error: string | null; success: boolean }>
   refreshProfile: () => Promise<void>
   // Demo simulation helper for testing when Supabase is not yet connected
   setDemoUser: (role: 'club_member' | 'student') => void
@@ -471,6 +473,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   )
 
+  // ── Reset Password Request ────────────────────────────────────────────────
+  const resetPassword = useCallback(
+    async (email: string): Promise<{ error: string | null; success: boolean }> => {
+      try {
+        if (isSupabaseConfigured) {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+          })
+          if (error) return { error: error.message, success: false }
+          return { error: null, success: true }
+        } else {
+          await new Promise((r) => setTimeout(r, 600))
+          return { error: null, success: true }
+        }
+      } catch (err) {
+        return {
+          error: err instanceof Error ? err.message : 'Failed to send password reset request',
+          success: false,
+        }
+      }
+    },
+    []
+  )
+
+  // ── Update Password ───────────────────────────────────────────────────────
+  const updatePassword = useCallback(
+    async (newPassword: string): Promise<{ error: string | null; success: boolean }> => {
+      try {
+        if (isSupabaseConfigured) {
+          const { error } = await supabase.auth.updateUser({ password: newPassword })
+          if (error) return { error: error.message, success: false }
+          return { error: null, success: true }
+        } else {
+          await new Promise((r) => setTimeout(r, 600))
+          return { error: null, success: true }
+        }
+      } catch (err) {
+        return {
+          error: err instanceof Error ? err.message : 'Failed to update password',
+          success: false,
+        }
+      }
+    },
+    []
+  )
+
   // ── Sign Out ──────────────────────────────────────────────────────────────
   const signOut = useCallback(async () => {
     setIsLoading(true)
@@ -577,6 +625,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUpStudent,
     signOut,
     resendVerification,
+    resetPassword,
+    updatePassword,
     refreshProfile,
     setDemoUser,
   }

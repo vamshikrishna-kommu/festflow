@@ -18,6 +18,7 @@ export default function TicketDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const loadTicket = async () => {
     if (!id) return
@@ -49,14 +50,15 @@ export default function TicketDetailPage() {
   const handleCancel = async () => {
     if (!id) return
     setActionLoading(true)
+    setActionError(null)
     const res = await cancelRegistration(id)
     setActionLoading(false)
-    setShowCancelModal(false)
 
     if (res.success) {
+      setShowCancelModal(false)
       loadTicket()
     } else {
-      alert(res.message)
+      setActionError(res.message || 'Failed to cancel registration.')
     }
   }
 
@@ -64,7 +66,7 @@ export default function TicketDetailPage() {
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24 text-left">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 py-4 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] mb-8">
+        <div className="flex items-center gap-2 py-4 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] mb-8 flex-wrap">
           <Link
             to="/student/dashboard"
             className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
@@ -134,17 +136,27 @@ export default function TicketDetailPage() {
                 <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
                   Are you sure you want to cancel your entry pass for{' '}
                   <strong className="text-[var(--color-text-primary)]">
-                    {registration.event.title}
+                    {registration.event?.title || 'this event'}
                   </strong>
                   ? Your seat will be released immediately for other campus students, and this QR pass will become void.
                 </p>
+
+                {actionError && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle size={15} className="shrink-0 text-rose-400" />
+                    <span>{actionError}</span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={actionLoading}
-                    onClick={() => setShowCancelModal(false)}
+                    onClick={() => {
+                      setShowCancelModal(false)
+                      setActionError(null)
+                    }}
                   >
                     Keep Pass
                   </Button>

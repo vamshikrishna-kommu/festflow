@@ -80,32 +80,32 @@ export function Navbar() {
         variants={navbarSlide}
         initial="hidden"
         animate="visible"
-        className={`fixed top-2 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl transition-all duration-300 rounded-[var(--radius-card)] ${
+        className={`fixed top-1.5 sm:top-2 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] max-w-6xl transition-all duration-300 rounded-[var(--radius-card)] ${
           scrolled
             ? 'glass shadow-[0_8px_32px_oklch(0%_0_0_/_0.5)]'
             : 'bg-transparent'
         }`}
       >
         {isProduction && !isSupabaseConfigured && (
-          <div className="bg-red-600/90 text-white text-[11px] py-1.5 px-4 text-center font-medium flex items-center justify-center gap-2 rounded-t-[var(--radius-card)] shadow-sm">
-            <AlertTriangle size={14} className="shrink-0 text-amber-200" />
-            <span>Production Notice: Supabase credentials are not set. Configure VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in your hosting dashboard.</span>
+          <div className="bg-red-600/90 text-white text-[10px] sm:text-[11px] py-1 sm:py-1.5 px-3 sm:px-4 text-center font-medium flex items-center justify-center gap-2 rounded-t-[var(--radius-card)] shadow-sm">
+            <AlertTriangle size={13} className="shrink-0 text-amber-200" />
+            <span className="truncate">Supabase credentials missing. Configure in hosting dashboard.</span>
           </div>
         )}
         <nav
           aria-label="Main navigation"
-          className="flex items-center justify-between px-5 py-3"
+          className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-3"
         >
           {/* Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2 group"
+            className="flex items-center gap-2 group min-h-[40px]"
             aria-label="FestFlow home"
           >
-            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)]">
-              <Sparkles size={16} className="text-white" />
+            <span className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)]">
+              <Sparkles size={15} className="text-white" />
             </span>
-            <span className="font-display font-bold text-xl text-[var(--color-text-primary)] group-hover:gradient-text transition-all">
+            <span className="font-display font-bold text-lg sm:text-xl text-[var(--color-text-primary)] group-hover:gradient-text transition-all">
               FestFlow
             </span>
           </Link>
@@ -233,6 +233,16 @@ export function Navbar() {
                             <span className="text-[10px] text-[var(--color-text-muted)]">Manage events & entry</span>
                           </div>
                         </Link>
+                        <div className="border-t border-[oklch(100%_0_0_/_0.08)] my-1 pt-1">
+                          <Link
+                            to="/student/signup"
+                            onClick={() => setLoginMenuOpen(false)}
+                            className="flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] text-[var(--color-brand-cyan)] hover:bg-[var(--color-surface-3)] font-medium transition-colors"
+                          >
+                            <span>New student? Sign up free</span>
+                            <ChevronRight size={12} />
+                          </Link>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -280,15 +290,15 @@ export function Navbar() {
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="fixed inset-0 z-40 pt-24 px-4 pb-8 glass md:hidden flex flex-col"
+            className="fixed inset-0 z-40 pt-20 px-4 pb-8 pb-safe glass md:hidden flex flex-col overflow-y-auto"
           >
-            <ul className="flex flex-col gap-1" role="list">
+            <ul className="flex flex-col gap-1.5" role="list">
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
                   <NavLink
                     to={link.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl text-base font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors"
+                    className="flex items-center justify-between px-4 py-3 min-h-[44px] rounded-xl text-base font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] active:bg-[var(--color-surface-4)] transition-colors"
                   >
                     {link.label}
                     <ChevronRight size={16} className="text-[var(--color-text-muted)]" />
@@ -334,21 +344,28 @@ export function Navbar() {
                 <>
                   <div className="grid grid-cols-2 gap-2">
                     <Link to="/student/login" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" size="md" className="w-full">
+                      <Button variant="outline" size="md" className="w-full text-xs">
                         Student Login
                       </Button>
                     </Link>
                     <Link to="/club/login" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" size="md" className="w-full">
+                      <Button variant="outline" size="md" className="w-full text-xs">
                         Club Login
                       </Button>
                     </Link>
                   </div>
-                  <Link to="/club/signup" onClick={() => setMobileOpen(false)}>
-                    <Button variant="primary" size="lg" className="w-full">
-                      Register Club Free
-                    </Button>
-                  </Link>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link to="/student/signup" onClick={() => setMobileOpen(false)}>
+                      <Button variant="ghost" size="md" className="w-full text-xs text-[var(--color-brand-cyan)] border border-[var(--color-brand-cyan)]/30 hover:bg-[var(--color-brand-cyan)]/10">
+                        Student Signup
+                      </Button>
+                    </Link>
+                    <Link to="/club/signup" onClick={() => setMobileOpen(false)}>
+                      <Button variant="primary" size="md" className="w-full text-xs">
+                        Start a Club
+                      </Button>
+                    </Link>
+                  </div>
                 </>
               )}
             </div>

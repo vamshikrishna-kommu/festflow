@@ -15,6 +15,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { Button, Card, Badge } from '@/components/ui'
+import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import {
   getClubPaymentSubmissions,
@@ -45,6 +46,7 @@ export default function ClubPaymentsPage() {
   const [approvingSub, setApprovingSub] = useState<PaymentSubmissionWithDetails | null>(null)
   const [rejectingSub, setRejectingSub] = useState<PaymentSubmissionWithDetails | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [rejectError, setRejectError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -96,12 +98,13 @@ export default function ClubPaymentsPage() {
     if (!rejectingSub) return
     const cleanReason = rejectionReason.trim()
     if (!cleanReason) {
-      alert('Please provide a mandatory reason for rejecting this payment.')
+      setRejectError('Please provide a mandatory reason for rejecting this payment.')
       return
     }
 
     setActionLoading(true)
     setNotice(null)
+    setRejectError(null)
     const res = await reviewPaymentSubmission({
       paymentId: rejectingSub.id,
       decision: 'rejected',
@@ -141,8 +144,8 @@ export default function ClubPaymentsPage() {
   }, [submissions, statusFilter, selectedEventId, searchQuery])
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)] text-left">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <PageShell>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
           <Link
@@ -250,7 +253,7 @@ export default function ClubPaymentsPage() {
         {/* Filters and Search Bar */}
         <Card className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl w-full md:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar touch-pan-x">
             {(
               [
                 { id: 'all', label: `All (${submissions.length})` },
@@ -263,7 +266,7 @@ export default function ClubPaymentsPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
                   statusFilter === tab.id
                     ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] shadow'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
@@ -433,7 +436,7 @@ export default function ClubPaymentsPage() {
                   </div>
 
                   {/* Actions Right Section */}
-                  <div className="flex items-center gap-2 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-[var(--color-surface-3)]">
+                  <div className="flex items-center gap-2 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-[var(--color-surface-3)] w-full lg:w-auto">
                     {isPending ? (
                       <>
                         <Button
@@ -441,7 +444,7 @@ export default function ClubPaymentsPage() {
                           size="sm"
                           onClick={() => setApprovingSub(sub)}
                           leftIcon={<CheckCircle2 size={14} />}
-                          className="bg-emerald-600 hover:bg-emerald-500 border-none text-white"
+                          className="flex-1 lg:flex-initial justify-center bg-emerald-600 hover:bg-emerald-500 border-none text-white min-h-[40px]"
                         >
                           Approve
                         </Button>
@@ -451,9 +454,10 @@ export default function ClubPaymentsPage() {
                           onClick={() => {
                             setRejectingSub(sub)
                             setRejectionReason('')
+                            setRejectError(null)
                           }}
                           leftIcon={<XCircle size={14} />}
-                          className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30"
+                          className="flex-1 lg:flex-initial justify-center text-rose-400 hover:text-rose-300 hover:border-rose-500/30 min-h-[40px]"
                         >
                           Reject
                         </Button>
@@ -598,6 +602,13 @@ export default function ClubPaymentsPage() {
                   Provide a mandatory reason so the student knows why their payment was not approved (e.g. UTR not found, incorrect amount, illegible screenshot).
                 </p>
 
+                {rejectError && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertTriangle size={15} className="shrink-0 text-rose-400" />
+                    <span>{rejectError}</span>
+                  </div>
+                )}
+
                 <div>
                   <label
                     htmlFor="reject_reason"
@@ -611,7 +622,10 @@ export default function ClubPaymentsPage() {
                     required
                     placeholder="e.g. Transaction reference not found in bank statement. Please verify your 12-digit UTR."
                     value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
+                    onChange={(e) => {
+                      setRejectionReason(e.target.value)
+                      if (rejectError) setRejectError(null)
+                    }}
                     className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-rose-500 transition-colors"
                   />
                 </div>
@@ -624,6 +638,7 @@ export default function ClubPaymentsPage() {
                     onClick={() => {
                       setRejectingSub(null)
                       setRejectionReason('')
+                      setRejectError(null)
                     }}
                     disabled={actionLoading}
                   >
@@ -644,6 +659,6 @@ export default function ClubPaymentsPage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </PageShell>
   )
 }

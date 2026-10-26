@@ -46,6 +46,7 @@ serve(async (req: Request) => {
     const rawBody = await req.text()
     const signature = req.headers.get('x-razorpay-signature')
     const webhookSecret = Deno.env.get('RAZORPAY_WEBHOOK_SECRET')
+    const isProduction = Deno.env.get('ENVIRONMENT') === 'production' || Deno.env.get('NODE_ENV') === 'production'
 
     // If webhook secret is configured, strictly enforce signature verification
     if (webhookSecret) {
@@ -63,8 +64,14 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
+    } else if (isProduction) {
+      console.error('CRITICAL: RAZORPAY_WEBHOOK_SECRET is not configured in production environment.')
+      return new Response(JSON.stringify({ error: 'Server security configuration error: Webhook verification secret required.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     } else {
-      console.warn('RAZORPAY_WEBHOOK_SECRET is not set. Webhook received without cryptographic verification.')
+      console.warn('RAZORPAY_WEBHOOK_SECRET is not set in development mode. Webhook received without cryptographic verification.')
     }
 
     const payload = JSON.parse(rawBody)
@@ -120,13 +127,16 @@ serve(async (req: Request) => {
         })
         .eq('id', order.id)
 
-      // Confirm registration & issue ticket
+      // Confirm registration & issue ticket with unpredictable cryptographic QR token
       const ticketCode = `TKT-${crypto.randomUUID().substring(0, 8).toUpperCase()}`
+      const qrToken = crypto.randomUUID()
       await supabase
         .from('registrations')
         .update({
           status: 'confirmed',
+          approval_status: 'approved',
           ticket_code: ticketCode,
+          qr_token: qrToken,
           ticket_issued_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })

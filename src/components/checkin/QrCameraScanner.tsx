@@ -5,6 +5,9 @@ import {
   CameraOff,
   AlertCircle,
   Video,
+  Flashlight,
+  FlashlightOff,
+  Keyboard,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cleanTicketPayload } from '@/lib/checkin'
@@ -13,14 +16,22 @@ interface QrCameraScannerProps {
   onScan: (ticketCode: string) => Promise<void>
   isProcessing: boolean
   onClose?: () => void
+  onFocusManual?: () => void
 }
 
-export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScannerProps) {
+export function QrCameraScanner({
+  onScan,
+  isProcessing,
+  onClose,
+  onFocusManual,
+}: QrCameraScannerProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([])
   const [selectedCameraId, setSelectedCameraId] = useState<string>('')
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [permissionDenied, setPermissionDenied] = useState(false)
+  const [hasTorch, setHasTorch] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
 
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const isProcessingRef = useRef(isProcessing)
@@ -33,6 +44,12 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
     try {
       setCameraError(null)
       setPermissionDenied(false)
+
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setCameraError('Camera scanning is not supported on this browser or connection (requires HTTPS). Please use manual code entry.')
+        return
+      }
+
       const devices = await Html5Qrcode.getCameras()
       if (devices && devices.length > 0) {
         setCameras(devices)
@@ -44,7 +61,7 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
         )
         setSelectedCameraId(rear ? rear.id : devices[0].id)
       } else {
-        setCameraError('No video camera devices found on this device.')
+        setCameraError('No video camera devices found on this device. Please use manual code entry.')
       }
     } catch (err: any) {
       const errStr = (err?.message || String(err)).toLowerCase()
@@ -52,8 +69,49 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
         setPermissionDenied(true)
         setCameraError('Camera access was denied. Please allow camera permissions in your browser address bar.')
       } else {
-        setCameraError('Unable to access camera. Please verify device permissions.')
+        setCameraError('Unable to access camera. Please verify device permissions or use manual entry.')
       }
+    }
+  }
+
+  // Check torch capability after stream starts
+  const inspectTorchCapability = () => {
+    setTimeout(() => {
+      try {
+        const videoElem = document.querySelector('#festflow-qr-reader video') as HTMLVideoElement | null
+        if (videoElem && videoElem.srcObject) {
+          const stream = videoElem.srcObject as MediaStream
+          const track = stream.getVideoTracks()[0]
+          if (track && track.getCapabilities) {
+            const capabilities = track.getCapabilities() as any
+            if (capabilities && capabilities.torch) {
+              setHasTorch(true)
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }, 600)
+  }
+
+  // Toggle flashlight / torch for low light environments
+  const toggleTorch = async () => {
+    try {
+      const videoElem = document.querySelector('#festflow-qr-reader video') as HTMLVideoElement | null
+      if (videoElem && videoElem.srcObject) {
+        const stream = videoElem.srcObject as MediaStream
+        const track = stream.getVideoTracks()[0]
+        if (track) {
+          const nextState = !torchOn
+          await track.applyConstraints({
+            advanced: [{ torch: nextState } as any],
+          })
+          setTorchOn(nextState)
+        }
+      }
+    } catch (err) {
+      console.warn('Torch toggle failed:', err)
     }
   }
 
@@ -107,6 +165,7 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
       )
 
       setIsScanning(true)
+      inspectTorchCapability()
     } catch (err: any) {
       setIsScanning(false)
       const errStr = (err?.message || String(err)).toLowerCase()
@@ -114,7 +173,7 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
         setPermissionDenied(true)
         setCameraError('Camera permission was denied. Please permit camera access to scan QR tickets.')
       } else {
-        setCameraError('Could not start video stream. Ensure no other application is using the camera.')
+        setCameraError('Could not start video stream. Ensure no other application is using the camera, or use manual entry below.')
       }
     }
   }
@@ -130,6 +189,8 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
       }
     }
     setIsScanning(false)
+    setHasTorch(false)
+    setTorchOn(false)
   }
 
   // Unmount / route change cleanup
@@ -166,8 +227,13 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
               <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-[var(--color-brand-cyan)] to-transparent animate-pulse absolute top-1/2 -translate-y-1/2" />
             </div>
 
+            {/* Low-light hint at bottom of viewport */}
+            <div className="absolute bottom-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[10px] text-white/80 border border-white/10">
+              Align QR code in frame
+            </div>
+
             {isProcessing && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center gap-2">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center gap-2">
                 <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[var(--color-brand-cyan)] animate-spin" />
                 <span className="text-xs font-semibold text-white tracking-wide">
                   Validating Ticket…
@@ -210,19 +276,45 @@ export function QrCameraScanner({ onScan, isProcessing, onClose }: QrCameraScann
 
       {/* Error & Permission Alerts */}
       {cameraError && (
-        <div className="w-full max-w-sm p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 text-left">
-          <AlertCircle size={16} className="shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <span className="font-semibold block">{permissionDenied ? 'Camera Access Required' : 'Camera Error'}</span>
-            <span>{cameraError}</span>
+        <div className="w-full max-w-sm p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex flex-col gap-2 text-left">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-400" />
+            <div className="flex-1">
+              <span className="font-semibold block">{permissionDenied ? 'Camera Access Required' : 'Camera Unavailable'}</span>
+              <span>{cameraError}</span>
+            </div>
           </div>
+          {onFocusManual && (
+            <div className="pt-1 flex justify-end">
+              <button
+                type="button"
+                onClick={onFocusManual}
+                className="text-xs text-[var(--color-brand-cyan)] font-medium hover:underline flex items-center gap-1"
+              >
+                <Keyboard size={13} /> Switch to manual code lookup
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Camera Controls Bar */}
       {isScanning && (
-        <div className="w-full max-w-sm flex items-center justify-between gap-2">
-          {/* Camera switcher */}
+        <div className="w-full max-w-sm flex items-center justify-between gap-2 flex-wrap">
+          {/* Torch toggle button (visible when supported on mobile) */}
+          {hasTorch && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleTorch}
+              leftIcon={torchOn ? <FlashlightOff size={14} className="text-amber-400" /> : <Flashlight size={14} />}
+              className={`text-xs ${torchOn ? 'border-amber-400 text-amber-300 bg-amber-500/10' : ''}`}
+            >
+              {torchOn ? 'Torch Off' : 'Torch On'}
+            </Button>
+          )}
+
+          {/* Camera switcher if multiple cameras */}
           {cameras.length > 1 && (
             <select
               value={selectedCameraId}

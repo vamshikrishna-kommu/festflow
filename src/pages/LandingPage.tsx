@@ -172,6 +172,14 @@ export default function LandingPage() {
         </div>
 
         <EventGrid events={events} />
+
+        <div className="mt-8 flex justify-center sm:hidden">
+          <Link to="/discover" className="w-full">
+            <Button variant="outline" size="md" className="w-full" rightIcon={<ChevronRight size={16} />}>
+              Explore all campus events
+            </Button>
+          </Link>
+        </div>
       </section>
 
       <CtaSection />

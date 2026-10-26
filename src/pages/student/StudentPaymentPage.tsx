@@ -82,9 +82,9 @@ export default function StudentPaymentPage() {
     const regRes = await getRegistrationById(registrationId)
     if (regRes.registration) {
       setRegistration(regRes.registration)
-      const clubId = regRes.registration.event.club_id
+      const clubId = regRes.registration.event?.club_id || ''
       const [settings, sub, order] = await Promise.all([
-        getClubPaymentSettings(clubId),
+        clubId ? getClubPaymentSettings(clubId) : Promise.resolve(null),
         getStudentPaymentSubmission(registrationId),
         getStudentPaymentOrder(registrationId),
       ])
@@ -324,7 +324,7 @@ export default function StudentPaymentPage() {
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24 text-left">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 py-4 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] mb-8">
+        <div className="flex items-center gap-2 py-4 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] mb-8 flex-wrap">
           <Link
             to="/student/dashboard"
             className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
@@ -551,11 +551,11 @@ export default function StudentPaymentPage() {
             {!event.is_free && registration.status !== 'pending_approval' && (
               <div className="flex flex-col gap-6">
                 {/* Mode Selector Tabs */}
-                <div className="flex items-center gap-2 p-1.5 bg-[var(--color-surface-2)] rounded-2xl border border-[var(--color-surface-3)] w-full sm:w-fit">
+                <div className="flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-[var(--color-surface-2)] rounded-2xl border border-[var(--color-surface-3)] w-full sm:w-fit">
                   <button
                     type="button"
                     onClick={() => setActiveTab('gateway')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${
                       activeTab === 'gateway'
                         ? 'bg-[var(--color-brand-purple)] text-white shadow-lg'
                         : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -566,7 +566,7 @@ export default function StudentPaymentPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('upi_qr')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${
                       activeTab === 'upi_qr'
                         ? 'bg-[var(--color-brand-purple)] text-white shadow-lg'
                         : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -743,19 +743,20 @@ export default function StudentPaymentPage() {
                         </div>
 
                         {/* QR Code */}
-                        <div className="p-3 bg-white rounded-2xl shadow-lg border border-[var(--color-surface-3)] mb-4">
+                        <div className="p-3 bg-white rounded-2xl shadow-lg border border-[var(--color-surface-3)] mb-4 max-w-[200px] w-full flex items-center justify-center">
                           {clubSettings?.qr_image_url ? (
                             <img
                               src={clubSettings.qr_image_url}
                               alt="Club Official UPI QR"
-                              className="w-48 h-48 object-contain rounded-xl"
+                              className="w-40 h-40 max-w-full object-contain rounded-xl"
                             />
                           ) : (
                             <QRCodeSVG
                               value={upiIntentUri}
-                              size={192}
+                              size={160}
                               level="M"
                               includeMargin={false}
+                              className="max-w-full h-auto"
                             />
                           )}
                         </div>

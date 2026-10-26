@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { Button, Card, Badge } from '@/components/ui'
+import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { getEventById } from '@/lib/events'
 import { getEventRegistrations } from '@/lib/registrations'
@@ -123,8 +124,8 @@ export default function EventReportsPage() {
     : ''
 
   return (
-    <div className="min-h-screen pt-28 pb-24 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)] text-left">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <PageShell>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
           <Link
@@ -145,10 +146,10 @@ export default function EventReportsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-display text-[var(--color-text-primary)]">
                 Event Reports & Analytics
               </h1>
-              <Badge variant="purple" className="flex items-center gap-1">
+              <Badge variant="purple" className="flex items-center gap-1 text-[10px]">
                 <FileSpreadsheet size={12} /> Executive Summary
               </Badge>
             </div>
@@ -160,30 +161,31 @@ export default function EventReportsPage() {
                   <Calendar size={13} /> {formattedDate}
                 </span>
                 <span>•</span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 truncate">
                   <MapPin size={13} /> {event.venue_name}
                 </span>
               </p>
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => loadData(true)}
               isLoading={refreshing}
               leftIcon={<RefreshCw size={14} />}
+              className="flex-1 sm:flex-initial justify-center"
             >
               Refresh
             </Button>
             {event && (
-              <Link to={`/club/events/${event.id}/check-in`}>
+              <Link to={`/club/events/${event.id}/check-in`} className="flex-1 sm:flex-initial">
                 <Button
                   variant="primary"
                   size="sm"
                   leftIcon={<QrCode size={14} />}
-                  className="bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold"
+                  className="w-full justify-center bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold"
                 >
                   Gate Check-In
                 </Button>
@@ -197,24 +199,24 @@ export default function EventReportsPage() {
             variants={fadeIn}
             initial="hidden"
             animate="visible"
-            className={`p-4 rounded-xl border text-xs sm:text-sm flex items-center gap-3 ${
+            className={`p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm flex items-center gap-3 ${
               notice.isError
                 ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
                 : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
             }`}
           >
-            {notice.isError ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+            {notice.isError ? <AlertCircle size={18} className="shrink-0" /> : <CheckCircle2 size={18} className="shrink-0" />}
             <span className="flex-1">{notice.message}</span>
           </motion.div>
         )}
 
         {/* Executive Summary Metrics Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          <Card className="p-3.5 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
+          <Card className="p-3 sm:p-3.5 flex flex-col justify-between">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
               Total Signed Up
             </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-[var(--color-text-primary)] mt-1">
+            <div className="text-lg sm:text-2xl font-bold font-display text-[var(--color-text-primary)] mt-1">
               {loading ? '…' : totalRegistrations}
             </div>
           </Card>
@@ -500,6 +502,6 @@ export default function EventReportsPage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </PageShell>
   )
 }

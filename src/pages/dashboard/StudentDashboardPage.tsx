@@ -14,8 +14,10 @@ import {
   QrCode,
   ArrowRight,
   Users,
+  RefreshCw,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/components/ui'
+import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { Link } from 'react-router'
 import { fadeIn, staggerContainer } from '@/lib/animations'
@@ -56,9 +58,14 @@ export default function StudentDashboardPage() {
   // Filter registrations by category tab
   const filteredList = useMemo(() => {
     return registrations.filter((r) => {
-      const eventStart = new Date(r.event.start_date)
+      const hasValidDate = Boolean(r.event?.start_date)
+      const eventStart = hasValidDate ? new Date(r.event!.start_date) : null
+      const isUpcoming = eventStart ? eventStart >= now : false
+      const isPast = eventStart ? eventStart < now : false
+
       if (tab === 'upcoming') {
-        return r.status === 'confirmed' && eventStart >= now
+        // Only confirmed passes for valid upcoming events
+        return r.status === 'confirmed' && isUpcoming
       }
       if (tab === 'pending_approval') {
         return r.status === 'pending_approval'
@@ -67,7 +74,8 @@ export default function StudentDashboardPage() {
         return r.status === 'pending_payment'
       }
       if (tab === 'past') {
-        return r.status === 'confirmed' && eventStart < now
+        // Confirmed passes where event has concluded or date is unavailable
+        return r.status === 'confirmed' && (isPast || !hasValidDate)
       }
       if (tab === 'cancelled') {
         return r.status === 'cancelled' || r.status === 'rejected'
@@ -78,12 +86,12 @@ export default function StudentDashboardPage() {
 
   // Count summaries
   const upcomingCount = registrations.filter(
-    (r) => r.status === 'confirmed' && new Date(r.event.start_date) >= now
+    (r) => r.status === 'confirmed' && Boolean(r.event?.start_date) && new Date(r.event!.start_date) >= now
   ).length
   const pendingApprovalCount = registrations.filter((r) => r.status === 'pending_approval').length
   const pendingPaymentCount = registrations.filter((r) => r.status === 'pending_payment').length
   const pastCount = registrations.filter(
-    (r) => r.status === 'confirmed' && new Date(r.event.start_date) < now
+    (r) => r.status === 'confirmed' && (!r.event?.start_date || new Date(r.event!.start_date) < now)
   ).length
   const cancelledCount = registrations.filter(
     (r) => r.status === 'cancelled' || r.status === 'rejected'
@@ -105,36 +113,47 @@ export default function StudentDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)] text-left">
-      <div className="max-w-6xl mx-auto flex flex-col gap-8">
+    <PageShell>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 text-left">
         {/* Top Header Card */}
         <motion.div
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden"
+          className="glass p-4 sm:p-6 md:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xl relative overflow-hidden"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-brand-cyan)] to-[var(--color-brand-purple)] flex items-center justify-center text-white shadow-lg shadow-[var(--color-brand-cyan)]/20 shrink-0">
-              <GraduationCap size={32} />
+          <div className="flex items-center gap-3.5 sm:gap-4">
+            <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[var(--color-brand-cyan)] to-[var(--color-brand-purple)] flex items-center justify-center text-white shadow-lg shadow-[var(--color-brand-cyan)]/20 shrink-0">
+              <GraduationCap size={28} className="sm:w-8 sm:h-8" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-display text-[var(--color-text-primary)] truncate">
                   {displayName}
                 </h1>
-                <Badge variant="cyan">Student Pass</Badge>
+                <Badge variant="cyan" className="shrink-0 text-[10px] sm:text-xs">Student Pass</Badge>
               </div>
-              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
+              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">
                 {college} • {profile?.email}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link to="/discover">
-              <Button variant="ghost" size="sm" leftIcon={<Compass size={15} />}>
-                Discover Events
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-2 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)]">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadRegistrations}
+              disabled={loading}
+              className="flex-1 sm:flex-initial justify-center"
+              leftIcon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
+              title="Refresh your passes and application status"
+            >
+              Refresh
+            </Button>
+            <Link to="/discover" className="flex-1 sm:flex-initial">
+              <Button variant="ghost" size="sm" className="w-full justify-center" leftIcon={<Compass size={15} />}>
+                Discover
               </Button>
             </Link>
             <Button
@@ -142,7 +161,7 @@ export default function StudentDashboardPage() {
               size="sm"
               onClick={() => signOut()}
               leftIcon={<LogOut size={15} />}
-              className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30"
+              className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30 w-full sm:w-auto justify-center"
             >
               Sign Out
             </Button>
@@ -246,11 +265,11 @@ export default function StudentDashboardPage() {
           </div>
 
           {/* Sub-Tabs: Upcoming, Under Review, Pending Payment, Past, Cancelled */}
-          <div className="flex items-center gap-1.5 p-1 bg-[var(--color-surface-2)] rounded-xl w-fit text-xs border border-[var(--color-surface-3)] overflow-x-auto">
+          <div className="flex items-center gap-1.5 p-1 bg-[var(--color-surface-2)] rounded-xl w-full max-w-full overflow-x-auto no-scrollbar touch-pan-x text-xs border border-[var(--color-surface-3)]">
             <button
               type="button"
               onClick={() => setTab('upcoming')}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap shrink-0 transition-all ${
                 tab === 'upcoming'
                   ? 'bg-[var(--color-brand-cyan)] text-black font-semibold shadow-sm'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -261,7 +280,7 @@ export default function StudentDashboardPage() {
             <button
               type="button"
               onClick={() => setTab('pending_approval')}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap shrink-0 transition-all ${
                 tab === 'pending_approval'
                   ? 'bg-[var(--color-brand-purple)] text-white font-semibold shadow-sm'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -272,7 +291,7 @@ export default function StudentDashboardPage() {
             <button
               type="button"
               onClick={() => setTab('pending_payment')}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap shrink-0 transition-all ${
                 tab === 'pending_payment'
                   ? 'bg-amber-400 text-black font-semibold shadow-sm'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -283,7 +302,7 @@ export default function StudentDashboardPage() {
             <button
               type="button"
               onClick={() => setTab('past')}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap shrink-0 transition-all ${
                 tab === 'past'
                   ? 'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] font-semibold shadow-sm'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -294,7 +313,7 @@ export default function StudentDashboardPage() {
             <button
               type="button"
               onClick={() => setTab('cancelled')}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap shrink-0 transition-all ${
                 tab === 'cancelled'
                   ? 'bg-rose-500/20 text-rose-300 font-semibold shadow-sm'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -336,33 +355,37 @@ export default function StudentDashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredList.map((reg) => {
-                const event = reg.event
-                const startDate = new Date(event.start_date)
-                const formattedDate = startDate.toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })
-                const formattedTime = startDate.toLocaleTimeString('en-IN', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })
+                const event = reg.event || null
+                const startDate = event?.start_date ? new Date(event.start_date) : null
+                const formattedDate = startDate
+                  ? startDate.toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : 'Date unavailable'
+                const formattedTime = startDate
+                  ? startDate.toLocaleTimeString('en-IN', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                    })
+                  : 'Time unavailable'
 
                 const isConfirmed = reg.status === 'confirmed'
                 const isPendingApproval = reg.status === 'pending_approval'
                 const isPendingPayment = reg.status === 'pending_payment'
                 const isRejected = reg.status === 'rejected'
                 const isCancelled = reg.status === 'cancelled'
-                const hasStarted = startDate <= now
+                const hasStarted = startDate ? startDate <= now : false
 
                 return (
                   <Card
                     key={reg.id}
-                    className="p-5 flex flex-col justify-between gap-4 border border-[oklch(100%_0_0_/_0.08)] hover:border-[oklch(100%_0_0_/_0.15)] transition-all shadow-sm"
+                    className="p-4 sm:p-5 flex flex-col justify-between gap-4 border border-[oklch(100%_0_0_/_0.08)] hover:border-[oklch(100%_0_0_/_0.15)] transition-all shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <Badge
                             variant={
@@ -386,23 +409,37 @@ export default function StudentDashboardPage() {
                               ? 'Rejected'
                               : 'Cancelled'}
                           </Badge>
-                          <Badge variant="cyan" className="capitalize text-[10px]">
-                            {event.category}
-                          </Badge>
-                          {event.participation_type === 'team' && (
-                            <Badge variant="pink" className="text-[10px]">
-                              Team Event
+                          {event ? (
+                            <>
+                              <Badge variant="cyan" className="capitalize text-[10px]">
+                                {event.category}
+                              </Badge>
+                              {event.participation_type === 'team' && (
+                                <Badge variant="pink" className="text-[10px]">
+                                  Team Event
+                                </Badge>
+                              )}
+                            </>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-[var(--color-text-muted)]">
+                              Event Unavailable
                             </Badge>
                           )}
                         </div>
 
                         <h3 className="font-semibold text-[var(--color-text-primary)] text-base line-clamp-1">
-                          <Link
-                            to={`/events/${event.slug}`}
-                            className="hover:text-[var(--color-brand-cyan)] transition-colors"
-                          >
-                            {event.title}
-                          </Link>
+                          {event?.slug ? (
+                            <Link
+                              to={`/events/${event.slug}`}
+                              className="hover:text-[var(--color-brand-cyan)] transition-colors"
+                            >
+                              {event.title}
+                            </Link>
+                          ) : (
+                            <span className="text-[var(--color-text-secondary)] italic">
+                              {event?.title || 'Event Details Unavailable'}
+                            </span>
+                          )}
                         </h3>
 
                         {reg.team_name && (
@@ -428,30 +465,36 @@ export default function StudentDashboardPage() {
 
                         <div className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)] mt-1.5">
                           <span className="flex items-center gap-1.5">
-                            <Clock size={12} /> {formattedDate} at {formattedTime}
+                            <Clock size={12} /> {formattedDate} {startDate ? `at ${formattedTime}` : ''}
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <MapPin size={12} /> {event.venue_name}
+                            <MapPin size={12} /> {event?.venue_name || 'Venue details unavailable'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Poster thumbnail */}
-                      <img
-                        src={event.poster_url || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=200'}
-                        alt={event.title}
-                        className="w-16 h-16 rounded-xl object-cover shrink-0 border border-[var(--color-surface-3)]"
-                      />
+                      {/* Poster thumbnail or clean fallback icon */}
+                      {event?.poster_url ? (
+                        <img
+                          src={event.poster_url}
+                          alt={event.title || 'Event'}
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 border border-[var(--color-surface-3)]"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0">
+                          <Ticket size={22} />
+                        </div>
+                      )}
                     </div>
 
                     {/* Bottom ticket action row */}
-                    <div className="flex items-center justify-between pt-3 border-t border-[var(--color-surface-3)] text-xs">
-                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--color-text-muted)]">
-                        <QrCode size={13} className="text-[var(--color-brand-cyan)]" />
-                        <span>{reg.ticket_code}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-[var(--color-surface-3)] text-xs">
+                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--color-text-muted)] min-w-0">
+                        <QrCode size={13} className="text-[var(--color-brand-cyan)] shrink-0" />
+                        <span className="truncate">{reg.ticket_code}</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
                         {isConfirmed && (
                           <Link to={`/student/tickets/${reg.id}`}>
                             <Button variant="primary" size="sm" rightIcon={<ArrowRight size={13} />}>
@@ -486,7 +529,7 @@ export default function StudentDashboardPage() {
                           </Link>
                         )}
 
-                        {isRejected && !event.is_free && (
+                        {isRejected && (!event || !event.is_free) && (
                           <Link to={`/student/payments/${reg.id}`}>
                             <Button
                               variant="danger"
@@ -549,7 +592,7 @@ export default function StudentDashboardPage() {
                 <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
                   Are you sure you want to cancel your registration for{' '}
                   <strong className="text-[var(--color-text-primary)]">
-                    "{cancellingReg.event.title}"
+                    "{cancellingReg.event?.title || 'this event'}"
                   </strong>
                   ? Your seat will be released immediately for other campus students, and this QR pass will become void.
                 </p>
@@ -578,6 +621,6 @@ export default function StudentDashboardPage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </PageShell>
   )
 }

@@ -10,9 +10,11 @@ const corsHeaders = {
 interface EmailRequest {
   template:
     | 'registration_confirmed'
+    | 'application_submitted'
     | 'payment_received'
     | 'payment_approved'
     | 'payment_rejected'
+    | 'registration_cancelled'
     | 'event_cancelled'
     | 'event_reminder'
   to: string
@@ -34,8 +36,30 @@ function generateEmailHtml(template: string, name: string, payload: Record<strin
   let bodyContent = ''
   let textFallback = ''
 
-  if (template === 'registration_confirmed') {
-    subject = `Registration Confirmed: ${payload.event_title || 'Campus Event'}`
+  if (template === 'application_submitted') {
+    subject = `Application Received: ${payload.event_title || 'Campus Event'}`
+    textFallback = `Hello ${recipient},\n\nYour registration application for ${payload.event_title} has been received and is currently under organizer review.\nReference Code: ${payload.ticket_code}\n\nTrack your application status here: ${payload.status_url || 'https://festflow.com/student/dashboard'}`
+    bodyContent = `
+      <h2 style="color: #a78bfa; margin-top: 0;">⏳ Application Under Review</h2>
+      <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
+        Hi <strong>${recipient}</strong>, we received your registration application for <strong>${payload.event_title}</strong>.
+      </p>
+      <div style="background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.25); border-radius: 12px; padding: 18px; margin: 20px 0;">
+        <p style="margin: 4px 0; color: ${textWhite};">📅 <strong>Event Date:</strong> ${payload.start_date || 'Check dashboard'}</p>
+        <p style="margin: 4px 0; color: ${textWhite};">📍 <strong>Venue:</strong> ${payload.venue_name || 'Campus Venue'}</p>
+        <p style="margin: 4px 0; color: ${textWhite};">🔖 <strong>Application Ref:</strong> <span style="font-family: monospace; font-size: 15px; font-weight: bold; color: #a78bfa;">${payload.ticket_code}</span></p>
+      </div>
+      <p style="color: ${textMuted}; font-size: 13px;">
+        The event organizer is currently reviewing attendee applications. You will receive an instant notification once your pass has been approved.
+      </p>
+      <p style="text-align: center; margin: 25px 0;">
+        <a href="${payload.status_url || 'https://festflow.com/student/dashboard'}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Track Application Status</a>
+      </p>
+    `
+  } else if (template === 'registration_confirmed') {
+    subject = payload.is_resend
+      ? `[Pass Resend] Entry Ticket: ${payload.event_title || 'Campus Event'}`
+      : `Registration Confirmed: ${payload.event_title || 'Campus Event'}`
     textFallback = `Hello ${recipient},\n\nYour registration for ${payload.event_title} is confirmed!\nDate: ${payload.start_date}\nVenue: ${payload.venue_name}\nTicket Code: ${payload.ticket_code}\n\nAccess your digital ticket here: ${payload.ticket_url || 'https://festflow.com/student/dashboard'}`
     bodyContent = `
       <h2 style="color: ${brandCyan}; margin-top: 0;">🎉 You're In!</h2>
@@ -117,6 +141,22 @@ function generateEmailHtml(template: string, name: string, payload: Record<strin
         <a href="${payload.ticket_url || '#'}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Open Pass for Gate Entry</a>
       </p>
     `
+  } else if (template === 'registration_cancelled') {
+    subject = `Registration Cancelled: ${payload.event_title || 'Campus Event'}`
+    textFallback = `Hello ${recipient},\n\nYour registration for ${payload.event_title} has been cancelled.\nReference: ${payload.ticket_code}\nThis ticket has been revoked and is void for gate admission.`
+    bodyContent = `
+      <h2 style="color: #f87171; margin-top: 0;">Registration Cancelled</h2>
+      <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
+        Hi <strong>${recipient}</strong>, your pass registration for <strong>${payload.event_title}</strong> has been cancelled.
+      </p>
+      <div style="background: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.25); border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Ticket Code:</strong> <span style="font-family: monospace; font-weight: bold;">${payload.ticket_code}</span></p>
+        <p style="margin: 4px 0; color: #fca5a5;">Status: Void / Revoked</p>
+      </div>
+      <p style="color: ${textMuted}; font-size: 13px;">
+        Your seat has been released. If you wish to attend, you may submit a new application on FestFlow while seats remain open.
+      </p>
+    `
   } else if (template === 'event_cancelled') {
     subject = `Event Cancelled: ${payload.event_title || 'Campus Event'}`
     textFallback = `Hello ${recipient},\n\nWe regret to inform you that ${payload.event_title} has been cancelled by the organizers.\nReason: ${payload.reason || 'Event cancelled'}`
@@ -171,6 +211,42 @@ serve(async (req) => {
   }
 
   try {
+    // ─── Authentication & Authorization Check ─────────────────────────────────
+    // Prevent unauthenticated callers from abusing the endpoint as an open spam relay
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: Missing Authorization header.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+
+    const isServiceRole = Boolean(supabaseServiceKey && token === supabaseServiceKey)
+
+    if (!isServiceRole) {
+      if (!supabaseUrl) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Server configuration error: missing SUPABASE_URL.' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey || supabaseServiceKey)
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
+
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized: Valid authenticated session is required.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'notifications@festflow.com'
     const fromName = Deno.env.get('RESEND_FROM_NAME') || 'FestFlow Events'
@@ -225,8 +301,6 @@ serve(async (req) => {
     }
 
     // Optional: Update outbox record in database if Supabase env is accessible
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (outbox_id && supabaseUrl && supabaseServiceKey) {
       const supabase = createClient(supabaseUrl, supabaseServiceKey)
       await supabase

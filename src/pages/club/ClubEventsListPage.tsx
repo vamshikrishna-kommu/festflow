@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { Button, Badge } from '@/components/ui'
+import { PageShell } from '@/components/layout/PageShell'
 import { listClubEvents, updateEvent } from '@/lib/events'
 import { useAuth } from '@/context/AuthContext'
 import { fadeIn, staggerContainer } from '@/lib/animations'
@@ -106,8 +107,8 @@ export default function ClubEventsListPage() {
   }
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)]">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <PageShell>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
         {/* Breadcrumb / Top Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -161,13 +162,13 @@ export default function ClubEventsListPage() {
         {/* Filter & Search Bar */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[var(--color-surface-1)] rounded-2xl border border-[var(--color-surface-3)]">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 text-xs">
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 text-xs no-scrollbar touch-pan-x">
             {(['all', 'published', 'draft', 'cancelled', 'completed'] as const).map((st) => (
               <button
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-xl capitalize font-medium transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl capitalize font-medium transition-all shrink-0 min-h-[36px] flex items-center justify-center ${
                   statusFilter === st
                     ? 'bg-[var(--color-brand-purple)] text-white shadow-sm'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
@@ -224,17 +225,21 @@ export default function ClubEventsListPage() {
             className="flex flex-col gap-3.5"
           >
             {filteredEvents.map((evt) => {
-              const startDate = new Date(evt.start_date)
-              const formattedDate = startDate.toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })
-              const formattedTime = startDate.toLocaleTimeString('en-IN', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-              })
+              const startDate = evt.start_date ? new Date(evt.start_date) : null
+              const formattedDate = startDate
+                ? startDate.toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : 'Date TBA'
+              const formattedTime = startDate
+                ? startDate.toLocaleTimeString('en-IN', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })
+                : 'Time TBA'
 
               return (
                 <motion.div
@@ -282,7 +287,7 @@ export default function ClubEventsListPage() {
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-3 md:pt-0 border-t md:border-t-0 border-[var(--color-surface-3)] w-full md:w-auto justify-start md:justify-end shrink-0">
                     {/* View Attendees */}
                     <Link to={`/club/events/${evt.id}/registrations`} title="View registered attendees and passes">
                       <Button variant="ghost" size="sm" leftIcon={<Users size={14} />}>
@@ -422,6 +427,6 @@ export default function ClubEventsListPage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </PageShell>
   )
 }

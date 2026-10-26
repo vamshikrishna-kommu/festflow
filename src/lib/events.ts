@@ -674,12 +674,14 @@ export async function listPublishedEvents(params?: {
 
 // ── Helper to convert EventRecord or EventWithClub into UI Event ─────────────
 export function mapRecordToUiEvent(record: EventRecord | EventWithClub): Event {
-  const startDate = new Date(record.start_date)
-  const timeFormatted = startDate.toLocaleTimeString('en-IN', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
+  const startDate = record.start_date ? new Date(record.start_date) : null
+  const timeFormatted = startDate
+    ? startDate.toLocaleTimeString('en-IN', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : 'Time TBA'
 
   const clubName =
     'club' in record && record.club?.club_profile?.club_name

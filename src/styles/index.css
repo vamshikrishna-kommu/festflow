@@ -154,6 +154,25 @@ body {
 .glow-purple { box-shadow: var(--shadow-glow-purple); }
 .glow-pink   { box-shadow: var(--shadow-glow-pink); }
 
+/* ─── Mobile Safe Area & Touch Utilities ─────────────────────────────── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.touch-pan-x {
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ─── Reduced Motion ─────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -165,3 +184,4 @@ body {
     scroll-behavior: auto !important;
   }
 }
+

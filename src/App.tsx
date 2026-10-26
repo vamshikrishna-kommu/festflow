@@ -15,6 +15,8 @@ const ClubSignupPage       = lazy(() => import('@/pages/auth/ClubSignupPage'))
 const ClubLoginPage        = lazy(() => import('@/pages/auth/ClubLoginPage'))
 const StudentSignupPage    = lazy(() => import('@/pages/auth/StudentSignupPage'))
 const StudentLoginPage     = lazy(() => import('@/pages/auth/StudentLoginPage'))
+const ForgotPasswordPage   = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage    = lazy(() => import('@/pages/auth/ResetPasswordPage'))
 const UnauthorizedPage     = lazy(() => import('@/pages/auth/UnauthorizedPage'))
 const AuthCallbackPage     = lazy(() => import('@/pages/auth/AuthCallbackPage'))
 
@@ -116,6 +118,22 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/forgot-password',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ForgotPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ResetPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
     path: '/unauthorized',
     element: (
       <Suspense fallback={<PageLoader />}>
@@ -197,6 +215,16 @@ const router = createBrowserRouter([
   },
   {
     path: '/club/events/:id/check-in',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+          <EventCheckInPage />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/club/events/:id/checkin',
     element: (
       <Suspense fallback={<PageLoader />}>
         <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>

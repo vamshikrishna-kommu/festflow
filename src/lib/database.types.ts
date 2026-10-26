@@ -214,6 +214,7 @@ export interface Database {
           event_id: string
           student_id: string
           ticket_code: string
+          qr_token: string
           status: RegistrationStatus
           team_name: string | null
           team_role: 'leader' | 'member' | null
@@ -233,6 +234,7 @@ export interface Database {
           event_id: string
           student_id: string
           ticket_code: string
+          qr_token?: string
           status?: RegistrationStatus
           team_name?: string | null
           team_role?: 'leader' | 'member' | null
@@ -388,6 +390,8 @@ export interface Database {
           staff_id: string
           checked_in_at: string
           checkin_notes: string | null
+          member_index: number
+          member_name: string | null
           created_at: string
         }
         Insert: {
@@ -398,6 +402,8 @@ export interface Database {
           staff_id: string
           checked_in_at?: string
           checkin_notes?: string | null
+          member_index?: number
+          member_name?: string | null
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['check_ins']['Insert']>
@@ -518,6 +524,12 @@ export interface Database {
         Args: {
           p_event_id: string
           p_custom_message?: string | null
+        }
+        Returns: Record<string, unknown>
+      }
+      resend_registration_pass: {
+        Args: {
+          p_registration_id: string
         }
         Returns: Record<string, unknown>
       }

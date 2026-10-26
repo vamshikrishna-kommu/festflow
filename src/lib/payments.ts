@@ -12,6 +12,10 @@ import type {
   InAppNotification,
 } from '@/types'
 import { getEventById } from '@/lib/events'
+import {
+  sendPaymentApprovedEmail,
+  sendPaymentRejectedEmail,
+} from '@/lib/emails'
 
 const LOCAL_STORAGE_PAYMENT_SETTINGS_KEY = 'festflow_local_club_payment_settings'
 const LOCAL_STORAGE_PAYMENT_SUBMISSIONS_KEY = 'festflow_local_payment_submissions'
@@ -628,6 +632,26 @@ export async function reviewPaymentSubmission(params: {
   })
   saveLocalNotifications(notifs)
 
+  // Trigger lifecycle email
+  if (decision === 'approved') {
+    sendPaymentApprovedEmail({
+      to: 'student@campus.edu',
+      name: 'FestFlow Student',
+      eventTitle: 'Campus Event',
+      ticketCode: issuedTicketCode || 'TKT-CONFIRMED',
+      venueName: 'Campus Venue',
+      registrationId: targetSub.registration_id,
+    }).catch(() => {})
+  } else {
+    sendPaymentRejectedEmail({
+      to: 'student@campus.edu',
+      name: 'FestFlow Student',
+      eventTitle: 'Campus Event',
+      reason: notes || 'Transaction reference could not be verified in organizer account.',
+      registrationId: targetSub.registration_id,
+    }).catch(() => {})
+  }
+
   return {
     success: true,
     message: decision === 'approved' ? 'Payment approved and ticket confirmed.' : 'Payment rejected with notes.',
@@ -1128,6 +1152,17 @@ export async function verifyPaymentOrder(params: {
     created_at: new Date().toISOString(),
   })
   saveLocalNotifications(notifs)
+
+  // Trigger pass confirmation email upon successful payment verification
+  sendPaymentApprovedEmail({
+    to: 'student@campus.edu',
+    name: 'FestFlow Student',
+    eventTitle: 'Campus Event',
+    ticketCode: issuedCode || 'TKT-ONLINE-CONFIRMED',
+    venueName: 'Campus Venue',
+    registrationId: order.registration_id,
+    orderId: order.id,
+  }).catch(() => {})
 
   return {
     success: true,

@@ -16,6 +16,7 @@ import {
   QrCode,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/components/ui'
+import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { Link } from 'react-router'
 import { fadeIn, staggerContainer } from '@/lib/animations'
@@ -58,41 +59,41 @@ export default function ClubDashboardPage() {
   const totalCapacity = events.reduce((sum, e) => sum + (e.capacity || 0), 0)
 
   return (
-    <div className="min-h-screen pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)]">
-      <div className="max-w-6xl mx-auto flex flex-col gap-8">
+    <PageShell>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 text-left">
         {/* Top Header Card */}
         <motion.div
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden"
+          className="glass p-4 sm:p-6 md:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xl relative overflow-hidden"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] flex items-center justify-center text-white shadow-lg shadow-[var(--color-brand-purple)]/20 shrink-0">
-              <Building2 size={32} />
+          <div className="flex items-center gap-3.5 sm:gap-4">
+            <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] flex items-center justify-center text-white shadow-lg shadow-[var(--color-brand-purple)]/20 shrink-0">
+              <Building2 size={28} className="sm:w-8 sm:h-8" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-display text-[var(--color-text-primary)] truncate">
                   {clubName}
                 </h1>
-                <Badge variant="purple" className="flex items-center gap-1">
+                <Badge variant="purple" className="flex items-center gap-1 shrink-0 text-[10px] sm:text-xs">
                   <ShieldCheck size={12} /> Verified Club
                 </Badge>
               </div>
-              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
+              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">
                 Lead: <span className="text-[var(--color-text-primary)] font-medium">{repName}</span> • {profile?.email}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <Link to="/club/payments">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)]">
+            <Link to="/club/payments" className="flex-1 sm:flex-initial">
               <Button
                 variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
                 size="sm"
                 leftIcon={<CreditCard size={15} />}
-                className={pendingPaymentsCount > 0 ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold' : ''}
+                className={`w-full justify-center ${pendingPaymentsCount > 0 ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold' : ''}`}
               >
                 Verify Payments
                 {pendingPaymentsCount > 0 && (
@@ -102,13 +103,13 @@ export default function ClubDashboardPage() {
                 )}
               </Button>
             </Link>
-            <Link to="/club/settings/payments">
-              <Button variant="outline" size="sm" leftIcon={<Settings size={15} />}>
-                UPI Settings
+            <Link to="/club/settings/payments" className="flex-1 sm:flex-initial">
+              <Button variant="outline" size="sm" className="w-full justify-center" leftIcon={<Settings size={15} />}>
+                UPI
               </Button>
             </Link>
-            <Link to="/club/events/new">
-              <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
+            <Link to="/club/events/new" className="w-full sm:w-auto">
+              <Button variant="primary" size="sm" className="w-full justify-center" leftIcon={<Plus size={15} />}>
                 Create Event
               </Button>
             </Link>
@@ -116,7 +117,7 @@ export default function ClubDashboardPage() {
               variant="ghost"
               size="sm"
               onClick={() => signOut()}
-              className="text-rose-400 hover:text-rose-300"
+              className="text-rose-400 hover:text-rose-300 w-full sm:w-auto justify-center"
             >
               Sign Out
             </Button>
@@ -193,7 +194,7 @@ export default function ClubDashboardPage() {
 
         {/* Events Management Area */}
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
                 Managed Events
@@ -203,13 +204,13 @@ export default function ClubDashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Link to="/club/events">
-                <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={14} />}>
+              <Link to="/club/events" className="flex-1 sm:flex-initial">
+                <Button variant="ghost" size="sm" className="w-full justify-center" rightIcon={<ArrowRight size={14} />}>
                   View All ({events.length})
                 </Button>
               </Link>
-              <Link to="/club/events/new">
-                <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
+              <Link to="/club/events/new" className="flex-1 sm:flex-initial">
+                <Button variant="primary" size="sm" className="w-full justify-center" leftIcon={<Plus size={15} />}>
                   Create Event
                 </Button>
               </Link>
@@ -241,17 +242,19 @@ export default function ClubDashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {events.slice(0, 4).map((event) => {
-                const startDate = new Date(event.start_date)
-                const formattedDate = startDate.toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })
+                const startDate = event.start_date ? new Date(event.start_date) : null
+                const formattedDate = startDate
+                  ? startDate.toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : 'Date TBA'
 
                 return (
-                  <Card key={event.id} className="p-5 flex flex-col justify-between gap-4">
+                  <Card key={event.id} className="p-4 sm:p-5 flex flex-col justify-between gap-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <Badge
                             variant={
@@ -277,7 +280,7 @@ export default function ClubDashboardPage() {
                             <Clock size={12} /> {formattedDate}
                           </span>
                           <span>•</span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 truncate">
                             <MapPin size={12} /> {event.venue_name}
                           </span>
                         </p>
@@ -287,21 +290,21 @@ export default function ClubDashboardPage() {
                         <img
                           src={event.poster_url}
                           alt={event.title}
-                          className="w-16 h-16 rounded-xl object-cover shrink-0 border border-[var(--color-surface-3)]"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 border border-[var(--color-surface-3)]"
                         />
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-[var(--color-surface-3)] text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-[var(--color-surface-3)] text-xs">
                       <span className="text-[var(--color-text-secondary)] font-medium">
                         {event.is_free ? 'Free Entry' : `₹${event.price}`} • {event.capacity} seats
                       </span>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                         {event.status === 'published' && (
                           <Link
                             to={`/club/events/${event.id}/check-in`}
-                            className="flex items-center gap-1 text-[var(--color-brand-cyan)] hover:underline font-semibold mr-1"
+                            className="flex items-center gap-1 text-[var(--color-brand-cyan)] hover:underline font-semibold"
                           >
                             <QrCode size={13} /> Check In
                           </Link>
@@ -333,6 +336,6 @@ export default function ClubDashboardPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router'
 import { motion } from 'motion/react'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { PageShell } from '@/components/layout/PageShell'
 import { EventForm } from '@/components/events/EventForm'
 import { getEventById, updateEvent } from '@/lib/events'
 import { useAuth } from '@/context/AuthContext'
@@ -102,8 +103,8 @@ export default function EditEventPage() {
   }
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)]">
-      <div className="max-w-4xl mx-auto flex flex-col gap-6">
+    <PageShell>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
           <Link
@@ -147,6 +148,6 @@ export default function EditEventPage() {
           serverError={serverError}
         />
       </div>
-    </div>
+    </PageShell>
   )
 }

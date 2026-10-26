@@ -8,6 +8,15 @@ import type {
   TeamMember,
 } from '@/types'
 import { getEventById } from '@/lib/events'
+import {
+  sendRegistrationConfirmedEmail,
+  sendApplicationSubmittedEmail,
+  sendPaymentRejectedEmail,
+  sendRegistrationCancelledEmail,
+  resendPassEmail,
+} from '@/lib/emails'
+
+export { resendPassEmail }
 
 const LOCAL_STORAGE_REGISTRATIONS_KEY = 'festflow_local_registrations'
 
@@ -27,6 +36,7 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
       event_id: 'evt-1',
       student_id: 'demo_student_default',
       ticket_code: 'FF-884A2C91',
+      qr_token: 'FFQ_884A2C9177E2',
       status: 'confirmed',
       created_at: new Date(now.getTime() - 2 * 86400000).toISOString(),
       ticket_issued_at: new Date(now.getTime() - 2 * 86400000).toISOString(),
@@ -46,6 +56,7 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
       event_id: 'evt-2',
       student_id: 'demo_student_default',
       ticket_code: 'FF-19DF7B03',
+      qr_token: 'FFQ_19DF7B0388A1',
       status: 'pending_payment',
       created_at: new Date(now.getTime() - 1 * 86400000).toISOString(),
       ticket_issued_at: null,
@@ -65,6 +76,7 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
       event_id: 'evt-3',
       student_id: 'student_other_1',
       ticket_code: 'FF-62BA994F',
+      qr_token: 'FFQ_62BA994F99F0',
       status: 'confirmed',
       created_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
       ticket_issued_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
@@ -261,6 +273,7 @@ export async function registerForEvent(
     }
 
     const ticketCode = 'FF-' + Math.random().toString(36).substring(2, 10).toUpperCase()
+    const qrToken = 'FFQ_' + Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase()
     const isFree = event.is_free
     const isManualApproval = event.approval_type === 'manual'
 
@@ -291,6 +304,7 @@ export async function registerForEvent(
       event_id: eventId,
       student_id: studentId,
       ticket_code: ticketCode,
+      qr_token: qrToken,
       status: initialStatus,
       created_at: now.toISOString(),
       ticket_issued_at: issuedAt,
@@ -309,10 +323,38 @@ export async function registerForEvent(
     currentRegs.unshift(newReg)
     saveLocalRegistrations(currentRegs)
 
+    // Trigger transactional email at correct lifecycle stage
+    if (initialStatus === 'confirmed') {
+      sendRegistrationConfirmedEmail({
+        to: 'student@campus.edu',
+        name: 'FestFlow Student',
+        eventTitle: event.title,
+        ticketCode: ticketCode,
+        qrToken: qrToken,
+        startDate: event.start_date,
+        venueName: event.venue_name,
+        teamName: options?.teamName,
+        registrationId: newReg.id,
+        eventId: event.id,
+      }).catch(() => {})
+    } else if (initialStatus === 'pending_approval') {
+      sendApplicationSubmittedEmail({
+        to: 'student@campus.edu',
+        name: 'FestFlow Student',
+        eventTitle: event.title,
+        ticketCode: ticketCode,
+        startDate: event.start_date,
+        venueName: event.venue_name,
+        registrationId: newReg.id,
+        eventId: event.id,
+      }).catch(() => {})
+    }
+
     return {
       success: true,
       registration_id: newReg.id,
       ticket_code: ticketCode,
+      qr_token: qrToken,
       status: newReg.status,
       approval_status: approvalStatus,
       is_free: isFree,
@@ -385,6 +427,31 @@ export async function reviewRegistrationApplication(
     current[idx] = reg
     saveLocalRegistrations(current)
 
+    // Trigger lifecycle emails
+    if (decision === 'approved' && isFree && eventRes.event) {
+      sendRegistrationConfirmedEmail({
+        to: 'student@campus.edu',
+        name: 'FestFlow Student',
+        eventTitle: eventRes.event.title,
+        ticketCode: reg.ticket_code,
+        qrToken: reg.qr_token,
+        startDate: eventRes.event.start_date,
+        venueName: eventRes.event.venue_name,
+        teamName: reg.team_name,
+        registrationId: reg.id,
+        eventId: reg.event_id,
+      }).catch(() => {})
+    } else if (decision === 'rejected' && eventRes.event) {
+      sendPaymentRejectedEmail({
+        to: 'student@campus.edu',
+        name: 'FestFlow Student',
+        eventTitle: eventRes.event.title,
+        reason: rejectionReason || 'Application declined by organizer.',
+        registrationId: reg.id,
+        eventId: reg.event_id,
+      }).catch(() => {})
+    }
+
     return {
       success: true,
       status: reg.status,
@@ -438,6 +505,18 @@ export async function cancelRegistration(
       updated_at: new Date().toISOString(),
     }
     saveLocalRegistrations(current)
+
+    if (eventRes.event) {
+      sendRegistrationCancelledEmail({
+        to: 'student@campus.edu',
+        name: 'FestFlow Student',
+        eventTitle: eventRes.event.title,
+        ticketCode: reg.ticket_code,
+        registrationId: reg.id,
+        eventId: reg.event_id,
+      }).catch(() => {})
+    }
+
     return { success: true, message: 'Registration cancelled successfully.' }
   }
 }
@@ -545,14 +624,18 @@ export async function getStudentRegistrations(
 ): Promise<{ registrations: RegistrationWithEvent[]; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      let data: any = null
+      let queryError: string | null = null
+
+      // Primary query using explicit foreign key relationship
+      const resExplicit = await supabase
         .from('registrations')
         .select(
           `
           *,
-          event:event_id (
+          event:events!registrations_event_id_fkey (
             *,
-            club:club_id (
+            club:profiles!events_club_id_fkey (
               display_name,
               club_profiles (*)
             )
@@ -562,9 +645,44 @@ export async function getStudentRegistrations(
         .eq('student_id', studentId)
         .order('created_at', { ascending: false })
 
-      if (error) return { registrations: [], error: error.message }
+      if (!resExplicit.error) {
+        data = resExplicit.data
+      } else {
+        // Fallback query without explicit constraint alias
+        const resFallback = await supabase
+          .from('registrations')
+          .select(
+            `
+            *,
+            event:event_id (
+              *,
+              club:club_id (
+                display_name,
+                club_profiles (*)
+              )
+            )
+          `
+          )
+          .eq('student_id', studentId)
+          .order('created_at', { ascending: false })
+
+        if (!resFallback.error) {
+          data = resFallback.data
+        } else {
+          queryError = resExplicit.error.message || resFallback.error?.message || 'Failed to load tickets'
+        }
+      }
+
+      if (queryError) return { registrations: [], error: queryError }
+
+      // Map registrations and preserve genuine records even when related event is unavailable/archived
+      const normalized: RegistrationWithEvent[] = ((data || []) as any[]).map((r) => ({
+        ...r,
+        event: r.event || null,
+      }))
+
       return {
-        registrations: (data as unknown as RegistrationWithEvent[]) || [],
+        registrations: normalized,
         error: null,
       }
     } catch (err) {
@@ -607,12 +725,16 @@ export async function getEventRegistrations(
 ): Promise<{ registrations: RegistrationWithStudent[]; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      // First attempt query with explicit foreign key relation to profiles table
+      let data: any = null
+      let queryError: string | null = null
+
+      const resExplicit = await supabase
         .from('registrations')
         .select(
           `
           *,
-          student:student_id (
+          student:profiles!registrations_student_id_fkey (
             display_name,
             email,
             avatar_url
@@ -622,9 +744,77 @@ export async function getEventRegistrations(
         .eq('event_id', eventId)
         .order('created_at', { ascending: false })
 
-      if (error) return { registrations: [], error: error.message }
+      if (!resExplicit.error) {
+        data = resExplicit.data
+      } else {
+        // Fallback query joining by column name or direct relationship
+        const resFallback = await supabase
+          .from('registrations')
+          .select(
+            `
+            *,
+            student:profiles (
+              display_name,
+              email,
+              avatar_url
+            )
+          `
+          )
+          .eq('event_id', eventId)
+          .order('created_at', { ascending: false })
+
+        if (!resFallback.error) {
+          data = resFallback.data
+        } else {
+          // Second fallback to student_id relation if configured
+          const resLegacy = await supabase
+            .from('registrations')
+            .select(
+              `
+              *,
+              student:student_id (
+                display_name,
+                email,
+                avatar_url
+              )
+            `
+            )
+            .eq('event_id', eventId)
+            .order('created_at', { ascending: false })
+
+          if (!resLegacy.error) {
+            data = resLegacy.data
+          } else {
+            queryError = resExplicit.error.message || resLegacy.error?.message || 'Failed to query registrations'
+          }
+        }
+      }
+
+      if (queryError) return { registrations: [], error: queryError }
+
+      // Map registrations and ensure genuine attendee data is preserved.
+      // If student profile relation is null (e.g. deleted user, missing profile row, or RLS block),
+      // provide safe non-null fallback object so downstream consumers do not crash.
+      const normalizedRegistrations: RegistrationWithStudent[] = (data || []).map((r: any) => {
+        const fallbackName = r.team_name ? `Team ${r.team_name}` : 'Student Attendee'
+        return {
+          ...r,
+          student: r.student
+            ? {
+                display_name: r.student.display_name || fallbackName,
+                email: r.student.email || '',
+                avatar_url: r.student.avatar_url || null,
+              }
+            : {
+                display_name: fallbackName,
+                email: '',
+                avatar_url: null,
+              },
+        }
+      })
+
       return {
-        registrations: (data as unknown as RegistrationWithStudent[]) || [],
+        registrations: normalizedRegistrations,
         error: null,
       }
     } catch (err) {
@@ -654,6 +844,7 @@ export async function getEventRegistrations(
           event_id: eventId,
           student_id: 'std_demo_1',
           ticket_code: 'FF-A189C2',
+          qr_token: 'FFQ_A189C29871',
           status: 'confirmed',
           created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
           ticket_issued_at: new Date(Date.now() - 3600000 * 5).toISOString(),
@@ -678,6 +869,7 @@ export async function getEventRegistrations(
           event_id: eventId,
           student_id: 'std_demo_2',
           ticket_code: 'FF-D54F91',
+          qr_token: 'FFQ_D54F911243',
           status: 'pending_payment',
           created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
           ticket_issued_at: null,

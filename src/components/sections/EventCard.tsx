@@ -161,7 +161,7 @@ export function EventCard({ event, animated = false }: EventCardProps) {
                 </span>
               ))}
             </div>
-            <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-purple)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+            <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-purple)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity shrink-0">
               View <ArrowRight size={12} />
             </span>
           </div>

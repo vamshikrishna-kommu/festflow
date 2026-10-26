@@ -72,7 +72,7 @@ export function FeaturesSection() {
       id="features"
       ref={ref}
       aria-labelledby="features-heading"
-      className="relative py-24 md:py-32 px-6 overflow-hidden"
+      className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 overflow-hidden"
     >
       {/* Subtle background grid */}
       <div
@@ -86,7 +86,7 @@ export function FeaturesSection() {
           variants={staggerContainer}
           initial={reduced ? 'visible' : 'hidden'}
           animate={inView ? 'visible' : 'hidden'}
-          className="text-center mb-16"
+          className="text-center mb-10 sm:mb-16"
         >
           <motion.p
             variants={reduced ? undefined : fadeUp}
@@ -97,14 +97,14 @@ export function FeaturesSection() {
           <motion.h2
             id="features-heading"
             variants={reduced ? undefined : fadeUp}
-            className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-[var(--color-text-primary)] mb-4"
+            className="font-display font-bold text-2xl sm:text-4xl md:text-5xl text-[var(--color-text-primary)] mb-3 sm:mb-4 px-2"
           >
             Built for clubs.{' '}
             <span className="gradient-text">Loved by students.</span>
           </motion.h2>
           <motion.p
             variants={reduced ? undefined : fadeUp}
-            className="max-w-xl mx-auto text-[var(--color-text-secondary)]"
+            className="max-w-xl mx-auto text-sm sm:text-base text-[var(--color-text-secondary)] px-2"
           >
             From a single workshop to a 2,000-person fest — FestFlow handles every scale
             with the same effortless experience.
@@ -116,14 +116,14 @@ export function FeaturesSection() {
           variants={staggerContainer}
           initial={reduced ? 'visible' : 'hidden'}
           animate={inView ? 'visible' : 'hidden'}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5"
           role="list"
         >
           {FEATURES.map(({ icon: Icon, title, description, accent, glow }) => (
             <motion.li
               key={title}
               variants={reduced ? undefined : fadeUp}
-              className="relative group rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.06)] bg-[var(--color-surface-1)] p-6 overflow-hidden transition-all duration-300 hover:border-[oklch(100%_0_0_/_0.12)] hover:bg-[var(--color-surface-2)]"
+              className="relative group rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.06)] bg-[var(--color-surface-1)] p-4 sm:p-6 overflow-hidden transition-all duration-300 hover:border-[oklch(100%_0_0_/_0.12)] hover:bg-[var(--color-surface-2)]"
             >
               {/* Hover glow */}
               <div

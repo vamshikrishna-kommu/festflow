@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router'
 import { motion } from 'motion/react'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { EventForm } from '@/components/events/EventForm'
+import { PageShell } from '@/components/layout/PageShell'
 import { createEvent } from '@/lib/events'
 import { fadeIn } from '@/lib/animations'
 import type { EventInsert } from '@/types'
@@ -34,8 +35,8 @@ export default function NewEventPage() {
   }
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)]">
-      <div className="max-w-4xl mx-auto flex flex-col gap-6">
+    <PageShell>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
           <Link
@@ -83,6 +84,6 @@ export default function NewEventPage() {
           serverError={serverError}
         />
       </div>
-    </div>
+    </PageShell>
   )
 }

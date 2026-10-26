@@ -102,20 +102,20 @@ export function HeroSection() {
         variants={staggerContainer}
         initial={reduced ? 'visible' : 'hidden'}
         animate="visible"
-        className="relative z-10 flex flex-col items-center text-center px-6 max-w-5xl"
+        className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 max-w-5xl"
       >
         {/* Eyebrow pill */}
-        <motion.div variants={reduced ? undefined : fadeIn} className="mb-6">
-          <span className="inline-flex items-center gap-2 glass rounded-[var(--radius-pill)] px-4 py-1.5 text-xs font-semibold text-[var(--color-brand-purple)] ring-1 ring-[oklch(58%_0.24_290_/_0.3)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            100% Free Platform for College Clubs • 0% Platform Fee
+        <motion.div variants={reduced ? undefined : fadeIn} className="mb-4 sm:mb-6 max-w-full">
+          <span className="inline-flex items-center gap-1.5 sm:gap-2 glass rounded-[var(--radius-pill)] px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-semibold text-[var(--color-brand-purple)] ring-1 ring-[oklch(58%_0.24_290_/_0.3)] max-w-full text-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="truncate sm:whitespace-normal">100% Free Platform for College Clubs • 0% Fee</span>
           </span>
         </motion.div>
 
         {/* Headline */}
         <motion.h1
           variants={reduced ? undefined : fadeUp}
-          className="font-display font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight mb-6"
+          className="font-display font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.08] sm:leading-[1.05] tracking-tight mb-4 sm:mb-6"
         >
           <span className="text-[var(--color-text-primary)]">Your campus,</span>
           <br />
@@ -125,7 +125,7 @@ export function HeroSection() {
         {/* Subheadline */}
         <motion.p
           variants={reduced ? undefined : fadeUp}
-          className="max-w-2xl text-lg md:text-xl text-[var(--color-text-secondary)] leading-relaxed mb-10"
+          className="max-w-2xl text-base sm:text-lg md:text-xl text-[var(--color-text-secondary)] leading-relaxed mb-8 sm:mb-10 px-1"
         >
           FestFlow is the 100% free event platform for college clubs. Create events, sell
           tickets directly via UPI with zero commissions, send QR check-ins, and track attendance
@@ -135,23 +135,25 @@ export function HeroSection() {
         {/* CTAs */}
         <motion.div
           variants={reduced ? undefined : fadeUp}
-          className="flex flex-col sm:flex-row gap-4 mb-16"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16 w-full sm:w-auto max-w-xs sm:max-w-none"
         >
-          <Link to="/club/signup">
+          <Link to="/club/signup" className="w-full sm:w-auto">
             <Button
               id="hero-cta-primary"
               variant="primary"
               size="lg"
+              className="w-full sm:w-auto min-h-[48px] justify-center"
               rightIcon={<ArrowRight size={18} />}
             >
               Get Started Free
             </Button>
           </Link>
-          <Link to="/discover">
+          <Link to="/discover" className="w-full sm:w-auto">
             <Button
               id="hero-cta-discover"
               variant="outline"
               size="lg"
+              className="w-full sm:w-auto min-h-[48px] justify-center"
               leftIcon={<Play size={16} className="fill-current" />}
             >
               Browse events
@@ -162,21 +164,21 @@ export function HeroSection() {
         {/* Social proof stats */}
         <motion.div
           variants={reduced ? undefined : fadeUp}
-          className="flex flex-wrap justify-center gap-8 sm:gap-12"
+          className="grid grid-cols-3 gap-2 sm:gap-8 max-w-lg w-full"
         >
           {STATS.map(({ icon: Icon, value, label }) => (
-            <div key={label} className="flex flex-col items-center gap-1">
-              <div className="flex items-center gap-2">
+            <div key={label} className="flex flex-col items-center gap-1 p-2 rounded-xl glass-subtle sm:bg-transparent sm:border-0 sm:backdrop-blur-none">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Icon
-                  size={16}
-                  className="text-[var(--color-brand-purple)]"
+                  size={15}
+                  className="text-[var(--color-brand-purple)] shrink-0"
                   aria-hidden="true"
                 />
-                <span className="font-display font-bold text-2xl text-[var(--color-text-primary)]">
+                <span className="font-display font-bold text-lg sm:text-2xl text-[var(--color-text-primary)]">
                   {value}
                 </span>
               </div>
-              <span className="text-xs text-[var(--color-text-muted)]">{label}</span>
+              <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)] text-center">{label}</span>
             </div>
           ))}
         </motion.div>

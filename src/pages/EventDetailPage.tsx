@@ -315,27 +315,33 @@ export default function EventDetailPage() {
   }
 
   // Dates formatting
-  const startDate = new Date(event.start_date)
-  const endDate = new Date(event.end_date)
-  const formattedDate = startDate.toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-  const formattedStartTime = startDate.toLocaleTimeString('en-IN', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
-  const formattedEndTime = endDate.toLocaleTimeString('en-IN', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
+  const startDate = event.start_date ? new Date(event.start_date) : null
+  const endDate = event.end_date ? new Date(event.end_date) : null
+  const formattedDate = startDate
+    ? startDate.toLocaleDateString('en-IN', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'Date TBA'
+  const formattedStartTime = startDate
+    ? startDate.toLocaleTimeString('en-IN', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : 'Time TBA'
+  const formattedEndTime = endDate
+    ? endDate.toLocaleTimeString('en-IN', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : 'Time TBA'
 
   const now = new Date()
-  const isStarted = startDate <= now
+  const isStarted = startDate ? startDate <= now : false
   const isRegOpenYet = !event.registration_opens_at || new Date(event.registration_opens_at) <= now
   const isRegDeadlinePassed = event.registration_closes_at ? new Date(event.registration_closes_at) < now : false
 
@@ -503,18 +509,18 @@ export default function EventDetailPage() {
           </div>
 
           {/* Title on Poster */}
-          <div className="absolute bottom-6 left-6 right-6">
-            <h1 className="text-2xl sm:text-4xl font-extrabold font-display text-white tracking-tight leading-snug drop-shadow-md">
+          <div className="absolute bottom-4 sm:bottom-6 left-4 right-4 sm:left-6 sm:right-6">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold font-display text-white tracking-tight leading-snug drop-shadow-md line-clamp-3">
               {event.title}
             </h1>
-            <p className="text-white/80 text-xs sm:text-sm mt-2 max-w-2xl line-clamp-2">
+            <p className="text-white/80 text-xs sm:text-sm mt-1.5 sm:mt-2 max-w-2xl line-clamp-2">
               {event.summary}
             </p>
           </div>
         </div>
 
         {/* Main Content & Registration Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Left 2 Cols: Event Details */}
           <div className="lg:col-span-2 flex flex-col gap-8">
             {/* Organizer Card */}
@@ -684,7 +690,7 @@ export default function EventDetailPage() {
 
           {/* Right 1 Col: Registration & Ticket Card */}
           <div className="flex flex-col gap-6">
-            <div className="glass p-6 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] shadow-xl flex flex-col gap-5 sticky top-28">
+            <div className="glass p-4 sm:p-6 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] shadow-xl flex flex-col gap-5 lg:sticky lg:top-28">
               <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
                 <div>
                   <span className="text-xs text-[var(--color-text-muted)] font-medium block">

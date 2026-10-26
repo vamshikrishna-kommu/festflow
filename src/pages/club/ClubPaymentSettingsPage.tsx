@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { Button, Card, Badge } from '@/components/ui'
+import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import {
   getClubPaymentSettings,
@@ -120,8 +121,8 @@ export default function ClubPaymentSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-[var(--color-surface-0)] text-left">
-      <div className="max-w-3xl mx-auto flex flex-col gap-6">
+    <PageShell>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
           <Link
@@ -340,6 +341,6 @@ export default function ClubPaymentSettingsPage() {
           </Card>
         </form>
       </div>
-    </div>
+    </PageShell>
   )
 }
