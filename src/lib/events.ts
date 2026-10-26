@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { supabase, supabasePublic, isSupabaseConfigured } from '@/lib/supabase'
 import type { EventRecord, EventInsert, EventUpdate, EventWithClub, Event, EventCategory } from '@/types'
 import { MOCK_EVENTS } from '@/lib/mock-data'
 
@@ -447,11 +447,24 @@ export async function getEventById(
 ): Promise<{ event: EventRecord | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      // Use supabasePublic to prevent user-session RLS recursion, with fallback to supabase
+      let { data, error } = await supabasePublic
         .from('events')
         .select('*')
         .eq('id', id)
         .maybeSingle()
+
+      if (error && !error.message.includes('infinite recursion')) {
+        const retry = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle()
+        if (!retry.error) {
+          data = retry.data
+          error = null
+        }
+      }
 
       if (error) return { event: null, error: error.message }
       return { event: data as unknown as EventRecord | null, error: null }
@@ -471,18 +484,32 @@ export async function getEventBySlug(
 ): Promise<{ event: EventWithClub | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
+      const selectClause = `
+        *,
+        club:club_id (
+          display_name,
+          avatar_url,
+          club_profiles (*)
+        )
+      `
+      // Prefer unauthenticated client for public event details to avoid user session RLS recursion
+      let { data, error } = await supabasePublic
         .from('events')
-        .select(`
-          *,
-          club:club_id (
-            display_name,
-            avatar_url,
-            club_profiles (*)
-          )
-        `)
+        .select(selectClause)
         .eq('slug', slug)
         .maybeSingle()
+
+      if (error && !error.message.includes('infinite recursion')) {
+        const retry = await supabase
+          .from('events')
+          .select(selectClause)
+          .eq('slug', slug)
+          .maybeSingle()
+        if (!retry.error) {
+          data = retry.data
+          error = null
+        }
+      }
 
       if (error) return { event: null, error: error.message }
       if (!data) return { event: null, error: 'Event not found' }
@@ -566,40 +593,59 @@ export async function listPublishedEvents(params?: {
 }): Promise<{ events: EventWithClub[]; count: number; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      let query = supabase
-        .from('events')
-        .select(
-          `
-          *,
-          club:club_id (
-            display_name,
-            avatar_url,
-            club_profiles (*)
+      const executeQuery = (client: typeof supabase) => {
+        let q = client
+          .from('events')
+          .select(
+            `
+            *,
+            club:club_id (
+              display_name,
+              avatar_url,
+              club_profiles (*)
+            )
+          `,
+            { count: 'exact' }
           )
-        `,
-          { count: 'exact' }
-        )
-        .eq('status', 'published')
-        .order('start_date', { ascending: true })
+          .eq('status', 'published')
+          .order('start_date', { ascending: true })
 
-      if (params?.category && params.category !== 'all') {
-        query = query.eq('category', params.category)
+        if (params?.category && params.category !== 'all') {
+          q = q.eq('category', params.category)
+        }
+
+        if (params?.search && params.search.trim() !== '') {
+          const searchPattern = params.search.trim()
+          q = q.or(`title.ilike.%${searchPattern}%,summary.ilike.%${searchPattern}%,description.ilike.%${searchPattern}%`)
+        }
+
+        if (params?.limit) {
+          const from = params.offset || 0
+          const to = from + params.limit - 1
+          q = q.range(from, to)
+        }
+        return q
       }
 
-      if (params?.search && params.search.trim() !== '') {
-        const q = params.search.trim()
-        query = query.or(`title.ilike.%${q}%,summary.ilike.%${q}%,description.ilike.%${q}%`)
+      // Try with supabasePublic first to prevent user session RLS recursion loops
+      let { data, count, error } = await executeQuery(supabasePublic)
+
+      // Fallback to standard client if public client failed (unless failure was infinite recursion)
+      if (error && !error.message.includes('infinite recursion')) {
+        const fallbackRes = await executeQuery(supabase)
+        if (!fallbackRes.error) {
+          data = fallbackRes.data
+          count = fallbackRes.count
+          error = null
+        }
       }
 
-      if (params?.limit) {
-        const from = params.offset || 0
-        const to = from + params.limit - 1
-        query = query.range(from, to)
+      if (error) {
+        if (error.message.includes('infinite recursion')) {
+          console.warn('[FestFlow] RLS recursion detected on events relation, please ensure migration 016 is applied:', error.message)
+        }
+        return { events: [], count: 0, error: error.message }
       }
-
-      const { data, count, error } = await query
-
-      if (error) return { events: [], count: 0, error: error.message }
 
       const mapped: EventWithClub[] = ((data as unknown as Record<string, unknown>[]) || []).map((row) => {
         const clubObj = row.club as Record<string, unknown> | null

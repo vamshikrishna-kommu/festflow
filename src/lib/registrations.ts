@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, isProduction } from '@/lib/supabase'
+import { supabase, supabasePublic, isSupabaseConfigured, isProduction } from '@/lib/supabase'
 import type {
   RegistrationRecord,
   RegistrationWithEvent,
@@ -570,18 +570,39 @@ export async function getRegistrationById(
         )
       `
 
-      let { data, error } = isUuid
+      const queryRes: any = isUuid
         ? await supabase.from('registrations').select(selectClause).eq('id', cleanId).maybeSingle()
         : await supabase.from('registrations').select(selectClause).eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
 
+      let data: any = queryRes.data
+      let error: any = queryRes.error
+
       if (!data && !isUuid) {
-        const { data: idFallback } = await supabase
+        const idFallback: any = await supabase
           .from('registrations')
           .select(selectClause)
           .eq('id', cleanId)
           .maybeSingle()
-        if (idFallback) {
-          data = idFallback
+        if (idFallback.data) {
+          data = idFallback.data
+        }
+      }
+
+      // If relational join encountered infinite recursion, recover via decoupled fetch
+      if (error && error.message.includes('infinite recursion')) {
+        console.warn('[FestFlow] RLS recursion detected in getRegistrationById, performing decoupled fetch')
+        const regRes: any = isUuid
+          ? await supabase.from('registrations').select('*').eq('id', cleanId).maybeSingle()
+          : await supabase.from('registrations').select('*').eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
+
+        if (!regRes.error && regRes.data) {
+          const rawItem = regRes.data as Record<string, any>
+          const eventRes = await getEventById(rawItem.event_id)
+          data = {
+            ...rawItem,
+            event: eventRes.event || null,
+          }
+          error = null
         }
       }
 
@@ -668,6 +689,49 @@ export async function getStudentRegistrations(
 
         if (!resFallback.error) {
           data = resFallback.data
+        } else if (
+          resExplicit.error.message.includes('infinite recursion') ||
+          resFallback.error?.message.includes('infinite recursion')
+        ) {
+          // Fallback: 2-step query to decouple registrations and events
+          console.warn('[FestFlow] RLS recursion detected in registrations query, performing 2-step fetch')
+          const { data: rawRegs, error: regErr } = await supabase
+            .from('registrations')
+            .select('*')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: false })
+
+          if (!regErr && rawRegs) {
+            const eventIds = Array.from(new Set(rawRegs.map((r: any) => r.event_id).filter(Boolean)))
+            let eventsMap: Record<string, any> = {}
+            if (eventIds.length > 0) {
+              const { data: eventsData } = await supabasePublic
+                .from('events')
+                .select(
+                  `
+                  *,
+                  club:club_id (
+                    display_name,
+                    avatar_url,
+                    club_profiles (*)
+                  )
+                `
+                )
+                .in('id', eventIds)
+
+              if (eventsData) {
+                eventsMap = Object.fromEntries(eventsData.map((e: any) => [e.id, e]))
+              }
+            }
+
+            data = rawRegs.map((r: any) => ({
+              ...r,
+              event: eventsMap[r.event_id] || null,
+            }))
+            queryError = null
+          } else {
+            queryError = regErr?.message || 'Failed to load tickets'
+          }
         } else {
           queryError = resExplicit.error.message || resFallback.error?.message || 'Failed to load tickets'
         }

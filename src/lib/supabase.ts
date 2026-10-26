@@ -86,3 +86,17 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 })
+
+/**
+ * Supabase public client without session persistence.
+ * Used for public read-only catalog queries (e.g. Discover page, event details).
+ * Evaluates under the PostgreSQL 'anon' role, preventing user-specific RLS recursion loops.
+ */
+export const supabasePublic = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+})
+
