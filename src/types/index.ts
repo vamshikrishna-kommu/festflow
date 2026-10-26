@@ -7,7 +7,14 @@ import type {
   EventCategory,
   RegistrationStatus,
   PaymentStatus,
+  OrderStatus,
   CheckInOutcome,
+  ParticipationType,
+  ApprovalType,
+  TeamRegistrationMode,
+  CustomQuestionType,
+  CustomQuestion,
+  ParticipantFieldsRequirement,
 } from '@/lib/database.types'
 
 export type {
@@ -17,8 +24,15 @@ export type {
   EventCategory,
   RegistrationStatus,
   PaymentStatus,
+  OrderStatus,
   CheckInOutcome,
   Database,
+  ParticipationType,
+  ApprovalType,
+  TeamRegistrationMode,
+  CustomQuestionType,
+  CustomQuestion,
+  ParticipantFieldsRequirement,
 }
 
 export type Profile = Database['public']['Tables']['profiles']['Row']
@@ -31,6 +45,8 @@ export type RegistrationRecord = Database['public']['Tables']['registrations']['
 export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert']
 export type ClubPaymentSettings = Database['public']['Tables']['club_payment_settings']['Row']
 export type PaymentSubmission = Database['public']['Tables']['payment_submissions']['Row']
+export type PaymentOrder = Database['public']['Tables']['payment_orders']['Row']
+export type PaymentOrderInsert = Database['public']['Tables']['payment_orders']['Insert']
 export type InAppNotification = Database['public']['Tables']['in_app_notifications']['Row']
 export type CheckInRecord = Database['public']['Tables']['check_ins']['Row']
 
@@ -86,6 +102,44 @@ export interface PaymentReviewResponse {
   ticket_code?: string
 }
 
+export interface PaymentOrderWithDetails extends PaymentOrder {
+  student?: {
+    display_name: string
+    email: string
+    avatar_url: string | null
+  }
+  event?: EventRecord
+  registration?: RegistrationRecord
+}
+
+export interface CreateOrderResponse {
+  success: boolean
+  message: string
+  error_code?: string
+  order?: {
+    id: string
+    order_reference: string
+    registration_id: string
+    event_id: string
+    event_title: string
+    amount: number
+    currency: string
+    provider: string
+    provider_order_id?: string | null
+    status: OrderStatus
+    created_at: string
+  }
+}
+
+export interface VerifyOrderResponse {
+  success: boolean
+  message: string
+  error_code?: string
+  order_id?: string
+  ticket_code?: string
+  status?: OrderStatus
+}
+
 export interface CheckInResponse {
   success: boolean
   outcome: CheckInOutcome
@@ -108,6 +162,14 @@ export interface RegistrationWithCheckIn extends RegistrationWithStudent {
   check_in?: CheckInRecord | null
 }
 
+export interface TeamMember {
+  name: string
+  email: string
+  college?: string
+  studentId?: string
+  phone?: string
+}
+
 export interface RegistrationResponse {
   success: boolean
   error_code?: string
@@ -115,6 +177,7 @@ export interface RegistrationResponse {
   registration_id?: string
   ticket_code?: string
   status?: RegistrationStatus
+  approval_status?: string
   is_free?: boolean
   ticket_issued?: boolean
 }
@@ -157,6 +220,23 @@ export interface Event {
   endDate?: string
   registrationDeadline?: string | null
   eligibility?: string | null
+  rules?: string | null
+  contactEmail?: string | null
+  contactPhone?: string | null
+  onlineMeetingUrl?: string | null
+  timezone?: string
+  approvalType?: ApprovalType
+  participationType?: ParticipationType
+  minTeamSize?: number
+  maxTeamSize?: number
+  leaderCountsTowardsSize?: boolean
+  teamRegistrationMode?: TeamRegistrationMode
+  requireTeamName?: boolean
+  allowedColleges?: string[] | null
+  allowedDepartments?: string[] | null
+  allowedYears?: number[] | null
+  customQuestions?: CustomQuestion[]
+  participantFields?: ParticipantFieldsRequirement
   clubId?: string
 }
 

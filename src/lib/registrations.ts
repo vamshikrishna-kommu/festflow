@@ -4,6 +4,8 @@ import type {
   RegistrationWithEvent,
   RegistrationWithStudent,
   RegistrationResponse,
+  RegistrationStatus,
+  TeamMember,
 } from '@/types'
 import { getEventById } from '@/lib/events'
 
@@ -30,6 +32,14 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
       ticket_issued_at: new Date(now.getTime() - 2 * 86400000).toISOString(),
       cancelled_at: null,
       updated_at: new Date(now.getTime() - 2 * 86400000).toISOString(),
+      team_name: null,
+      team_role: null,
+      team_id: null,
+      custom_responses: {},
+      participant_details: {},
+      approval_status: 'approved',
+      team_members: [],
+      rejection_reason: null,
     },
     {
       id: 'reg_sample_2',
@@ -41,6 +51,14 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
       ticket_issued_at: null,
       cancelled_at: null,
       updated_at: new Date(now.getTime() - 1 * 86400000).toISOString(),
+      team_name: null,
+      team_role: null,
+      team_id: null,
+      custom_responses: {},
+      participant_details: {},
+      approval_status: 'approved',
+      team_members: [],
+      rejection_reason: null,
     },
     {
       id: 'reg_sample_3',
@@ -52,6 +70,14 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
       ticket_issued_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
       cancelled_at: null,
       updated_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
+      team_name: null,
+      team_role: null,
+      team_id: null,
+      custom_responses: {},
+      participant_details: {},
+      approval_status: 'approved',
+      team_members: [],
+      rejection_reason: null,
     },
   ]
 
@@ -75,12 +101,22 @@ function saveLocalRegistrations(regs: RegistrationRecord[]) {
 // ── Register for Event (RPC / Atomic) ────────────────────────────────────────
 export async function registerForEvent(
   eventId: string,
-  studentId: string
+  studentId: string,
+  options?: {
+    teamName?: string
+    teamMembers?: TeamMember[]
+    customResponses?: Record<string, any>
+    participantDetails?: Record<string, any>
+  }
 ): Promise<RegistrationResponse> {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await (supabase.rpc as any)('register_for_event', {
         p_event_id: eventId,
+        p_team_name: options?.teamName || null,
+        p_team_members: options?.teamMembers || [],
+        p_custom_responses: options?.customResponses || {},
+        p_participant_details: options?.participantDetails || {},
       })
 
       if (error) {
@@ -136,11 +172,62 @@ export async function registerForEvent(
       }
     }
 
+    if (event.registration_opens_at && new Date(event.registration_opens_at) > now) {
+      return {
+        success: false,
+        error_code: 'REGISTRATION_NOT_OPEN',
+        message: 'Registration for this event has not opened yet.',
+      }
+    }
+
     if (event.registration_closes_at && new Date(event.registration_closes_at) < now) {
       return {
         success: false,
         error_code: 'REGISTRATION_DEADLINE_PASSED',
         message: 'The registration deadline has passed for this event.',
+      }
+    }
+
+    // Team requirements and size limits validation
+    if (event.participation_type === 'team') {
+      if (event.require_team_name && (!options?.teamName || !options.teamName.trim())) {
+        return {
+          success: false,
+          error_code: 'TEAM_NAME_REQUIRED',
+          message: 'A team name is required to register for this event.',
+        }
+      }
+
+      const membersCount = options?.teamMembers?.length || 0
+      const totalTeamSize = membersCount + (event.leader_counts_towards_size ? 1 : 0)
+
+      if (totalTeamSize < event.min_team_size) {
+        return {
+          success: false,
+          error_code: 'TEAM_TOO_SMALL',
+          message: `This event requires a minimum of ${event.min_team_size} team members (currently ${totalTeamSize}).`,
+        }
+      }
+
+      if (totalTeamSize > event.max_team_size) {
+        return {
+          success: false,
+          error_code: 'TEAM_TOO_LARGE',
+          message: `This event allows a maximum of ${event.max_team_size} team members (currently ${totalTeamSize}).`,
+        }
+      }
+
+      // Check duplicate member emails
+      if (options?.teamMembers && options.teamMembers.length > 0) {
+        const emails = options.teamMembers.map((m) => m.email.trim().toLowerCase())
+        const uniqueEmails = new Set(emails)
+        if (uniqueEmails.size !== emails.length) {
+          return {
+            success: false,
+            error_code: 'DUPLICATE_TEAM_MEMBER',
+            message: 'Duplicate email addresses found within the team member list.',
+          }
+        }
       }
     }
 
@@ -162,7 +249,7 @@ export async function registerForEvent(
 
     // Capacity check
     const activeCount = currentRegs.filter(
-      (r) => r.event_id === eventId && (r.status === 'confirmed' || r.status === 'pending_payment')
+      (r) => r.event_id === eventId && (r.status === 'confirmed' || r.status === 'pending_payment' || r.status === 'pending_approval')
     ).length
 
     if (activeCount >= event.capacity) {
@@ -175,17 +262,48 @@ export async function registerForEvent(
 
     const ticketCode = 'FF-' + Math.random().toString(36).substring(2, 10).toUpperCase()
     const isFree = event.is_free
+    const isManualApproval = event.approval_type === 'manual'
+
+    let initialStatus: RegistrationStatus
+    let approvalStatus: 'pending' | 'approved' | 'rejected'
+    let issuedAt: string | null = null
+    let successMessage = ''
+
+    if (isManualApproval) {
+      initialStatus = 'pending_approval'
+      approvalStatus = 'pending'
+      issuedAt = null
+      successMessage = 'Application submitted! The organizer will review your registration before issuing entry tickets.'
+    } else if (isFree) {
+      initialStatus = 'confirmed'
+      approvalStatus = 'approved'
+      issuedAt = now.toISOString()
+      successMessage = 'Registration confirmed! Your digital entry ticket has been issued.'
+    } else {
+      initialStatus = 'pending_payment'
+      approvalStatus = 'approved'
+      issuedAt = null
+      successMessage = 'Application accepted! Please submit payment to confirm your pass.'
+    }
 
     const newReg: RegistrationRecord = {
       id: 'reg_' + Date.now(),
       event_id: eventId,
       student_id: studentId,
       ticket_code: ticketCode,
-      status: isFree ? 'confirmed' : 'pending_payment',
+      status: initialStatus,
       created_at: now.toISOString(),
-      ticket_issued_at: isFree ? now.toISOString() : null,
+      ticket_issued_at: issuedAt,
       cancelled_at: null,
       updated_at: now.toISOString(),
+      team_name: options?.teamName || null,
+      team_role: 'leader',
+      team_id: null,
+      team_members: (options?.teamMembers as any) || [],
+      custom_responses: options?.customResponses || {},
+      participant_details: options?.participantDetails || {},
+      approval_status: approvalStatus,
+      rejection_reason: null,
     }
 
     currentRegs.unshift(newReg)
@@ -196,11 +314,83 @@ export async function registerForEvent(
       registration_id: newReg.id,
       ticket_code: ticketCode,
       status: newReg.status,
+      approval_status: approvalStatus,
       is_free: isFree,
-      ticket_issued: isFree,
-      message: isFree
-        ? 'Registration confirmed! Your digital entry ticket has been issued.'
-        : 'Registration received! Payment verification will be approved in Phase 5.',
+      ticket_issued: Boolean(newReg.ticket_issued_at),
+      message: successMessage,
+    }
+  }
+}
+
+// ── Review Registration Application (Host Approval / Rejection) ─────────────
+export async function reviewRegistrationApplication(
+  registrationId: string,
+  decision: 'approved' | 'rejected',
+  rejectionReason?: string
+): Promise<{ success: boolean; status?: RegistrationStatus; message: string }> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('review_registration_application', {
+        p_registration_id: registrationId,
+        p_decision: decision,
+        p_rejection_reason: rejectionReason || null,
+      })
+
+      if (error) {
+        return { success: false, message: error.message }
+      }
+
+      return data as { success: boolean; status?: RegistrationStatus; message: string }
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Application review failed.',
+      }
+    }
+  } else {
+    await new Promise((r) => setTimeout(r, 400))
+    const current = getInitialLocalRegistrations()
+    const idx = current.findIndex((r) => r.id === registrationId)
+    if (idx === -1) {
+      return { success: false, message: 'Registration not found.' }
+    }
+
+    const reg = current[idx]
+    if (reg.status === 'cancelled') {
+      return { success: false, message: 'Cannot review a cancelled registration.' }
+    }
+
+    const eventRes = await getEventById(reg.event_id)
+    const event = eventRes.event
+    const isFree = event?.is_free ?? true
+
+    if (decision === 'approved') {
+      reg.approval_status = 'approved'
+      if (isFree) {
+        reg.status = 'confirmed'
+        reg.ticket_issued_at = new Date().toISOString()
+      } else {
+        reg.status = 'pending_payment'
+        reg.ticket_issued_at = null
+      }
+      reg.rejection_reason = null
+    } else {
+      reg.approval_status = 'rejected'
+      reg.status = 'rejected'
+      reg.ticket_issued_at = null
+      reg.rejection_reason = rejectionReason || 'Application declined by organizer.'
+    }
+
+    reg.updated_at = new Date().toISOString()
+    current[idx] = reg
+    saveLocalRegistrations(current)
+
+    return {
+      success: true,
+      status: reg.status,
+      message: decision === 'approved'
+        ? (isFree ? 'Application approved! Digital pass issued.' : 'Application approved! Awaiting student payment.')
+        : 'Application rejected.',
     }
   }
 }
@@ -233,6 +423,12 @@ export async function cancelRegistration(
     const idx = current.findIndex((r) => r.id === registrationId)
     if (idx === -1) {
       return { success: false, message: 'Registration not found.' }
+    }
+
+    const reg = current[idx]
+    const eventRes = await getEventById(reg.event_id)
+    if (eventRes.event && new Date(eventRes.event.start_date) <= new Date()) {
+      return { success: false, message: 'Pass cannot be cancelled because the event has already started.' }
     }
 
     current[idx] = {
@@ -281,45 +477,39 @@ export async function getRegistrationById(
 ): Promise<{ registration: RegistrationWithEvent | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select(
-          `
+      const cleanId = id.trim()
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId)
+
+      const selectClause = `
+        *,
+        event:event_id (
           *,
-          event:event_id (
-            *,
-            club:club_id (
-              display_name,
-              club_profiles (*)
-            )
+          club:club_id (
+            display_name,
+            club_profiles (*)
           )
-        `
         )
-      let regData = data
-      if (!regData) {
-        const { data: codeData } = await supabase
+      `
+
+      let { data, error } = isUuid
+        ? await supabase.from('registrations').select(selectClause).eq('id', cleanId).maybeSingle()
+        : await supabase.from('registrations').select(selectClause).eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
+
+      if (!data && !isUuid) {
+        const { data: idFallback } = await supabase
           .from('registrations')
-          .select(
-            `
-            *,
-            event:event_id (
-              *,
-              club:club_id (
-                display_name,
-                club_profiles (*)
-              )
-            )
-          `
-          )
-          .eq('ticket_code', id.toUpperCase().trim())
+          .select(selectClause)
+          .eq('id', cleanId)
           .maybeSingle()
-        regData = codeData
+        if (idFallback) {
+          data = idFallback
+        }
       }
 
-      if (error && !regData) return { registration: null, error: error.message }
-      if (!regData) return { registration: null, error: 'Registration not found' }
+      if (error && !data) return { registration: null, error: error.message }
+      if (!data) return { registration: null, error: 'Registration not found' }
 
-      return { registration: regData as unknown as RegistrationWithEvent, error: null }
+      return { registration: data as unknown as RegistrationWithEvent, error: null }
     } catch (err) {
       return {
         registration: null,
@@ -469,6 +659,14 @@ export async function getEventRegistrations(
           ticket_issued_at: new Date(Date.now() - 3600000 * 5).toISOString(),
           cancelled_at: null,
           updated_at: new Date().toISOString(),
+          team_name: null,
+          team_role: null,
+          team_id: null,
+          custom_responses: {},
+          participant_details: {},
+          approval_status: 'approved',
+          team_members: [],
+          rejection_reason: null,
           student: {
             display_name: 'Jordan Lee',
             email: 'jordan.lee@university.edu',
@@ -485,6 +683,14 @@ export async function getEventRegistrations(
           ticket_issued_at: null,
           cancelled_at: null,
           updated_at: new Date().toISOString(),
+          team_name: null,
+          team_role: null,
+          team_id: null,
+          custom_responses: {},
+          participant_details: {},
+          approval_status: 'approved',
+          team_members: [],
+          rejection_reason: null,
           student: {
             display_name: 'Priya Sharma',
             email: 'priya.s@tech.edu',

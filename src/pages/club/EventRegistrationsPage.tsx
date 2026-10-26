@@ -6,7 +6,6 @@ import {
   Search,
   CheckCircle2,
   Lock,
-  XCircle,
   AlertTriangle,
   QrCode,
   MapPin,
@@ -14,10 +13,17 @@ import {
   Info,
   CreditCard,
   FileSpreadsheet,
+  Check,
+  X,
+  Clock,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/components/ui'
 import { getEventById } from '@/lib/events'
-import { getEventRegistrations, cancelRegistration } from '@/lib/registrations'
+import {
+  getEventRegistrations,
+  cancelRegistration,
+  reviewRegistrationApplication,
+} from '@/lib/registrations'
 import { useAuth } from '@/context/AuthContext'
 import { fadeIn, staggerContainer } from '@/lib/animations'
 import type { EventRecord, RegistrationWithStudent, RegistrationStatus } from '@/types'
@@ -31,6 +37,12 @@ export default function EventRegistrationsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus>('all')
+
+  // Review Application state
+  const [reviewingReg, setReviewingReg] = useState<RegistrationWithStudent | null>(null)
+  const [reviewDecision, setReviewDecision] = useState<'approved' | 'rejected'>('approved')
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [isReviewing, setIsReviewing] = useState(false)
 
   // Cancel action modal
   const [cancellingAttendee, setCancellingAttendee] = useState<RegistrationWithStudent | null>(null)
@@ -56,8 +68,9 @@ export default function EventRegistrationsPage() {
 
   // Count metrics
   const confirmedCount = registrations.filter((r) => r.status === 'confirmed').length
-  const pendingCount = registrations.filter((r) => r.status === 'pending_payment').length
-  const cancelledCount = registrations.filter((r) => r.status === 'cancelled').length
+  const pendingApprovalCount = registrations.filter((r) => r.status === 'pending_approval').length
+  const pendingPaymentCount = registrations.filter((r) => r.status === 'pending_payment').length
+  const cancelledCount = registrations.filter((r) => r.status === 'cancelled' || r.status === 'rejected').length
 
   const filteredRegistrations = useMemo(() => {
     return registrations.filter((r) => {
@@ -67,10 +80,31 @@ export default function EventRegistrationsPage() {
         q === '' ||
         r.student.display_name.toLowerCase().includes(q) ||
         r.student.email.toLowerCase().includes(q) ||
-        r.ticket_code.toLowerCase().includes(q)
+        r.ticket_code.toLowerCase().includes(q) ||
+        (r.team_name && r.team_name.toLowerCase().includes(q))
       return matchesStatus && matchesSearch
     })
   }, [registrations, search, statusFilter])
+
+  const handleReviewApplication = async () => {
+    if (!reviewingReg) return
+    setIsReviewing(true)
+    const res = await reviewRegistrationApplication(
+      reviewingReg.id,
+      reviewDecision,
+      reviewDecision === 'rejected' ? rejectionReason.trim() : undefined
+    )
+    setIsReviewing(false)
+    setReviewingReg(null)
+    setRejectionReason('')
+
+    if (res.success) {
+      setNotice({ message: res.message, isError: false })
+      loadData()
+    } else {
+      setNotice({ message: res.message, isError: true })
+    }
+  }
 
   const handleOrganizerCancel = async () => {
     if (!cancellingAttendee) return
@@ -302,28 +336,28 @@ export default function EventRegistrationsPage() {
           <Card className="p-5 flex items-center justify-between">
             <div>
               <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
-                Pending Approval
+                Host Review Required
               </span>
-              <span className="text-2xl font-bold font-display text-amber-400">
-                {pendingCount}
+              <span className="text-2xl font-bold font-display text-[var(--color-brand-purple)]">
+                {pendingApprovalCount}
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-[var(--color-surface-2)] text-amber-400">
-              <Lock size={22} />
+            <div className="p-3 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-brand-purple)]">
+              <Clock size={22} />
             </div>
           </Card>
 
           <Card className="p-5 flex items-center justify-between">
             <div>
               <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
-                Cancelled / Void
+                Payment Pending
               </span>
-              <span className="text-2xl font-bold font-display text-rose-400">
-                {cancelledCount}
+              <span className="text-2xl font-bold font-display text-amber-400">
+                {pendingPaymentCount}
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-[var(--color-surface-2)] text-rose-400">
-              <XCircle size={22} />
+            <div className="p-3 rounded-xl bg-[var(--color-surface-2)] text-amber-400">
+              <Lock size={22} />
             </div>
           </Card>
         </motion.div>
@@ -333,18 +367,26 @@ export default function EventRegistrationsPage() {
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[var(--color-surface-1)] rounded-2xl border border-[var(--color-surface-3)]">
             {/* Status tabs */}
             <div className="flex items-center gap-1 overflow-x-auto text-xs">
-              {(['all', 'confirmed', 'pending_payment', 'cancelled'] as const).map((st) => (
+              {(
+                [
+                  { key: 'all', label: `All (${registrations.length})` },
+                  { key: 'pending_approval', label: `Review Needed (${pendingApprovalCount})` },
+                  { key: 'confirmed', label: `Confirmed (${confirmedCount})` },
+                  { key: 'pending_payment', label: `Payment (${pendingPaymentCount})` },
+                  { key: 'cancelled', label: `Cancelled / Void (${cancelledCount})` },
+                ] as const
+              ).map((tab) => (
                 <button
-                  key={st}
+                  key={tab.key}
                   type="button"
-                  onClick={() => setStatusFilter(st)}
+                  onClick={() => setStatusFilter(tab.key as any)}
                   className={`px-3 py-1.5 rounded-xl capitalize font-medium transition-all shrink-0 ${
-                    statusFilter === st
+                    statusFilter === tab.key
                       ? 'bg-[var(--color-brand-purple)] text-white shadow-sm'
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
                   }`}
                 >
-                  {st.replace('_', ' ')}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -353,7 +395,7 @@ export default function EventRegistrationsPage() {
             <div className="relative w-full md:w-72">
               <input
                 type="text"
-                placeholder="Search attendee or ticket code…"
+                placeholder="Search attendee, team, or ticket code…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full px-3.5 py-1.5 pl-9 rounded-xl text-xs bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
@@ -401,7 +443,9 @@ export default function EventRegistrationsPage() {
                       })
 
                       const isConfirmed = reg.status === 'confirmed'
-                      const isPending = reg.status === 'pending_payment'
+                      const isPendingApproval = reg.status === 'pending_approval'
+                      const isPendingPayment = reg.status === 'pending_payment'
+                      const isRejected = reg.status === 'rejected'
 
                       return (
                         <tr
@@ -410,10 +454,23 @@ export default function EventRegistrationsPage() {
                         >
                           <td className="py-3.5 px-4 font-medium text-[var(--color-text-primary)]">
                             <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded-full bg-[var(--color-surface-3)] text-[10px] font-bold flex items-center justify-center text-[var(--color-brand-purple)]">
+                              <span className="w-6 h-6 rounded-full bg-[var(--color-surface-3)] text-[10px] font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
                                 {reg.student.display_name.charAt(0).toUpperCase()}
                               </span>
-                              <span>{reg.student.display_name}</span>
+                              <div>
+                                <span className="font-semibold block">{reg.student.display_name}</span>
+                                {reg.team_name && (
+                                  <div className="text-[11px] text-[var(--color-brand-purple)] flex items-center gap-1 font-normal">
+                                    <Users size={11} />
+                                    <span>Team: {reg.team_name}</span>
+                                    {Array.isArray((reg as any).team_members) && (reg as any).team_members.length > 0 && (
+                                      <span className="text-[10px] text-[var(--color-text-muted)]">
+                                        ({(reg as any).team_members.length + 1} total)
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="py-3.5 px-4 text-[var(--color-text-secondary)]">
@@ -433,7 +490,9 @@ export default function EventRegistrationsPage() {
                               variant={
                                 isConfirmed
                                   ? 'success'
-                                  : isPending
+                                  : isPendingApproval
+                                  ? 'purple'
+                                  : isPendingPayment
                                   ? 'amber'
                                   : 'danger'
                               }
@@ -441,21 +500,54 @@ export default function EventRegistrationsPage() {
                             >
                               {isConfirmed
                                 ? 'Confirmed'
-                                : isPending
-                                ? 'Pending'
+                                : isPendingApproval
+                                ? 'Review Needed'
+                                : isPendingPayment
+                                ? 'Pending Payment'
+                                : isRejected
+                                ? 'Rejected'
                                 : 'Cancelled'}
                             </Badge>
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            {reg.status !== 'cancelled' && (
-                              <button
-                                type="button"
-                                onClick={() => setCancellingAttendee(reg)}
-                                className="text-[11px] text-rose-400 hover:text-rose-300 font-medium transition-colors"
-                              >
-                                Cancel Pass
-                              </button>
-                            )}
+                            <div className="flex items-center justify-end gap-1.5">
+                              {isPendingApproval ? (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => {
+                                    setReviewingReg(reg)
+                                    setReviewDecision('approved')
+                                    setRejectionReason('')
+                                  }}
+                                  className="bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium text-[11px] py-1 px-2.5 h-auto"
+                                >
+                                  Review
+                                </Button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReviewingReg(reg)
+                                    setReviewDecision('approved')
+                                    setRejectionReason('')
+                                  }}
+                                  className="text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2 py-1 rounded hover:bg-[var(--color-surface-2)] transition-colors"
+                                >
+                                  Details
+                                </button>
+                              )}
+
+                              {reg.status !== 'cancelled' && reg.status !== 'rejected' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCancellingAttendee(reg)}
+                                  className="text-[11px] text-rose-400 hover:text-rose-300 font-medium px-2 py-1 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       )
@@ -466,6 +558,252 @@ export default function EventRegistrationsPage() {
             </div>
           )}
         </div>
+
+        {/* Application Details & Review Modal */}
+        <AnimatePresence>
+          {reviewingReg && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 12 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 12 }}
+                className="w-full max-w-xl p-6 sm:p-7 rounded-3xl glass border border-[oklch(100%_0_0_/_0.15)] text-left flex flex-col gap-5 shadow-2xl relative my-8"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--color-surface-3)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] flex items-center justify-center text-white">
+                      <Users size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                        {reviewingReg.status === 'pending_approval' ? 'Review Registration Application' : 'Application & Attendee Details'}
+                      </h3>
+                      <span className="text-xs text-[var(--color-text-muted)] font-mono">
+                        Ticket Ref: {reviewingReg.ticket_code}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Badge
+                    variant={
+                      reviewingReg.status === 'confirmed'
+                        ? 'success'
+                        : reviewingReg.status === 'pending_approval'
+                        ? 'purple'
+                        : reviewingReg.status === 'pending_payment'
+                        ? 'amber'
+                        : 'danger'
+                    }
+                    className="capitalize text-[10px]"
+                  >
+                    {reviewingReg.status === 'pending_approval' ? 'Needs Review' : reviewingReg.status.replace('_', ' ')}
+                  </Badge>
+                </div>
+
+                {/* Primary Attendee Details */}
+                <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] space-y-2 text-xs">
+                  <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider block">
+                    Applicant / Team Leader
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[var(--color-text-secondary)]">
+                    <div>
+                      <span className="text-[var(--color-text-muted)] block">Name:</span>
+                      <strong className="text-[var(--color-text-primary)] font-medium">
+                        {reviewingReg.student.display_name}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[var(--color-text-muted)] block">Email:</span>
+                      <strong className="text-[var(--color-text-primary)] font-medium">
+                        {reviewingReg.student.email}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[var(--color-text-muted)] block">Submission Date:</span>
+                      <strong className="text-[var(--color-text-primary)] font-medium">
+                        {new Date(reviewingReg.created_at).toLocaleString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[var(--color-text-muted)] block">Event Admission:</span>
+                      <strong className={event.is_free ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'}>
+                        {event.is_free ? 'Free Pass' : `₹${event.price} (Paid)`}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Details & Roster */}
+                {reviewingReg.team_name && (
+                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users size={16} className="text-[var(--color-brand-purple)]" />
+                        <h4 className="text-xs font-bold text-[var(--color-text-primary)]">
+                          Team: {reviewingReg.team_name}
+                        </h4>
+                      </div>
+                      <Badge variant="purple" className="text-[10px]">
+                        {Array.isArray((reviewingReg as any).team_members) ? (reviewingReg as any).team_members.length + 1 : 1} Members
+                      </Badge>
+                    </div>
+
+                    {/* Team Members List */}
+                    {Array.isArray((reviewingReg as any).team_members) && (reviewingReg as any).team_members.length > 0 ? (
+                      <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                        {(reviewingReg as any).team_members.map((member: any, mIdx: number) => (
+                          <div
+                            key={mIdx}
+                            className="p-2.5 rounded-xl bg-[var(--color-surface-2)]/80 border border-[var(--color-surface-3)] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1"
+                          >
+                            <div>
+                              <strong className="text-[var(--color-text-primary)] font-semibold block">
+                                {member.name}
+                              </strong>
+                              <span className="text-[var(--color-text-secondary)] text-[11px]">
+                                {member.email}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-[var(--color-text-muted)] sm:text-right">
+                              {member.studentId && <div>ID: {member.studentId}</div>}
+                              {member.college && <div>{member.college}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-[var(--color-text-muted)] italic">
+                        No additional team members listed.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Custom Questionnaire Responses */}
+                {reviewingReg.custom_responses && Object.keys(reviewingReg.custom_responses).length > 0 && (
+                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] space-y-2">
+                    <h4 className="text-xs font-bold text-[var(--color-text-primary)]">
+                      Questionnaire Responses
+                    </h4>
+                    <div className="space-y-1.5 text-xs max-h-36 overflow-y-auto pr-1">
+                      {Object.entries(reviewingReg.custom_responses).map(([k, v]) => (
+                        <div key={k} className="p-2 rounded-lg bg-[var(--color-surface-2)]">
+                          <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider block font-semibold">
+                            {k}
+                          </span>
+                          <span className="text-[var(--color-text-primary)] font-medium">
+                            {typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejection Note if already rejected */}
+                {reviewingReg.status === 'rejected' && (reviewingReg as any).rejection_reason && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+                    <strong className="block font-semibold mb-0.5">Rejection Reason:</strong>
+                    {(reviewingReg as any).rejection_reason}
+                  </div>
+                )}
+
+                {/* Review Action Controls (only for pending_approval) */}
+                {reviewingReg.status === 'pending_approval' ? (
+                  <div className="space-y-4 pt-2 border-t border-[var(--color-surface-3)]">
+                    <div className="flex items-center gap-4 text-xs">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="reviewDecision"
+                          value="approved"
+                          checked={reviewDecision === 'approved'}
+                          onChange={() => setReviewDecision('approved')}
+                          className="text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
+                        />
+                        <span className="text-[var(--color-text-primary)] font-medium">
+                          Approve Application {event.is_free ? '(Issues Pass)' : '(Requests Payment)'}
+                        </span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="reviewDecision"
+                          value="rejected"
+                          checked={reviewDecision === 'rejected'}
+                          onChange={() => setReviewDecision('rejected')}
+                          className="text-rose-500 focus:ring-rose-500"
+                        />
+                        <span className="text-rose-300 font-medium">
+                          Reject Application
+                        </span>
+                      </label>
+                    </div>
+
+                    {reviewDecision === 'rejected' && (
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-semibold text-rose-300">
+                          Rejection Reason (Shared with Student)
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          placeholder="e.g. Prerequisites not met, invalid team size, or outside eligibility criteria…"
+                          className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-rose-500/30 text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-rose-400"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isReviewing}
+                        onClick={() => setReviewingReg(null)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant={reviewDecision === 'approved' ? 'primary' : 'danger'}
+                        size="sm"
+                        disabled={isReviewing}
+                        isLoading={isReviewing}
+                        onClick={handleReviewApplication}
+                        leftIcon={reviewDecision === 'approved' ? <Check size={14} /> : <X size={14} />}
+                      >
+                        {reviewDecision === 'approved' ? 'Confirm Approval' : 'Confirm Rejection'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-end pt-2 border-t border-[var(--color-surface-3)]">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setReviewingReg(null)}
+                    >
+                      Close Details
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Cancellation Confirmation Modal */}
         <AnimatePresence>

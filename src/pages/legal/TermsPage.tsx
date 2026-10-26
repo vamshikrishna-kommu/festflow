@@ -40,19 +40,19 @@ export default function TermsPage() {
 
           <section className="space-y-3 pt-4 border-t border-[oklch(100%_0_0_/_0.06)]">
             <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-              2. Event Publishing & Club Responsibilities
+              2. Free Platform & Event Publishing
             </h2>
             <p>
-              Club representatives are solely responsible for event content, schedules, pricing accuracy, venue safety, and fulfillment. Organizers must accurately verify student payment transactions before issuing entry-valid tickets.
+              FestFlow is free to use for college club organizers and student attendees. FestFlow does not charge platform subscription fees or transaction commissions. Club representatives are solely responsible for their event content, schedules, ticket pricing accuracy, venue safety, and fulfillment. Organizers must accurately verify student payment transactions before issuing entry-valid tickets.
             </p>
           </section>
 
           <section className="space-y-3 pt-4 border-t border-[oklch(100%_0_0_/_0.06)]">
             <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-              3. Ticketing, Manual UPI & Entry
+              3. Ticketing, Direct UPI & Entry
             </h2>
             <p>
-              FestFlow facilitates direct peer-to-club manual UPI transactions. Tickets are issued as digital passes with unique QR validation codes. FestFlow is not a payment gateway and does not hold user funds in escrow. Refunds and event cancellations are governed by the hosting club's published event policy.
+              FestFlow facilitates direct peer-to-club manual UPI transactions. Tickets are issued as digital passes with unique QR validation codes. FestFlow is not a payment gateway and does not hold user funds in escrow; 100% of event proceeds transfer directly to the hosting club. Refunds and event cancellations are governed by the hosting club's published event policy.
             </p>
           </section>
 

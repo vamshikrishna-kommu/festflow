@@ -23,8 +23,9 @@ import { isSupabaseConfigured, isProduction } from '@/lib/supabase'
 
 const NAV_LINKS = [
   { label: 'Discover', href: '/discover' },
-  { label: 'For Clubs', href: '/#for-clubs' },
-  { label: 'Pricing', href: '/#pricing' },
+  { label: 'Features', href: '/#features' },
+  { label: 'For Clubs', href: '/club/signup' },
+  { label: 'Contact', href: '/contact' },
 ]
 
 export function Navbar() {

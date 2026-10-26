@@ -16,7 +16,11 @@ import {
 } from 'lucide-react'
 import { Button, Card, Badge } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
-import { getClubPaymentSubmissions, reviewPaymentSubmission } from '@/lib/payments'
+import {
+  getClubPaymentSubmissions,
+  reviewPaymentSubmission,
+  getPaymentProofSignedUrl,
+} from '@/lib/payments'
 import { listClubEvents } from '@/lib/events'
 import { fadeIn } from '@/lib/animations'
 import type { PaymentSubmissionWithDetails, PaymentStatus, EventRecord } from '@/types'
@@ -407,7 +411,10 @@ export default function ClubPaymentsPage() {
                         {sub.screenshot_url && (
                           <button
                             type="button"
-                            onClick={() => setInspectingScreenshot(sub.screenshot_url)}
+                            onClick={async () => {
+                              const resolved = await getPaymentProofSignedUrl(sub.screenshot_url!)
+                              setInspectingScreenshot(resolved)
+                            }}
                             className="px-2 py-1 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
                           >
                             <ImageIcon size={12} />

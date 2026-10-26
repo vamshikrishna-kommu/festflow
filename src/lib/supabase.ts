@@ -18,15 +18,17 @@ function cleanEnv(val: unknown): string | undefined {
 }
 
 const rawUrl = cleanEnv(
-  import.meta.env.VITE_SUPABASE_URL ??
-  import.meta.env.VITE_PUBLIC_SUPABASE_URL
+  import.meta.env?.VITE_SUPABASE_URL ??
+  import.meta.env?.VITE_PUBLIC_SUPABASE_URL ??
+  (typeof globalThis !== 'undefined' ? (globalThis as any).process?.env?.VITE_SUPABASE_URL : undefined)
 )
 
 // Check VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_PUBLISHABLE_KEY, and VITE_PUBLIC_SUPABASE_ANON_KEY
 const rawKey = cleanEnv(
-  import.meta.env.VITE_SUPABASE_ANON_KEY ??
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
+  import.meta.env?.VITE_SUPABASE_ANON_KEY ??
+  import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  import.meta.env?.VITE_PUBLIC_SUPABASE_ANON_KEY ??
+  (typeof globalThis !== 'undefined' ? (globalThis as any).process?.env?.VITE_SUPABASE_ANON_KEY : undefined)
 )
 
 const isPlaceholder = (val?: string) => {
@@ -40,7 +42,7 @@ const isPlaceholder = (val?: string) => {
   )
 }
 
-export const isProduction = Boolean(import.meta.env.PROD)
+export const isProduction = Boolean(import.meta.env?.PROD)
 
 export const isSupabaseConfigured = Boolean(
   rawUrl &&

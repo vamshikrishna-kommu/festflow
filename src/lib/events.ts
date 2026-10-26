@@ -70,6 +70,36 @@ function getInitialLocalEvents(): EventRecord[] {
       price: m.price || 0,
       currency: 'INR',
       eligibility: 'Open to all college students with valid student ID.',
+      rules: '1. Please bring your college ID.\n2. Respect campus venue safety protocols.\n3. Arrive 15 minutes prior to start time for check-in.',
+      contact_email: 'festflow.council@campus.edu',
+      contact_phone: '+91 98765 43210',
+      online_meeting_url: null,
+      timezone: 'Asia/Kolkata',
+      approval_type: 'automatic',
+      participation_type: idx === 1 ? 'team' : 'individual',
+      min_team_size: idx === 1 ? 2 : 1,
+      max_team_size: idx === 1 ? 4 : 1,
+      leader_counts_towards_size: true,
+      team_registration_mode: 'leader_adds_members',
+      require_team_name: idx === 1,
+      allowed_colleges: null,
+      allowed_departments: null,
+      allowed_years: null,
+      custom_questions: [
+        {
+          id: 'q_roll_no',
+          label: 'Student Roll / Registration Number',
+          type: 'text',
+          required: true,
+          placeholder: 'e.g. 21BCE1024',
+        },
+      ],
+      participant_fields: {
+        require_college: true,
+        require_phone: true,
+        require_grad_year: true,
+        require_id_card: false,
+      },
       status: 'published',
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
@@ -98,6 +128,36 @@ function getInitialLocalEvents(): EventRecord[] {
     price: 350,
     currency: 'INR',
     eligibility: 'Open to engineering and design students.',
+    rules: 'No unauthorized wireless transmitters allowed in the arena.',
+    contact_email: 'robotics@campus.edu',
+    contact_phone: '+91 98765 12345',
+    online_meeting_url: null,
+    timezone: 'Asia/Kolkata',
+    approval_type: 'manual',
+    participation_type: 'team',
+    min_team_size: 2,
+    max_team_size: 4,
+    leader_counts_towards_size: true,
+    team_registration_mode: 'leader_adds_members',
+    require_team_name: true,
+    allowed_colleges: null,
+    allowed_departments: ['Computer Science', 'Mechanical', 'Electrical'],
+    allowed_years: [2, 3, 4],
+    custom_questions: [
+      {
+        id: 'q_tshirt',
+        label: 'T-Shirt Size',
+        type: 'select',
+        required: true,
+        options: ['S', 'M', 'L', 'XL', 'XXL'],
+      },
+    ],
+    participant_fields: {
+      require_college: true,
+      require_phone: true,
+      require_grad_year: true,
+      require_id_card: true,
+    },
     status: 'draft',
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
@@ -166,15 +226,147 @@ export async function uploadEventPoster(
   }
 }
 
+// ── Validation: Event Configuration Validator ────────────────────────────────
+export function validateEventConfig(
+  data: Partial<EventInsert>,
+  action: 'save_draft' | 'publish'
+): { isValid: boolean; errors: Record<string, string> } {
+  const errors: Record<string, string> = {}
+
+  if (!data.title || !data.title.trim()) {
+    errors.title = 'Event title is required.'
+  }
+
+  if (action === 'publish') {
+    if (!data.summary || data.summary.trim().length < 15) {
+      errors.summary = 'Short summary must be at least 15 characters to publish.'
+    }
+    if (!data.description || data.description.trim().length < 30) {
+      errors.description = 'Detailed description must be at least 30 characters to publish.'
+    }
+  }
+
+  // Location / format validation
+  if (data.event_type === 'offline') {
+    if (!data.venue_name || !data.venue_name.trim()) {
+      errors.venue_name = 'Campus venue name or hall is required for in-person events.'
+    }
+  } else if (data.event_type === 'online') {
+    if (!data.online_meeting_url?.trim() && !data.venue_name?.trim()) {
+      errors.online_meeting_url = 'Virtual meeting platform URL or instructions are required.'
+    }
+  } else if (data.event_type === 'hybrid') {
+    if (!data.venue_name || !data.venue_name.trim()) {
+      errors.venue_name = 'Physical campus venue is required for hybrid events.'
+    }
+  }
+
+  // Dates validation
+  if (!data.start_date) {
+    errors.start_date = 'Event start date & time is required.'
+  }
+  if (!data.end_date) {
+    errors.end_date = 'Event end date & time is required.'
+  }
+
+  if (data.start_date && data.end_date) {
+    const startMs = new Date(data.start_date).getTime()
+    const endMs = new Date(data.end_date).getTime()
+    if (isNaN(startMs)) errors.start_date = 'Invalid start date format.'
+    if (isNaN(endMs)) errors.end_date = 'Invalid end date format.'
+    if (endMs <= startMs) {
+      errors.end_date = 'Event end time must be after the start time.'
+    }
+  }
+
+  if (data.start_date && data.registration_closes_at) {
+    const startMs = new Date(data.start_date).getTime()
+    const closeMs = new Date(data.registration_closes_at).getTime()
+    if (!isNaN(startMs) && !isNaN(closeMs) && closeMs > startMs) {
+      errors.registration_closes_at = 'Registration deadline cannot be after the event starts.'
+    }
+  }
+
+  // Capacity validation
+  if (data.capacity === undefined || data.capacity === null || Number(data.capacity) <= 0) {
+    errors.capacity = 'Capacity must be at least 1 attendee or team.'
+  }
+
+  // Pricing validation
+  if (!data.is_free) {
+    const priceNum = Number(data.price)
+    if (isNaN(priceNum) || priceNum <= 0) {
+      errors.price = 'Paid events must specify a ticket fee greater than 0.'
+    }
+  }
+
+  // Team validation
+  if (data.participation_type === 'team') {
+    const minSize = Number(data.min_team_size ?? 1)
+    const maxSize = Number(data.max_team_size ?? 1)
+    if (minSize < 1) {
+      errors.min_team_size = 'Minimum team size must be at least 1.'
+    }
+    if (maxSize < minSize) {
+      errors.max_team_size = 'Maximum team size cannot be smaller than minimum team size.'
+    }
+  }
+
+  // Custom questions validation
+  if (data.custom_questions && Array.isArray(data.custom_questions)) {
+    data.custom_questions.forEach((q, idx) => {
+      if (!q.label || !q.label.trim()) {
+        errors[`question_${idx}`] = `Question #${idx + 1} must have a prompt/label.`
+      }
+      if ((q.type === 'select' || q.type === 'radio') && (!q.options || q.options.length < 2)) {
+        errors[`question_${idx}_options`] = `Question #${idx + 1} (${q.type}) must have at least 2 options.`
+      }
+    })
+  }
+
+  return { isValid: Object.keys(errors).length === 0, errors }
+}
+
 // ── Create Event ─────────────────────────────────────────────────────────────
 export async function createEvent(
-  data: Omit<EventInsert, 'id' | 'created_at' | 'updated_at'>
-): Promise<{ event: EventRecord | null; error: string | null }> {
+  data: Omit<EventInsert, 'id' | 'created_at' | 'updated_at'>,
+  action: 'save_draft' | 'publish' = 'publish'
+): Promise<{ event: EventRecord | null; error: string | null; errors?: Record<string, string> }> {
+  // Validate on client before submitting
+  const { isValid, errors } = validateEventConfig(data, action)
+  if (!isValid) {
+    const firstError = Object.values(errors)[0]
+    return { event: null, error: firstError, errors }
+  }
+
+  const normalizedPayload = {
+    ...data,
+    rules: data.rules?.trim() || null,
+    contact_email: data.contact_email?.trim() || null,
+    contact_phone: data.contact_phone?.trim() || null,
+    online_meeting_url: data.online_meeting_url?.trim() || null,
+    timezone: data.timezone || 'Asia/Kolkata',
+    approval_type: data.approval_type || 'automatic',
+    participation_type: data.participation_type || 'individual',
+    min_team_size: data.participation_type === 'team' ? Number(data.min_team_size || 1) : 1,
+    max_team_size: data.participation_type === 'team' ? Number(data.max_team_size || 1) : 1,
+    leader_counts_towards_size: data.leader_counts_towards_size ?? true,
+    team_registration_mode: data.team_registration_mode || 'leader_adds_members',
+    require_team_name: Boolean(data.require_team_name),
+    custom_questions: data.custom_questions || [],
+    participant_fields: data.participant_fields || {
+      require_college: true,
+      require_phone: true,
+      require_grad_year: true,
+      require_id_card: false,
+    },
+  }
+
   if (isSupabaseConfigured) {
     try {
       const { data: inserted, error } = await supabase
         .from('events')
-        .insert(data as never)
+        .insert(normalizedPayload as never)
         .select('*')
         .single()
 
@@ -187,7 +379,7 @@ export async function createEvent(
     await new Promise((r) => setTimeout(r, 400))
     const now = new Date().toISOString()
     const newRecord: EventRecord = {
-      ...data,
+      ...normalizedPayload,
       id: 'evt_' + Date.now(),
       poster_url: data.poster_url || getDefaultPoster(data.category),
       venue_address: data.venue_address || null,
@@ -198,7 +390,10 @@ export async function createEvent(
       price: data.price ?? 0,
       currency: data.currency || 'INR',
       eligibility: data.eligibility || null,
-      status: data.status || 'draft',
+      allowed_colleges: data.allowed_colleges || null,
+      allowed_departments: data.allowed_departments || null,
+      allowed_years: data.allowed_years || null,
+      status: action === 'publish' ? 'published' : 'draft',
       created_at: now,
       updated_at: now,
     }
@@ -523,6 +718,23 @@ export function mapRecordToUiEvent(record: EventRecord | EventWithClub): Event {
     endDate: record.end_date,
     registrationDeadline: record.registration_closes_at,
     eligibility: record.eligibility,
+    rules: record.rules,
+    contactEmail: record.contact_email,
+    contactPhone: record.contact_phone,
+    onlineMeetingUrl: record.online_meeting_url,
+    timezone: record.timezone,
+    approvalType: record.approval_type,
+    participationType: record.participation_type,
+    minTeamSize: record.min_team_size,
+    maxTeamSize: record.max_team_size,
+    leaderCountsTowardsSize: record.leader_counts_towards_size,
+    teamRegistrationMode: record.team_registration_mode,
+    requireTeamName: record.require_team_name,
+    allowedColleges: record.allowed_colleges,
+    allowedDepartments: record.allowed_departments,
+    allowedYears: record.allowed_years,
+    customQuestions: record.custom_questions,
+    participantFields: record.participant_fields,
     clubId: record.club_id,
   }
 }

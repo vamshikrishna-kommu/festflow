@@ -54,9 +54,9 @@ const FEATURES = [
   },
   {
     icon: Zap,
-    title: 'Instant Payouts',
+    title: '100% Free Platform',
     description:
-      'Revenue from paid events lands directly in your club\'s bank account within 24 hours.',
+      'Zero subscription fees and 0% platform commission. Clubs collect 100% of event proceeds directly via UPI.',
     accent: 'var(--color-brand-pink)',
     glow: 'oklch(65% 0.22 340 / 0.2)',
   },
@@ -69,6 +69,7 @@ export function FeaturesSection() {
 
   return (
     <section
+      id="features"
       ref={ref}
       aria-labelledby="features-heading"
       className="relative py-24 md:py-32 px-6 overflow-hidden"

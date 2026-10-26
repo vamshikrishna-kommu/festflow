@@ -1,7 +1,29 @@
 // Database type definitions for FestFlow
 export type UserRole = 'student' | 'club_member' | 'platform_admin'
-export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed'
+export type EventStatus = 'draft' | 'published' | 'registration_closed' | 'cancelled' | 'completed'
 export type EventType = 'offline' | 'online' | 'hybrid'
+export type ParticipationType = 'individual' | 'team'
+export type ApprovalType = 'automatic' | 'manual'
+export type TeamRegistrationMode = 'leader_adds_members' | 'members_join_with_code'
+export type CustomQuestionType = 'text' | 'textarea' | 'select' | 'checkbox' | 'radio'
+
+export interface CustomQuestion {
+  id: string
+  label: string
+  type: CustomQuestionType
+  required: boolean
+  options?: string[]
+  placeholder?: string
+  helperText?: string
+}
+
+export interface ParticipantFieldsRequirement {
+  require_college: boolean
+  require_phone: boolean
+  require_grad_year: boolean
+  require_id_card: boolean
+}
+
 export type EventCategory =
   | 'tech'
   | 'cultural'
@@ -14,8 +36,14 @@ export type EventCategory =
   | 'gaming'
   | 'social'
 
-export type RegistrationStatus = 'pending_payment' | 'confirmed' | 'cancelled' | 'rejected'
+export type RegistrationStatus =
+  | 'pending_approval'
+  | 'pending_payment'
+  | 'confirmed'
+  | 'cancelled'
+  | 'rejected'
 export type PaymentStatus = 'pending_review' | 'approved' | 'rejected'
+export type OrderStatus = 'created' | 'attempted' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'expired'
 export type CheckInOutcome =
   | 'VALID'
   | 'ALREADY_USED'
@@ -115,6 +143,23 @@ export interface Database {
           price: number
           currency: string
           eligibility: string | null
+          rules: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          online_meeting_url: string | null
+          timezone: string
+          approval_type: ApprovalType
+          participation_type: ParticipationType
+          min_team_size: number
+          max_team_size: number
+          leader_counts_towards_size: boolean
+          team_registration_mode: TeamRegistrationMode
+          require_team_name: boolean
+          allowed_colleges: string[] | null
+          allowed_departments: string[] | null
+          allowed_years: number[] | null
+          custom_questions: CustomQuestion[]
+          participant_fields: ParticipantFieldsRequirement
           status: EventStatus
           created_at: string
           updated_at: string
@@ -140,6 +185,23 @@ export interface Database {
           price?: number
           currency?: string
           eligibility?: string | null
+          rules?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          online_meeting_url?: string | null
+          timezone?: string
+          approval_type?: ApprovalType
+          participation_type?: ParticipationType
+          min_team_size?: number
+          max_team_size?: number
+          leader_counts_towards_size?: boolean
+          team_registration_mode?: TeamRegistrationMode
+          require_team_name?: boolean
+          allowed_colleges?: string[] | null
+          allowed_departments?: string[] | null
+          allowed_years?: number[] | null
+          custom_questions?: CustomQuestion[]
+          participant_fields?: ParticipantFieldsRequirement
           status?: EventStatus
           created_at?: string
           updated_at?: string
@@ -153,6 +215,14 @@ export interface Database {
           student_id: string
           ticket_code: string
           status: RegistrationStatus
+          team_name: string | null
+          team_role: 'leader' | 'member' | null
+          team_id: string | null
+          team_members: any[] | null
+          custom_responses: Record<string, any> | null
+          participant_details: Record<string, any> | null
+          approval_status: 'pending' | 'approved' | 'rejected' | null
+          rejection_reason: string | null
           created_at: string
           ticket_issued_at: string | null
           cancelled_at: string | null
@@ -164,6 +234,14 @@ export interface Database {
           student_id: string
           ticket_code: string
           status?: RegistrationStatus
+          team_name?: string | null
+          team_role?: 'leader' | 'member' | null
+          team_id?: string | null
+          team_members?: any[] | null
+          custom_responses?: Record<string, any> | null
+          participant_details?: Record<string, any> | null
+          approval_status?: 'pending' | 'approved' | 'rejected' | null
+          rejection_reason?: string | null
           created_at?: string
           ticket_issued_at?: string | null
           cancelled_at?: string | null
@@ -230,6 +308,53 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['payment_submissions']['Insert']>
+      }
+      payment_orders: {
+        Row: {
+          id: string
+          order_reference: string
+          registration_id: string
+          student_id: string
+          event_id: string
+          amount: number
+          currency: string
+          provider: string
+          provider_order_id: string | null
+          provider_payment_id: string | null
+          provider_signature: string | null
+          status: OrderStatus
+          idempotency_key: string | null
+          receipt: string | null
+          metadata: Record<string, unknown>
+          error_code: string | null
+          error_description: string | null
+          created_at: string
+          updated_at: string
+          paid_at: string | null
+        }
+        Insert: {
+          id?: string
+          order_reference: string
+          registration_id: string
+          student_id: string
+          event_id: string
+          amount: number
+          currency?: string
+          provider?: string
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          provider_signature?: string | null
+          status?: OrderStatus
+          idempotency_key?: string | null
+          receipt?: string | null
+          metadata?: Record<string, unknown>
+          error_code?: string | null
+          error_description?: string | null
+          created_at?: string
+          updated_at?: string
+          paid_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['payment_orders']['Insert']>
       }
       in_app_notifications: {
         Row: {
@@ -342,6 +467,31 @@ export interface Database {
         }
         Returns: Record<string, unknown>
       }
+      create_payment_order: {
+        Args: {
+          p_registration_id: string
+          p_provider?: string
+          p_idempotency_key?: string | null
+        }
+        Returns: Record<string, unknown>
+      }
+      verify_payment_order: {
+        Args: {
+          p_order_id: string
+          p_provider_payment_id: string
+          p_provider_signature: string
+          p_provider_order_id?: string | null
+        }
+        Returns: Record<string, unknown>
+      }
+      record_payment_failure: {
+        Args: {
+          p_order_id: string
+          p_error_code: string
+          p_error_description: string
+        }
+        Returns: Record<string, unknown>
+      }
       check_in_ticket: {
         Args: {
           p_event_id: string
@@ -379,6 +529,7 @@ export interface Database {
       event_category: EventCategory
       registration_status: RegistrationStatus
       payment_status: PaymentStatus
+      order_status: OrderStatus
       check_in_outcome: CheckInOutcome
       email_status: 'pending' | 'sent' | 'failed' | 'disabled'
     }

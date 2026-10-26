@@ -107,8 +107,8 @@ export function HeroSection() {
         {/* Eyebrow pill */}
         <motion.div variants={reduced ? undefined : fadeIn} className="mb-6">
           <span className="inline-flex items-center gap-2 glass rounded-[var(--radius-pill)] px-4 py-1.5 text-xs font-semibold text-[var(--color-brand-purple)] ring-1 ring-[oklch(58%_0.24_290_/_0.3)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-brand-purple)] animate-pulse" />
-            Now live for college clubs across India
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            100% Free Platform for College Clubs • 0% Platform Fee
           </span>
         </motion.div>
 
@@ -127,9 +127,9 @@ export function HeroSection() {
           variants={reduced ? undefined : fadeUp}
           className="max-w-2xl text-lg md:text-xl text-[var(--color-text-secondary)] leading-relaxed mb-10"
         >
-          FestFlow is the all-in-one event platform for college clubs. Create events, sell
-          tickets, send QR check-ins, and track attendance — all in one beautifully simple
-          dashboard.
+          FestFlow is the 100% free event platform for college clubs. Create events, sell
+          tickets directly via UPI with zero commissions, send QR check-ins, and track attendance
+          — completely free for everyone.
         </motion.p>
 
         {/* CTAs */}
@@ -144,7 +144,7 @@ export function HeroSection() {
               size="lg"
               rightIcon={<ArrowRight size={18} />}
             >
-              Start for free
+              Get Started Free
             </Button>
           </Link>
           <Link to="/discover">

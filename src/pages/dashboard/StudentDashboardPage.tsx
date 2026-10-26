@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react'
 import {
   GraduationCap,
   Ticket,
-  Calendar,
   LogOut,
   Compass,
   AlertTriangle,
@@ -14,6 +13,7 @@ import {
   XCircle,
   QrCode,
   ArrowRight,
+  Users,
 } from 'lucide-react'
 import { Button, Badge, Card } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
@@ -27,7 +27,7 @@ export default function StudentDashboardPage() {
 
   const [registrations, setRegistrations] = useState<RegistrationWithEvent[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'upcoming' | 'pending' | 'past' | 'cancelled'>('upcoming')
+  const [tab, setTab] = useState<'upcoming' | 'pending_approval' | 'pending_payment' | 'past' | 'cancelled'>('upcoming')
 
   // Cancellation modal
   const [cancellingReg, setCancellingReg] = useState<RegistrationWithEvent | null>(null)
@@ -60,14 +60,17 @@ export default function StudentDashboardPage() {
       if (tab === 'upcoming') {
         return r.status === 'confirmed' && eventStart >= now
       }
-      if (tab === 'pending') {
+      if (tab === 'pending_approval') {
+        return r.status === 'pending_approval'
+      }
+      if (tab === 'pending_payment') {
         return r.status === 'pending_payment'
       }
       if (tab === 'past') {
         return r.status === 'confirmed' && eventStart < now
       }
       if (tab === 'cancelled') {
-        return r.status === 'cancelled'
+        return r.status === 'cancelled' || r.status === 'rejected'
       }
       return true
     })
@@ -77,12 +80,14 @@ export default function StudentDashboardPage() {
   const upcomingCount = registrations.filter(
     (r) => r.status === 'confirmed' && new Date(r.event.start_date) >= now
   ).length
-
-  const pendingCount = registrations.filter((r) => r.status === 'pending_payment').length
+  const pendingApprovalCount = registrations.filter((r) => r.status === 'pending_approval').length
+  const pendingPaymentCount = registrations.filter((r) => r.status === 'pending_payment').length
   const pastCount = registrations.filter(
     (r) => r.status === 'confirmed' && new Date(r.event.start_date) < now
   ).length
-  const cancelledCount = registrations.filter((r) => r.status === 'cancelled').length
+  const cancelledCount = registrations.filter(
+    (r) => r.status === 'cancelled' || r.status === 'rejected'
+  ).length
 
   const handleCancelPass = async () => {
     if (!cancellingReg) return
@@ -184,19 +189,19 @@ export default function StudentDashboardPage() {
               color: 'text-emerald-400',
             },
             {
-              label: 'Pending Approval',
-              value: loading ? '…' : pendingCount.toString(),
+              label: 'Under Host Review',
+              value: loading ? '…' : pendingApprovalCount.toString(),
+              icon: Clock,
+              color: 'text-purple-400',
+            },
+            {
+              label: 'Payment Pending',
+              value: loading ? '…' : pendingPaymentCount.toString(),
               icon: Lock,
               color: 'text-amber-400',
             },
             {
-              label: 'Past Attended',
-              value: loading ? '…' : pastCount.toString(),
-              icon: Calendar,
-              color: 'text-cyan-400',
-            },
-            {
-              label: 'Cancelled Passes',
+              label: 'Cancelled / Rejected',
               value: loading ? '…' : cancelledCount.toString(),
               icon: XCircle,
               color: 'text-rose-400',
@@ -240,7 +245,7 @@ export default function StudentDashboardPage() {
             </Link>
           </div>
 
-          {/* Sub-Tabs: Upcoming, Pending, Past, Cancelled */}
+          {/* Sub-Tabs: Upcoming, Under Review, Pending Payment, Past, Cancelled */}
           <div className="flex items-center gap-1.5 p-1 bg-[var(--color-surface-2)] rounded-xl w-fit text-xs border border-[var(--color-surface-3)] overflow-x-auto">
             <button
               type="button"
@@ -255,14 +260,25 @@ export default function StudentDashboardPage() {
             </button>
             <button
               type="button"
-              onClick={() => setTab('pending')}
+              onClick={() => setTab('pending_approval')}
               className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
-                tab === 'pending'
+                tab === 'pending_approval'
+                  ? 'bg-[var(--color-brand-purple)] text-white font-semibold shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              Host Review ({pendingApprovalCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('pending_payment')}
+              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all ${
+                tab === 'pending_payment'
                   ? 'bg-amber-400 text-black font-semibold shadow-sm'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
               }`}
             >
-              Pending Payment ({pendingCount})
+              Payment Due ({pendingPaymentCount})
             </button>
             <button
               type="button"
@@ -284,7 +300,7 @@ export default function StudentDashboardPage() {
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
               }`}
             >
-              Cancelled ({cancelledCount})
+              Cancelled / Rejected ({cancelledCount})
             </button>
           </div>
 
@@ -300,14 +316,16 @@ export default function StudentDashboardPage() {
                 <Ticket size={28} />
               </div>
               <h3 className="text-base font-bold font-display text-[var(--color-text-primary)] mb-1">
-                No {tab} passes found
+                No passes found
               </h3>
               <p className="text-xs text-[var(--color-text-secondary)] max-w-sm mb-5">
                 {tab === 'upcoming'
                   ? 'You have no upcoming confirmed passes. Discover upcoming campus events and reserve your spot!'
-                  : tab === 'pending'
-                  ? 'You have no tickets currently awaiting payment review.'
-                  : `You have no ${tab} event tickets in your account history.`}
+                  : tab === 'pending_approval'
+                  ? 'You have no applications currently awaiting host review.'
+                  : tab === 'pending_payment'
+                  ? 'You have no tickets currently awaiting payment submission.'
+                  : `You have no ${tab.replace('_', ' ')} event tickets in your account history.`}
               </p>
               <Link to="/discover">
                 <Button variant="primary" size="sm" leftIcon={<Compass size={15} />}>
@@ -332,7 +350,11 @@ export default function StudentDashboardPage() {
                 })
 
                 const isConfirmed = reg.status === 'confirmed'
-                const isPending = reg.status === 'pending_payment'
+                const isPendingApproval = reg.status === 'pending_approval'
+                const isPendingPayment = reg.status === 'pending_payment'
+                const isRejected = reg.status === 'rejected'
+                const isCancelled = reg.status === 'cancelled'
+                const hasStarted = startDate <= now
 
                 return (
                   <Card
@@ -341,12 +363,14 @@ export default function StudentDashboardPage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <Badge
                             variant={
                               isConfirmed
                                 ? 'success'
-                                : isPending
+                                : isPendingApproval
+                                ? 'purple'
+                                : isPendingPayment
                                 ? 'amber'
                                 : 'danger'
                             }
@@ -354,13 +378,22 @@ export default function StudentDashboardPage() {
                           >
                             {isConfirmed
                               ? 'Confirmed'
-                              : isPending
+                              : isPendingApproval
+                              ? 'Under Host Review'
+                              : isPendingPayment
                               ? 'Pending Payment'
+                              : isRejected
+                              ? 'Rejected'
                               : 'Cancelled'}
                           </Badge>
                           <Badge variant="cyan" className="capitalize text-[10px]">
                             {event.category}
                           </Badge>
+                          {event.participation_type === 'team' && (
+                            <Badge variant="pink" className="text-[10px]">
+                              Team Event
+                            </Badge>
+                          )}
                         </div>
 
                         <h3 className="font-semibold text-[var(--color-text-primary)] text-base line-clamp-1">
@@ -371,6 +404,27 @@ export default function StudentDashboardPage() {
                             {event.title}
                           </Link>
                         </h3>
+
+                        {reg.team_name && (
+                          <div className="flex items-center gap-1.5 text-xs text-[var(--color-brand-purple)] font-medium mt-1">
+                            <Users size={13} />
+                            <span>Team: {reg.team_name}</span>
+                            {Array.isArray((reg as any).team_members) && (reg as any).team_members.length > 0 && (
+                              <span className="text-[11px] text-[var(--color-text-muted)]">
+                                • {(reg as any).team_members.length + 1} members
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {isRejected && (reg as any).rejection_reason && (
+                          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs mt-2">
+                            <strong className="block font-semibold text-[11px] uppercase tracking-wide">
+                              Organizer Reason:
+                            </strong>
+                            {(reg as any).rejection_reason}
+                          </div>
+                        )}
 
                         <div className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)] mt-1.5">
                           <span className="flex items-center gap-1.5">
@@ -406,7 +460,20 @@ export default function StudentDashboardPage() {
                           </Link>
                         )}
 
-                        {isPending && (
+                        {isPendingApproval && (
+                          <Link to={`/student/tickets/${reg.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-[var(--color-brand-purple)]/40 text-[var(--color-brand-purple)] hover:bg-[var(--color-brand-purple)]/10"
+                              rightIcon={<ArrowRight size={13} />}
+                            >
+                              Track Status
+                            </Button>
+                          </Link>
+                        )}
+
+                        {isPendingPayment && (
                           <Link to={`/student/payments/${reg.id}`}>
                             <Button
                               variant="primary"
@@ -419,7 +486,7 @@ export default function StudentDashboardPage() {
                           </Link>
                         )}
 
-                        {reg.status === 'rejected' && (
+                        {isRejected && !event.is_free && (
                           <Link to={`/student/payments/${reg.id}`}>
                             <Button
                               variant="danger"
@@ -431,14 +498,20 @@ export default function StudentDashboardPage() {
                           </Link>
                         )}
 
-                        {reg.status !== 'cancelled' && (
-                          <button
-                            type="button"
-                            onClick={() => setCancellingReg(reg)}
-                            className="text-[11px] text-rose-400 hover:text-rose-300 font-medium ml-1 transition-colors"
-                          >
-                            Cancel Pass
-                          </button>
+                        {!isCancelled && !isRejected && (
+                          hasStarted ? (
+                            <span className="text-[11px] text-[var(--color-text-muted)] italic px-2">
+                              Started
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setCancellingReg(reg)}
+                              className="text-[11px] text-rose-400 hover:text-rose-300 font-medium ml-1 transition-colors"
+                            >
+                              Cancel Pass
+                            </button>
+                          )
                         )}
                       </div>
                     </div>

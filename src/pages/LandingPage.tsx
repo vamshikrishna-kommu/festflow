@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import { motion, useInView } from 'motion/react'
 import { ArrowRight, ChevronRight } from 'lucide-react'
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui'
 import { staggerContainer, fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { FEATURED_EVENTS } from '@/lib/mock-data'
+import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
+import type { Event as UiEvent } from '@/types'
 
 // ─── Social Proof Logos ────────────────────────────────────────────────────
 const COLLEGE_NAMES = [
@@ -45,7 +47,7 @@ function CtaSection() {
           variants={reduced ? undefined : fadeUp}
           className="text-xs uppercase tracking-widest text-[var(--color-brand-purple)] font-semibold mb-4"
         >
-          Ready to launch?
+          Free forever for colleges
         </motion.p>
         <motion.h2
           id="cta-heading"
@@ -59,8 +61,8 @@ function CtaSection() {
           variants={reduced ? undefined : fadeUp}
           className="text-[var(--color-text-secondary)] text-lg mb-10"
         >
-          Join thousands of club organisers who use FestFlow to create unforgettable
-          campus experiences.
+          Join college club organisers using FestFlow for 100% free ticketing, instant QR check-ins,
+          and direct peer-to-club payments with zero platform fees.
         </motion.p>
         <motion.div
           variants={reduced ? undefined : fadeUp}
@@ -73,7 +75,7 @@ function CtaSection() {
               size="lg"
               rightIcon={<ArrowRight size={18} />}
             >
-              Create your first event
+              Create your first event free
             </Button>
           </Link>
           <Link to="/discover">
@@ -97,6 +99,19 @@ export default function LandingPage() {
   const logosRef   = useRef<HTMLDivElement>(null)
   const logosInView = useInView(logosRef, { once: true })
   const reduced    = useReducedMotion()
+  const [events, setEvents] = useState<UiEvent[]>(FEATURED_EVENTS)
+
+  useEffect(() => {
+    let mounted = true
+    listPublishedEvents({ limit: 6 }).then((res) => {
+      if (mounted && res.events && res.events.length > 0) {
+        setEvents(res.events.map(mapRecordToUiEvent))
+      }
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   return (
     <PageShell fullbleed>
@@ -156,7 +171,7 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        <EventGrid events={FEATURED_EVENTS} />
+        <EventGrid events={events} />
       </section>
 
       <CtaSection />

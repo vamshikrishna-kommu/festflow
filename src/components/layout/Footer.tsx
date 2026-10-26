@@ -2,29 +2,29 @@ import { Link } from 'react-router'
 import { Sparkles, Globe, Share2, Rss, Heart } from 'lucide-react'
 
 const FOOTER_LINKS = {
-  Product: [
+  Platform: [
     { label: 'Discover Events', href: '/discover' },
-    { label: 'For Clubs', href: '#for-clubs' },
-    { label: 'Pricing', href: '#pricing' },
-    { label: 'Changelog', href: '#changelog' },
+    { label: 'For College Clubs', href: '/club/signup' },
+    { label: 'Features', href: '/#features' },
+    { label: 'Club Login', href: '/club/login' },
   ],
-  Company: [
-    { label: 'About', href: '/#for-clubs' },
-    { label: 'Blog', href: '/discover' },
-    { label: 'Careers', href: '/contact' },
-    { label: 'Contact Support', href: '/contact' },
+  Community: [
+    { label: 'About FestFlow', href: '/#features' },
+    { label: 'Student Login', href: '/student/login' },
+    { label: 'Help Desk', href: '/contact' },
+    { label: 'Contact Team', href: '/contact' },
   ],
   Legal: [
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Terms of Service', href: '/terms' },
-    { label: 'Cookie Policy', href: '/privacy' },
+    { label: 'Security & RLS', href: '/privacy' },
   ],
 }
 
 const SOCIALS = [
-  { icon: Globe,  label: 'Website',    href: '#' },
-  { icon: Share2, label: 'Twitter / X', href: '#' },
-  { icon: Rss,    label: 'Blog / RSS',  href: '#' },
+  { icon: Globe,  label: 'Discover Events', href: '/discover' },
+  { icon: Share2, label: 'Contact Support', href: '/contact' },
+  { icon: Rss,    label: 'Platform Features', href: '/#features' },
 ]
 
 export function Footer() {

@@ -15,6 +15,7 @@ import {
   XCircle,
   ExternalLink,
   Lock,
+  Users,
 } from 'lucide-react'
 import { Badge, Button } from '@/components/ui'
 import type { RegistrationWithEvent } from '@/types'
@@ -36,8 +37,11 @@ export function DigitalTicketCard({
   const event = registration.event
 
   const isConfirmed = registration.status === 'confirmed'
+  const isPendingApproval = registration.status === 'pending_approval'
   const isPending = registration.status === 'pending_payment'
+  const isRejected = registration.status === 'rejected'
   const isCancelled = registration.status === 'cancelled'
+  const hasStarted = new Date(event.start_date) <= new Date()
 
   const startDate = new Date(event.start_date)
   const formattedDate = startDate.toLocaleDateString('en-IN', {
@@ -94,7 +98,9 @@ export function DigitalTicketCard({
 
             {/* Status Badge */}
             {isConfirmed && <Badge variant="success">Confirmed Pass</Badge>}
+            {isPendingApproval && <Badge variant="purple">Under Host Review</Badge>}
             {isPending && <Badge variant="amber">Payment Pending</Badge>}
+            {isRejected && <Badge variant="danger">Application Rejected</Badge>}
             {isCancelled && <Badge variant="danger">Cancelled</Badge>}
           </div>
 
@@ -148,6 +154,33 @@ export function DigitalTicketCard({
           </div>
         </div>
 
+        {/* Team Information Block */}
+        {registration.team_name && (
+          <div className="p-4 bg-[var(--color-surface-2)]/60 border-b border-[var(--color-surface-3)] text-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="flex items-center gap-1.5 text-[var(--color-brand-purple)] font-bold">
+                <Users size={14} /> Team: {registration.team_name}
+              </span>
+              <Badge variant="purple" className="text-[10px]">
+                {Array.isArray((registration as any).team_members) && (registration as any).team_members.length > 0
+                  ? `${(registration as any).team_members.length + 1} Members`
+                  : 'Team Leader'}
+              </Badge>
+            </div>
+            {Array.isArray((registration as any).team_members) && (registration as any).team_members.length > 0 && (
+              <div className="text-[11px] text-[var(--color-text-secondary)] flex flex-wrap gap-x-2 gap-y-1">
+                <span className="text-[var(--color-text-muted)] font-medium">Members:</span>
+                <span className="font-medium text-[var(--color-text-primary)]">{attendee} (Leader)</span>
+                {(registration as any).team_members.map((m: any, i: number) => (
+                  <span key={i} className="text-[var(--color-text-secondary)]">
+                    • {m.name} {m.studentId ? `(${m.studentId})` : ''}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Perforated Notched Cutouts ───────────────────────────────────── */}
         <div className="relative h-6 bg-[var(--color-surface-0)] flex items-center justify-between px-4 overflow-hidden">
           {/* Left cutout circle */}
@@ -196,6 +229,24 @@ export function DigitalTicketCard({
                 Scan this code at the campus event gate for instant check-in. Valid only for authorized student entry.
               </p>
             </>
+          ) : isPendingApproval ? (
+            /* Pending Host Approval Lockout */
+            <div className="p-6 rounded-2xl bg-[var(--color-brand-purple)]/10 border border-[var(--color-brand-purple)]/30 text-center flex flex-col items-center gap-3 w-full">
+              <div className="p-3 rounded-full bg-[var(--color-brand-purple)]/20 text-[var(--color-brand-purple)]">
+                <Clock size={28} />
+              </div>
+              <div>
+                <strong className="text-sm font-semibold text-[var(--color-text-primary)] block mb-1">
+                  Application Under Host Review
+                </strong>
+                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mb-3">
+                  The event organizer is currently reviewing your registration. Your QR pass {event.is_free ? 'will activate automatically once approved' : 'will unlock for payment once approved'}.
+                </p>
+              </div>
+              <div className="text-[11px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-3 py-1 rounded-md">
+                Ref: {registration.ticket_code}
+              </div>
+            </div>
           ) : isPending ? (
             /* Pending Payment Lockout */
             <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center flex flex-col items-center gap-3 w-full">
@@ -219,24 +270,26 @@ export function DigitalTicketCard({
                 Ref: {registration.ticket_code}
               </div>
             </div>
-          ) : registration.status === 'rejected' ? (
-            /* Payment Rejected Notice */
+          ) : isRejected ? (
+            /* Payment or Application Rejected Notice */
             <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center flex flex-col items-center gap-3 w-full">
               <div className="p-3 rounded-full bg-rose-500/20 text-rose-400">
                 <XCircle size={28} />
               </div>
               <div>
                 <strong className="text-sm font-semibold text-rose-300 block mb-1">
-                  Payment Verification Rejected
+                  Registration Application Declined
                 </strong>
                 <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mb-3">
-                  The organizer could not verify your previous transaction reference. Please check your bank receipt and resubmit.
+                  {(registration as any).rejection_reason || 'The event organizer could not approve this registration.'}
                 </p>
-                <Link to={`/student/payments/${registration.id}`}>
-                  <Button variant="danger" size="sm" rightIcon={<ExternalLink size={14} />}>
-                    Fix & Resubmit UTR Reference
-                  </Button>
-                </Link>
+                {!event.is_free && (
+                  <Link to={`/student/payments/${registration.id}`}>
+                    <Button variant="danger" size="sm" rightIcon={<ExternalLink size={14} />}>
+                      Fix & Resubmit Reference
+                    </Button>
+                  </Link>
+                )}
               </div>
               <div className="text-[11px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-3 py-1 rounded-md">
                 Ref: {registration.ticket_code}
@@ -287,15 +340,21 @@ export function DigitalTicketCard({
               </Button>
             )}
 
-            {!isCancelled && onCancel && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onCancel}
-                className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-              >
-                Cancel Registration
-              </Button>
+            {!isCancelled && !isRejected && onCancel && (
+              hasStarted ? (
+                <span className="text-[11px] text-[var(--color-text-muted)] italic px-2">
+                  Event started (cancellation closed)
+                </span>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCancel}
+                  className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                >
+                  Cancel Registration
+                </Button>
+              )
             )}
           </div>
         </div>
