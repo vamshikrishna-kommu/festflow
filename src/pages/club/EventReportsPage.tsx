@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router'
-import { motion, AnimatePresence } from 'motion/react'
 import {
-  FileSpreadsheet,
   Download,
   Mail,
   Send,
@@ -10,13 +8,9 @@ import {
   CreditCard,
   QrCode,
   CheckCircle2,
-  AlertCircle,
-  ArrowLeft,
-  Calendar,
-  MapPin,
   RefreshCw,
 } from 'lucide-react'
-import { Button, Card, Badge } from '@/components/ui'
+import { Button, Card, PageHeader, Alert, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { getEventById } from '@/lib/events'
@@ -30,7 +24,6 @@ import {
   exportPaymentReconciliationCsv,
   exportAttendanceReportCsv,
 } from '@/lib/csvExport'
-import { fadeIn } from '@/lib/animations'
 import type {
   EventRecord,
   RegistrationWithStudent,
@@ -126,88 +119,57 @@ export default function EventReportsPage() {
   return (
     <PageShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
-          <Link
-            to="/club/dashboard"
-            className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
-          >
-            <ArrowLeft size={14} /> Club Dashboard
-          </Link>
-          <span>/</span>
-          <Link to="/club/events" className="hover:text-[var(--color-text-primary)]">
-            My Events
-          </Link>
-          <span>/</span>
-          <span className="text-[var(--color-text-primary)] font-medium">Reports & Analytics</span>
-        </div>
-
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-display text-[var(--color-text-primary)]">
-                Event Reports & Analytics
-              </h1>
-              <Badge variant="purple" className="flex items-center gap-1 text-[10px]">
-                <FileSpreadsheet size={12} /> Executive Summary
-              </Badge>
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Club Dashboard', href: '/club/dashboard' },
+            { label: 'My Events', href: '/club/events' },
+            { label: 'Reports & Analytics' },
+          ]}
+          title="Event Reports & Analytics"
+          badge="Executive Summary"
+          badgeVariant="purple"
+          subtitle={
+            event
+              ? `${event.title} • ${formattedDate} • ${event.venue_name || 'Online'}`
+              : undefined
+          }
+          actions={
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadData(true)}
+                isLoading={refreshing}
+                leftIcon={<RefreshCw size={14} />}
+                className="flex-1 sm:flex-initial justify-center"
+              >
+                Refresh
+              </Button>
+              {event && (
+                <Link to={`/club/events/${event.id}/check-in`} className="flex-1 sm:flex-initial">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<QrCode size={14} />}
+                    className="w-full justify-center bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold shadow-sm"
+                  >
+                    Gate Check-In
+                  </Button>
+                </Link>
+              )}
             </div>
-            {event && (
-              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-[var(--color-text-primary)]">{event.title}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Calendar size={13} /> {formattedDate}
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1 truncate">
-                  <MapPin size={13} /> {event.venue_name}
-                </span>
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadData(true)}
-              isLoading={refreshing}
-              leftIcon={<RefreshCw size={14} />}
-              className="flex-1 sm:flex-initial justify-center"
-            >
-              Refresh
-            </Button>
-            {event && (
-              <Link to={`/club/events/${event.id}/check-in`} className="flex-1 sm:flex-initial">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<QrCode size={14} />}
-                  className="w-full justify-center bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold"
-                >
-                  Gate Check-In
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
+          }
+        />
 
         {notice && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className={`p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm flex items-center gap-3 ${
-              notice.isError
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-            }`}
+          <Alert
+            variant={notice.isError ? 'error' : 'success'}
+            dismissible
+            onDismiss={() => setNotice(null)}
           >
-            {notice.isError ? <AlertCircle size={18} className="shrink-0" /> : <CheckCircle2 size={18} className="shrink-0" />}
-            <span className="flex-1">{notice.message}</span>
-          </motion.div>
+            {notice.message}
+          </Alert>
         )}
 
         {/* Executive Summary Metrics Grid */}
@@ -421,33 +383,16 @@ export default function EventReportsPage() {
         </Card>
 
         {/* Reminder Preview & Confirmation Modal */}
-        <AnimatePresence>
-          {showReminderModal && event && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <motion.div
-                variants={fadeIn}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                className="max-w-lg w-full bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] rounded-2xl p-6 flex flex-col gap-4 shadow-2xl"
-              >
-                <div className="flex items-center justify-between border-b border-[var(--color-surface-3)] pb-3">
-                  <div className="flex items-center gap-2">
-                    <Mail size={18} className="text-[var(--color-brand-cyan)]" />
-                    <h3 className="text-base font-bold text-[var(--color-text-primary)]">
-                      Event Reminder Preview
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowReminderModal(false)}
-                    className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] p-1"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs space-y-2">
+        <Modal
+          isOpen={showReminderModal && Boolean(event)}
+          onClose={() => setShowReminderModal(false)}
+          title="Event Reminder Announcement"
+          size="md"
+        >
+          <ModalBody>
+            {event && (
+              <div className="flex flex-col gap-4 text-left">
+                <div className="p-4 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs space-y-2">
                   <p>
                     <strong className="text-[var(--color-text-primary)]">Subject:</strong> Reminder: {event.title} is coming up!
                   </p>
@@ -455,14 +400,14 @@ export default function EventReportsPage() {
                     <strong className="text-[var(--color-text-primary)]">Recipients:</strong> {confirmedAttendees} confirmed ticket holders
                   </p>
                   <p className="text-[var(--color-text-muted)]">
-                    Event Date: {formattedDate} at {event.venue_name}
+                    Event Date: {formattedDate} at {event.venue_name || 'Campus Venue'}
                   </p>
                 </div>
 
                 <div>
                   <label
                     htmlFor="custom_note"
-                    className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                    className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5"
                   >
                     Custom Organizer Note (Optional)
                   </label>
@@ -472,35 +417,34 @@ export default function EventReportsPage() {
                     placeholder="e.g. Please bring your college ID card and arrive 15 minutes before opening."
                     value={customReminderNote}
                     onChange={(e) => setCustomReminderNote(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-cyan)] transition-colors"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-cyan)] transition-colors"
                   />
                 </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowReminderModal(false)}
-                    disabled={sendingReminder}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={handleSendReminders}
-                    isLoading={sendingReminder}
-                    leftIcon={<Send size={14} />}
-                  >
-                    {sendingReminder ? 'Queuing Reminders…' : 'Dispatch Reminders'}
-                  </Button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowReminderModal(false)}
+              disabled={sendingReminder}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleSendReminders}
+              isLoading={sendingReminder}
+              leftIcon={<Send size={14} />}
+            >
+              {sendingReminder ? 'Queuing Reminders…' : 'Dispatch Reminders'}
+            </Button>
+          </ModalFooter>
+        </Modal>
       </div>
     </PageShell>
   )

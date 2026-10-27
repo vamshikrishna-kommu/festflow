@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router'
 import { motion } from 'motion/react'
 import { ShieldAlert, ArrowRight, LogOut, Compass } from 'lucide-react'
-import { Button, Badge } from '@/components/ui'
+import { Button, Badge, Logo } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 
 export default function UnauthorizedPage() {
@@ -30,8 +30,12 @@ export default function UnauthorizedPage() {
         transition={{ duration: 0.3 }}
         className="w-full max-w-lg glass p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] shadow-2xl text-center flex flex-col items-center"
       >
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-5 shadow-lg shadow-amber-500/10">
-          <ShieldAlert size={34} />
+        <Link to="/" className="mb-5 flex flex-col items-center group" aria-label="FestFlow home">
+          <Logo variant="navbar" />
+        </Link>
+
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 shadow-lg shadow-amber-500/10">
+          <ShieldAlert size={30} />
         </div>
 
         <Badge variant="amber" className="mb-3">

@@ -7,13 +7,9 @@ import {
   XCircle,
   Search,
   Copy,
-  ArrowLeft,
-  Calendar,
-  MapPin,
   RefreshCw,
   KeyRound,
   ExternalLink,
-  ShieldCheck,
   UserCheck,
   Users,
   ChevronDown,
@@ -22,7 +18,7 @@ import {
   WifiOff,
   RotateCcw,
 } from 'lucide-react'
-import { Button, Card, Badge } from '@/components/ui'
+import { Button, Card, Badge, PageHeader } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { getEventById } from '@/lib/events'
@@ -32,7 +28,7 @@ import {
   cleanTicketPayload,
 } from '@/lib/checkin'
 import { QrCameraScanner } from '@/components/checkin/QrCameraScanner'
-import { fadeIn } from '@/lib/animations'
+import { scannerAccepted, scannerRejected } from '@/lib/animations'
 import type {
   EventRecord,
   RegistrationWithCheckIn,
@@ -217,8 +213,7 @@ export default function EventCheckInPage() {
     user &&
     event &&
     (event.club_id === user.id ||
-      user.role === 'platform_admin' ||
-      user.id === 'demo_club_member_default')
+      user.role === 'platform_admin')
   )
 
   // Loading state
@@ -300,70 +295,42 @@ export default function EventCheckInPage() {
   return (
     <PageShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
-          <Link
-            to="/club/dashboard"
-            className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
-          >
-            <ArrowLeft size={14} /> Club Dashboard
-          </Link>
-          <span>/</span>
-          <Link to="/club/events" className="hover:text-[var(--color-text-primary)]">
-            My Events
-          </Link>
-          <span>/</span>
-          <span className="text-[var(--color-text-primary)] font-medium">Gate QR Check-In</span>
-        </div>
-
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
-                Live Gate Check-In
-              </h1>
-              <Badge variant="cyan" className="flex items-center gap-1">
-                <ShieldCheck size={12} /> Staff Scanner
-              </Badge>
-              {event?.status === 'cancelled' && (
-                <Badge variant="danger">Event Cancelled</Badge>
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Club Dashboard', href: '/club/dashboard' },
+            { label: 'My Events', href: '/club/events' },
+            { label: 'Gate QR Check-In' },
+          ]}
+          title="Live Gate Check-In"
+          badge={event?.status === 'cancelled' ? 'Event Cancelled' : 'Staff Scanner'}
+          badgeVariant={event?.status === 'cancelled' ? 'danger' : 'cyan'}
+          subtitle={
+            event
+              ? `${event.title} • ${formattedDate} at ${formattedTime} • ${event.venue_name || 'Online'}`
+              : undefined
+          }
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadData(true)}
+                isLoading={refreshing}
+                leftIcon={<RefreshCw size={14} />}
+              >
+                Refresh
+              </Button>
+              {event && (
+                <Link to={`/club/events/${event.id}/registrations`}>
+                  <Button variant="ghost" size="sm" rightIcon={<ExternalLink size={14} />}>
+                    Roster
+                  </Button>
+                </Link>
               )}
             </div>
-            {event && (
-              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-[var(--color-text-primary)]">{event.title}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Calendar size={13} /> {formattedDate} at {formattedTime}
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <MapPin size={13} /> {event.venue_name}
-                </span>
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadData(true)}
-              isLoading={refreshing}
-              leftIcon={<RefreshCw size={14} />}
-            >
-              Refresh
-            </Button>
-            {event && (
-              <Link to={`/club/events/${event.id}/registrations`}>
-                <Button variant="ghost" size="sm" rightIcon={<ExternalLink size={14} />}>
-                  Roster
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
+          }
+        />
 
         {/* Live Attendance Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -425,7 +392,7 @@ export default function EventCheckInPage() {
           <AnimatePresence>
             {scanResult && (
               <motion.div
-                variants={fadeIn}
+                variants={scanResult.outcome === 'VALID' ? scannerAccepted : scannerRejected}
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
@@ -547,7 +514,7 @@ export default function EventCheckInPage() {
                   size="sm"
                   isLoading={processingScan}
                   disabled={!manualCode.trim()}
-                  className="w-full sm:w-auto min-h-[40px]"
+                  className="w-full sm:w-auto min-h-[44px]"
                 >
                   Verify
                 </Button>

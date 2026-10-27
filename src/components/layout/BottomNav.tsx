@@ -39,7 +39,7 @@ export function BottomNav() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'text-[var(--color-brand-purple)] font-semibold'
+                    ? 'text-[var(--color-brand-violet)] font-semibold'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 }`
               }
@@ -54,7 +54,7 @@ export function BottomNav() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'text-[var(--color-brand-purple)] font-semibold'
+                    ? 'text-[var(--color-brand-violet)] font-semibold'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 }`
               }
@@ -80,7 +80,7 @@ export function BottomNav() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'text-[var(--color-brand-purple)] font-semibold'
+                    ? 'text-[var(--color-brand-violet)] font-semibold'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 }`
               }
@@ -94,7 +94,7 @@ export function BottomNav() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'text-[var(--color-brand-purple)] font-semibold'
+                    ? 'text-[var(--color-brand-violet)] font-semibold'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 }`
               }
@@ -125,7 +125,7 @@ export function BottomNav() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-2 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'text-[var(--color-brand-purple)] font-semibold'
+                    ? 'text-[var(--color-brand-violet)] font-semibold'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 }`
               }
@@ -158,7 +158,7 @@ export function BottomNav() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center min-w-[60px] min-h-[48px] py-1 px-2 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'text-[var(--color-brand-purple)] font-semibold'
+                    ? 'text-[var(--color-brand-violet)] font-semibold'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 }`
               }

@@ -3,7 +3,6 @@ import { Link } from 'react-router'
 import { motion } from 'motion/react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
-  Sparkles,
   Calendar,
   Clock,
   MapPin,
@@ -21,8 +20,9 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react'
-import { Badge, Button } from '@/components/ui'
+import { Badge, Button, Logo } from '@/components/ui'
 import { resendPassEmail } from '@/lib/emails'
+import { ticketReveal, statusBadgePop } from '@/lib/animations'
 import type { RegistrationWithEvent } from '@/types'
 
 interface DigitalTicketCardProps {
@@ -54,6 +54,7 @@ export function DigitalTicketCard({
   const isConfirmed = registration.status === 'confirmed'
   const isPendingApproval = registration.status === 'pending_approval'
   const isPending = registration.status === 'pending_payment'
+  const isWaitlisted = registration.status === 'waitlisted'
   const isRejected = registration.status === 'rejected'
   const isCancelled = registration.status === 'cancelled'
   const startDate = event?.start_date ? new Date(event.start_date) : null
@@ -353,28 +354,30 @@ export function DigitalTicketCard({
       <motion.div
         id="festflow-digital-pass"
         ref={ticketCardRef}
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
+        variants={ticketReveal}
+        initial="hidden"
+        animate="visible"
         className="relative rounded-3xl overflow-hidden glass border border-[oklch(100%_0_0_/_0.12)] shadow-2xl bg-gradient-to-b from-[var(--color-surface-1)] to-[var(--color-surface-0)] print:border-black print:text-black"
       >
         {/* Top Header Banner */}
         <div className="p-5 sm:p-6 pb-4 bg-gradient-to-r from-[var(--color-brand-purple)]/20 via-[var(--color-brand-pink)]/15 to-transparent border-b border-[var(--color-surface-3)]">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] flex items-center justify-center text-white">
-                <Sparkles size={14} />
-              </span>
+            <div className="flex items-center gap-2.5">
+              <Logo variant="emblem" />
               <span className="font-display font-bold text-base text-[var(--color-text-primary)]">
                 FestFlow Entry Pass
               </span>
             </div>
 
             {/* Status Badge */}
-            {isConfirmed && <Badge variant="success">Confirmed Pass</Badge>}
-            {isPendingApproval && <Badge variant="purple">Under Host Review</Badge>}
-            {isPending && <Badge variant="amber">Payment Pending</Badge>}
-            {isRejected && <Badge variant="danger">Application Rejected</Badge>}
-            {isCancelled && <Badge variant="danger">Cancelled</Badge>}
+            <motion.div variants={statusBadgePop} initial="initial" animate="animate">
+              {isConfirmed && <Badge variant="success">Confirmed Pass</Badge>}
+              {isPendingApproval && <Badge variant="purple">Under Host Review</Badge>}
+              {isPending && <Badge variant="amber">Payment Pending</Badge>}
+              {isWaitlisted && <Badge variant="amber">Waitlisted</Badge>}
+              {isRejected && <Badge variant="danger">Application Rejected</Badge>}
+              {isCancelled && <Badge variant="danger">Cancelled</Badge>}
+            </motion.div>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-bold font-display text-[var(--color-text-primary)] leading-snug">
@@ -538,7 +541,7 @@ export function DigitalTicketCard({
                 </p>
                 <Link to={`/student/payments/${registration.id}`}>
                   <Button variant="primary" size="sm" rightIcon={<ExternalLink size={14} />}>
-                    Complete Payment & Unlock Pass
+                    Pay via UPI & Submit UTR
                   </Button>
                 </Link>
               </div>
@@ -566,6 +569,24 @@ export function DigitalTicketCard({
                     </Button>
                   </Link>
                 )}
+              </div>
+              <div className="text-[11px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-3 py-1 rounded-md">
+                Ref: {registration.ticket_code}
+              </div>
+            </div>
+          ) : isWaitlisted ? (
+            /* Registration Waitlisted Notice */
+            <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-center flex flex-col items-center gap-3 w-full">
+              <div className="p-3 rounded-full bg-amber-500/20 text-amber-400">
+                <Clock size={28} />
+              </div>
+              <div>
+                <strong className="text-sm font-semibold text-amber-300 block mb-1">
+                  Registration Waitlisted
+                </strong>
+                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mb-3">
+                  This event is at maximum capacity. You are placed on the organizer waitlist. If a confirmed seat becomes available, your status will update automatically.
+                </p>
               </div>
               <div className="text-[11px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-3 py-1 rounded-md">
                 Ref: {registration.ticket_code}

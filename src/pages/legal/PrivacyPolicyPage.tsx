@@ -1,20 +1,11 @@
 import { PageShell } from '@/components/layout/PageShell'
 import { Card, Badge } from '@/components/ui'
-import { ShieldCheck, AlertCircle } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 
 export default function PrivacyPolicyPage() {
   return (
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Production Readiness Disclaimer Banner */}
-        <div className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-          <AlertCircle className="text-amber-400 mt-0.5 shrink-0" size={18} />
-          <div className="text-xs text-amber-200 leading-relaxed">
-            <span className="font-semibold block text-amber-300 mb-0.5">Placeholder Draft — Pre-Launch Notice</span>
-            This Privacy Policy is a platform template provided for initial demonstration and architecture purposes. It must be reviewed, customized, and approved by qualified legal counsel for your specific institution, jurisdiction, and data handling requirements before production launch.
-          </div>
-        </div>
-
         <div className="flex items-center gap-3 mb-3">
           <Badge variant="cyan">Platform Governance</Badge>
           <span className="text-xs text-[var(--color-text-muted)]">Effective: October 2026</span>

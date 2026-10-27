@@ -1,23 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion } from 'motion/react'
 import {
   Users,
   Search,
-  CheckCircle2,
-  Lock,
   AlertTriangle,
   QrCode,
   MapPin,
-  ExternalLink,
-  Info,
   CreditCard,
   FileSpreadsheet,
   Check,
   X,
-  Clock,
 } from 'lucide-react'
-import { Button, Badge, Card } from '@/components/ui'
+import { Button, Badge, Card, Breadcrumbs, Modal, ModalBody, ModalFooter, EmptyState, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { getEventById } from '@/lib/events'
 import {
@@ -73,9 +68,27 @@ export default function EventRegistrationsPage() {
   const pendingPaymentCount = registrations.filter((r) => r.status === 'pending_payment').length
   const cancelledCount = registrations.filter((r) => r.status === 'cancelled' || r.status === 'rejected').length
 
+  const filterCounts = useMemo(() => {
+    return {
+      all: registrations.length,
+      confirmed: confirmedCount,
+      pending_approval: pendingApprovalCount,
+      pending_payment: pendingPaymentCount,
+      cancelled: cancelledCount,
+    }
+  }, [registrations, confirmedCount, pendingApprovalCount, pendingPaymentCount, cancelledCount])
+
   const filteredRegistrations = useMemo(() => {
     return registrations.filter((r) => {
-      const matchesStatus = statusFilter === 'all' || r.status === statusFilter
+      let matchesStatus = false
+      if (statusFilter === 'all') {
+        matchesStatus = true
+      } else if (statusFilter === 'cancelled') {
+        matchesStatus = r.status === 'cancelled' || r.status === 'rejected'
+      } else {
+        matchesStatus = r.status === statusFilter
+      }
+
       const q = search.trim().toLowerCase()
       const studentName = r.student?.display_name || (r.team_name ? `Team ${r.team_name}` : 'Student Attendee')
       const studentEmail = r.student?.email || ''
@@ -130,28 +143,32 @@ export default function EventRegistrationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-32 flex flex-col items-center justify-center bg-[var(--color-surface-0)]">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
-        <span className="text-xs text-[var(--color-text-muted)]">
-          Loading event registration roster…
-        </span>
-      </div>
+      <PageShell>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
+          <span className="text-xs text-[var(--color-text-muted)]">
+            Loading event registration roster…
+          </span>
+        </div>
+      </PageShell>
     )
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen pt-32 px-4 flex flex-col items-center justify-center bg-[var(--color-surface-0)] text-center">
-        <AlertTriangle size={36} className="text-rose-400 mb-3" />
-        <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)] mb-2">
-          Event Not Found
-        </h2>
-        <Link to="/club/events">
-          <Button variant="primary" size="md">
-            Return to Events
-          </Button>
-        </Link>
-      </div>
+      <PageShell>
+        <div className="py-24 px-4 flex flex-col items-center justify-center text-center">
+          <AlertTriangle size={36} className="text-rose-400 mb-3" />
+          <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)] mb-2">
+            Event Not Found
+          </h2>
+          <Link to="/club/events">
+            <Button variant="primary" size="md">
+              Return to Events
+            </Button>
+          </Link>
+        </div>
+      </PageShell>
     )
   }
 
@@ -161,28 +178,21 @@ export default function EventRegistrationsPage() {
     <PageShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <Link to="/club/dashboard" className="hover:text-[var(--color-text-primary)]">
-            Dashboard
-          </Link>
-          <span>/</span>
-          <Link to="/club/events" className="hover:text-[var(--color-text-primary)]">
-            My Events
-          </Link>
-          <span>/</span>
-          <span className="text-[var(--color-text-primary)] font-medium truncate max-w-xs">
-            {event.title}
-          </span>
-          <span>/</span>
-          <span className="text-[var(--color-brand-purple)] font-medium">Registrations</span>
-        </div>
+        <Breadcrumbs
+          items={[
+            { label: 'Dashboard', href: '/club/dashboard' },
+            { label: 'My Events', href: '/club/events' },
+            { label: event.title, href: `/events/${event.slug}` },
+            { label: 'Registrations' },
+          ]}
+        />
 
         {/* Header Hero */}
         <motion.div
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="glass p-4 sm:p-6 md:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xl relative overflow-hidden"
+          className="glass p-5 sm:p-7 md:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xl relative overflow-hidden"
         >
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -195,21 +205,26 @@ export default function EventRegistrationsPage() {
               >
                 {event.status}
               </Badge>
+              {event.participation_type === 'team' && (
+                <Badge variant="pink" className="text-[10px]">
+                  Team Event
+                </Badge>
+              )}
               <span className="text-xs text-[var(--color-text-muted)] font-mono truncate max-w-[200px]">
                 /{event.slug}
               </span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-display text-[var(--color-text-primary)]">
+            <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
               {event.title}
             </h1>
             <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-1 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1">
-                <MapPin size={13} /> {event.venue_name}
+                <MapPin size={13} /> {event.venue_name || 'Campus Venue'}
               </span>
               <span>•</span>
               <span className="font-semibold text-[var(--color-text-primary)]">
-                {event.is_free ? 'Free Event' : `₹${event.price} Ticket`}
+                {event.is_free ? 'Free Admission' : `₹${event.price} Ticket`}
               </span>
             </p>
           </div>
@@ -221,7 +236,7 @@ export default function EventRegistrationsPage() {
                   variant="primary"
                   size="sm"
                   leftIcon={<QrCode size={13} />}
-                  className="w-full justify-center bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold"
+                  className="w-full justify-center bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold shadow-sm"
                 >
                   Gate Check-In
                 </Button>
@@ -233,7 +248,7 @@ export default function EventRegistrationsPage() {
                   variant="primary"
                   size="sm"
                   leftIcon={<CreditCard size={13} />}
-                  className="w-full justify-center bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold"
+                  className="w-full justify-center bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-sm"
                 >
                   Payments
                 </Button>
@@ -245,191 +260,180 @@ export default function EventRegistrationsPage() {
               </Button>
             </Link>
             <Link to={`/club/events/${event.id}/edit`} className="flex-1 sm:flex-initial">
-              <Button variant="outline" size="sm" className="w-full justify-center">
-                Edit
-              </Button>
-            </Link>
-            <Link to={`/events/${event.slug}`} className="w-full sm:w-auto">
-              <Button variant="ghost" size="sm" className="w-full justify-center" rightIcon={<ExternalLink size={13} />}>
-                Public Page
+              <Button variant="ghost" size="sm" className="w-full justify-center">
+                Edit Event
               </Button>
             </Link>
           </div>
         </motion.div>
 
-        {/* Paid Event Attendees Guidance */}
-        {!event.is_free && (
-          <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-secondary)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <Info size={18} className="shrink-0 mt-0.5 text-[var(--color-brand-cyan)]" />
-              <div>
-                <strong className="block font-semibold text-[var(--color-text-primary)] mb-0.5">
-                  Fee-Based Registrations & Payment Verification
-                </strong>
-                Review attendee bank references and approve submitted payment receipts in the payments dashboard to activate their entry tickets.
-              </div>
-            </div>
-            <Link to={`/club/payments?eventId=${event.id}`} className="shrink-0">
-              <Button variant="outline" size="sm" rightIcon={<ExternalLink size={13} />}>
-                Review Payments
-              </Button>
-            </Link>
-          </div>
-        )}
-
-        {/* Temporary Alert Banner */}
+        {/* Temporary Alert Notice */}
         {notice && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`p-3.5 rounded-xl text-xs flex items-center justify-between ${
-              notice.isError
-                ? 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
-                : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
-            }`}
+          <Alert
+            variant={notice.isError ? 'error' : 'success'}
+            dismissible
+            onDismiss={() => setNotice(null)}
           >
-            <div className="flex items-center gap-2">
-              {notice.isError ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
-              <span>{notice.message}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setNotice(null)}
-              className="hover:opacity-75"
-            >
-              ✕
-            </button>
-          </motion.div>
+            {notice.message}
+          </Alert>
         )}
 
-        {/* Stats Grid */}
+        {/* Capacity & Registered Summary Grid */}
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
         >
-          <Card className="p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium">
-              Capacity Fill Rate
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
+            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+              Confirmed Passes
             </span>
-            <div className="my-2">
-              <span className="text-2xl font-bold font-display text-[var(--color-text-primary)]">
-                {confirmedCount} / {event.capacity}
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-emerald-400">
+                {confirmedCount}
               </span>
-              <span className="text-xs text-[var(--color-text-muted)] ml-2">
-                ({fillPercent}%)
+              <span className="text-xs text-[var(--color-text-muted)] font-mono">
+                / {event.capacity} seats ({fillPercent}%)
               </span>
             </div>
-            {/* Progress bar */}
-            <div className="h-1.5 w-full bg-[var(--color-surface-2)] rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-[var(--color-surface-3)] rounded-full overflow-hidden mt-3">
               <div
-                className="h-full bg-gradient-to-r from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] rounded-full transition-all"
+                className="h-full bg-emerald-400 rounded-full transition-all duration-500"
                 style={{ width: `${fillPercent}%` }}
               />
             </div>
           </Card>
 
-          <Card className="p-5 flex items-center justify-between">
-            <div>
-              <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
-                Confirmed Passes
-              </span>
-              <span className="text-2xl font-bold font-display text-emerald-400">
-                {confirmedCount}
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-[var(--color-surface-2)] text-emerald-400">
-              <CheckCircle2 size={22} />
-            </div>
-          </Card>
-
-          <Card className="p-5 flex items-center justify-between">
-            <div>
-              <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
-                Host Review Required
-              </span>
-              <span className="text-2xl font-bold font-display text-[var(--color-brand-purple)]">
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
+            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+              Under Host Review
+            </span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-purple-400">
                 {pendingApprovalCount}
               </span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                {pendingApprovalCount > 0 ? 'Action required' : 'All clear'}
+              </span>
             </div>
-            <div className="p-3 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-brand-purple)]">
-              <Clock size={22} />
-            </div>
+            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+              Requires manual decision
+            </span>
           </Card>
 
-          <Card className="p-5 flex items-center justify-between">
-            <div>
-              <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
-                Payment Pending
-              </span>
-              <span className="text-2xl font-bold font-display text-amber-400">
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
+            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+              Payment Pending
+            </span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-amber-400">
                 {pendingPaymentCount}
               </span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                Awaiting student UTR
+              </span>
             </div>
-            <div className="p-3 rounded-xl bg-[var(--color-surface-2)] text-amber-400">
-              <Lock size={22} />
+            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+              Holds seat reservation
+            </span>
+          </Card>
+
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
+            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+              Cancelled / Void
+            </span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-rose-400">
+                {cancelledCount}
+              </span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                Seats returned
+              </span>
             </div>
+            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+              Revoked admission
+            </span>
           </Card>
         </motion.div>
 
-        {/* ── Attendee Table & Filters ────────────────────────────────────── */}
+        {/* ── Attendee Table & Card List ───────────────────────────────────── */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[var(--color-surface-1)] rounded-2xl border border-[var(--color-surface-3)]">
-            {/* Status tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto text-xs">
-              {(
-                [
-                  { key: 'all', label: `All (${registrations.length})` },
-                  { key: 'pending_approval', label: `Review Needed (${pendingApprovalCount})` },
-                  { key: 'confirmed', label: `Confirmed (${confirmedCount})` },
-                  { key: 'pending_payment', label: `Payment (${pendingPaymentCount})` },
-                  { key: 'cancelled', label: `Cancelled / Void (${cancelledCount})` },
-                ] as const
-              ).map((tab) => (
+          {/* Controls: Search and Status Tabs */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[var(--color-surface-1)] rounded-2xl border border-[oklch(100%_0_0_/_0.08)] shadow-sm">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs no-scrollbar touch-pan-x">
+              {([
+                { id: 'all', label: 'All Attendees', count: filterCounts.all },
+                { id: 'confirmed', label: 'Confirmed', count: filterCounts.confirmed },
+                { id: 'pending_approval', label: 'Under Review', count: filterCounts.pending_approval },
+                { id: 'pending_payment', label: 'Payment Due', count: filterCounts.pending_payment },
+                { id: 'cancelled', label: 'Cancelled', count: filterCounts.cancelled },
+              ] as const).map((tab) => (
                 <button
-                  key={tab.key}
+                  key={tab.id}
                   type="button"
-                  onClick={() => setStatusFilter(tab.key as any)}
-                  className={`px-3 py-1.5 rounded-xl capitalize font-medium transition-all shrink-0 ${
-                    statusFilter === tab.key
-                      ? 'bg-[var(--color-brand-purple)] text-white shadow-sm'
+                  onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
+                  className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 min-h-[36px] flex items-center gap-1.5 ${
+                    statusFilter === tab.id
+                      ? 'bg-[var(--color-brand-purple)] text-white shadow-sm font-semibold'
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
                   }`}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      statusFilter === tab.id
+                        ? 'bg-black/25 text-white'
+                        : 'bg-[var(--color-surface-3)] text-[var(--color-text-muted)]'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
                 </button>
               ))}
             </div>
 
-            {/* Search */}
             <div className="relative w-full md:w-72">
               <input
                 type="text"
                 placeholder="Search attendee, team, or ticket code…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3.5 py-1.5 pl-9 rounded-xl text-xs bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                className="w-full h-10 px-3.5 pl-9 pr-8 rounded-xl text-xs bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] focus:border-[var(--color-brand-purple)] outline-none"
               />
               <Search
                 size={14}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
 
           {filteredRegistrations.length === 0 ? (
-            <div className="py-16 text-center glass rounded-2xl border border-[var(--color-surface-3)] flex flex-col items-center">
-              <Users size={32} className="text-[var(--color-text-muted)] mb-2" />
-              <h3 className="font-bold text-sm text-[var(--color-text-primary)] mb-1">
-                No registrations found
-              </h3>
-              <p className="text-xs text-[var(--color-text-secondary)]">
-                {search || statusFilter !== 'all'
-                  ? 'No attendees match your current search or filter.'
-                  : 'No student registrations recorded yet for this event.'}
-              </p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title={search || statusFilter !== 'all' ? 'No Matching Attendees' : 'No Registrations Recorded'}
+              description={
+                search || statusFilter !== 'all'
+                  ? 'No registered attendees match your current search or status filter.'
+                  : 'No student registrations have been recorded yet for this event.'
+              }
+              action={
+                search || statusFilter !== 'all' ? (
+                  <Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all') }}>
+                    Clear Filters
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
             <div>
               {/* Mobile Card List View (< md) */}
@@ -447,10 +451,10 @@ export default function EventRegistrationsPage() {
                   const isRejected = reg.status === 'rejected'
 
                   return (
-                    <Card key={reg.id} className="p-4 flex flex-col gap-3">
+                    <Card key={reg.id} className="p-4 flex flex-col gap-3 border border-[oklch(100%_0_0_/_0.08)]">
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-8 h-8 rounded-full bg-[var(--color-surface-3)] text-xs font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
+                          <span className="w-9 h-9 rounded-full bg-[var(--color-surface-3)] text-xs font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
                             {((reg.student?.display_name || reg.team_name || 'A').replace(/^Team\s+/i, '') || 'A').charAt(0).toUpperCase()}
                           </span>
                           <div className="min-w-0">
@@ -543,7 +547,7 @@ export default function EventRegistrationsPage() {
                             onClick={() => setCancellingAttendee(reg)}
                             className="text-xs text-rose-400 hover:text-rose-300 border-rose-500/20 min-h-[40px]"
                           >
-                            Cancel
+                            Cancel Pass
                           </Button>
                         )}
                       </div>
@@ -558,11 +562,11 @@ export default function EventRegistrationsPage() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 text-[var(--color-text-muted)] uppercase tracking-wider text-[10px]">
-                        <th className="py-3.5 px-4 font-semibold">Attendee Name</th>
-                        <th className="py-3.5 px-4 font-semibold">Contact Email</th>
+                        <th className="py-3.5 px-4 font-semibold">Attendee / Team</th>
+                        <th className="py-3.5 px-4 font-semibold">Email</th>
                         <th className="py-3.5 px-4 font-semibold">Ticket Code</th>
-                        <th className="py-3.5 px-4 font-semibold">Registration Date</th>
-                        <th className="py-3.5 px-4 font-semibold">Pass Status</th>
+                        <th className="py-3.5 px-4 font-semibold">Registered</th>
+                        <th className="py-3.5 px-4 font-semibold">Status</th>
                         <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
@@ -586,8 +590,8 @@ export default function EventRegistrationsPage() {
                             className="hover:bg-[var(--color-surface-2)]/40 transition-colors"
                           >
                             <td className="py-3.5 px-4 font-medium text-[var(--color-text-primary)]">
-                              <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-[var(--color-surface-3)] text-[10px] font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
+                              <div className="flex items-center gap-2.5">
+                                <span className="w-7 h-7 rounded-full bg-[var(--color-surface-3)] text-[10px] font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
                                   {((reg.student?.display_name || reg.team_name || 'A').replace(/^Team\s+/i, '') || 'A').charAt(0).toUpperCase()}
                                 </span>
                                 <div>
@@ -667,7 +671,7 @@ export default function EventRegistrationsPage() {
                                       setReviewDecision('approved')
                                       setRejectionReason('')
                                     }}
-                                    className="text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2 py-1 rounded hover:bg-[var(--color-surface-2)] transition-colors"
+                                    className="text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
                                   >
                                     Details
                                   </button>
@@ -677,7 +681,7 @@ export default function EventRegistrationsPage() {
                                   <button
                                     type="button"
                                     onClick={() => setCancellingAttendee(reg)}
-                                    className="text-[11px] text-rose-400 hover:text-rose-300 font-medium px-2 py-1 transition-colors"
+                                    className="text-[11px] text-rose-400 hover:text-rose-300 font-medium px-2 py-1 transition-colors hover:bg-rose-500/10 rounded-lg"
                                   >
                                     Cancel
                                   </button>
@@ -695,37 +699,21 @@ export default function EventRegistrationsPage() {
           )}
         </div>
 
-        {/* Application Details & Review Modal */}
-        <AnimatePresence>
-          {reviewingReg && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
-            >
-              <motion.div
-                initial={{ scale: 0.95, y: 12 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 12 }}
-                className="w-full max-w-xl p-6 sm:p-7 rounded-3xl glass border border-[oklch(100%_0_0_/_0.15)] text-left flex flex-col gap-5 shadow-2xl relative my-8"
-              >
-                {/* Header */}
+        {/* ── Modal: Application Details & Review ───────────────────────────── */}
+        <Modal
+          isOpen={Boolean(reviewingReg)}
+          onClose={() => setReviewingReg(null)}
+          title={reviewingReg?.status === 'pending_approval' ? 'Review Registration Application' : 'Application & Attendee Details'}
+          size="md"
+        >
+          <ModalBody>
+            {reviewingReg && (
+              <div className="flex flex-col gap-4 text-left">
+                {/* Header Sub-bar */}
                 <div className="flex items-center justify-between pb-3 border-b border-[var(--color-surface-3)]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] flex items-center justify-center text-white">
-                      <Users size={20} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
-                        {reviewingReg.status === 'pending_approval' ? 'Review Registration Application' : 'Application & Attendee Details'}
-                      </h3>
-                      <span className="text-xs text-[var(--color-text-muted)] font-mono">
-                        Ticket Ref: {reviewingReg.ticket_code}
-                      </span>
-                    </div>
-                  </div>
-
+                  <span className="text-xs font-mono text-[var(--color-text-muted)]">
+                    Ticket Ref: <strong className="text-[var(--color-brand-cyan)]">{reviewingReg.ticket_code}</strong>
+                  </span>
                   <Badge
                     variant={
                       reviewingReg.status === 'confirmed'
@@ -743,25 +731,25 @@ export default function EventRegistrationsPage() {
                 </div>
 
                 {/* Primary Attendee Details */}
-                <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] space-y-2 text-xs">
-                  <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider block">
+                <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] space-y-2 text-xs">
+                  <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
                     Applicant / Team Leader
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[var(--color-text-secondary)]">
                     <div>
-                      <span className="text-[var(--color-text-muted)] block">Name:</span>
-                      <strong className="text-[var(--color-text-primary)] font-medium">
+                      <span className="text-[var(--color-text-muted)] block text-[11px]">Name:</span>
+                      <strong className="text-[var(--color-text-primary)] font-semibold text-sm">
                         {reviewingReg.student?.display_name || (reviewingReg.team_name ? `Team ${reviewingReg.team_name}` : 'Student Attendee')}
                       </strong>
                     </div>
                     <div>
-                      <span className="text-[var(--color-text-muted)] block">Email:</span>
+                      <span className="text-[var(--color-text-muted)] block text-[11px]">Email:</span>
                       <strong className="text-[var(--color-text-primary)] font-medium">
                         {reviewingReg.student?.email || '—'}
                       </strong>
                     </div>
                     <div>
-                      <span className="text-[var(--color-text-muted)] block">Submission Date:</span>
+                      <span className="text-[var(--color-text-muted)] block text-[11px]">Submitted On:</span>
                       <strong className="text-[var(--color-text-primary)] font-medium">
                         {new Date(reviewingReg.created_at).toLocaleString('en-IN', {
                           day: 'numeric',
@@ -773,8 +761,8 @@ export default function EventRegistrationsPage() {
                       </strong>
                     </div>
                     <div>
-                      <span className="text-[var(--color-text-muted)] block">Event Admission:</span>
-                      <strong className={event.is_free ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'}>
+                      <span className="text-[var(--color-text-muted)] block text-[11px]">Admission Fee:</span>
+                      <strong className={event.is_free ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
                         {event.is_free ? 'Free Pass' : `₹${event.price} (Paid)`}
                       </strong>
                     </div>
@@ -783,7 +771,7 @@ export default function EventRegistrationsPage() {
 
                 {/* Team Details & Roster */}
                 {reviewingReg.team_name && (
-                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] space-y-3">
+                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Users size={16} className="text-[var(--color-brand-purple)]" />
@@ -829,7 +817,7 @@ export default function EventRegistrationsPage() {
 
                 {/* Custom Questionnaire Responses */}
                 {reviewingReg.custom_responses && Object.keys(reviewingReg.custom_responses).length > 0 && (
-                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] space-y-2">
+                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-2">
                     <h4 className="text-xs font-bold text-[var(--color-text-primary)]">
                       Questionnaire Responses
                     </h4>
@@ -856,9 +844,9 @@ export default function EventRegistrationsPage() {
                   </div>
                 )}
 
-                {/* Review Action Controls (only for pending_approval) */}
-                {reviewingReg.status === 'pending_approval' ? (
-                  <div className="space-y-4 pt-2 border-t border-[var(--color-surface-3)]">
+                {/* Review Controls for pending_approval */}
+                {reviewingReg.status === 'pending_approval' && (
+                  <div className="space-y-3 pt-3 border-t border-[var(--color-surface-3)]">
                     <div className="flex items-center gap-4 text-xs">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -869,7 +857,7 @@ export default function EventRegistrationsPage() {
                           onChange={() => setReviewDecision('approved')}
                           className="text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
                         />
-                        <span className="text-[var(--color-text-primary)] font-medium">
+                        <span className="text-[var(--color-text-primary)] font-semibold">
                           Approve Application {event.is_free ? '(Issues Pass)' : '(Requests Payment)'}
                         </span>
                       </label>
@@ -883,7 +871,7 @@ export default function EventRegistrationsPage() {
                           onChange={() => setReviewDecision('rejected')}
                           className="text-rose-500 focus:ring-rose-500"
                         />
-                        <span className="text-rose-300 font-medium">
+                        <span className="text-rose-300 font-semibold">
                           Reject Application
                         </span>
                       </label>
@@ -898,105 +886,103 @@ export default function EventRegistrationsPage() {
                           rows={2}
                           value={rejectionReason}
                           onChange={(e) => setRejectionReason(e.target.value)}
-                          placeholder="e.g. Prerequisites not met, invalid team size, or outside eligibility criteria…"
+                          placeholder="e.g. Ineligible year of study, missing prerequisites, or team capacity not met…"
                           className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-rose-500/30 text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-rose-400"
                         />
                       </div>
                     )}
-
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isReviewing}
-                        onClick={() => setReviewingReg(null)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant={reviewDecision === 'approved' ? 'primary' : 'danger'}
-                        size="sm"
-                        disabled={isReviewing}
-                        isLoading={isReviewing}
-                        onClick={handleReviewApplication}
-                        leftIcon={reviewDecision === 'approved' ? <Check size={14} /> : <X size={14} />}
-                      >
-                        {reviewDecision === 'approved' ? 'Confirm Approval' : 'Confirm Rejection'}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-end pt-2 border-t border-[var(--color-surface-3)]">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setReviewingReg(null)}
-                    >
-                      Close Details
-                    </Button>
                   </div>
                 )}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Cancellation Confirmation Modal */}
-        <AnimatePresence>
-          {cancellingAttendee && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
-            >
-              <motion.div
-                initial={{ scale: 0.95, y: 10 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 10 }}
-                className="w-full max-w-md p-6 rounded-2xl glass border border-rose-500/30 text-left flex flex-col gap-4 shadow-2xl"
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            {reviewingReg?.status === 'pending_approval' ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={isReviewing}
+                  onClick={() => setReviewingReg(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant={reviewDecision === 'approved' ? 'primary' : 'danger'}
+                  size="sm"
+                  disabled={isReviewing}
+                  isLoading={isReviewing}
+                  onClick={handleReviewApplication}
+                  leftIcon={reviewDecision === 'approved' ? <Check size={14} /> : <X size={14} />}
+                >
+                  {reviewDecision === 'approved' ? 'Confirm Approval' : 'Confirm Rejection'}
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReviewingReg(null)}
               >
-                <div className="flex items-center gap-3 text-rose-400">
-                  <div className="p-2.5 rounded-xl bg-rose-500/15">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <h3 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
-                    Cancel Attendee Pass?
-                  </h3>
-                </div>
+                Close Details
+              </Button>
+            )}
+          </ModalFooter>
+        </Modal>
 
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  Are you sure you want to cancel the registration for{' '}
-                  <strong className="text-[var(--color-text-primary)]">
-                    {cancellingAttendee.student?.display_name || (cancellingAttendee.team_name ? `Team ${cancellingAttendee.team_name}` : 'Attendee')}
-                  </strong>{' '}
-                  (Ticket: <code className="text-white">{cancellingAttendee.ticket_code}</code>)?
-                  Their digital QR code will immediately be invalidated for gate entry.
-                </p>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={actionLoading}
-                    onClick={() => setCancellingAttendee(null)}
-                  >
-                    Keep Registration
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={actionLoading}
-                    isLoading={actionLoading}
-                    onClick={handleOrganizerCancel}
-                  >
-                    Confirm Cancellation
-                  </Button>
+        {/* ── Modal: Cancellation Confirmation ────────────────────────────── */}
+        <Modal
+          isOpen={Boolean(cancellingAttendee)}
+          onClose={() => setCancellingAttendee(null)}
+          title="Cancel Attendee Pass"
+          size="sm"
+        >
+          <ModalBody>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 text-rose-400">
+                <div className="p-2.5 rounded-xl bg-rose-500/15">
+                  <AlertTriangle size={24} />
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <div>
+                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Revoke Entry Pass
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    This invalidates the student's QR gate credential.
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
+                Are you sure you want to cancel the registration for{' '}
+                <strong className="text-[var(--color-text-primary)]">
+                  {cancellingAttendee?.student?.display_name || (cancellingAttendee?.team_name ? `Team ${cancellingAttendee?.team_name}` : 'Attendee')}
+                </strong>{' '}
+                (Ticket Code: <code className="text-white font-mono">{cancellingAttendee?.ticket_code}</code>)?
+                Their seat will be released and their QR token will be rejected at the gate desk.
+              </p>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={actionLoading}
+              onClick={() => setCancellingAttendee(null)}
+            >
+              Keep Registration
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={actionLoading}
+              isLoading={actionLoading}
+              onClick={handleOrganizerCancel}
+            >
+              Confirm Cancellation
+            </Button>
+          </ModalFooter>
+        </Modal>
       </div>
     </PageShell>
   )

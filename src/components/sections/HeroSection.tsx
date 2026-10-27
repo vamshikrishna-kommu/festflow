@@ -1,209 +1,151 @@
-import { useRef, useEffect } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { useGSAP } from '@gsap/react'
-import { ArrowRight, Play, Star, Users, Calendar } from 'lucide-react'
+import { ArrowRight, Sparkles, QrCode, ShieldCheck, Zap } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { fadeUp, fadeIn, staggerContainer } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { HeroScene3D } from './HeroScene3D'
 
-gsap.registerPlugin(ScrollTrigger, useGSAP)
-
-const STATS = [
-  { icon: Calendar, value: '2,400+', label: 'Events hosted' },
-  { icon: Users,    value: '180K+',  label: 'Students reached' },
-  { icon: Star,     value: '4.9★',   label: 'Club rating avg.' },
-]
-
-const FLOATING_TAGS = [
-  { text: '🎵 Music Fest',         style: 'top-[18%] left-[8%]'  },
-  { text: '💻 Hackathon',          style: 'top-[30%] right-[6%]' },
-  { text: '🎨 Art Exhibition',     style: 'top-[65%] left-[5%]'  },
-  { text: '🏆 Sports Tournament',  style: 'top-[70%] right-[8%]' },
+const CAPABILITIES = [
+  { icon: Zap, label: '0% Platform Fee', subtext: 'Free for every campus club' },
+  { icon: QrCode, label: 'Instant QR Entry', subtext: 'Real-time check-in validation' },
+  { icon: ShieldCheck, label: 'Direct UPI', subtext: 'Ticket revenue direct to club bank' },
 ]
 
 export function HeroSection() {
-  const sectionRef   = useRef<HTMLElement>(null)
-  const orb1Ref      = useRef<HTMLDivElement>(null)
-  const orb2Ref      = useRef<HTMLDivElement>(null)
-  const floatsRef    = useRef<HTMLDivElement>(null)
-  const reduced      = useReducedMotion()
-
-  // GSAP: subtle parallax on orbs (justified — CSS parallax would stutter here)
-  useGSAP(() => {
-    if (reduced) return
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1.5,
-      },
-    })
-
-    tl.to(orb1Ref.current, { y: -120, scale: 1.15, ease: 'none' }, 0)
-    tl.to(orb2Ref.current, { y: -80,  scale: 1.1,  ease: 'none' }, 0)
-    tl.to(floatsRef.current, { y: -60, ease: 'none' }, 0)
-  }, { scope: sectionRef })
-
-  // Ambient orb mouse-tracking (subtle, no GSAP needed)
-  useEffect(() => {
-    if (reduced) return
-    const section = sectionRef.current
-    if (!section) return
-
-    const move = (e: MouseEvent) => {
-      const rect = section.getBoundingClientRect()
-      const x = ((e.clientX - rect.left) / rect.width  - 0.5) * 30
-      const y = ((e.clientY - rect.top)  / rect.height - 0.5) * 30
-      orb1Ref.current?.style.setProperty('transform', `translate(${x * 0.4}px, ${y * 0.4}px)`)
-      orb2Ref.current?.style.setProperty('transform', `translate(${-x * 0.2}px, ${-y * 0.2}px)`)
-    }
-
-    section.addEventListener('mousemove', move, { passive: true })
-    return () => section.removeEventListener('mousemove', move)
-  }, [reduced])
+  const reduced = useReducedMotion()
 
   return (
     <section
-      ref={sectionRef}
       aria-label="Hero"
-      className="relative min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden pt-24 pb-20 noise-overlay"
+      className="relative min-h-[85dvh] flex flex-col justify-center overflow-hidden pt-8 sm:pt-12 pb-14 noise-overlay"
     >
-      {/* Background orbs */}
+      {/* Background radial atmosphere */}
       <div
-        ref={orb1Ref}
         aria-hidden="true"
-        className="absolute -top-32 -left-32 w-[700px] h-[700px] rounded-full bg-[radial-gradient(ellipse_at_center,oklch(58%_0.24_290_/_0.28)_0%,transparent_70%)] pointer-events-none will-change-transform"
-      />
-      <div
-        ref={orb2Ref}
-        aria-hidden="true"
-        className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-[radial-gradient(ellipse_at_center,oklch(65%_0.22_340_/_0.22)_0%,transparent_70%)] pointer-events-none will-change-transform"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[750px] pointer-events-none -z-10"
+        style={{
+          background:
+            'radial-gradient(ellipse 65% 55% at 50% 15%, oklch(58% 0.26 285 / 0.16) 0%, oklch(62% 0.24 318 / 0.08) 50%, transparent 75%)',
+        }}
       />
 
-      {/* Floating tags */}
-      <div ref={floatsRef} aria-hidden="true" className="absolute inset-0 pointer-events-none">
-        {FLOATING_TAGS.map(({ text, style }) => (
-          <div
-            key={text}
-            className={`absolute hidden lg:flex glass rounded-[var(--radius-pill)] px-4 py-2 text-xs font-semibold text-[var(--color-text-secondary)] ${style}`}
-          >
-            {text}
-          </div>
-        ))}
-      </div>
-
-      {/* Content */}
-      <motion.div
-        variants={staggerContainer}
-        initial={reduced ? 'visible' : 'hidden'}
-        animate="visible"
-        className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 max-w-5xl"
-      >
-        {/* Eyebrow pill */}
-        <motion.div variants={reduced ? undefined : fadeIn} className="mb-4 sm:mb-6 max-w-full">
-          <span className="inline-flex items-center gap-1.5 sm:gap-2 glass rounded-[var(--radius-pill)] px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-semibold text-[var(--color-brand-purple)] ring-1 ring-[oklch(58%_0.24_290_/_0.3)] max-w-full text-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="truncate sm:whitespace-normal">100% Free Platform for College Clubs • 0% Fee</span>
-          </span>
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1
-          variants={reduced ? undefined : fadeUp}
-          className="font-display font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.08] sm:leading-[1.05] tracking-tight mb-4 sm:mb-6"
-        >
-          <span className="text-[var(--color-text-primary)]">Your campus,</span>
-          <br />
-          <span className="gradient-text">electrified.</span>
-        </motion.h1>
-
-        {/* Subheadline */}
-        <motion.p
-          variants={reduced ? undefined : fadeUp}
-          className="max-w-2xl text-base sm:text-lg md:text-xl text-[var(--color-text-secondary)] leading-relaxed mb-8 sm:mb-10 px-1"
-        >
-          FestFlow is the 100% free event platform for college clubs. Create events, sell
-          tickets directly via UPI with zero commissions, send QR check-ins, and track attendance
-          — completely free for everyone.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          variants={reduced ? undefined : fadeUp}
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16 w-full sm:w-auto max-w-xs sm:max-w-none"
-        >
-          <Link to="/club/signup" className="w-full sm:w-auto">
-            <Button
-              id="hero-cta-primary"
-              variant="primary"
-              size="lg"
-              className="w-full sm:w-auto min-h-[48px] justify-center"
-              rightIcon={<ArrowRight size={18} />}
-            >
-              Get Started Free
-            </Button>
-          </Link>
-          <Link to="/discover" className="w-full sm:w-auto">
-            <Button
-              id="hero-cta-discover"
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto min-h-[48px] justify-center"
-              leftIcon={<Play size={16} className="fill-current" />}
-            >
-              Browse events
-            </Button>
-          </Link>
-        </motion.div>
-
-        {/* Social proof stats */}
-        <motion.div
-          variants={reduced ? undefined : fadeUp}
-          className="grid grid-cols-3 gap-2 sm:gap-8 max-w-lg w-full"
-        >
-          {STATS.map(({ icon: Icon, value, label }) => (
-            <div key={label} className="flex flex-col items-center gap-1 p-2 rounded-xl glass-subtle sm:bg-transparent sm:border-0 sm:backdrop-blur-none">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <Icon
-                  size={15}
-                  className="text-[var(--color-brand-purple)] shrink-0"
-                  aria-hidden="true"
-                />
-                <span className="font-display font-bold text-lg sm:text-2xl text-[var(--color-text-primary)]">
-                  {value}
-                </span>
-              </div>
-              <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)] text-center">{label}</span>
-            </div>
-          ))}
-        </motion.div>
-      </motion.div>
-
-      {/* Scroll hint */}
-      <motion.div
-        variants={reduced ? undefined : fadeIn}
-        initial="hidden"
-        animate="visible"
-        transition={{ delay: 1.2 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+      {/* Grid pattern */}
+      <div
         aria-hidden="true"
-      >
-        <span className="text-[10px] uppercase tracking-widest text-[var(--color-text-muted)]">
-          Scroll
-        </span>
-        <div className="w-5 h-8 rounded-[var(--radius-pill)] border border-[oklch(100%_0_0_/_0.15)] flex justify-center pt-1.5">
+        className="absolute inset-0 grid-pattern opacity-30 pointer-events-none -z-10"
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          {/* Left Column: Narrative Headline & Action */}
           <motion.div
-            className="w-1 h-1.5 rounded-full bg-[var(--color-brand-purple)]"
-            animate={reduced ? {} : { y: [0, 12, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          />
+            variants={staggerContainer}
+            initial={reduced ? 'visible' : 'hidden'}
+            animate="visible"
+            className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left z-10"
+          >
+            {/* Platform Eyebrow Badge */}
+            <motion.div variants={reduced ? undefined : fadeIn} className="mb-4 sm:mb-5">
+              <span className="inline-flex items-center gap-2 rounded-full pl-2.5 pr-4 py-1.5 text-xs font-semibold text-[var(--color-brand-violet)] glass border border-[oklch(58%_0.26_285_/_0.25)] shadow-sm">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full gradient-brand shrink-0">
+                  <Sparkles size={11} className="text-white" aria-hidden="true" />
+                </span>
+                <span>The Modern Event OS for Colleges · 0% Fee</span>
+              </span>
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h1
+              variants={reduced ? undefined : fadeUp}
+              className="font-display font-extrabold text-3xl sm:text-5xl lg:text-5xl xl:text-6xl leading-[1.12] tracking-tight mb-4 sm:mb-6 text-[var(--color-text-primary)] max-w-2xl"
+            >
+              Discover, organize <br className="hidden sm:inline" />
+              & ticket campus events{' '}
+              <span className="gradient-text">effortlessly.</span>
+            </motion.h1>
+
+            {/* Subheadline describing genuine capabilities */}
+            <motion.p
+              variants={reduced ? undefined : fadeUp}
+              className="max-w-xl text-sm sm:text-base md:text-lg text-[var(--color-text-secondary)] leading-relaxed mb-8 sm:mb-10"
+            >
+              FestFlow empowers college clubs to publish custom registrations, collect UPI payments directly to club accounts, issue verified digital QR tickets, and check in attendees in real time.
+            </motion.p>
+
+            {/* Dual CTAs */}
+            <motion.div
+              variants={reduced ? undefined : fadeUp}
+              className="flex flex-col sm:flex-row gap-3.5 sm:gap-4 w-full sm:w-auto mb-10 sm:mb-12"
+            >
+              <Link to="/club/signup" className="w-full sm:w-auto">
+                <Button
+                  id="hero-cta-primary"
+                  variant="primary"
+                  size="lg"
+                  className="w-full sm:w-auto min-h-[52px] px-8 justify-center text-sm sm:text-base font-semibold shine-on-hover shadow-[0_0_28px_oklch(58%_0.26_285_/_0.35)]"
+                  rightIcon={<ArrowRight size={18} />}
+                >
+                  Create Club Event Free
+                </Button>
+              </Link>
+              <Link to="/discover" className="w-full sm:w-auto">
+                <Button
+                  id="hero-cta-discover"
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto min-h-[52px] px-7 justify-center text-sm sm:text-base font-medium"
+                >
+                  Browse Campus Events
+                </Button>
+              </Link>
+            </motion.div>
+
+            {/* Micro Feature Highlights */}
+            <motion.div
+              variants={reduced ? undefined : fadeUp}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg lg:max-w-none"
+            >
+              {CAPABILITIES.map(({ icon: Icon, label, subtext }) => (
+                <div
+                  key={label}
+                  className="p-3 rounded-2xl glass-subtle border border-[oklch(100%_0_0_/_0.06)] flex items-center lg:items-start gap-2.5 text-left"
+                >
+                  <div
+                    className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: 'oklch(58% 0.26 285 / 0.16)' }}
+                  >
+                    <Icon size={14} className="text-[var(--color-brand-violet)]" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[var(--color-text-primary)] leading-tight">
+                      {label}
+                    </h4>
+                    <p className="text-[10px] text-[var(--color-text-muted)] leading-tight mt-0.5">
+                      {subtext}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          {/* Right Column: Original 3D Sculpture Centerpiece */}
+          <div className="lg:col-span-5 flex items-center justify-center relative">
+            {/* Ambient lighting backdrop behind 3D object */}
+            <div
+              aria-hidden="true"
+              className="absolute w-80 h-80 rounded-full pointer-events-none -z-0"
+              style={{
+                background:
+                  'radial-gradient(circle, oklch(58% 0.26 285 / 0.22) 0%, oklch(72% 0.16 200 / 0.15) 50%, transparent 70%)',
+                filter: 'blur(30px)',
+              }}
+            />
+            <HeroScene3D />
+          </div>
         </div>
-      </motion.div>
+      </div>
     </section>
   )
 }

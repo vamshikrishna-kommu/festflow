@@ -1,15 +1,16 @@
 /**
- * FestFlow Phase 4: Payment System & Checkout Verification Suite
- * Tests order creation, free/paid separation, verification, idempotency, failure recovery,
- * and state synchronization without live credit card charges.
+ * FestFlow Phase 4: Direct UPI Payments & Verification Test Suite
+ * Tests direct UPI settings, UTR submissions, duplicate replay protection,
+ * organizer review (approval/rejection), ticket activation, and lifecycle security.
  */
 
 import {
-  createPaymentOrder,
-  verifyPaymentOrder,
-  recordPaymentFailure,
-  getStudentPaymentOrder,
-  isRazorpayConfigured,
+  validateUpiId,
+  getClubPaymentSettings,
+  saveClubPaymentSettings,
+  submitPaymentProof,
+  reviewPaymentSubmission,
+  getStudentPaymentSubmission,
 } from '../src/lib/payments.js'
 
 let totalTests = 0
@@ -50,7 +51,7 @@ if (typeof globalThis.localStorage === 'undefined') {
 
 async function runPhase4Tests() {
   console.log('\n============================================================')
-  console.log('FESTFLOW PHASE 4: REPAIR THE REAL PAYMENT SYSTEM TESTS')
+  console.log('FESTFLOW: DIRECT UPI PAYMENTS & VERIFICATION TEST SUITE')
   console.log('============================================================\n')
 
   // Setup seed mock events & registrations in localStorage
@@ -80,181 +81,150 @@ async function runPhase4Tests() {
       club_id: 'club_tech_council',
       start_date: new Date(now.getTime() + 86400000 * 5).toISOString(),
     },
-    {
-      id: 'evt_paid_curated',
-      title: 'VIP Masterclass',
-      slug: 'vip-masterclass',
-      price: 1200,
-      currency: 'INR',
-      is_free: false,
-      approval_type: 'manual',
-      status: 'published',
-      club_id: 'club_tech_council',
-      start_date: new Date(now.getTime() + 86400000 * 6).toISOString(),
-    },
   ]
 
   const mockRegistrations = [
     {
       id: 'reg_free_1',
       event_id: 'evt_free_tech',
-      student_id: 'student_test_1',
+      student_id: 'std_alice',
+      ticket_code: 'TKT-FREE-001',
       status: 'confirmed',
-      ticket_code: 'FF-FREE-001',
+      approval_status: 'approved',
       created_at: now.toISOString(),
-      ticket_issued_at: now.toISOString(),
+      updated_at: now.toISOString(),
     },
     {
-      id: 'reg_paid_payable',
+      id: 'reg_paid_1',
       event_id: 'evt_paid_hackathon',
-      student_id: 'student_test_1',
+      student_id: 'std_bob',
+      ticket_code: 'TKT-PENDING-001',
       status: 'pending_payment',
-      ticket_code: 'FF-HACK-PENDING',
+      approval_status: 'approved',
       created_at: now.toISOString(),
-      ticket_issued_at: null,
+      updated_at: now.toISOString(),
     },
     {
-      id: 'reg_paid_curated_locked',
-      event_id: 'evt_paid_curated',
-      student_id: 'student_test_1',
-      status: 'pending_approval',
-      ticket_code: 'FF-VIP-PENDING',
-      created_at: now.toISOString(),
-      ticket_issued_at: null,
-    },
-    {
-      id: 'reg_paid_cancelled',
+      id: 'reg_paid_2',
       event_id: 'evt_paid_hackathon',
-      student_id: 'student_test_2',
-      status: 'cancelled',
-      ticket_code: 'FF-CANCELLED',
+      student_id: 'std_charlie',
+      ticket_code: 'TKT-PENDING-002',
+      status: 'pending_payment',
+      approval_status: 'approved',
       created_at: now.toISOString(),
-      ticket_issued_at: null,
+      updated_at: now.toISOString(),
     },
   ]
 
-  localStorage.setItem('festflow_managed_events', JSON.stringify(mockEvents))
+  localStorage.setItem('festflow_local_events', JSON.stringify(mockEvents))
   localStorage.setItem('festflow_local_registrations', JSON.stringify(mockRegistrations))
-  localStorage.setItem('festflow_local_payment_orders', JSON.stringify([]))
 
-  // ── Test Suite 1: Free vs Paid Event Distinction ─────────────────────────
-  console.log('--- Test Suite 1: Free vs Paid Event Order Validation ---')
-  const freeOrderRes = await createPaymentOrder('reg_free_1')
-  assert(!freeOrderRes.success, 'Free event payment order creation is rejected')
-  assert(freeOrderRes.error_code === 'ALREADY_CONFIRMED' || freeOrderRes.error_code === 'FREE_EVENT', 'Error code identifies free event or already confirmed pass')
+  // --- Suite 1: UPI ID Validation ---
+  console.log('--- Test Suite 1: UPI ID Validation ---')
+  assert(validateUpiId('techfest@okaxis'), 'Valid standard UPI ID (techfest@okaxis)')
+  assert(validateUpiId('robotics.club@icici'), 'Valid dotted UPI ID (robotics.club@icici)')
+  assert(!validateUpiId(''), 'Rejects empty UPI ID')
+  assert(!validateUpiId('invalid-upi'), 'Rejects UPI ID without handle (@bank)')
+  assert(!validateUpiId('@bank'), 'Rejects UPI ID missing username prefix')
 
-  const paidOrderRes = await createPaymentOrder('reg_paid_payable')
-  assert(paidOrderRes.success, 'Paid event payment order creation succeeds')
-  assert(paidOrderRes.order?.amount === 499, 'Order amount matches server-stored event price (₹499)')
-  assert(paidOrderRes.order?.currency === 'INR', 'Order currency matches event currency (INR)')
-  assert(Boolean(paidOrderRes.order?.order_reference.startsWith('ORD-')), 'Generates unique order reference with ORD- prefix')
-
-  // ── Test Suite 2: Registration State & Security Guards ────────────────────
-  console.log('\n--- Test Suite 2: Registration State & Eligibility Guards ---')
-  const lockedOrderRes = await createPaymentOrder('reg_paid_curated_locked')
-  assert(!lockedOrderRes.success, 'Rejects payment order when application is under host review (pending_approval)')
-  assert(lockedOrderRes.error_code === 'APPROVAL_REQUIRED', 'Error code is APPROVAL_REQUIRED')
-
-  const cancelledOrderRes = await createPaymentOrder('reg_paid_cancelled')
-  assert(!cancelledOrderRes.success, 'Rejects payment order for cancelled registrations')
-  assert(cancelledOrderRes.error_code === 'REGISTRATION_CANCELLED', 'Error code is REGISTRATION_CANCELLED')
-
-  const nonExistentOrderRes = await createPaymentOrder('reg_does_not_exist_999')
-  assert(!nonExistentOrderRes.success, 'Rejects non-existent registration IDs')
-  assert(nonExistentOrderRes.error_code === 'REGISTRATION_NOT_FOUND', 'Error code is REGISTRATION_NOT_FOUND')
-
-  // ── Test Suite 3: Idempotency & Duplicate Order Prevention ────────────────
-  console.log('\n--- Test Suite 3: Idempotency & Duplicate Order Prevention ---')
-  const duplicateOrderRes = await createPaymentOrder('reg_paid_payable')
-  assert(duplicateOrderRes.success, 'Repeated order creation request is safely handled')
-  assert(duplicateOrderRes.order?.id === paidOrderRes.order?.id, 'Returns existing active order instead of creating duplicates')
-  assert(duplicateOrderRes.order?.order_reference === paidOrderRes.order?.order_reference, 'Retains same order reference')
-
-  // ── Test Suite 4: Failure & Bank Decline Handling ────────────────────────
-  console.log('\n--- Test Suite 4: Payment Failure & Decline Handling ---')
-  const failRes = await recordPaymentFailure({
-    orderId: paidOrderRes.order!.id,
-    errorCode: 'BANK_DECLINED',
-    errorDescription: 'Card balance insufficient.',
+  // --- Suite 2: Organizer UPI Settings ---
+  console.log('\n--- Test Suite 2: Organizer UPI Settings Configuration ---')
+  const saveRes = await saveClubPaymentSettings({
+    clubId: 'club_tech_council',
+    upi_id: 'techcouncil@okaxis',
+    account_name: 'Tech Council Official',
+    payment_instructions: 'Include student ID in transfer remarks.',
   })
-  assert(failRes.success, 'Recording payment failure succeeds')
+  assert(saveRes.success, 'Organizer can successfully save UPI payment settings')
+  const retrievedSettings = await getClubPaymentSettings('club_tech_council')
+  assert(retrievedSettings?.upi_id === 'techcouncil@okaxis', 'Retrieved UPI settings match saved details')
+  assert(retrievedSettings?.account_name === 'Tech Council Official', 'Retrieved payee name matches')
 
-  const failedOrder = await getStudentPaymentOrder('reg_paid_payable')
-  assert(failedOrder?.status === 'failed', 'Order status transitions to "failed"')
-  assert(failedOrder?.error_code === 'BANK_DECLINED', 'Error code is persisted on the order')
-
-  // Verify registration remains payable so user can retry
-  const rawRegs = JSON.parse(localStorage.getItem('festflow_local_registrations') || '[]')
-  const currentReg = rawRegs.find((r: any) => r.id === 'reg_paid_payable')
-  assert(currentReg?.status === 'pending_payment', 'Registration remains payable in pending_payment state after failure')
-
-  // Safe retry test: can create/retry a fresh order after failure
-  const retryOrderRes = await createPaymentOrder('reg_paid_payable')
-  assert(retryOrderRes.success, 'Student can initiate a fresh retry order after failure')
-  assert(retryOrderRes.order?.status === 'created', 'Retry order status is "created"')
-
-  // ── Test Suite 5: Payment Verification & Ticket Issuance ──────────────────
-  console.log('\n--- Test Suite 5: Payment Verification & Gate Pass Confirmation ---')
-  const mockPaymentId = `pay_rzp_${Date.now().toString(36)}`
-  const mockSignature = `sig_valid_${Date.now().toString(36)}`
-
-  const verifyRes = await verifyPaymentOrder({
-    orderId: retryOrderRes.order!.id,
-    providerPaymentId: mockPaymentId,
-    providerSignature: mockSignature,
+  // --- Suite 3: Student UTR Submission ---
+  console.log('\n--- Test Suite 3: Student UPI UTR Submission & Validation ---')
+  const invalidRefRes = await submitPaymentProof({
+    registrationId: 'reg_paid_1',
+    transactionReference: '12', // too short
   })
+  assert(!invalidRefRes.success, 'Rejects UTR shorter than 4 characters')
 
-  assert(verifyRes.success, 'Valid payment verification succeeds')
-  assert(verifyRes.status === 'paid', 'Order status transitions to "paid"')
-  assert(Boolean(verifyRes.ticket_code), 'Official confirmed ticket code is returned')
-
-  // Verify registration state is confirmed
-  const updatedRegs = JSON.parse(localStorage.getItem('festflow_local_registrations') || '[]')
-  const verifiedReg = updatedRegs.find((r: any) => r.id === 'reg_paid_payable')
-  assert(verifiedReg?.status === 'confirmed', 'Registration status transitions to "confirmed"')
-  assert(Boolean(verifiedReg?.ticket_issued_at), 'Pass timestamp ticket_issued_at is set')
-
-  // ── Test Suite 6: Idempotent Verification & Repeated Callbacks ────────────
-  console.log('\n--- Test Suite 6: Idempotent Callback Protection ---')
-  const repeatVerifyRes = await verifyPaymentOrder({
-    orderId: retryOrderRes.order!.id,
-    providerPaymentId: mockPaymentId,
-    providerSignature: mockSignature,
+  const validSubmissionRes = await submitPaymentProof({
+    registrationId: 'reg_paid_1',
+    transactionReference: '428910485923',
+    notes: 'Paid via Google Pay from HDFC',
   })
+  assert(validSubmissionRes.success, 'Student successfully submits valid 12-digit UTR')
+  assert(validSubmissionRes.status === 'pending_review', 'Submission enters pending_review state')
 
-  assert(repeatVerifyRes.success, 'Repeated verification callback succeeds idempotently')
-  assert(repeatVerifyRes.ticket_code === verifyRes.ticket_code, 'Returns the exact same confirmed ticket code')
+  const studentSub = await getStudentPaymentSubmission('reg_paid_1')
+  assert(studentSub?.transaction_reference === '428910485923', 'Submitted UTR recorded accurately')
+  assert(studentSub?.status === 'pending_review', 'Payment submission is under review')
 
-  // Attempting to create an order for an already confirmed registration is blocked
-  const postPaidOrderRes = await createPaymentOrder('reg_paid_payable')
-  assert(!postPaidOrderRes.success, 'Order creation blocked for confirmed registrations')
-  assert(postPaidOrderRes.error_code === 'ALREADY_CONFIRMED', 'Error code is ALREADY_CONFIRMED')
-
-  // ── Test Suite 7: Invalid Callbacks & Tampering Resistance ────────────────
-  console.log('\n--- Test Suite 7: Invalid Callbacks & Tampering Resistance ---')
-  const emptyPaymentRes = await verifyPaymentOrder({
-    orderId: retryOrderRes.order!.id,
-    providerPaymentId: '   ',
-    providerSignature: 'dummy',
+  // --- Suite 4: Replay Protection & Duplicate UTR Rejection ---
+  console.log('\n--- Test Suite 4: Replay Protection (Duplicate UTR Detection) ---')
+  const duplicateRes = await submitPaymentProof({
+    registrationId: 'reg_paid_2',
+    transactionReference: '428910485923', // duplicate UTR
   })
-  assert(!emptyPaymentRes.success, 'Rejects blank / invalid provider payment transaction IDs')
-  assert(emptyPaymentRes.error_code === 'INVALID_PAYMENT_ID', 'Error code is INVALID_PAYMENT_ID')
+  assert(!duplicateRes.success, 'Prevents duplicate UTR submission for an active event registration')
+  assert(duplicateRes.error_code === 'DUPLICATE_REFERENCE', 'Returns DUPLICATE_REFERENCE error code')
 
-  const nonExistentOrderVerify = await verifyPaymentOrder({
-    orderId: 'ord_ghost_999999',
-    providerPaymentId: 'pay_123456',
-    providerSignature: 'sig_123456',
+  // --- Suite 5: Organizer Rejection Flow with Mandatory Reason ---
+  console.log('\n--- Test Suite 5: Organizer Rejection with Feedback ---')
+  const rejectWithoutReason = await reviewPaymentSubmission({
+    paymentId: validSubmissionRes.submission_id!,
+    decision: 'rejected',
+    notes: '', // empty
   })
-  assert(!nonExistentOrderVerify.success, 'Rejects verification for non-existent order IDs')
-  assert(nonExistentOrderVerify.error_code === 'ORDER_NOT_FOUND', 'Error code is ORDER_NOT_FOUND')
+  assert(!rejectWithoutReason.success, 'Rejects payment review without stated rejection reason')
+  assert(rejectWithoutReason.error_code === 'REASON_REQUIRED', 'Enforces REASON_REQUIRED error')
 
-  // Provider configuration detection
-  console.log('\n--- Test Suite 8: Provider Gateway Configuration Detection ---')
-  console.log(`  ℹ Razorpay Configured in environment: ${isRazorpayConfigured ? 'YES (Live Keys Found)' : 'NO (Using Secure Interactive Sandbox)'}`)
-  assert(typeof isRazorpayConfigured === 'boolean', 'Payment gateway configuration check returns boolean status')
+  const rejectWithReason = await reviewPaymentSubmission({
+    paymentId: validSubmissionRes.submission_id!,
+    decision: 'rejected',
+    notes: 'Transaction reference not found in bank account statement for that amount.',
+  })
+  assert(rejectWithReason.success, 'Organizer successfully rejects submission with clear explanation')
+  assert(rejectWithReason.status === 'rejected', 'Payment submission marked as rejected')
+
+  // Verify registration is marked rejected so student can resubmit
+  const regsAfterReject = JSON.parse(localStorage.getItem('festflow_local_registrations') || '[]')
+  const targetRegAfterReject = regsAfterReject.find((r: any) => r.id === 'reg_paid_1')
+  assert(targetRegAfterReject.status === 'rejected', 'Registration status set to rejected allowing student resubmission')
+
+  // --- Suite 6: Student Resubmission Flow ---
+  console.log('\n--- Test Suite 6: Student Resubmission with Corrected UTR ---')
+  const correctedSubmission = await submitPaymentProof({
+    registrationId: 'reg_paid_1',
+    transactionReference: '998877665544',
+    notes: 'Resubmitting with correct UTR from receipt',
+  })
+  assert(correctedSubmission.success, 'Student successfully resubmits corrected UTR')
+  assert(correctedSubmission.status === 'pending_review', 'Resubmitted payment returns to pending_review')
+
+  // --- Suite 7: Organizer Approval & Ticket Confirmation ---
+  console.log('\n--- Test Suite 7: Organizer Approval & Ticket Issuance ---')
+  const approveRes = await reviewPaymentSubmission({
+    paymentId: correctedSubmission.submission_id!,
+    decision: 'approved',
+    notes: 'Deposit verified in club bank account.',
+  })
+  assert(approveRes.success, 'Organizer successfully verifies and approves payment')
+  assert(approveRes.status === 'approved', 'Payment status marked as approved')
+  assert(Boolean(approveRes.ticket_code), 'Valid entry ticket code issued upon approval')
+
+  const regsAfterApprove = JSON.parse(localStorage.getItem('festflow_local_registrations') || '[]')
+  const confirmedReg = regsAfterApprove.find((r: any) => r.id === 'reg_paid_1')
+  assert(confirmedReg.status === 'confirmed', 'Registration atomically confirmed upon payment verification')
+  assert(Boolean(confirmedReg.ticket_issued_at), 'ticket_issued_at timestamp set upon confirmation')
+
+  // --- Suite 8: Ticket Activation Guard ---
+  console.log('\n--- Test Suite 8: Security Guard (No Ticket Confirmation Before Payment) ---')
+  const pendingReg = regsAfterApprove.find((r: any) => r.id === 'reg_paid_2')
+  assert(pendingReg.status === 'pending_payment', 'Unverified registration remains pending_payment (no ticket confirmed)')
 
   console.log('\n============================================================')
-  console.log(`TEST RESULTS: ${passedTests}/${totalTests} PASSED (${Math.round((passedTests / totalTests) * 100)}%)`)
+  console.log(`TEST RESULTS: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`)
   console.log('============================================================\n')
 
   if (failedTests > 0) {

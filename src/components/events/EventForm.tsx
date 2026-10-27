@@ -240,7 +240,7 @@ export function EventForm({
 
     return {
       slug: finalSlug,
-      club_id: user?.id || 'demo_club_member_default',
+      club_id: user?.id || '',
       title: title.trim(),
       summary: summary.trim(),
       description: description.trim(),
@@ -281,6 +281,12 @@ export function EventForm({
 
   const handleSubmit = async (e: FormEvent, action: 'save_draft' | 'publish') => {
     e.preventDefault()
+
+    if (!user?.id) {
+      setErrors({ title: 'You must be signed in as an organizer to save or publish an event.' })
+      window.scrollTo({ top: 120, behavior: 'smooth' })
+      return
+    }
 
     const payload = buildPayload(action)
     const validation = validateEventConfig(payload, action)

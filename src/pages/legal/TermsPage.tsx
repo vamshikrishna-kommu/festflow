@@ -1,20 +1,11 @@
 import { PageShell } from '@/components/layout/PageShell'
 import { Card, Badge } from '@/components/ui'
-import { FileText, AlertCircle } from 'lucide-react'
+import { FileText } from 'lucide-react'
 
 export default function TermsPage() {
   return (
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Production Readiness Disclaimer Banner */}
-        <div className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-          <AlertCircle className="text-amber-400 mt-0.5 shrink-0" size={18} />
-          <div className="text-xs text-amber-200 leading-relaxed">
-            <span className="font-semibold block text-amber-300 mb-0.5">Placeholder Draft — Pre-Launch Notice</span>
-            These Terms of Service are a platform boilerplate intended for architectural demonstration. Prior to deploying FestFlow for public commercial or institutional usage, terms must be reviewed and adapted by competent legal advisors.
-          </div>
-        </div>
-
         <div className="flex items-center gap-3 mb-3">
           <Badge variant="purple">Terms of Agreement</Badge>
           <span className="text-xs text-[var(--color-text-muted)]">Effective: October 2026</span>

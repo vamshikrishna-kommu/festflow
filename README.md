@@ -49,13 +49,16 @@ Apply the SQL migration scripts in numerical sequence via the **Supabase Dashboa
 7. **`007_production_hardening.sql`**: Idempotent storage bucket initialization, production check-in integrity constraints, indexes, and explicit authenticated RPC grants.
 8. **`008_event_creation_system.sql`**: Event creation forms, custom questions, and team size constraints.
 9. **`009_student_applications_and_registration.sql`**: Application review workflow and registration statuses.
-10. **`010_payment_orders_and_checkout.sql`**: Payment order creation and Razorpay checkout support.
+10. **`010_payment_orders_and_checkout.sql`**: Payment orders and checkout structures.
 11. **`011_digital_passes_and_qr_delivery.sql`**: Digital passes with secure cryptographic QR tokens.
 12. **`012_fix_profiles_rls_for_event_organizers.sql`**: Profile visibility for event organizers.
 13. **`013_allow_students_view_registered_events.sql`**: Allows students to view events they have registrations for.
 14. **`014_secure_qr_checkin_and_organizer_ops.sql`**: Fast scanner camera check-in and attendance auditing.
 15. **`015_security_hardening_and_permissions.sql`**: Storage objects scoping and tampering prevention triggers.
-16. **`016_fix_rls_infinite_recursion.sql`**: **(CRITICAL FIX)** Decouples cross-table RLS policies between `events`, `registrations`, and `profiles` using `SECURITY DEFINER` helper functions, completely eliminating PostgreSQL circular policy recursion (`infinite recursion detected in policy for relation "registrations"`).
+16. **`016_fix_rls_infinite_recursion.sql`**: Decouples cross-table RLS policies between `events`, `registrations`, and `profiles`.
+17. **`017_fix_registration_payment_and_checkin_bugs.sql`**: Registration status synchronization and edge case fixes.
+18. **`018_trusted_payment_verification_and_replay_hardening.sql`**: Payment replay protection and least-privilege permissions.
+19. **`019_upi_only_payments.sql`**: Direct UPI only payments, tamper-evident audit logs (`payment_audit_logs`), and decommissioned gateway checkouts.
 
 ---
 

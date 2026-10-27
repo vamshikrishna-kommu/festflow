@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
-import { motion } from 'motion/react'
-import { ArrowLeft, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { AlertCircle } from 'lucide-react'
+import { Button, PageHeader } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { EventForm } from '@/components/events/EventForm'
 import { getEventById, updateEvent } from '@/lib/events'
 import { useAuth } from '@/context/AuthContext'
-import { fadeIn } from '@/lib/animations'
 import type { EventRecord, EventInsert, EventUpdate } from '@/types'
 
 export default function EditEventPage() {
@@ -31,8 +29,8 @@ export default function EditEventPage() {
       if (res.error || !res.event) {
         setLoadError(res.error || 'Event could not be found.')
       } else {
-        // Verify ownership (or allow in local simulation)
-        if (user && res.event.club_id !== user.id && user.id !== 'demo_club_member_default') {
+        // Verify ownership
+        if (user && res.event.club_id !== user.id) {
           setLoadError('You do not have permission to edit this event.')
         } else {
           setEvent(res.event)
@@ -105,39 +103,18 @@ export default function EditEventPage() {
   return (
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <Link
-            to="/club/dashboard"
-            className="hover:text-[var(--color-text-primary)] transition-colors flex items-center gap-1"
-          >
-            <ArrowLeft size={14} /> Back to Dashboard
-          </Link>
-          <span>/</span>
-          <Link
-            to="/club/events"
-            className="hover:text-[var(--color-text-primary)] transition-colors"
-          >
-            My Events
-          </Link>
-          <span>/</span>
-          <span className="text-[var(--color-text-primary)] font-medium">Edit: {event.title}</span>
-        </div>
-
         {/* Page Header */}
-        <motion.div
-          variants={fadeIn}
-          initial="hidden"
-          animate="visible"
-          className="flex flex-col gap-1 text-left"
-        >
-          <h1 className="text-3xl font-bold font-display text-[var(--color-text-primary)] tracking-tight">
-            Edit Event
-          </h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Update event details, timing, venue, or ticket configurations.
-          </p>
-        </motion.div>
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Club Dashboard', href: '/club/dashboard' },
+            { label: 'My Events', href: '/club/events' },
+            { label: `Edit: ${event.title}` },
+          ]}
+          title="Edit Event"
+          badge={event.status === 'published' ? 'Published' : event.status === 'cancelled' ? 'Cancelled' : 'Draft'}
+          badgeVariant={event.status === 'published' ? 'success' : event.status === 'cancelled' ? 'danger' : 'outline'}
+          subtitle={`Update event configuration, schedule, ticket pricing, and registration settings for "${event.title}".`}
+        />
 
         {/* Multi-section Event Form */}
         <EventForm

@@ -143,20 +143,7 @@ function getLocalCheckIns(): CheckInRecord[] {
   } catch {
     // ignore
   }
-  return [
-    {
-      id: 'chk_sample_1',
-      registration_id: 'reg_sample_1',
-      event_id: 'evt_sample_1',
-      ticket_code: 'TKT-INNOVATE-2026',
-      staff_id: 'demo_club_member_default',
-      checked_in_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-      checkin_notes: 'Gate 1 scan',
-      member_index: 0,
-      member_name: null,
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-  ]
+  return []
 }
 
 function saveLocalCheckIns(checkins: CheckInRecord[]) {
@@ -432,7 +419,7 @@ export async function checkInTicket(
       registration_id: reg.id,
       event_id: eventId,
       ticket_code: reg.ticket_code || cleanCode,
-      staff_id: 'demo_club_member_default',
+      staff_id: 'gate_scanner',
       checked_in_at: now,
       checkin_notes: notes || null,
       member_index: memberIndex,

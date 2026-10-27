@@ -14,21 +14,21 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onD
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-gradient-to-r from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] text-white shadow-lg hover:brightness-110 hover:shadow-[0_0_24px_oklch(58%_0.24_290_/_0.45)]',
+    'gradient-brand text-white shadow-lg hover:brightness-110 hover:shadow-[0_0_28px_oklch(58%_0.26_285_/_0.5)]',
   secondary:
-    'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)]',
+    'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)] border border-[oklch(100%_0_0_/_0.06)]',
   ghost:
     'bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]',
   outline:
-    'border border-[oklch(100%_0_0_/_0.12)] bg-transparent text-[var(--color-text-primary)] hover:border-[var(--color-brand-purple)] hover:bg-[var(--color-surface-2)]',
+    'border border-[oklch(100%_0_0_/_0.20)] bg-[var(--color-surface-1)]/70 backdrop-blur-md text-[var(--color-text-primary)] hover:border-[var(--color-brand-violet)] hover:bg-[var(--color-surface-2)] hover:text-white shadow-sm',
   danger:
-    'bg-red-600/90 text-white hover:bg-red-600',
+    'bg-rose-600/90 text-white hover:bg-rose-600 shadow-sm',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-xs gap-1.5',
-  md: 'h-10 px-5 text-sm gap-2',
-  lg: 'h-12 px-7 text-base gap-2.5',
+  sm: 'h-8 px-3.5 text-xs gap-1.5 rounded-[var(--radius-button)]',
+  md: 'h-10 px-5 text-sm gap-2 rounded-[var(--radius-button)]',
+  lg: 'h-12 px-7 text-sm gap-2.5 rounded-[var(--radius-lg)] font-semibold',
 }
 
 export function Button({
@@ -43,7 +43,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'relative inline-flex items-center justify-center rounded-[var(--radius-button)] font-semibold transition-all duration-200 cursor-pointer select-none disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-purple)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-0)]'
+    'relative inline-flex items-center justify-center font-semibold transition-all duration-200 cursor-pointer select-none overflow-hidden disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-violet)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-0)]'
 
   return (
     <motion.button
@@ -62,9 +62,7 @@ export function Button({
           >
             <circle
               className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
+              cx="12" cy="12" r="10"
               stroke="currentColor"
               strokeWidth="4"
             />

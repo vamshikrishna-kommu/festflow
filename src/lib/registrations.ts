@@ -20,7 +20,7 @@ export { resendPassEmail }
 
 const LOCAL_STORAGE_REGISTRATIONS_KEY = 'festflow_local_registrations'
 
-// Initial seed registrations for local simulation mode
+// Local Storage fallback for offline / development
 function getInitialLocalRegistrations(): RegistrationRecord[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_REGISTRATIONS_KEY)
@@ -28,78 +28,7 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
   } catch {
     // ignore
   }
-
-  const now = new Date()
-  const sampleRegistrations: RegistrationRecord[] = [
-    {
-      id: 'reg_sample_1',
-      event_id: 'evt-1',
-      student_id: 'demo_student_default',
-      ticket_code: 'FF-884A2C91',
-      qr_token: 'FFQ_884A2C9177E2',
-      status: 'confirmed',
-      created_at: new Date(now.getTime() - 2 * 86400000).toISOString(),
-      ticket_issued_at: new Date(now.getTime() - 2 * 86400000).toISOString(),
-      cancelled_at: null,
-      updated_at: new Date(now.getTime() - 2 * 86400000).toISOString(),
-      team_name: null,
-      team_role: null,
-      team_id: null,
-      custom_responses: {},
-      participant_details: {},
-      approval_status: 'approved',
-      team_members: [],
-      rejection_reason: null,
-    },
-    {
-      id: 'reg_sample_2',
-      event_id: 'evt-2',
-      student_id: 'demo_student_default',
-      ticket_code: 'FF-19DF7B03',
-      qr_token: 'FFQ_19DF7B0388A1',
-      status: 'pending_payment',
-      created_at: new Date(now.getTime() - 1 * 86400000).toISOString(),
-      ticket_issued_at: null,
-      cancelled_at: null,
-      updated_at: new Date(now.getTime() - 1 * 86400000).toISOString(),
-      team_name: null,
-      team_role: null,
-      team_id: null,
-      custom_responses: {},
-      participant_details: {},
-      approval_status: 'approved',
-      team_members: [],
-      rejection_reason: null,
-    },
-    {
-      id: 'reg_sample_3',
-      event_id: 'evt-3',
-      student_id: 'student_other_1',
-      ticket_code: 'FF-62BA994F',
-      qr_token: 'FFQ_62BA994F99F0',
-      status: 'confirmed',
-      created_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
-      ticket_issued_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
-      cancelled_at: null,
-      updated_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
-      team_name: null,
-      team_role: null,
-      team_id: null,
-      custom_responses: {},
-      participant_details: {},
-      approval_status: 'approved',
-      team_members: [],
-      rejection_reason: null,
-    },
-  ]
-
-  try {
-    localStorage.setItem(LOCAL_STORAGE_REGISTRATIONS_KEY, JSON.stringify(sampleRegistrations))
-  } catch {
-    // ignore
-  }
-
-  return sampleRegistrations
+  return []
 }
 
 function saveLocalRegistrations(regs: RegistrationRecord[]) {
@@ -238,6 +167,67 @@ export async function registerForEvent(
             success: false,
             error_code: 'DUPLICATE_TEAM_MEMBER',
             message: 'Duplicate email addresses found within the team member list.',
+          }
+        }
+      }
+    }
+
+    // Participant fields requirements validation
+    if (event.participant_fields && options?.participantDetails) {
+      const pFields = event.participant_fields
+      const pDetails = options.participantDetails
+      if (pFields.require_college && (!pDetails.college_name || !pDetails.college_name.trim())) {
+        return {
+          success: false,
+          error_code: 'FIELD_REQUIRED',
+          message: 'College name is required for registration by the event organizer.',
+        }
+      }
+      if (pFields.require_phone && (!pDetails.phone || !pDetails.phone.trim())) {
+        return {
+          success: false,
+          error_code: 'FIELD_REQUIRED',
+          message: 'Contact phone number is required for registration by the event organizer.',
+        }
+      }
+      if (pFields.require_grad_year && (!pDetails.grad_year || !String(pDetails.grad_year).trim())) {
+        return {
+          success: false,
+          error_code: 'FIELD_REQUIRED',
+          message: 'Graduation / passing year is required for registration by the event organizer.',
+        }
+      }
+      if (pFields.require_id_card && (!pDetails.id_card_number || !pDetails.id_card_number.trim())) {
+        return {
+          success: false,
+          error_code: 'FIELD_REQUIRED',
+          message: 'Student ID card number is required for registration by the event organizer.',
+        }
+      }
+    }
+
+    // Custom organizer questions validation
+    if (event.custom_questions && Array.isArray(event.custom_questions)) {
+      const answers = options?.customResponses || {}
+      for (const q of event.custom_questions) {
+        if (q.required) {
+          const val = answers[q.id]
+          if (q.type === 'checkbox') {
+            if (!val) {
+              return {
+                success: false,
+                error_code: 'QUESTION_REQUIRED',
+                message: `Required agreement missing: ${q.label}`,
+              }
+            }
+          } else {
+            if (!val || !String(val).trim()) {
+              return {
+                success: false,
+                error_code: 'QUESTION_REQUIRED',
+                message: `Please answer the required question: ${q.label}`,
+              }
+            }
           }
         }
       }
@@ -757,10 +747,7 @@ export async function getStudentRegistrations(
     }
   } else {
     const current = getInitialLocalRegistrations()
-    // In demo mode, load user's tickets (or all sample tickets for demo viewing)
-    const userRegs = current.filter(
-      (r) => r.student_id === studentId || r.student_id === 'demo_student_default'
-    )
+    const userRegs = current.filter((r) => r.student_id === studentId)
 
     const list: RegistrationWithEvent[] = []
     for (const reg of userRegs) {
@@ -894,67 +881,11 @@ export async function getEventRegistrations(
     const list: RegistrationWithStudent[] = matching.map((r, i) => ({
       ...r,
       student: {
-        display_name: i === 0 ? 'Alex Rivera' : `Student Attendee #${i + 1}`,
-        email: i === 0 ? 'alex.rivera@campus.edu' : `attendee${i + 1}@college.edu`,
+        display_name: (r.participant_details as any)?.full_name || `Attendee #${i + 1}`,
+        email: (r.participant_details as any)?.email || `attendee${i + 1}@campus.edu`,
         avatar_url: null,
       },
     }))
-
-    // Add a couple extra demo attendees if empty for rich testing of club attendee list
-    if (list.length === 0) {
-      list.push(
-        {
-          id: 'demo_reg_1',
-          event_id: eventId,
-          student_id: 'std_demo_1',
-          ticket_code: 'FF-A189C2',
-          qr_token: 'FFQ_A189C29871',
-          status: 'confirmed',
-          created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-          ticket_issued_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-          cancelled_at: null,
-          updated_at: new Date().toISOString(),
-          team_name: null,
-          team_role: null,
-          team_id: null,
-          custom_responses: {},
-          participant_details: {},
-          approval_status: 'approved',
-          team_members: [],
-          rejection_reason: null,
-          student: {
-            display_name: 'Jordan Lee',
-            email: 'jordan.lee@university.edu',
-            avatar_url: null,
-          },
-        },
-        {
-          id: 'demo_reg_2',
-          event_id: eventId,
-          student_id: 'std_demo_2',
-          ticket_code: 'FF-D54F91',
-          qr_token: 'FFQ_D54F911243',
-          status: 'pending_payment',
-          created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-          ticket_issued_at: null,
-          cancelled_at: null,
-          updated_at: new Date().toISOString(),
-          team_name: null,
-          team_role: null,
-          team_id: null,
-          custom_responses: {},
-          participant_details: {},
-          approval_status: 'approved',
-          team_members: [],
-          rejection_reason: null,
-          student: {
-            display_name: 'Priya Sharma',
-            email: 'priya.s@tech.edu',
-            avatar_url: null,
-          },
-        }
-      )
-    }
 
     return { registrations: list, error: null }
   }

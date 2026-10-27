@@ -11,6 +11,12 @@ export default function ContactPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const mailtoUrl = `mailto:support@festflow.com?subject=${encodeURIComponent(
+      `FestFlow Inquiry from ${name.trim()}`
+    )}&body=${encodeURIComponent(
+      `${message.trim()}\n\n---\nSender: ${name.trim()}\nReply-To: ${email.trim()}`
+    )}`
+    window.location.href = mailtoUrl
     setSubmitted(true)
   }
 
@@ -79,10 +85,18 @@ export default function ContactPage() {
           {submitted ? (
             <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
               <CheckCircle2 size={36} className="text-emerald-400 mx-auto" />
-              <h3 className="font-bold text-sm text-emerald-200">Message Received</h3>
-              <p className="text-xs text-emerald-300/80">
-                Thank you, {name}! We will review your inquiry and follow up at {email}.
+              <h3 className="font-bold text-sm text-emerald-200">Email Draft Prepared</h3>
+              <p className="text-xs text-emerald-300/80 max-w-md mx-auto leading-relaxed">
+                Thank you, {name}! Your email client has been prepared to dispatch your message to <span className="font-semibold text-white">support@festflow.com</span>. If your mail app did not open automatically, you can send it directly.
               </p>
+              <div className="pt-2">
+                <a
+                  href={`mailto:support@festflow.com?subject=${encodeURIComponent(`FestFlow Inquiry from ${name.trim()}`)}&body=${encodeURIComponent(`${message.trim()}\n\n---\nSender: ${name.trim()}\nReply-To: ${email.trim()}`)}`}
+                  className="text-xs font-semibold text-[var(--color-brand-cyan)] underline hover:text-white"
+                >
+                  Click here to re-open mail client
+                </a>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

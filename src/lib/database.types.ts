@@ -42,6 +42,7 @@ export type RegistrationStatus =
   | 'confirmed'
   | 'cancelled'
   | 'rejected'
+  | 'waitlisted'
 export type PaymentStatus = 'pending_review' | 'approved' | 'rejected'
 export type OrderStatus = 'created' | 'attempted' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'expired'
 export type CheckInOutcome =

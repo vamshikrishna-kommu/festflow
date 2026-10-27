@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'motion/react'
 import {
   Building2,
@@ -6,28 +6,28 @@ import {
   Users,
   CreditCard,
   Plus,
-  ShieldCheck,
   Edit,
   ArrowRight,
   Clock,
   MapPin,
-  Layers,
   Settings,
   QrCode,
+  FileSpreadsheet,
+  TrendingUp,
 } from 'lucide-react'
-import { Button, Badge, Card } from '@/components/ui'
+import { Button, Badge, Card, Logo, EmptyState } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { Link } from 'react-router'
-import { fadeIn, staggerContainer } from '@/lib/animations'
+import { fadeIn, staggerContainer, metricItem } from '@/lib/animations'
 import { listClubEvents } from '@/lib/events'
 import { getClubPaymentSubmissions } from '@/lib/payments'
-import type { EventRecord } from '@/types'
+import type { EventRecord, PaymentSubmissionWithDetails } from '@/types'
 
 export default function ClubDashboardPage() {
   const { user, profile, clubProfile, signOut } = useAuth()
   const [events, setEvents] = useState<EventRecord[]>([])
-  const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0)
+  const [submissions, setSubmissions] = useState<PaymentSubmissionWithDetails[]>([])
   const [loading, setLoading] = useState(true)
 
   const clubName = clubProfile?.club_name || profile?.display_name || 'Campus Club'
@@ -35,7 +35,11 @@ export default function ClubDashboardPage() {
 
   useEffect(() => {
     let mounted = true
-    const clubId = user?.id || 'demo_club_member_default'
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+    const clubId = user.id
     Promise.all([
       listClubEvents(clubId),
       getClubPaymentSubmissions(clubId),
@@ -43,174 +47,379 @@ export default function ClubDashboardPage() {
       if (!mounted) return
       setLoading(false)
       if (eventsRes.events) setEvents(eventsRes.events)
-      if (paymentsRes.submissions) {
-        const pending = paymentsRes.submissions.filter((s) => s.status === 'pending_review').length
-        setPendingPaymentsCount(pending)
-      }
+      if (paymentsRes.submissions) setSubmissions(paymentsRes.submissions)
     })
     return () => {
       mounted = false
     }
   }, [user])
 
-  // Computed metrics
-  const publishedCount = events.filter((e) => e.status === 'published').length
-  const draftCount = events.filter((e) => e.status === 'draft').length
-  const totalCapacity = events.reduce((sum, e) => sum + (e.capacity || 0), 0)
+  const now = new Date()
+
+  // Real Database-backed metrics
+  const publishedEvents = useMemo(() => events.filter((e) => e.status === 'published'), [events])
+  const draftEvents = useMemo(() => events.filter((e) => e.status === 'draft'), [events])
+  const publishedCount = publishedEvents.length
+  const draftCount = draftEvents.length
+  const totalCapacity = useMemo(() => events.reduce((sum, e) => sum + (e.capacity || 0), 0), [events])
+
+  const pendingPayments = useMemo(
+    () => submissions.filter((s) => s.status === 'pending_review'),
+    [submissions]
+  )
+  const pendingPaymentsCount = pendingPayments.length
+
+  const approvedPayments = useMemo(
+    () => submissions.filter((s) => s.status === 'approved'),
+    [submissions]
+  )
+  const grossVerifiedRevenue = useMemo(
+    () => approvedPayments.reduce((sum, s) => sum + (s.amount || 0), 0),
+    [approvedPayments]
+  )
+
+  // Find next action for organizer
+  const organizerNextAction = useMemo(() => {
+    // 1. Pending payment reviews take highest urgency
+    if (pendingPaymentsCount > 0) {
+      return {
+        type: 'pending_payment' as const,
+        title: `${pendingPaymentsCount} Payment Submission${pendingPaymentsCount > 1 ? 's' : ''} Awaiting Review`,
+        description: 'Students have submitted transaction UTR proofs for paid event tickets. Review and approve to release gate passes.',
+        ctaLabel: 'Review Payments',
+        ctaLink: '/club/payments',
+        badge: 'Action Required',
+        badgeVariant: 'amber' as const,
+      }
+    }
+
+    // 2. Event starting soon (next 48h) or currently active
+    const upcomingPublished = publishedEvents
+      .filter((e) => Boolean(e.start_date))
+      .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+
+    if (upcomingPublished.length > 0) {
+      const nextEvt = upcomingPublished[0]
+      const startDate = new Date(nextEvt.start_date)
+      const diffMs = startDate.getTime() - now.getTime()
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+      if (diffHours >= -6 && diffHours <= 48) {
+        return {
+          type: 'event_active' as const,
+          title: `Gate Desk Ready: ${nextEvt.title}`,
+          description: `Event ${diffHours <= 0 ? 'is in progress' : `starts in ${diffHours} hours`} at ${nextEvt.venue_name}. Launch check-in scanner for attendee admittance.`,
+          ctaLabel: 'Launch QR Check-In',
+          ctaLink: `/club/events/${nextEvt.id}/check-in`,
+          badge: 'Live Session',
+          badgeVariant: 'cyan' as const,
+        }
+      }
+    }
+
+    // 3. Draft events to complete
+    if (draftCount > 0) {
+      const draftEvt = draftEvents[0]
+      return {
+        type: 'draft_pending' as const,
+        title: `Draft Ready for Review: "${draftEvt.title}"`,
+        description: 'Complete form configuration, custom questions, or publish this event to campus students.',
+        ctaLabel: 'Edit & Publish',
+        ctaLink: `/club/events/${draftEvt.id}/edit`,
+        badge: 'Draft Saved',
+        badgeVariant: 'purple' as const,
+      }
+    }
+
+    // 4. Default
+    return {
+      type: 'default' as const,
+      title: 'Host Your Next Campus Experience',
+      description: 'Create technical hackathons, cultural festivals, athletic tournaments, or seminars with automated QR ticketing.',
+      ctaLabel: 'Create New Event',
+      ctaLink: '/club/events/new',
+      badge: 'Organizer Hub',
+      badgeVariant: 'cyan' as const,
+    }
+  }, [pendingPaymentsCount, publishedEvents, draftEvents, draftCount, now])
 
   return (
     <PageShell>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 text-left">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 text-left">
         {/* Top Header Card */}
         <motion.div
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="glass p-4 sm:p-6 md:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xl relative overflow-hidden"
+          className="relative rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] overflow-hidden p-5 sm:p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_12px_40px_oklch(0%_0_0_/_0.4)]"
+          style={{ background: 'linear-gradient(135deg, oklch(10% 0.025 265), oklch(12% 0.03 275))' }}
         >
-          <div className="flex items-center gap-3.5 sm:gap-4">
-            <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] flex items-center justify-center text-white shadow-lg shadow-[var(--color-brand-purple)]/20 shrink-0">
-              <Building2 size={28} className="sm:w-8 sm:h-8" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse at 15% 40%, oklch(58% 0.26 285 / 0.12) 0%, transparent 65%)' }}
+          />
+
+          <div className="relative flex items-center gap-4 sm:gap-5">
+            <div
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 border border-white/10"
+              style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-pink))' }}
+            >
+              <Building2 size={32} className="sm:w-9 sm:h-9" />
             </div>
+
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-display text-[var(--color-text-primary)] truncate">
+                <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)] truncate">
                   {clubName}
                 </h1>
-                <Badge variant="purple" className="flex items-center gap-1 shrink-0 text-[10px] sm:text-xs">
-                  <ShieldCheck size={12} /> Verified Club
+                <Badge variant="purple" className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs">
+                  <Logo variant="compact" /> Campus Organizer
                 </Badge>
               </div>
-              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">
-                Lead: <span className="text-[var(--color-text-primary)] font-medium">{repName}</span> • {profile?.email}
-              </p>
+
+              <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] flex-wrap">
+                <span>Lead: <strong className="text-[var(--color-text-primary)]">{repName}</strong></span>
+                {profile?.email && (
+                  <>
+                    <span>•</span>
+                    <span className="text-[var(--color-text-muted)] truncate max-w-[220px]">
+                      {profile.email}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)]">
-            <Link to="/club/payments" className="flex-1 sm:flex-initial">
+          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)] shrink-0">
+            <Link to="/club/payments">
               <Button
                 variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
                 size="sm"
                 leftIcon={<CreditCard size={15} />}
-                className={`w-full justify-center ${pendingPaymentsCount > 0 ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold' : ''}`}
+                className={
+                  pendingPaymentsCount > 0
+                    ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-md'
+                    : ''
+                }
               >
-                Verify Payments
+                Payments
                 {pendingPaymentsCount > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-black text-amber-400 text-[10px] font-bold">
+                  <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-black text-amber-300 text-[10px] font-bold">
                     {pendingPaymentsCount}
                   </span>
                 )}
               </Button>
             </Link>
-            <Link to="/club/settings/payments" className="flex-1 sm:flex-initial">
-              <Button variant="outline" size="sm" className="w-full justify-center" leftIcon={<Settings size={15} />}>
-                UPI
+
+            <Link to="/club/settings/payments">
+              <Button variant="outline" size="sm" leftIcon={<Settings size={15} />}>
+                Payment Settings
               </Button>
             </Link>
-            <Link to="/club/events/new" className="w-full sm:w-auto">
-              <Button variant="primary" size="sm" className="w-full justify-center" leftIcon={<Plus size={15} />}>
+
+            <Link to="/club/events/new">
+              <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
                 Create Event
               </Button>
             </Link>
+
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => signOut()}
-              className="text-rose-400 hover:text-rose-300 w-full sm:w-auto justify-center"
+              className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30"
             >
               Sign Out
             </Button>
           </div>
         </motion.div>
 
-        {/* Overview Stats Grid */}
+        {/* ── Organizer Spotlight Next Action Banner ────────────────────────── */}
+        <motion.div
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          className="relative rounded-2xl overflow-hidden p-5 sm:p-6 border transition-all shadow-md"
+          style={{
+            background:
+              organizerNextAction.type === 'pending_payment'
+                ? 'linear-gradient(135deg, oklch(76% 0.17 68 / 0.12), oklch(62% 0.22 45 / 0.08))'
+                : organizerNextAction.type === 'event_active'
+                ? 'linear-gradient(135deg, oklch(72% 0.16 200 / 0.12), oklch(58% 0.26 285 / 0.08))'
+                : 'linear-gradient(135deg, oklch(14% 0.03 270), oklch(12% 0.02 265))',
+            borderColor:
+              organizerNextAction.type === 'pending_payment'
+                ? 'oklch(76% 0.17 68 / 0.3)'
+                : organizerNextAction.type === 'event_active'
+                ? 'oklch(72% 0.16 200 / 0.3)'
+                : 'oklch(100% 0 0 / 0.08)',
+          }}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div
+                className={`p-3 rounded-xl shrink-0 ${
+                  organizerNextAction.type === 'pending_payment'
+                    ? 'bg-amber-500/20 text-amber-300'
+                    : organizerNextAction.type === 'event_active'
+                    ? 'bg-cyan-500/20 text-cyan-300'
+                    : 'bg-[var(--color-surface-2)] text-[var(--color-brand-purple)]'
+                }`}
+              >
+                {organizerNextAction.type === 'pending_payment' ? (
+                  <CreditCard size={22} />
+                ) : organizerNextAction.type === 'event_active' ? (
+                  <QrCode size={22} />
+                ) : (
+                  <Calendar size={22} />
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Badge variant={organizerNextAction.badgeVariant} className="text-[10px]">
+                    {organizerNextAction.badge}
+                  </Badge>
+                </div>
+                <h2 className="text-base sm:text-lg font-bold font-display text-[var(--color-text-primary)]">
+                  {organizerNextAction.title}
+                </h2>
+                <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-0.5 max-w-2xl leading-relaxed">
+                  {organizerNextAction.description}
+                </p>
+              </div>
+            </div>
+
+            <Link to={organizerNextAction.ctaLink} className="self-start sm:self-center shrink-0">
+              <Button
+                variant={organizerNextAction.type === 'pending_payment' ? 'primary' : 'outline'}
+                size="md"
+                rightIcon={<ArrowRight size={15} />}
+                className={
+                  organizerNextAction.type === 'pending_payment'
+                    ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-md'
+                    : ''
+                }
+              >
+                {organizerNextAction.ctaLabel}
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* ── Real Authorized Metrics Grid (Zero Fabricated Metrics) ───────── */}
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
         >
           {[
             {
-              label: 'Pending Payments',
+              label: 'Pending Reviews',
               value: loading ? '…' : pendingPaymentsCount.toString(),
+              subtitle: 'UTR proofs awaiting verification',
               icon: CreditCard,
               color: 'text-amber-400',
+              badgeStyle: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
               link: '/club/payments',
               highlight: pendingPaymentsCount > 0,
             },
             {
               label: 'Published Events',
               value: loading ? '…' : publishedCount.toString(),
+              subtitle: 'Active campus listings',
               icon: Calendar,
               color: 'text-purple-400',
+              badgeStyle: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
               link: '/club/events',
             },
             {
-              label: 'Draft Events',
-              value: loading ? '…' : draftCount.toString(),
-              icon: Layers,
-              color: 'text-cyan-400',
-              link: '/club/events',
+              label: 'Verified Gross Fees',
+              value: loading ? '…' : `₹${grossVerifiedRevenue.toLocaleString()}`,
+              subtitle: `${approvedPayments.length} verified transactions`,
+              icon: TrendingUp,
+              color: 'text-emerald-400',
+              badgeStyle: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+              link: '/club/payments',
             },
             {
               label: 'Total Capacity',
               value: loading ? '…' : `${totalCapacity.toLocaleString()} seats`,
+              subtitle: `${events.length} total event listings`,
               icon: Users,
-              color: 'text-pink-400',
+              color: 'text-cyan-400',
+              badgeStyle: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
             },
           ].map((stat, i) => {
             const Icon = stat.icon
             const content = (
-              <Card
-                key={i}
-                className={`p-5 flex items-center justify-between transition-colors ${
-                  stat.highlight ? 'border-amber-500/40 bg-amber-500/[0.04]' : ''
-                }`}
-              >
-                <div>
-                  <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
-                    {stat.label}
-                  </span>
-                  <span className={`text-2xl font-bold font-display ${stat.highlight ? 'text-amber-400' : 'text-[var(--color-text-primary)]'}`}>
-                    {stat.value}
-                  </span>
-                </div>
-                <div className={`p-3 rounded-xl bg-[var(--color-surface-2)] ${stat.color}`}>
-                  <Icon size={22} />
-                </div>
-              </Card>
+              <motion.div variants={metricItem} className="h-full">
+                <Card
+                  key={i}
+                  className={`p-4 sm:p-5 flex flex-col justify-between gap-3 h-full transition-all duration-200 ${
+                    stat.highlight
+                      ? 'border-amber-500/40 bg-amber-500/[0.04] shadow-[0_0_20px_oklch(76%_0.17_68_/_0.15)]'
+                      : 'hover:border-[oklch(100%_0_0_/_0.15)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[var(--color-text-muted)] font-medium">
+                      {stat.label}
+                    </span>
+                    <div className={`p-2 rounded-xl border ${stat.badgeStyle}`}>
+                      <Icon size={18} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span
+                      className={`text-2xl sm:text-3xl font-bold font-display ${
+                        stat.highlight ? 'text-amber-400' : 'text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      {stat.value}
+                    </span>
+                    <span className="text-[11px] text-[var(--color-text-muted)] block mt-0.5 truncate">
+                      {stat.subtitle}
+                    </span>
+                  </div>
+                </Card>
+              </motion.div>
             )
             return stat.link ? (
-              <Link to={stat.link} key={i}>
+              <Link to={stat.link} key={i} className="block h-full">
                 {content}
               </Link>
             ) : (
-              content
+              <div key={i} className="h-full">
+                {content}
+              </div>
             )
           })}
         </motion.div>
 
-        {/* Events Management Area */}
+        {/* ── Managed Events Section ────────────────────────────────────────── */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--color-surface-3)]">
             <div>
-              <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
-                Managed Events
+              <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)]">
+                Managed Campus Events
               </h2>
               <p className="text-xs text-[var(--color-text-secondary)]">
-                Real-time status of events published or drafted by {clubName}
+                Real-time ticketing, check-in desks, and attendee records for {clubName}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Link to="/club/events" className="flex-1 sm:flex-initial">
-                <Button variant="ghost" size="sm" className="w-full justify-center" rightIcon={<ArrowRight size={14} />}>
+              <Link to="/club/events">
+                <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={14} />}>
                   View All ({events.length})
                 </Button>
               </Link>
-              <Link to="/club/events/new" className="flex-1 sm:flex-initial">
-                <Button variant="primary" size="sm" className="w-full justify-center" leftIcon={<Plus size={15} />}>
+              <Link to="/club/events/new">
+                <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
                   Create Event
                 </Button>
               </Link>
@@ -218,44 +427,40 @@ export default function ClubDashboardPage() {
           </div>
 
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center">
+            <div className="py-16 flex flex-col items-center justify-center">
               <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
               <span className="text-xs text-[var(--color-text-muted)]">Loading club events…</span>
             </div>
           ) : events.length === 0 ? (
-            <Card className="p-8 text-center flex flex-col items-center gap-3">
-              <div className="p-3 rounded-2xl bg-[var(--color-surface-2)] text-[var(--color-brand-purple)]">
-                <Calendar size={28} />
-              </div>
-              <h3 className="font-bold font-display text-[var(--color-text-primary)] text-base">
-                No events created yet
-              </h3>
-              <p className="text-xs text-[var(--color-text-secondary)] max-w-sm">
-                Get started by creating your first campus event. You can save as a draft or publish right away.
-              </p>
-              <Link to="/club/events/new">
-                <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
-                  Create Your First Event
-                </Button>
-              </Link>
-            </Card>
+            <EmptyState
+              icon={Calendar}
+              title="No Events Created Yet"
+              description="Launch your first campus event to begin accepting registrations, issuing digital passes, and scanning QR credentials."
+              action={
+                <Link to="/club/events/new">
+                  <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
+                    Create Your First Event
+                  </Button>
+                </Link>
+              }
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {events.slice(0, 4).map((event) => {
                 const startDate = event.start_date ? new Date(event.start_date) : null
                 const formattedDate = startDate
                   ? startDate.toLocaleDateString('en-IN', {
+                      weekday: 'short',
                       day: 'numeric',
                       month: 'short',
-                      year: 'numeric',
                     })
                   : 'Date TBA'
 
                 return (
-                  <Card key={event.id} className="p-4 sm:p-5 flex flex-col justify-between gap-4">
+                  <Card key={event.id} className="p-5 flex flex-col justify-between gap-4 border border-[oklch(100%_0_0_/_0.08)] hover:border-[oklch(100%_0_0_/_0.16)] transition-all shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <Badge
                             variant={
                               event.status === 'published'
@@ -271,36 +476,48 @@ export default function ClubDashboardPage() {
                           <Badge variant="purple" className="capitalize text-[10px]">
                             {event.category}
                           </Badge>
+                          {event.participation_type === 'team' && (
+                            <Badge variant="pink" className="text-[10px]">
+                              Team
+                            </Badge>
+                          )}
                         </div>
-                        <h3 className="font-semibold text-[var(--color-text-primary)] text-base line-clamp-1">
-                          {event.title}
+
+                        <h3 className="font-bold text-[var(--color-text-primary)] text-base line-clamp-1">
+                          <Link to={`/events/${event.slug}`} className="hover:text-[var(--color-brand-purple)] transition-colors">
+                            {event.title}
+                          </Link>
                         </h3>
-                        <p className="text-xs text-[var(--color-text-muted)] mt-1 flex items-center gap-2 flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} /> {formattedDate}
+
+                        <div className="text-xs text-[var(--color-text-muted)] mt-1.5 flex flex-col gap-1">
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-[var(--color-brand-cyan)]" /> {formattedDate}
                           </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1 truncate">
-                            <MapPin size={12} /> {event.venue_name}
+                          <span className="flex items-center gap-1.5 truncate">
+                            <MapPin size={12} className="text-[var(--color-brand-pink)]" /> {event.venue_name || 'Campus Venue'}
                           </span>
-                        </p>
+                        </div>
                       </div>
 
-                      {event.poster_url && (
+                      {event.poster_url ? (
                         <img
                           src={event.poster_url}
                           alt={event.title}
-                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 border border-[var(--color-surface-3)]"
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0 border border-[var(--color-surface-3)] shadow-sm"
                         />
+                      ) : (
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0">
+                          <Calendar size={24} />
+                        </div>
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-[var(--color-surface-3)] text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[var(--color-surface-3)] text-xs">
                       <span className="text-[var(--color-text-secondary)] font-medium">
-                        {event.is_free ? 'Free Entry' : `₹${event.price}`} • {event.capacity} seats
+                        {event.is_free ? 'Free Admission' : `₹${event.price}`} • {event.capacity} seats
                       </span>
 
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
                         {event.status === 'published' && (
                           <Link
                             to={`/club/events/${event.id}/check-in`}
@@ -319,7 +536,7 @@ export default function ClubDashboardPage() {
                           to={`/club/events/${event.id}/reports`}
                           className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                         >
-                          Reports
+                          <FileSpreadsheet size={13} /> Reports
                         </Link>
                         <Link
                           to={`/club/events/${event.id}/edit`}

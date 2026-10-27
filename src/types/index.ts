@@ -7,7 +7,6 @@ import type {
   EventCategory,
   RegistrationStatus,
   PaymentStatus,
-  OrderStatus,
   CheckInOutcome,
   ParticipationType,
   ApprovalType,
@@ -24,7 +23,6 @@ export type {
   EventCategory,
   RegistrationStatus,
   PaymentStatus,
-  OrderStatus,
   CheckInOutcome,
   Database,
   ParticipationType,
@@ -45,8 +43,6 @@ export type RegistrationRecord = Database['public']['Tables']['registrations']['
 export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert']
 export type ClubPaymentSettings = Database['public']['Tables']['club_payment_settings']['Row']
 export type PaymentSubmission = Database['public']['Tables']['payment_submissions']['Row']
-export type PaymentOrder = Database['public']['Tables']['payment_orders']['Row']
-export type PaymentOrderInsert = Database['public']['Tables']['payment_orders']['Insert']
 export type InAppNotification = Database['public']['Tables']['in_app_notifications']['Row']
 export type CheckInRecord = Database['public']['Tables']['check_ins']['Row']
 
@@ -100,44 +96,6 @@ export interface PaymentReviewResponse {
   error_code?: string
   status?: PaymentStatus
   ticket_code?: string
-}
-
-export interface PaymentOrderWithDetails extends PaymentOrder {
-  student?: {
-    display_name: string
-    email: string
-    avatar_url: string | null
-  }
-  event?: EventRecord
-  registration?: RegistrationRecord
-}
-
-export interface CreateOrderResponse {
-  success: boolean
-  message: string
-  error_code?: string
-  order?: {
-    id: string
-    order_reference: string
-    registration_id: string
-    event_id: string
-    event_title: string
-    amount: number
-    currency: string
-    provider: string
-    provider_order_id?: string | null
-    status: OrderStatus
-    created_at: string
-  }
-}
-
-export interface VerifyOrderResponse {
-  success: boolean
-  message: string
-  error_code?: string
-  order_id?: string
-  ticket_code?: string
-  status?: OrderStatus
 }
 
 export interface CheckInResponse {

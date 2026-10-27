@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { Mail, AlertCircle, ArrowRight } from 'lucide-react'
+import { shakeError } from '@/lib/animations'
 import { Button } from '@/components/ui'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { PasswordInput } from '@/components/auth/PasswordInput'
@@ -10,7 +11,18 @@ import { useAuth } from '@/context/AuthContext'
 export default function ClubLoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { signIn, resendVerification, isLoading } = useAuth()
+  const { user, role, signIn, resendVerification, isLoading } = useAuth()
+
+  useEffect(() => {
+    if (user && role === 'club_member') {
+      const fromPath = (location.state as { from?: string })?.from
+      if (fromPath && fromPath !== '/club/login' && fromPath !== '/student/login') {
+        navigate(fromPath, { replace: true })
+      } else {
+        navigate('/club/dashboard', { replace: true })
+      }
+    }
+  }, [user, role, location.state, navigate])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -63,12 +75,14 @@ export default function ClubLoginPage() {
       mode="login"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        {serverError && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5 text-left"
-          >
+        <AnimatePresence>
+          {serverError && (
+            <motion.div
+              variants={shakeError}
+              initial="idle"
+              animate="shake"
+              className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5 text-left"
+            >
             <AlertCircle size={16} className="shrink-0 mt-0.5" />
             <div className="flex-1">
               <span>{serverError}</span>
@@ -97,8 +111,9 @@ export default function ClubLoginPage() {
                 </div>
               )}
             </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Email */}
         <div className="flex flex-col gap-1.5 text-left">
@@ -112,6 +127,7 @@ export default function ClubLoginPage() {
             <input
               id="club-login-email"
               type="email"
+              autoComplete="email"
               placeholder="club@campus.edu or lead@domain.com"
               value={email}
               onChange={(e) => {
@@ -138,6 +154,7 @@ export default function ClubLoginPage() {
         <div>
           <PasswordInput
             label="Password"
+            autoComplete="current-password"
             placeholder="Enter your password"
             value={password}
             onChange={(e) => {

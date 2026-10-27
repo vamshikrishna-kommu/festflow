@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react'
 import { AuthProvider } from '@/context/AuthContext'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { Logo } from '@/components/ui'
 
 // Lazy-load pages for code splitting
 const LandingPage          = lazy(() => import('@/pages/LandingPage'))
@@ -41,17 +42,20 @@ const ClubPaymentsPage        = lazy(() => import('@/pages/club/ClubPaymentsPage
 const EventCheckInPage        = lazy(() => import('@/pages/club/EventCheckInPage'))
 const EventReportsPage        = lazy(() => import('@/pages/club/EventReportsPage'))
 
-// Minimal full-page loading fallback
+// Branded full-page loading fallback
 function PageLoader() {
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-[var(--color-surface-0)]"
+      className="fixed inset-0 flex items-center justify-center bg-[var(--color-surface-0)] z-50"
       aria-label="Loading page"
       role="status"
     >
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin" />
-        <span className="text-xs text-[var(--color-text-muted)]">Loading…</span>
+      <div className="flex flex-col items-center gap-4 animate-pulse">
+        <Logo variant="navbar" />
+        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+          <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-brand-purple)] border-t-transparent animate-spin" />
+          <span>Loading FestFlow…</span>
+        </div>
       </div>
     </div>
   )

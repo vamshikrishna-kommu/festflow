@@ -21,9 +21,8 @@ import {
   cancelRegistration,
 } from '../src/lib/registrations.js'
 import {
-  createPaymentOrder,
-  verifyPaymentOrder,
-  recordPaymentFailure,
+  submitPaymentProof,
+  reviewPaymentSubmission,
 } from '../src/lib/payments.js'
 import {
   checkInTicket,
@@ -323,42 +322,50 @@ async function runPhase5TestSuite() {
   assert(checkinAfterApproval.success === true, 'Pass unlocks for entry after host approval')
   assert(checkinAfterApproval.outcome === 'VALID', 'Check-in outcome is now VALID')
 
-  // ── TEST 6: Verified Payment Pass Activation ──────────────────────────────
+  // ── TEST 6: Verified UPI Payment Pass Activation ─────────────────────────
   console.log('\n[6/11] Testing Paid Event Pass Activation After Payment Verification...')
-  const orderRes = await createPaymentOrder(paidRegRes.registration_id!, 'razorpay')
-  assert(orderRes.success === true, 'Payment order created for paid registration')
-
-  // Verify payment order with trusted gateway payload
-  const verifyRes = await verifyPaymentOrder({
-    orderId: orderRes.order!.id,
-    providerPaymentId: 'pay_sim_p5_success_123',
-    providerSignature: 'sig_trusted_p5_abc',
+  const subRes = await submitPaymentProof({
+    registrationId: paidRegRes.registration_id!,
+    transactionReference: '428910485923',
+    notes: 'Paid via PhonePe',
   })
-  assert(verifyRes.success === true, 'Payment verified successfully')
-  assert(verifyRes.status === 'paid', 'Order marked as paid')
+  assert(subRes.success === true, 'UPI payment proof submitted for paid registration')
+
+  // Verify and approve payment submission
+  const reviewRes = await reviewPaymentSubmission({
+    paymentId: subRes.submission_id!,
+    decision: 'approved',
+    notes: 'Payment verified in bank account',
+  })
+  assert(reviewRes.success === true, 'Payment verified and approved successfully')
+  assert(reviewRes.status === 'approved', 'Payment submission marked as approved')
 
   // Gate check-in with confirmed paid pass
   const checkinPaidConfirmed = await checkInTicket('evt-paid-online', paidRegRes.ticket_code!)
   assert(checkinPaidConfirmed.success === true, 'Paid pass unlocks for gate entry after verification')
   assert(checkinPaidConfirmed.outcome === 'VALID', 'Check-in outcome is VALID')
 
-  // ── TEST 7: Failed Payment Failure Recovery ──────────────────────────────
-  console.log('\n[7/11] Testing Failed Payment Failure Behavior...')
+  // ── TEST 7: Rejected Payment Behavior ────────────────────────────────────
+  console.log('\n[7/11] Testing Rejected Payment Behavior...')
   const failedRegRes = await registerForEvent('evt-paid-online', 'student_failed_pay_user')
-  const failedOrderRes = await createPaymentOrder(failedRegRes.registration_id!, 'razorpay')
-  assert(failedOrderRes.success === true, 'Order created for retry test')
-
-  const failRecordRes = await recordPaymentFailure({
-    orderId: failedOrderRes.order!.id,
-    errorCode: 'GATEWAY_ERROR',
-    errorDescription: 'User cancelled UPI prompt.',
+  const failedSubRes = await submitPaymentProof({
+    registrationId: failedRegRes.registration_id!,
+    transactionReference: '000000000000',
+    notes: 'Bogus transaction',
   })
-  assert(failRecordRes.success === true, 'Payment failure recorded safely')
+  assert(failedSubRes.success === true, 'Submission recorded for rejection test')
 
-  // Ticket remains pending_payment (gate entry is NOT granted)
+  const rejectRes = await reviewPaymentSubmission({
+    paymentId: failedSubRes.submission_id!,
+    decision: 'rejected',
+    notes: 'Invalid UTR, no transaction found in bank statement.',
+  })
+  assert(rejectRes.success === true, 'Payment rejection recorded safely with reason')
+
+  // Ticket remains rejected (gate entry is NOT granted)
   const checkinFailed = await checkInTicket('evt-paid-online', failedRegRes.ticket_code!)
-  assert(checkinFailed.success === false, 'Entry pass remains locked after payment failure')
-  assert(checkinFailed.outcome === 'NOT_CONFIRMED', 'Outcome is NOT_CONFIRMED')
+  assert(checkinFailed.success === false, 'Entry pass remains locked after payment rejection')
+  assert(checkinFailed.outcome === 'CANCELLED', 'Outcome is CANCELLED')
 
   // ── TEST 8: Team Events & Individual Member Passes ────────────────────────
   console.log('\n[8/11] Testing Team Passes & Individual Member Check-Ins...')

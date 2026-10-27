@@ -1,17 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
-import { motion } from 'motion/react'
 import {
   QrCode,
-  ShieldCheck,
   CheckCircle2,
-  AlertCircle,
   Upload,
-  ArrowLeft,
-  Info,
   ExternalLink,
 } from 'lucide-react'
-import { Button, Card, Badge } from '@/components/ui'
+import { Button, Card, PageHeader, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -20,11 +15,10 @@ import {
   uploadClubPaymentQr,
   validateUpiId,
 } from '@/lib/payments'
-import { fadeIn } from '@/lib/animations'
 
 export default function ClubPaymentSettingsPage() {
   const { user, profile, clubProfile } = useAuth()
-  const clubId = user?.id || 'demo_club_member_default'
+  const clubId = user?.id || ''
   const clubName = clubProfile?.club_name || profile?.display_name || 'Campus Club'
 
   const [upiId, setUpiId] = useState('')
@@ -39,6 +33,10 @@ export default function ClubPaymentSettingsPage() {
 
   useEffect(() => {
     let mounted = true
+    if (!clubId) {
+      setLoading(false)
+      return
+    }
     getClubPaymentSettings(clubId).then((settings) => {
       if (!mounted) return
       setLoading(false)
@@ -123,67 +121,34 @@ export default function ClubPaymentSettingsPage() {
   return (
     <PageShell>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
-          <Link
-            to="/club/dashboard"
-            className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
-          >
-            <ArrowLeft size={14} /> Club Dashboard
-          </Link>
-          <span>/</span>
-          <span className="text-[var(--color-text-primary)] font-medium">UPI Payment Settings</span>
-        </div>
-
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
-                UPI Payment Settings
-              </h1>
-              <Badge variant="purple" className="flex items-center gap-1">
-                <ShieldCheck size={12} /> Club Finance
-              </Badge>
-            </div>
-            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
-              Configure your club's official UPI ID and QR code to receive student registrations for paid events.
-            </p>
-          </div>
-          <Link to="/club/payments">
-            <Button variant="outline" size="sm" rightIcon={<ExternalLink size={14} />}>
-              Review Payments
-            </Button>
-          </Link>
-        </div>
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Club Dashboard', href: '/club/dashboard' },
+            { label: 'UPI Payment Settings' },
+          ]}
+          title="UPI Payment Settings"
+          badge="Club Finance"
+          badgeVariant="purple"
+          subtitle="Configure your club's official UPI ID and QR code to receive student registrations for paid events."
+          actions={
+            <Link to="/club/payments">
+              <Button variant="outline" size="sm" rightIcon={<ExternalLink size={14} />}>
+                Review Payments
+              </Button>
+            </Link>
+          }
+        />
 
         {/* Security & Instructions Notice */}
-        <Card className="p-4 bg-[var(--color-brand-purple)]/5 border-[var(--color-brand-purple)]/20 flex gap-3 items-start">
-          <Info size={18} className="text-[var(--color-brand-purple)] shrink-0 mt-0.5" />
-          <div className="text-xs text-[var(--color-text-secondary)] leading-relaxed space-y-1">
-            <p className="text-[var(--color-text-primary)] font-medium">
-              Zero-Commission Direct UPI Settlements
-            </p>
-            <p>
-              Students send payments directly to your official club UPI ID via their preferred app (Google Pay, PhonePe, Paytm). FestFlow does not hold your funds, take commissions, or ask for your UPI PIN or banking passwords.
-            </p>
-          </div>
-        </Card>
+        <Alert variant="info" title="Zero-Commission Direct Organizer UPI Transfers">
+          Students send payments directly to your official club UPI ID via their preferred app (Google Pay, PhonePe, Paytm). FestFlow does not hold your funds, take commissions, or ask for your UPI PIN or banking passwords.
+        </Alert>
 
         {notice && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className={`p-4 rounded-xl border text-xs sm:text-sm flex items-center gap-3 ${
-              notice.isError
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-            }`}
-          >
-            {notice.isError ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-            <span className="flex-1">{notice.message}</span>
-          </motion.div>
+          <Alert variant={notice.isError ? 'error' : 'success'}>
+            {notice.message}
+          </Alert>
         )}
 
         {/* Settings Form */}

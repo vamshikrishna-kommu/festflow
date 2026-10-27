@@ -1,6 +1,5 @@
 import { supabase, supabasePublic, isSupabaseConfigured } from '@/lib/supabase'
 import type { EventRecord, EventInsert, EventUpdate, EventWithClub, Event, EventCategory } from '@/types'
-import { MOCK_EVENTS } from '@/lib/mock-data'
 
 const LOCAL_STORAGE_EVENTS_KEY = 'festflow_managed_events'
 
@@ -33,7 +32,7 @@ export function generateSlug(title: string): string {
   return `${base || 'event'}-${randomSuffix}`
 }
 
-// ── Initial Mock Seeding for Simulation Mode ─────────────────────────────────
+// ── Local Storage Helper for Offline / Fallback ──────────────────────────────
 function getInitialLocalEvents(): EventRecord[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_EVENTS_KEY)
@@ -41,135 +40,7 @@ function getInitialLocalEvents(): EventRecord[] {
   } catch {
     // fallback
   }
-
-  // Pre-seed mock events into records so organizers have real data to view & manage
-  const now = new Date()
-  const seeded: EventRecord[] = MOCK_EVENTS.map((m, idx) => {
-    const startDate = new Date(now.getTime() + (idx + 2) * 86400000 * 3)
-    const endDate = new Date(startDate.getTime() + 4 * 3600000)
-    const regClose = new Date(startDate.getTime() - 86400000)
-
-    return {
-      id: m.id,
-      slug: m.slug,
-      club_id: 'demo_club_member_default',
-      title: m.title,
-      summary: m.description.slice(0, 140) + '...',
-      description: m.description,
-      category: m.category,
-      poster_url: m.coverImage,
-      start_date: startDate.toISOString(),
-      end_date: endDate.toISOString(),
-      venue_name: m.venue,
-      venue_address: m.location,
-      event_type: 'offline',
-      registration_opens_at: now.toISOString(),
-      registration_closes_at: regClose.toISOString(),
-      capacity: m.capacity,
-      is_free: m.isFree,
-      price: m.price || 0,
-      currency: 'INR',
-      eligibility: 'Open to all college students with valid student ID.',
-      rules: '1. Please bring your college ID.\n2. Respect campus venue safety protocols.\n3. Arrive 15 minutes prior to start time for check-in.',
-      contact_email: 'festflow.council@campus.edu',
-      contact_phone: '+91 98765 43210',
-      online_meeting_url: null,
-      timezone: 'Asia/Kolkata',
-      approval_type: 'automatic',
-      participation_type: idx === 1 ? 'team' : 'individual',
-      min_team_size: idx === 1 ? 2 : 1,
-      max_team_size: idx === 1 ? 4 : 1,
-      leader_counts_towards_size: true,
-      team_registration_mode: 'leader_adds_members',
-      require_team_name: idx === 1,
-      allowed_colleges: null,
-      allowed_departments: null,
-      allowed_years: null,
-      custom_questions: [
-        {
-          id: 'q_roll_no',
-          label: 'Student Roll / Registration Number',
-          type: 'text',
-          required: true,
-          placeholder: 'e.g. 21BCE1024',
-        },
-      ],
-      participant_fields: {
-        require_college: true,
-        require_phone: true,
-        require_grad_year: true,
-        require_id_card: false,
-      },
-      status: 'published',
-      created_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    }
-  })
-
-  // Add one draft and one cancelled for realistic testing
-  seeded.push({
-    id: 'evt_draft_sample',
-    slug: 'annual-robotics-summit-draft',
-    club_id: 'demo_club_member_default',
-    title: 'Annual Robotics & Autonomous Systems Summit',
-    summary: 'A 2-day national summit featuring workshops, bot races, and industry keynotes.',
-    description: 'Join us for the flagship campus robotics conference. Features live hardware exhibitions, keynote speakers from top aerospace companies, and a 12-hour build challenge.',
-    category: 'tech',
-    poster_url: CATEGORY_POSTERS.tech,
-    start_date: new Date(now.getTime() + 14 * 86400000).toISOString(),
-    end_date: new Date(now.getTime() + 15 * 86400000).toISOString(),
-    venue_name: 'Main Auditorium & Innovation Lab',
-    venue_address: 'Block C, Technology Campus',
-    event_type: 'offline',
-    registration_opens_at: now.toISOString(),
-    registration_closes_at: new Date(now.getTime() + 13 * 86400000).toISOString(),
-    capacity: 250,
-    is_free: false,
-    price: 350,
-    currency: 'INR',
-    eligibility: 'Open to engineering and design students.',
-    rules: 'No unauthorized wireless transmitters allowed in the arena.',
-    contact_email: 'robotics@campus.edu',
-    contact_phone: '+91 98765 12345',
-    online_meeting_url: null,
-    timezone: 'Asia/Kolkata',
-    approval_type: 'manual',
-    participation_type: 'team',
-    min_team_size: 2,
-    max_team_size: 4,
-    leader_counts_towards_size: true,
-    team_registration_mode: 'leader_adds_members',
-    require_team_name: true,
-    allowed_colleges: null,
-    allowed_departments: ['Computer Science', 'Mechanical', 'Electrical'],
-    allowed_years: [2, 3, 4],
-    custom_questions: [
-      {
-        id: 'q_tshirt',
-        label: 'T-Shirt Size',
-        type: 'select',
-        required: true,
-        options: ['S', 'M', 'L', 'XL', 'XXL'],
-      },
-    ],
-    participant_fields: {
-      require_college: true,
-      require_phone: true,
-      require_grad_year: true,
-      require_id_card: true,
-    },
-    status: 'draft',
-    created_at: now.toISOString(),
-    updated_at: now.toISOString(),
-  })
-
-  try {
-    localStorage.setItem(LOCAL_STORAGE_EVENTS_KEY, JSON.stringify(seeded))
-  } catch {
-    // Ignore storage quota
-  }
-
-  return seeded
+  return []
 }
 
 function saveLocalEvents(events: EventRecord[]) {

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router'
 import { motion } from 'motion/react'
-import { Sparkles, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
-import { Button } from '@/components/ui'
+import { Button, Logo } from '@/components/ui'
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -139,9 +139,9 @@ export default function AuthCallbackPage() {
         className="w-full max-w-md p-8 glass rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] text-center shadow-2xl"
       >
         <div className="flex justify-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] flex items-center justify-center shadow-lg">
-            <Sparkles size={24} className="text-white" />
-          </div>
+          <Link to="/" aria-label="FestFlow home">
+            <Logo variant="auth" />
+          </Link>
         </div>
 
         {status === 'processing' && (

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { motion, AnimatePresence } from 'motion/react'
 import {
   CreditCard,
   CheckCircle2,
@@ -12,9 +11,9 @@ import {
   Settings,
   Image as ImageIcon,
   User,
-  AlertCircle,
+  X,
 } from 'lucide-react'
-import { Button, Card, Badge } from '@/components/ui'
+import { Button, Card, Badge, Modal, ModalBody, ModalFooter, EmptyState, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -23,12 +22,11 @@ import {
   getPaymentProofSignedUrl,
 } from '@/lib/payments'
 import { listClubEvents } from '@/lib/events'
-import { fadeIn } from '@/lib/animations'
 import type { PaymentSubmissionWithDetails, PaymentStatus, EventRecord } from '@/types'
 
 export default function ClubPaymentsPage() {
   const { user } = useAuth()
-  const clubId = user?.id || 'demo_club_member_default'
+  const clubId = user?.id || ''
   const [searchParams] = useSearchParams()
   const eventIdParam = searchParams.get('eventId')
 
@@ -52,6 +50,10 @@ export default function ClubPaymentsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const loadData = async () => {
+    if (!clubId) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     const [subsRes, eventsRes] = await Promise.all([
       getClubPaymentSubmissions(clubId),
@@ -87,7 +89,7 @@ export default function ClubPaymentsPage() {
     setApprovingSub(null)
 
     if (res.success) {
-      setNotice({ message: 'Payment successfully approved! Entry ticket issued to student.' })
+      setNotice({ message: 'Payment successfully approved! Entry ticket issued to student.', isError: false })
       await loadData()
     } else {
       setNotice({ message: res.message, isError: true })
@@ -115,7 +117,7 @@ export default function ClubPaymentsPage() {
     setRejectionReason('')
 
     if (res.success) {
-      setNotice({ message: 'Payment marked as rejected. Student notified with the stated reason.' })
+      setNotice({ message: 'Payment marked as rejected. Student notified with the stated reason.', isError: false })
       await loadData()
     } else {
       setNotice({ message: res.message, isError: true })
@@ -124,8 +126,13 @@ export default function ClubPaymentsPage() {
 
   // Computed metric counts
   const pendingCount = submissions.filter((s) => s.status === 'pending_review').length
-  const approvedCount = submissions.filter((s) => s.status === 'approved').length
+  const approvedSubmissions = useMemo(() => submissions.filter((s) => s.status === 'approved'), [submissions])
+  const approvedCount = approvedSubmissions.length
   const rejectedCount = submissions.filter((s) => s.status === 'rejected').length
+  const verifiedGrossRevenue = useMemo(
+    () => approvedSubmissions.reduce((sum, s) => sum + (s.amount || 0), 0),
+    [approvedSubmissions]
+  )
 
   // Filtered list
   const filteredSubmissions = useMemo(() => {
@@ -199,61 +206,70 @@ export default function ClubPaymentsPage() {
         </Card>
 
         {notice && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className={`p-4 rounded-xl border text-xs sm:text-sm flex items-center gap-3 ${
-              notice.isError
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-            }`}
+          <Alert
+            variant={notice.isError ? 'error' : 'success'}
+            dismissible
+            onDismiss={() => setNotice(null)}
           >
-            {notice.isError ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-            <span className="flex-1">{notice.message}</span>
-          </motion.div>
+            {notice.message}
+          </Alert>
         )}
 
         {/* Metric Cards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Card className="p-4 flex flex-col justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
               Pending Review
             </span>
-            <div className="text-2xl font-bold font-display text-amber-400 mt-2">
+            <div className="text-2xl sm:text-3xl font-bold font-display text-amber-400 mt-2">
               {loading ? '…' : pendingCount}
             </div>
+            <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
+              Requires organizer check
+            </span>
           </Card>
-          <Card className="p-4 flex flex-col justify-between">
+
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
               Approved
             </span>
-            <div className="text-2xl font-bold font-display text-emerald-400 mt-2">
+            <div className="text-2xl sm:text-3xl font-bold font-display text-emerald-400 mt-2">
               {loading ? '…' : approvedCount}
             </div>
+            <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
+              Confirmed admissions
+            </span>
           </Card>
-          <Card className="p-4 flex flex-col justify-between">
+
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              Gross Revenue
+            </span>
+            <div className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-brand-cyan)] mt-2">
+              {loading ? '…' : `₹${verifiedGrossRevenue.toLocaleString()}`}
+            </div>
+            <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
+              Verified collections
+            </span>
+          </Card>
+
+          <Card className="p-4 sm:p-5 flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
               Rejected
             </span>
-            <div className="text-2xl font-bold font-display text-rose-400 mt-2">
+            <div className="text-2xl sm:text-3xl font-bold font-display text-rose-400 mt-2">
               {loading ? '…' : rejectedCount}
             </div>
-          </Card>
-          <Card className="p-4 flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Total Submissions
+            <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
+              Declined submissions
             </span>
-            <div className="text-2xl font-bold font-display text-[var(--color-text-primary)] mt-2">
-              {loading ? '…' : submissions.length}
-            </div>
           </Card>
         </div>
 
         {/* Filters and Search Bar */}
         <Card className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar touch-pan-x">
+          <div className="flex items-center gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar touch-pan-x text-xs">
             {(
               [
                 { id: 'all', label: `All (${submissions.length})` },
@@ -266,7 +282,7 @@ export default function ClubPaymentsPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap shrink-0 transition-all ${
                   statusFilter === tab.id
                     ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] shadow'
                     : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
@@ -283,7 +299,7 @@ export default function ClubPaymentsPage() {
               <select
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] w-full sm:w-48"
+                className="px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] w-full sm:w-48"
               >
                 <option value="all">All Events</option>
                 {events.map((ev) => (
@@ -305,8 +321,17 @@ export default function ClubPaymentsPage() {
                 placeholder="Search UTR, student, event…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                className="w-full pl-9 pr-8 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
         </Card>
@@ -318,17 +343,22 @@ export default function ClubPaymentsPage() {
             <span className="text-xs text-[var(--color-text-muted)]">Loading submissions…</span>
           </div>
         ) : filteredSubmissions.length === 0 ? (
-          <Card className="p-12 text-center flex flex-col items-center justify-center gap-3">
-            <CreditCard size={40} className="text-[var(--color-text-muted)] opacity-50 mb-1" />
-            <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
-              No Payment Submissions Found
-            </h3>
-            <p className="text-xs text-[var(--color-text-secondary)] max-w-sm">
-              {searchQuery || statusFilter !== 'all' || selectedEventId !== 'all'
-                ? 'Try adjusting your search terms or filters.'
-                : 'When students submit UPI payment references for your paid events, they will appear here for verification.'}
-            </p>
-          </Card>
+          <EmptyState
+            icon={CreditCard}
+            title={searchQuery || statusFilter !== 'all' || selectedEventId !== 'all' ? 'No Matching Submissions' : 'No Payment Submissions Yet'}
+            description={
+              searchQuery || statusFilter !== 'all' || selectedEventId !== 'all'
+                ? 'Try adjusting your search terms or filter selection.'
+                : 'When students submit UPI payment references for your paid events, they will appear here for verification.'
+            }
+            action={
+              searchQuery || statusFilter !== 'all' || selectedEventId !== 'all' ? (
+                <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('all'); setSelectedEventId('all') }}>
+                  Clear Filters
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="flex flex-col gap-4">
             {filteredSubmissions.map((sub) => {
@@ -339,8 +369,10 @@ export default function ClubPaymentsPage() {
               return (
                 <Card
                   key={sub.id}
-                  className={`p-5 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
-                    isPending ? 'border-amber-500/30 bg-amber-500/[0.02]' : ''
+                  className={`p-5 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6 border ${
+                    isPending
+                      ? 'border-amber-500/40 bg-amber-500/[0.02] shadow-sm'
+                      : 'border-[oklch(100%_0_0_/_0.08)]'
                   }`}
                 >
                   {/* Left / Info Section */}
@@ -380,7 +412,7 @@ export default function ClubPaymentsPage() {
                           {sub.event?.title || 'Campus Event'}
                         </span>
                         <span>•</span>
-                        <span className="font-bold text-[var(--color-brand-purple)]">
+                        <span className="font-bold text-[var(--color-brand-cyan)]">
                           {sub.currency} {sub.amount}
                         </span>
                         <span>•</span>
@@ -399,7 +431,7 @@ export default function ClubPaymentsPage() {
                         <button
                           type="button"
                           onClick={() => handleCopy(sub.transaction_reference, sub.id)}
-                          className="px-2.5 py-1 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs font-mono font-bold text-[var(--color-text-primary)] hover:border-[var(--color-brand-purple)] flex items-center gap-1.5 transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs font-mono font-bold text-[var(--color-text-primary)] hover:border-[var(--color-brand-purple)] flex items-center gap-1.5 transition-colors"
                           title="Click to copy UTR"
                         >
                           {sub.transaction_reference}
@@ -418,7 +450,7 @@ export default function ClubPaymentsPage() {
                               const resolved = await getPaymentProofSignedUrl(sub.screenshot_url!)
                               setInspectingScreenshot(resolved)
                             }}
-                            className="px-2 py-1 rounded bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+                            className="px-2 py-1 rounded-lg bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
                           >
                             <ImageIcon size={12} />
                             <span>View Screenshot Proof</span>
@@ -476,188 +508,189 @@ export default function ClubPaymentsPage() {
           </div>
         )}
 
-        {/* Modal: Screenshot Preview */}
-        <AnimatePresence>
-          {inspectingScreenshot && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <motion.div
-                variants={fadeIn}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                className="relative max-w-2xl w-full bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] rounded-2xl p-4 flex flex-col gap-3 shadow-2xl"
-              >
-                <div className="flex items-center justify-between border-b border-[var(--color-surface-3)] pb-2">
-                  <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
-                    Payment Receipt Proof
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setInspectingScreenshot(null)}
-                    className="p-1 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="max-h-[70vh] overflow-auto rounded-xl bg-black/50 p-2 flex items-center justify-center">
+        {/* ── Modal: Screenshot Preview ─────────────────────────────────────── */}
+        <Modal
+          isOpen={Boolean(inspectingScreenshot)}
+          onClose={() => setInspectingScreenshot(null)}
+          title="Payment Receipt Proof"
+          size="lg"
+        >
+          <ModalBody>
+            <div className="flex flex-col gap-3">
+              <div className="max-h-[65vh] overflow-auto rounded-2xl bg-black/50 p-2 flex items-center justify-center border border-[var(--color-surface-3)]">
+                {inspectingScreenshot && (
                   <img
                     src={inspectingScreenshot}
                     alt="Receipt proof"
-                    className="max-h-[65vh] object-contain rounded-lg"
+                    className="max-h-[60vh] object-contain rounded-xl"
                   />
-                </div>
-
-                <span className="text-[11px] text-[var(--color-text-muted)] text-center">
-                  Remember: Compare the transaction reference (UTR) with your bank statement before approving.
-                </span>
-              </motion.div>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--color-text-muted)] text-center">
+                Always confirm the transaction UTR directly with your bank statement before approving.
+              </p>
             </div>
-          )}
-        </AnimatePresence>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInspectingScreenshot(null)}
+            >
+              Close Preview
+            </Button>
+          </ModalFooter>
+        </Modal>
 
-        {/* Modal: Approve Confirmation */}
-        <AnimatePresence>
-          {approvingSub && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <motion.div
-                variants={fadeIn}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                className="max-w-md w-full bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] rounded-2xl p-6 flex flex-col gap-4 shadow-2xl"
-              >
+        {/* ── Modal: Approve Confirmation ───────────────────────────────────── */}
+        <Modal
+          isOpen={Boolean(approvingSub)}
+          onClose={() => setApprovingSub(null)}
+          title="Approve Payment & Issue Ticket"
+          size="sm"
+        >
+          <ModalBody>
+            {approvingSub && (
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3 text-emerald-400">
-                  <CheckCircle2 size={24} />
-                  <h3 className="text-base font-bold text-[var(--color-text-primary)]">
-                    Approve Payment & Issue Ticket?
-                  </h3>
+                  <div className="p-2 rounded-xl bg-emerald-500/15">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                      Verify & Issue Pass
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Atomically confirms registration and QR ticket.
+                    </p>
+                  </div>
                 </div>
 
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
                   Have you verified that the transaction UTR{' '}
-                  <span className="font-mono font-bold text-white">
+                  <span className="font-mono font-bold text-[var(--color-text-primary)]">
                     {approvingSub.transaction_reference}
                   </span>{' '}
                   for{' '}
-                  <span className="font-bold text-white">
+                  <span className="font-bold text-emerald-400">
                     {approvingSub.currency} {approvingSub.amount}
                   </span>{' '}
                   has been credited to your club account?
                 </p>
 
                 <p className="text-xs text-emerald-300/80 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
-                  Approving will atomically confirm{' '}
-                  <span className="font-semibold text-white">
+                  Approving will instantly confirm{' '}
+                  <strong className="text-white">
                     {approvingSub.student?.display_name || 'student'}
-                  </span>
-                  's registration and generate an active digital entry ticket.
+                  </strong>
+                  's pass and send their gate QR credential.
                 </p>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setApprovingSub(null)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleApprove}
+              isLoading={actionLoading}
+              className="bg-emerald-600 hover:bg-emerald-500 border-none text-white font-semibold"
+            >
+              Confirm & Issue Ticket
+            </Button>
+          </ModalFooter>
+        </Modal>
 
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setApprovingSub(null)}
-                    disabled={actionLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={handleApprove}
-                    isLoading={actionLoading}
-                    className="bg-emerald-600 hover:bg-emerald-500 border-none text-white"
-                  >
-                    {actionLoading ? 'Approving…' : 'Confirm & Issue Ticket'}
-                  </Button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* Modal: Reject Payment */}
-        <AnimatePresence>
-          {rejectingSub && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <motion.div
-                variants={fadeIn}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                className="max-w-md w-full bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] rounded-2xl p-6 flex flex-col gap-4 shadow-2xl"
-              >
-                <div className="flex items-center gap-3 text-rose-400">
+        {/* ── Modal: Reject Payment ─────────────────────────────────────────── */}
+        <Modal
+          isOpen={Boolean(rejectingSub)}
+          onClose={() => {
+            setRejectingSub(null)
+            setRejectionReason('')
+            setRejectError(null)
+          }}
+          title="Reject Payment Submission"
+          size="sm"
+        >
+          <ModalBody>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 text-rose-400">
+                <div className="p-2 rounded-xl bg-rose-500/15">
                   <AlertTriangle size={24} />
-                  <h3 className="text-base font-bold text-[var(--color-text-primary)]">
-                    Reject Payment Submission
-                  </h3>
                 </div>
-
-                <p className="text-xs text-[var(--color-text-secondary)]">
-                  Provide a mandatory reason so the student knows why their payment was not approved (e.g. UTR not found, incorrect amount, illegible screenshot).
-                </p>
-
-                {rejectError && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-                    <AlertTriangle size={15} className="shrink-0 text-rose-400" />
-                    <span>{rejectError}</span>
-                  </div>
-                )}
-
                 <div>
-                  <label
-                    htmlFor="reject_reason"
-                    className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
-                  >
-                    Reason for Rejection <span className="text-rose-400">*</span>
-                  </label>
-                  <textarea
-                    id="reject_reason"
-                    rows={3}
-                    required
-                    placeholder="e.g. Transaction reference not found in bank statement. Please verify your 12-digit UTR."
-                    value={rejectionReason}
-                    onChange={(e) => {
-                      setRejectionReason(e.target.value)
-                      if (rejectError) setRejectError(null)
-                    }}
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-rose-500 transition-colors"
-                  />
+                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Decline UTR Submission
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Student will receive this reason to resubmit.
+                  </p>
                 </div>
+              </div>
 
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setRejectingSub(null)
-                      setRejectionReason('')
-                      setRejectError(null)
-                    }}
-                    disabled={actionLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    onClick={handleReject}
-                    isLoading={actionLoading}
-                  >
-                    {actionLoading ? 'Rejecting…' : 'Reject Submission'}
-                  </Button>
-                </div>
-              </motion.div>
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                Provide a reason so the student knows why their payment was not approved (e.g. UTR not found, incorrect amount, or illegible screenshot).
+              </p>
+
+              {rejectError && (
+                <Alert variant="error" className="text-xs">
+                  {rejectError}
+                </Alert>
+              )}
+
+              <div>
+                <label
+                  htmlFor="reject_reason"
+                  className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5"
+                >
+                  Reason for Rejection <span className="text-rose-400">*</span>
+                </label>
+                <textarea
+                  id="reject_reason"
+                  rows={3}
+                  required
+                  placeholder="e.g. Transaction reference not found in bank statement. Please verify your 12-digit UTR."
+                  value={rejectionReason}
+                  onChange={(e) => {
+                    setRejectionReason(e.target.value)
+                    if (rejectError) setRejectError(null)
+                  }}
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-rose-500 transition-colors"
+                />
+              </div>
             </div>
-          )}
-        </AnimatePresence>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setRejectingSub(null)
+                setRejectionReason('')
+                setRejectError(null)
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleReject}
+              isLoading={actionLoading}
+            >
+              Reject Submission
+            </Button>
+          </ModalFooter>
+        </Modal>
       </div>
     </PageShell>
   )

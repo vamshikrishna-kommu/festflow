@@ -15,6 +15,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from '@/lib/payments'
+import { dropdownMenu } from '@/lib/animations'
 import type { InAppNotification } from '@/types'
 
 export function NotificationBell() {
@@ -103,10 +104,10 @@ export function NotificationBell() {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
+            variants={dropdownMenu}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl glass border border-[var(--color-surface-3)] shadow-2xl p-4 z-50 text-left overflow-hidden flex flex-col gap-3"
           >
             <div className="flex items-center justify-between border-b border-[var(--color-surface-3)] pb-2">

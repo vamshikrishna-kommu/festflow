@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router'
-import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, AlertCircle, AlertTriangle } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
-import { Button } from '@/components/ui'
+import { Button, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
 import { DigitalTicketCard } from '@/components/tickets/DigitalTicketCard'
 import { getRegistrationById, cancelRegistration } from '@/lib/registrations'
 import { useAuth } from '@/context/AuthContext'
@@ -31,11 +30,7 @@ export default function TicketDetailPage() {
       setError(res.error || 'Ticket could not be found.')
     } else {
       // Check ownership
-      if (
-        user &&
-        res.registration.student_id !== user.id &&
-        user.id !== 'demo_student_default'
-      ) {
+      if (user && res.registration.student_id !== user.id) {
         setError('You do not have permission to view this ticket.')
       } else {
         setRegistration(res.registration)
@@ -110,70 +105,69 @@ export default function TicketDetailPage() {
         )}
 
         {/* Cancellation Confirmation Modal */}
-        <AnimatePresence>
-          {showCancelModal && registration && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+        <Modal
+          isOpen={showCancelModal}
+          onClose={() => {
+            setShowCancelModal(false)
+            setActionError(null)
+          }}
+          title="Cancel Entry Pass"
+          size="sm"
+        >
+          <ModalBody>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 text-rose-400">
+                <div className="p-2.5 rounded-xl bg-rose-500/15">
+                  <AlertTriangle size={24} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Revoke Registration
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    This action immediately voids your gate admission pass.
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
+                Are you sure you want to cancel your entry pass for{' '}
+                <strong className="text-[var(--color-text-primary)]">
+                  {registration?.event?.title || 'this event'}
+                </strong>
+                ? Your seat will be released immediately for other campus students, and this QR pass will become void.
+              </p>
+
+              {actionError && (
+                <Alert variant="error" className="mt-2 text-xs">
+                  {actionError}
+                </Alert>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={actionLoading}
+              onClick={() => {
+                setShowCancelModal(false)
+                setActionError(null)
+              }}
             >
-              <motion.div
-                initial={{ scale: 0.95, y: 10 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 10 }}
-                className="w-full max-w-md p-6 rounded-2xl glass border border-rose-500/30 text-left flex flex-col gap-4 shadow-2xl"
-              >
-                <div className="flex items-center gap-3 text-rose-400">
-                  <div className="p-2.5 rounded-xl bg-rose-500/15">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <h3 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
-                    Cancel Pass Registration?
-                  </h3>
-                </div>
-
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  Are you sure you want to cancel your entry pass for{' '}
-                  <strong className="text-[var(--color-text-primary)]">
-                    {registration.event?.title || 'this event'}
-                  </strong>
-                  ? Your seat will be released immediately for other campus students, and this QR pass will become void.
-                </p>
-
-                {actionError && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-                    <AlertCircle size={15} className="shrink-0 text-rose-400" />
-                    <span>{actionError}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={actionLoading}
-                    onClick={() => {
-                      setShowCancelModal(false)
-                      setActionError(null)
-                    }}
-                  >
-                    Keep Pass
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={actionLoading}
-                    isLoading={actionLoading}
-                    onClick={handleCancel}
-                  >
-                    Confirm Cancellation
-                  </Button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              Keep Pass
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={actionLoading}
+              isLoading={actionLoading}
+              onClick={handleCancel}
+            >
+              Confirm Cancellation
+            </Button>
+          </ModalFooter>
+        </Modal>
       </div>
     </PageShell>
   )
