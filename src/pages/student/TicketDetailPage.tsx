@@ -10,7 +10,7 @@ import type { RegistrationWithEvent } from '@/types'
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { user, profile } = useAuth()
+  const { user, role, profile } = useAuth()
 
   const [registration, setRegistration] = useState<RegistrationWithEvent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -18,6 +18,7 @@ export default function TicketDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [isOffline, setIsOffline] = useState(false)
 
   const loadTicket = async () => {
     if (!id) return
@@ -27,20 +28,44 @@ export default function TicketDetailPage() {
     setLoading(false)
 
     if (res.error || !res.registration) {
+      // Check offline local storage fallback
+      try {
+        const cachedRaw = localStorage.getItem(`festflow_cached_ticket_${id}`)
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw)
+          // Also verify cached ticket ownership
+          if (user && cached.student_id !== user.id && role !== 'platform_admin') {
+            setError('You do not have permission to view this ticket.')
+            return
+          }
+          setRegistration(cached)
+          setIsOffline(true)
+          return
+        }
+      } catch {
+        // ignore JSON parse error
+      }
       setError(res.error || 'Ticket could not be found.')
     } else {
       // Check ownership
-      if (user && res.registration.student_id !== user.id) {
+      const isOwnerOrAdmin = (user && res.registration.student_id === user.id) || role === 'platform_admin'
+      if (!isOwnerOrAdmin) {
         setError('You do not have permission to view this ticket.')
       } else {
         setRegistration(res.registration)
+        setIsOffline(false)
+        try {
+          localStorage.setItem(`festflow_cached_ticket_${id}`, JSON.stringify(res.registration))
+        } catch {
+          // ignore
+        }
       }
     }
   }
 
   useEffect(() => {
     loadTicket()
-  }, [id, user])
+  }, [id, user, role])
 
   const handleCancel = async () => {
     if (!id) return
@@ -96,6 +121,14 @@ export default function TicketDetailPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-6">
+            {isOffline && (
+              <div className="w-full max-w-md p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  <span><strong>Offline Gate Pass</strong> — Cached from previous session. Ready for scanner verification.</span>
+                </div>
+              </div>
+            )}
             <DigitalTicketCard
               registration={registration}
               studentName={profile?.display_name || 'FestFlow Student'}

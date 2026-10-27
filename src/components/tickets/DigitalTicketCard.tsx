@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
 import { QRCodeSVG } from 'qrcode.react'
@@ -19,6 +19,7 @@ import {
   Users,
   AlertCircle,
   X,
+  Sun,
 } from 'lucide-react'
 import { Badge, Button, Logo } from '@/components/ui'
 import { resendPassEmail } from '@/lib/emails'
@@ -47,11 +48,27 @@ export function DigitalTicketCard({
   const [activePassView, setActivePassView] = useState<'squad' | 'member'>('squad')
   const [selectedMemberIdx, setSelectedMemberIdx] = useState(0)
 
+  // Mobile gate scanner high-contrast mode toggle
+  const [highContrast, setHighContrast] = useState<boolean>(() => {
+    return localStorage.getItem('festflow_pref_high_contrast') === 'true'
+  })
+
   const ticketCardRef = useRef<HTMLDivElement>(null)
   const event = registration.event || null
   const qrToken = (registration as any).qr_token || registration.ticket_code
 
   const isConfirmed = registration.status === 'confirmed'
+
+  // Offline ticket persistence: safely caches confirmed pass for offline gate scan
+  useEffect(() => {
+    if (isConfirmed && registration.id) {
+      try {
+        localStorage.setItem(`festflow_cached_ticket_${registration.id}`, JSON.stringify(registration))
+      } catch {
+        // ignore quota limits
+      }
+    }
+  }, [isConfirmed, registration])
   const isPendingApproval = registration.status === 'pending_approval'
   const isPending = registration.status === 'pending_payment'
   const isWaitlisted = registration.status === 'waitlisted'
@@ -474,15 +491,49 @@ export function DigitalTicketCard({
         <div className="p-6 pt-3 flex flex-col items-center text-center gap-4 bg-[var(--color-surface-1)]/50">
           {isConfirmed ? (
             <>
+              {/* Gate Scanner High-Contrast Mode Toggle for Turnstiles */}
+              <div className="flex items-center justify-between w-full max-w-xs px-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !highContrast
+                    setHighContrast(nextVal)
+                    localStorage.setItem('festflow_pref_high_contrast', String(nextVal))
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-all border ${
+                    highContrast
+                      ? 'bg-amber-400 text-black border-amber-300 shadow-md'
+                      : 'bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] hover:text-white border-[var(--color-surface-3)]'
+                  }`}
+                  title="Toggle high-contrast screen brightness for gate scanner cameras"
+                >
+                  <Sun size={13} className={highContrast ? 'text-black' : 'text-amber-400'} />
+                  <span>{highContrast ? 'High Contrast Mode ON' : 'Turnstile Contrast Mode'}</span>
+                </button>
+
+                <span className="text-[10px] text-[var(--color-text-muted)]">
+                  {highContrast ? 'Maximum Readability' : 'OLED Dark'}
+                </span>
+              </div>
+
               {/* Confirmed QR Code */}
-              <div className="p-3.5 bg-white rounded-2xl shadow-xl border border-white/20 flex items-center justify-center">
+              <div className={`p-4 rounded-2xl shadow-xl border flex flex-col items-center justify-center transition-all ${
+                highContrast
+                  ? 'bg-white border-white text-black ring-4 ring-white/30'
+                  : 'bg-white border-white/20'
+              }`}>
                 <QRCodeSVG
                   value={qrPayload}
-                  size={155}
+                  size={highContrast ? 180 : 155}
                   bgColor="#ffffff"
-                  fgColor="#0a0a0f"
-                  level="M"
+                  fgColor="#000000"
+                  level="H"
                 />
+                {highContrast && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-black mt-2">
+                    Turnstile Scanner Ready
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col items-center gap-1">
@@ -493,7 +544,7 @@ export function DigitalTicketCard({
                   type="button"
                   onClick={handleCopyCode}
                   title="Click to copy pass code"
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)] text-xs font-mono font-bold text-[var(--color-text-primary)] transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)] text-xs font-mono font-bold text-[var(--color-text-primary)] transition-all min-h-[36px]"
                 >
                   <span>{currentPassCode}</span>
                   {copied ? (

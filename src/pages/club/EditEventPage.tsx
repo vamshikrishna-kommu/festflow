@@ -11,7 +11,7 @@ import type { EventRecord, EventInsert, EventUpdate } from '@/types'
 export default function EditEventPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,8 +29,9 @@ export default function EditEventPage() {
       if (res.error || !res.event) {
         setLoadError(res.error || 'Event could not be found.')
       } else {
-        // Verify ownership
-        if (user && res.event.club_id !== user.id) {
+        // Verify resource ownership
+        const isOwnerOrAdmin = (user && res.event.club_id === user.id) || role === 'platform_admin'
+        if (!isOwnerOrAdmin) {
           setLoadError('You do not have permission to edit this event.')
         } else {
           setEvent(res.event)
@@ -41,7 +42,7 @@ export default function EditEventPage() {
     return () => {
       mounted = false
     }
-  }, [id, user])
+  }, [id, user, role])
 
   const handleUpdate = async (
     data: Omit<EventInsert, 'id' | 'created_at' | 'updated_at'>,

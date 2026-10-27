@@ -31,6 +31,8 @@ export interface AuthContextType {
   studentProfile: StudentProfile | null
   role: UserRole | null
   isLoading: boolean
+  isRoleLoading: boolean
+  profileError: string | null
   isConfigured: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null; role?: UserRole }>
   signUpClub: (params: SignUpClubParams) => Promise<{ error: string | null; requiresVerification: boolean }>
@@ -71,67 +73,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clubProfile, setClubProfile] = useState<ClubProfile | null>(null)
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isRoleLoading, setIsRoleLoading] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
 
-  // ── Fetch Profile from Supabase ───────────────────────────────────────────
+  // ── Fetch Profile from Supabase (Strict Database Source of Truth) ────────
   const fetchProfile = useCallback(async (userId: string, userMeta?: Record<string, unknown>) => {
+    setIsRoleLoading(true)
+    setProfileError(null)
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
 
-      if (error) {
-        console.warn('[FestFlow Auth] Profile query notice:', error.message)
-      }
+        if (error) {
+          console.error('[FestFlow Security] Profile authorization query failed:', error.message)
+          setProfile(null)
+          setClubProfile(null)
+          setStudentProfile(null)
+          setProfileError(error.message || 'Failed to verify account authorization.')
+          return
+        }
 
-      const profileData = data as unknown as Profile | null
-      if (profileData) {
-        setProfile(profileData)
-        if (profileData.role === 'club_member') {
-          const { data: cData } = await supabase
-            .from('club_profiles')
-            .select('*')
-            .eq('profile_id', userId)
-            .maybeSingle()
-          setClubProfile((cData as unknown as ClubProfile | null) ?? null)
-        } else if (profileData.role === 'student') {
-          const { data: sData } = await supabase
-            .from('student_profiles')
-            .select('*')
-            .eq('profile_id', userId)
-            .maybeSingle()
-          setStudentProfile((sData as unknown as StudentProfile | null) ?? null)
+        const profileData = data as unknown as Profile | null
+        if (profileData) {
+          setProfile(profileData)
+          if (profileData.role === 'club_member') {
+            const { data: cData } = await supabase
+              .from('club_profiles')
+              .select('*')
+              .eq('profile_id', userId)
+              .maybeSingle()
+            setClubProfile((cData as unknown as ClubProfile | null) ?? null)
+          } else if (profileData.role === 'student') {
+            const { data: sData } = await supabase
+              .from('student_profiles')
+              .select('*')
+              .eq('profile_id', userId)
+              .maybeSingle()
+            setStudentProfile((sData as unknown as StudentProfile | null) ?? null)
+          }
+        } else {
+          // Profile missing in database — fail closed to prevent metadata privilege escalation
+          console.warn('[FestFlow Security] No database profile found for user:', userId)
+          setProfile(null)
+          setClubProfile(null)
+          setStudentProfile(null)
+          setProfileError('Account profile record not found in database.')
         }
-      } else if (userMeta) {
-        // Fallback profile if database triggers haven't executed yet or in transition
-        const fallbackRole = (userMeta.role as UserRole) || 'student'
-        const fallbackProfile: Profile = {
-          id: userId,
-          role: fallbackRole,
-          display_name: (userMeta.display_name as string) || 'FestFlow Member',
-          email: (userMeta.email as string) || '',
-          avatar_url: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-        setProfile(fallbackProfile)
-        if (fallbackRole === 'club_member') {
-          setClubProfile({
-            id: `cp_${userId}`,
-            profile_id: userId,
-            club_name: (userMeta.club_name as string) || 'Campus Club',
-            representative_name: fallbackProfile.display_name,
-            website_url: null,
-            description: null,
-            is_verified: false,
+      } else {
+        // Offline / Simulation Mode (Development only)
+        if (userMeta) {
+          const fallbackRole = (userMeta.role as UserRole) || 'student'
+          const fallbackProfile: Profile = {
+            id: userId,
+            role: fallbackRole,
+            display_name: (userMeta.display_name as string) || 'FestFlow Member',
+            email: (userMeta.email as string) || '',
+            avatar_url: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          })
+          }
+          setProfile(fallbackProfile)
+          if (fallbackRole === 'club_member') {
+            setClubProfile({
+              id: `cp_${userId}`,
+              profile_id: userId,
+              club_name: (userMeta.club_name as string) || 'Campus Club',
+              representative_name: fallbackProfile.display_name,
+              website_url: null,
+              description: null,
+              is_verified: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+          }
         }
       }
     } catch (err) {
       console.error('[FestFlow Auth] Error fetching profile:', err)
+      setProfileError(err instanceof Error ? err.message : 'Authorization lookup failed')
+    } finally {
+      setIsRoleLoading(false)
     }
   }, [])
 
@@ -533,6 +558,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null)
       setClubProfile(null)
       setStudentProfile(null)
+      setProfileError(null)
+      setIsRoleLoading(false)
     } finally {
       setIsLoading(false)
     }
@@ -617,8 +644,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile,
     clubProfile,
     studentProfile,
-    role: profile?.role ?? (user?.user_metadata?.role as UserRole) ?? null,
+    role: isSupabaseConfigured
+      ? (profile?.role ?? null)
+      : (profile?.role ?? (user?.user_metadata?.role as UserRole) ?? null),
     isLoading,
+    isRoleLoading,
+    profileError,
     isConfigured: isSupabaseConfigured,
     signIn,
     signUpClub,

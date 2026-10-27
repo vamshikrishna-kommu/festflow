@@ -167,18 +167,32 @@ export function Navbar() {
                 </li>
               ) : (
                 activeNavLinks.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.href} className="relative">
                     <NavLink
                       to={link.href}
                       className={({ isActive }) =>
-                        `relative px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        `relative px-3.5 py-2 rounded-xl text-sm font-medium transition-colors duration-200 inline-block ${
                           isActive && (link.href === '/discover' || link.href === '/student/dashboard' || link.href === '/club/dashboard')
-                            ? 'text-[var(--color-text-primary)] bg-[var(--color-surface-3)] font-semibold'
-                            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
+                            ? 'text-white font-semibold'
+                            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]/60'
                         }`
                       }
                     >
-                      {link.label}
+                      {({ isActive }) => {
+                        const isMainActive = isActive && (link.href === '/discover' || link.href === '/student/dashboard' || link.href === '/club/dashboard')
+                        return (
+                          <>
+                            {isMainActive && (
+                              <motion.span
+                                layoutId="nav-active-indicator"
+                                className="absolute inset-0 rounded-xl bg-[var(--color-surface-3)] border border-[oklch(100%_0_0_/_0.12)] shadow-sm -z-0"
+                                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                              />
+                            )}
+                            <span className="relative z-10">{link.label}</span>
+                          </>
+                        )
+                      }}
                     </NavLink>
                   </li>
                 ))
@@ -411,15 +425,20 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Mobile: notifications + hamburger */}
-            <div className="flex items-center gap-1 md:hidden">
+            {/* Mobile: avatar + notifications + hamburger */}
+            <div className="flex items-center gap-1.5 md:hidden">
+              {session && (
+                <span className="w-7 h-7 rounded-full gradient-brand text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm" aria-label={userDisplayName}>
+                  {userInitial}
+                </span>
+              )}
               {session && <NotificationBell />}
               <button
                 id="mobile-menu-toggle"
                 aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu"
-                className="p-2.5 rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
+                className="p-2 rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
                 onClick={() => setMobileOpen((v) => !v)}
               >
                 {mobileOpen ? <X size={20} /> : <Menu size={20} />}

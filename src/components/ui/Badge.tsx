@@ -5,6 +5,8 @@ interface BadgeProps {
   variant?: BadgeVariant
   children: ReactNode
   className?: string
+  pulse?: boolean
+  dot?: boolean
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
@@ -31,11 +33,19 @@ const CATEGORY_VARIANT_MAP: Record<string, BadgeVariant> = {
   social:    'default',
 }
 
-export function Badge({ variant = 'default', children, className = '' }: BadgeProps) {
+export function Badge({ variant = 'default', children, className = '', pulse = false, dot = false }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors ${variantClasses[variant]} ${className}`}
     >
+      {(pulse || dot) && (
+        <span className="relative flex h-1.5 w-1.5">
+          {pulse && (
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75" />
+          )}
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current" />
+        </span>
+      )}
       {children}
     </span>
   )

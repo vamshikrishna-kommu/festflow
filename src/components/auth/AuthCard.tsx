@@ -189,8 +189,8 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
               </div>
             )}
 
-            {/* Local testing helper — displayed only in local dev when Supabase is not configured */}
-            {isLocalDev && !isConfigured && (
+            {/* Local testing helper — displayed in local dev */}
+            {isLocalDev && (
               <div className="mt-4 p-3 bg-[var(--color-surface-2)]/60 rounded-xl border border-dashed border-[var(--color-surface-3)] text-[11px] text-[var(--color-text-muted)]">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="font-semibold text-[var(--color-text-secondary)] flex items-center gap-1.5">

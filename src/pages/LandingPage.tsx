@@ -10,11 +10,12 @@ import {
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { HeroSection } from '@/components/sections/HeroSection'
+import { HorizontalEventJourney } from '@/components/sections/HorizontalEventJourney'
 import { WorkflowSection } from '@/components/sections/WorkflowSection'
 import { PlatformCapabilitiesSection } from '@/components/sections/PlatformCapabilitiesSection'
 import { CategoryShowcaseSection } from '@/components/sections/CategoryShowcaseSection'
 import { EventGrid } from '@/components/sections/EventGrid'
-import { Button, EmptyState, SectionHeader } from '@/components/ui'
+import { Button, EmptyState, KineticHeading } from '@/components/ui'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
 import type { Event as UiEvent } from '@/types'
@@ -84,23 +85,31 @@ function GettingStartedSection() {
         className="absolute inset-0 pointer-events-none -z-10"
         style={{
           background:
-            'radial-gradient(ellipse 65% 50% at 50% 50%, oklch(58% 0.26 285 / 0.12) 0%, transparent 70%)',
+            'radial-gradient(ellipse 65% 50% at 50% 50%, oklch(58% 0.26 285 / 0.16) 0%, oklch(72% 0.16 200 / 0.08) 50%, transparent 70%)',
         }}
       />
       <div aria-hidden="true" className="absolute inset-0 grid-pattern opacity-20 pointer-events-none -z-10" />
 
-      <div className="p-8 sm:p-14 rounded-3xl glass-elevated border border-[oklch(100%_0_0_/_0.12)] shadow-[0_24px_64px_oklch(0%_0_0_/_0.6)] text-center relative overflow-hidden">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-[var(--color-brand-violet)] bg-[var(--color-surface-2)] border border-[oklch(58%_0.26_285_/_0.25)] mb-4">
-          <Sparkles size={12} />
-          100% Free Forever for Colleges
-        </span>
+      <div className="p-8 sm:p-14 rounded-3xl glass-elevated border border-[oklch(100%_0_0_/_0.15)] shadow-[0_24px_64px_oklch(0%_0_0_/_0.6)] text-center relative overflow-hidden group">
+        {/* Controlled light sweep beam across top border */}
+        <div
+          aria-hidden="true"
+          className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-brand-cyan)] to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+        />
 
-        <h2
-          id="cta-heading"
-          className="font-display font-extrabold text-3xl sm:text-5xl md:text-6xl text-[var(--color-text-primary)] leading-tight mb-5"
-        >
-          Ready to elevate your <span className="gradient-text">campus events?</span>
-        </h2>
+        <div className="mb-4">
+          <KineticHeading
+            as="h2"
+            id="cta-heading"
+            badgeText="100% Free Forever for Colleges"
+            badgeIcon={<Sparkles size={12} />}
+            className="text-3xl sm:text-5xl md:text-6xl text-center"
+            lines={[
+              { text: 'Ready to elevate your' },
+              { text: 'campus events?', highlight: 'Start in seconds.', gradientClass: 'gradient-text' },
+            ]}
+          />
+        </div>
 
         <p className="text-[var(--color-text-secondary)] text-sm sm:text-base md:text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
           Whether you are a student looking for the next hackathon or a club lead managing thousands of attendees, FestFlow is free, fast, and built for you.
@@ -126,7 +135,7 @@ function GettingStartedSection() {
               size="lg"
               leftIcon={<GraduationCap size={16} />}
               rightIcon={<ChevronRight size={16} />}
-              className="w-full justify-center"
+              className="w-full justify-center hover:bg-[var(--color-surface-3)]"
             >
               Join as Student
             </Button>
@@ -162,38 +171,50 @@ export default function LandingPage() {
       {/* 2. Supported Student Communities Ticker */}
       <CommunityTicker />
 
-      {/* 3. How It Works (Student & Club workflows) */}
+      {/* 3. Signature Horizontal Event Journey (Driven by Vertical Scroll) */}
+      <HorizontalEventJourney />
+
+      {/* 4. How It Works (Student & Club workflows) */}
       <WorkflowSection />
 
-      {/* 4. Genuine Platform Capabilities */}
+      {/* 5. Genuine Platform Capabilities */}
       <PlatformCapabilitiesSection />
 
-      {/* 5. Event Categories Showcase */}
+      {/* 6. Event Categories Showcase */}
       <CategoryShowcaseSection />
 
-      {/* 6. Live Published Campus Events Preview */}
+      {/* 7. Live Published Campus Events Preview */}
       <section
         id="events"
         aria-labelledby="featured-events-heading"
         className="relative py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
       >
-        <SectionHeader
-          badge="Live Campus Calendar"
-          badgeVariant="purple"
-          badgeIcon={<Calendar size={13} />}
-          title="Upcoming campus"
-          gradientWord="events."
-          subtitle="Explore events hosted by university clubs and student organizations."
-          action={
-            <Link
-              to="/discover"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[var(--color-brand-violet)] hover:underline"
-            >
-              <span>Explore all events</span>
-              <ChevronRight size={15} />
-            </Link>
-          }
-        />
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <KineticHeading
+              as="h2"
+              id="featured-events-heading"
+              badgeText="Live Campus Calendar"
+              badgeIcon={<Calendar size={13} />}
+              className="text-2xl sm:text-4xl lg:text-5xl"
+              lines={[
+                { text: 'Upcoming campus' },
+                { text: 'events.', highlight: 'Register Now.', gradientClass: 'gradient-text' },
+              ]}
+            />
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-2 leading-relaxed max-w-xl">
+              Explore events hosted by university clubs and student organizations.
+            </p>
+          </div>
+
+          <Link
+            to="/discover"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[var(--color-brand-violet)] hover:underline"
+          >
+            <span>Explore all events</span>
+            <ChevronRight size={15} />
+          </Link>
+        </div>
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -237,8 +258,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 7. Getting Started Dual CTA */}
+      {/* 8. Getting Started Dual CTA */}
       <GettingStartedSection />
     </PageShell>
   )
 }
+

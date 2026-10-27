@@ -679,11 +679,12 @@ export function EventRegistrationModal({
                     if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: '' })
                   }}
                   placeholder="e.g. Priya Sharma"
-                  className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border ${
+                  autoComplete="name"
+                  className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
                     fieldErrors.fullName
                       ? 'border-rose-500 ring-1 ring-rose-500'
                       : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                 />
                 {fieldErrors.fullName && (
                   <span className="text-[10px] text-rose-400 block">{fieldErrors.fullName}</span>
@@ -704,7 +705,7 @@ export function EventRegistrationModal({
                   type="email"
                   value={user.email || ''}
                   disabled
-                  className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-3)]/40 border border-[var(--color-surface-3)] text-xs text-[var(--color-text-muted)] cursor-not-allowed select-none min-h-[40px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-3)]/40 border border-[var(--color-surface-3)] text-xs text-[var(--color-text-muted)] cursor-not-allowed select-none min-h-[44px]"
                 />
               </div>
 
@@ -726,11 +727,11 @@ export function EventRegistrationModal({
                     if (fieldErrors.collegeName) setFieldErrors({ ...fieldErrors, collegeName: '' })
                   }}
                   placeholder="e.g. Indian Institute of Technology Bombay"
-                  className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border ${
+                  className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
                     fieldErrors.collegeName
                       ? 'border-rose-500 ring-1 ring-rose-500'
                       : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                 />
                 {fieldErrors.collegeName && (
                   <span className="text-[10px] text-rose-400 block">{fieldErrors.collegeName}</span>
@@ -751,17 +752,19 @@ export function EventRegistrationModal({
                   </div>
                   <input
                     type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     value={phone}
                     onChange={(e) => {
                       setPhone(e.target.value)
                       if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' })
                     }}
                     placeholder="e.g. +91 9876543210"
-                    className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border ${
+                    className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
                       fieldErrors.phone
                         ? 'border-rose-500 ring-1 ring-rose-500'
                         : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                    } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                    } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                   />
                   {fieldErrors.phone && (
                     <span className="text-[10px] text-rose-400 block">{fieldErrors.phone}</span>
@@ -779,18 +782,19 @@ export function EventRegistrationModal({
                     )}
                   </div>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={gradYear}
                     onChange={(e) => {
-                      setGradYear(e.target.value)
+                      setGradYear(e.target.value.replace(/\D/g, '').slice(0, 4))
                       if (fieldErrors.gradYear) setFieldErrors({ ...fieldErrors, gradYear: '' })
                     }}
                     placeholder="e.g. 2026"
-                    className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border ${
+                    className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
                       fieldErrors.gradYear
                         ? 'border-rose-500 ring-1 ring-rose-500'
                         : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                    } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                    } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                   />
                   {fieldErrors.gradYear && (
                     <span className="text-[10px] text-rose-400 block">{fieldErrors.gradYear}</span>
@@ -810,17 +814,18 @@ export function EventRegistrationModal({
                 </div>
                 <input
                   type="text"
+                  autoCapitalize="characters"
                   value={studentIdCard}
                   onChange={(e) => {
                     setStudentIdCard(e.target.value)
                     if (fieldErrors.studentIdCard) setFieldErrors({ ...fieldErrors, studentIdCard: '' })
                   }}
                   placeholder="e.g. 2022CS0148"
-                  className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border ${
+                  className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
                     fieldErrors.studentIdCard
                       ? 'border-rose-500 ring-1 ring-rose-500'
                       : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
                 />
                 {fieldErrors.studentIdCard && (
                   <span className="text-[10px] text-rose-400 block">{fieldErrors.studentIdCard}</span>

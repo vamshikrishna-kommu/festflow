@@ -47,7 +47,11 @@ export function EventCard({ event, animated = false }: EventCardProps) {
       className="block group focus:outline-none h-full"
       aria-label={`View ${event.title} by ${event.clubName}`}
     >
-      <article className="relative flex flex-col h-full rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.07)] bg-[var(--color-surface-1)] overflow-hidden transition-all duration-300 group-hover:border-[oklch(100%_0_0_/_0.16)] group-hover:shadow-[0_16px_48px_oklch(0%_0_0_/_0.55)] group-hover:-translate-y-1">
+      <motion.article
+        whileHover={reduced ? undefined : { y: -5, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
+        whileTap={reduced ? undefined : { scale: 0.985 }}
+        className="relative flex flex-col h-full rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.07)] bg-[var(--color-surface-1)] overflow-hidden transition-all duration-300 group-hover:border-[oklch(100%_0_0_/_0.18)] group-hover:shadow-[0_16px_48px_oklch(0%_0_0_/_0.55)] cursor-pointer"
+      >
         {/* Proportioned Cover Image Banner (16:10 aspect ratio) */}
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-[var(--color-surface-2)] shrink-0">
           {!imgError && event.coverImage ? (
@@ -198,7 +202,7 @@ export function EventCard({ event, animated = false }: EventCardProps) {
             )}
           </div>
         </div>
-      </article>
+      </motion.article>
     </Link>
   )
 

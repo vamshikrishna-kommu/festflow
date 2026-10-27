@@ -31,9 +31,11 @@ import type {
   RegistrationWithCheckIn,
 } from '@/types'
 
+import { ResourceOwnerGuard } from '@/components/auth/ResourceOwnerGuard'
+
 export default function EventReportsPage() {
   const { id } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [registrations, setRegistrations] = useState<RegistrationWithStudent[]>([])
@@ -41,6 +43,7 @@ export default function EventReportsPage() {
   const [attendeesWithCheckIn, setAttendeesWithCheckIn] = useState<RegistrationWithCheckIn[]>([])
 
   const [loading, setLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
   // Reminder Modal
@@ -64,15 +67,23 @@ export default function EventReportsPage() {
     if (!silent) setLoading(false)
     else setRefreshing(false)
 
-    if (eventRes.event) setEvent(eventRes.event)
-    if (regRes.registrations) setRegistrations(regRes.registrations)
-    if (payRes.submissions) setPayments(payRes.submissions)
-    if (checkInRes.registrations) setAttendeesWithCheckIn(checkInRes.registrations)
+    if (eventRes.event) {
+      const authorized = (user && eventRes.event.club_id === user.id) || role === 'platform_admin'
+      setIsAuthorized(authorized)
+      if (authorized) {
+        setEvent(eventRes.event)
+        if (regRes.registrations) setRegistrations(regRes.registrations)
+        if (payRes.submissions) setPayments(payRes.submissions)
+        if (checkInRes.registrations) setAttendeesWithCheckIn(checkInRes.registrations)
+      }
+    } else {
+      setIsAuthorized(false)
+    }
   }
 
   useEffect(() => {
     loadData()
-  }, [id, user])
+  }, [id, user, role])
 
   // Calculated Metrics
   const totalRegistrations = registrations.length
@@ -115,6 +126,35 @@ export default function EventReportsPage() {
         year: 'numeric',
       })
     : ''
+
+  if (loading) {
+    return (
+      <PageShell>
+        <div className="py-24 flex flex-col items-center justify-center text-center">
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
+          <span className="text-xs text-[var(--color-text-muted)] font-medium">
+            Generating event report & analytics…
+          </span>
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (isAuthorized === false || !event) {
+    return (
+      <PageShell>
+        <ResourceOwnerGuard
+          isAuthorized={false}
+          denialTitle="Event Authorization Required"
+          denialMessage="Only the club organizing this event or authorized platform administrators can access financial and attendee analytics."
+          fallbackUrl="/club/events"
+          fallbackLabel="Back to My Events"
+        >
+          <div />
+        </ResourceOwnerGuard>
+      </PageShell>
+    )
+  }
 
   return (
     <PageShell>

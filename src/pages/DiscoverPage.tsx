@@ -182,40 +182,42 @@ export default function DiscoverPage() {
               </div>
 
               {/* Sub-Filters: Participation & Pricing */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0 py-0.5">
                 {/* Participation filter */}
                 <div className="flex items-center rounded-xl bg-[var(--color-surface-2)] p-1 border border-[oklch(100%_0_0_/_0.06)] text-xs">
                   {(['all', 'individual', 'team'] as const).map((mode) => (
-                    <button
+                    <motion.button
                       key={mode}
                       type="button"
+                      whileTap={{ scale: 0.94 }}
                       onClick={() => setParticipationFilter(mode)}
-                      className={`px-2.5 py-1 rounded-lg font-medium transition-all capitalize ${
+                      className={`px-2.5 py-1 rounded-lg font-medium transition-all capitalize cursor-pointer ${
                         participationFilter === mode
                           ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow-sm'
                           : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                       }`}
                     >
                       {mode === 'all' ? 'All Formats' : mode === 'team' ? 'Team' : 'Solo'}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
 
                 {/* Pricing filter */}
                 <div className="flex items-center rounded-xl bg-[var(--color-surface-2)] p-1 border border-[oklch(100%_0_0_/_0.06)] text-xs">
                   {(['all', 'free', 'paid'] as const).map((price) => (
-                    <button
+                    <motion.button
                       key={price}
                       type="button"
+                      whileTap={{ scale: 0.94 }}
                       onClick={() => setPricingFilter(price)}
-                      className={`px-2.5 py-1 rounded-lg font-medium transition-all capitalize ${
+                      className={`px-2.5 py-1 rounded-lg font-medium transition-all capitalize cursor-pointer ${
                         pricingFilter === price
                           ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow-sm'
                           : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                       }`}
                     >
                       {price === 'all' ? 'Any Price' : price === 'free' ? 'Free Pass' : 'Ticketed'}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -230,19 +232,21 @@ export default function DiscoverPage() {
               {EVENT_CATEGORIES.map(({ value, label }) => {
                 const isSelected = category === value
                 return (
-                  <button
+                  <motion.button
                     key={value}
                     id={`cat-filter-${value}`}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setCategory(value)}
                     aria-pressed={isSelected}
-                    className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-xl text-xs font-medium border transition-all duration-200 capitalize flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-xl text-xs font-medium border transition-all duration-200 capitalize flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-black border-transparent font-bold shadow-md'
+                        ? 'bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-black border-transparent font-bold shadow-md shadow-[var(--color-brand-cyan)]/20'
                         : 'bg-[var(--color-surface-1)] border-[oklch(100%_0_0_/_0.08)] text-[var(--color-text-secondary)] hover:border-[var(--color-brand-cyan)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
                     <span>{label}</span>
-                  </button>
+                  </motion.button>
                 )
               })}
             </div>

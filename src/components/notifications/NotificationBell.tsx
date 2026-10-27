@@ -87,19 +87,21 @@ export function NotificationBell() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
+      <motion.button
         type="button"
+        whileTap={{ scale: 0.92 }}
+        whileHover={{ scale: 1.05 }}
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
+        className="relative p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer"
         aria-label="Notifications"
       >
-        <Bell size={18} />
+        <Bell size={18} className={unreadCount > 0 ? 'text-[var(--color-brand-cyan)]' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-gradient-to-r from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] text-[10px] font-bold text-white flex items-center justify-center animate-pulse">
+          <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-gradient-to-r from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] text-[10px] font-bold text-white flex items-center justify-center animate-pulse shadow-[0_0_8px_var(--color-brand-pink)]">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
-      </button>
+      </motion.button>
 
       <AnimatePresence>
         {open && (

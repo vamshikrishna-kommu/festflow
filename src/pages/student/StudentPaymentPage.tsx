@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router'
 import { motion } from 'motion/react'
 import { QRCodeSVG } from 'qrcode.react'
@@ -16,6 +16,9 @@ import {
   Smartphone,
   Mail,
   Info,
+  Scan,
+  Sparkles,
+  RefreshCw,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Card, Badge, PageHeader, Alert } from '@/components/ui'
@@ -28,6 +31,7 @@ import {
   submitPaymentProof,
   uploadPaymentScreenshot,
 } from '@/lib/payments'
+import { extractUtrFromImageFile } from '@/lib/ocrUtrExtractor'
 import { fadeIn } from '@/lib/animations'
 import type {
   RegistrationWithEvent,
@@ -35,15 +39,18 @@ import type {
   PaymentSubmission,
 } from '@/types'
 
+import { ResourceOwnerGuard } from '@/components/auth/ResourceOwnerGuard'
+
 export default function StudentPaymentPage() {
   const { registrationId } = useParams<{ registrationId: string }>()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const [registration, setRegistration] = useState<RegistrationWithEvent | null>(null)
   const [clubSettings, setClubSettings] = useState<ClubPaymentSettings | null>(null)
   const [submission, setSubmission] = useState<PaymentSubmission | null>(null)
 
   const [loading, setLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [copiedUpi, setCopiedUpi] = useState(false)
 
   // Direct UPI Form states
@@ -54,13 +61,35 @@ export default function StudentPaymentPage() {
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  // OCR extraction states
+  const [isExtractingOcr, setIsExtractingOcr] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState({ percent: 0, text: '' })
+  const [ocrStatusMessage, setOcrStatusMessage] = useState<{
+    type: 'success' | 'warning' | 'info' | 'error'
+    text: string
+  } | null>(null)
+  const [detectedUtrCandidate, setDetectedUtrCandidate] = useState<string | null>(null)
+  const [fieldError, setFieldError] = useState<string | null>(null)
+
+  const hasUserEditedUtr = useRef(false)
+  const initialLoadDone = useRef(false)
+
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
 
-  const loadData = async () => {
+  const loadData = async (isBackground = false) => {
     if (!registrationId) return
-    setLoading(true)
+    if (!isBackground) {
+      setLoading(true)
+    }
     const regRes = await getRegistrationById(registrationId)
     if (regRes.registration) {
+      const authorized = (user && regRes.registration.student_id === user.id) || role === 'platform_admin'
+      setIsAuthorized(authorized)
+      if (!authorized) {
+        if (!isBackground) setLoading(false)
+        return
+      }
+
       setRegistration(regRes.registration)
       const clubId = regRes.registration.event?.club_id || ''
       const [settings, sub] = await Promise.all([
@@ -69,19 +98,24 @@ export default function StudentPaymentPage() {
       ])
       setClubSettings(settings)
       setSubmission(sub)
-      if (sub?.transaction_reference) {
+      if (sub?.transaction_reference && !hasUserEditedUtr.current) {
         setUtrReference(sub.transaction_reference)
       }
-      if (sub?.screenshot_url) {
+      if (sub?.screenshot_url && !screenshotFile) {
         setScreenshotPreview(sub.screenshot_url)
       }
+    } else {
+      setIsAuthorized(false)
     }
-    setLoading(false)
+    if (!isBackground) {
+      setLoading(false)
+      initialLoadDone.current = true
+    }
   }
 
   useEffect(() => {
-    loadData()
-  }, [registrationId, user])
+    loadData(initialLoadDone.current)
+  }, [registrationId, user?.id, role])
 
   const handleCopyUpi = () => {
     const upi = clubSettings?.upi_id
@@ -89,6 +123,62 @@ export default function StudentPaymentPage() {
     navigator.clipboard.writeText(upi)
     setCopiedUpi(true)
     setTimeout(() => setCopiedUpi(false), 2000)
+  }
+
+  /**
+   * Executes OCR on the selected screenshot to identify candidate UTR/RRN numbers.
+   */
+  const runOcrExtraction = async (file: File) => {
+    setIsExtractingOcr(true)
+    setOcrProgress({ percent: 5, text: 'Preparing image…' })
+    setOcrStatusMessage(null)
+    setDetectedUtrCandidate(null)
+
+    try {
+      const result = await extractUtrFromImageFile(file, (progress, statusText) => {
+        setOcrProgress({
+          percent: Math.round(progress * 100),
+          text: statusText,
+        })
+      })
+
+      if (result.success && result.reference) {
+        setDetectedUtrCandidate(result.reference)
+        // If user hasn't typed anything yet or field is empty, populate automatically
+        if (!utrReference.trim()) {
+          setUtrReference(result.reference)
+          hasUserEditedUtr.current = true
+          setFieldError(null)
+          setOcrStatusMessage({
+            type: 'success',
+            text: 'Reference detected — please verify it.',
+          })
+        } else if (utrReference.trim() === result.reference) {
+          setOcrStatusMessage({
+            type: 'success',
+            text: 'Reference verified from screenshot.',
+          })
+        } else {
+          // Preserve student's manually entered value, never silently overwrite!
+          setOcrStatusMessage({
+            type: 'info',
+            text: `Detected UTR ${result.reference} from screenshot. Your current manual entry is preserved.`,
+          })
+        }
+      } else {
+        setOcrStatusMessage({
+          type: 'warning',
+          text: 'Could not confidently detect the UTR. Please enter it manually.',
+        })
+      }
+    } catch {
+      setOcrStatusMessage({
+        type: 'warning',
+        text: 'Could not confidently detect the UTR. Please enter it manually.',
+      })
+    } finally {
+      setIsExtractingOcr(false)
+    }
   }
 
   const handleScreenshotSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,6 +201,9 @@ export default function StudentPaymentPage() {
     const reader = new FileReader()
     reader.onload = () => setScreenshotPreview(reader.result as string)
     reader.readAsDataURL(file)
+
+    // Run OCR automatic extraction
+    runOcrExtraction(file)
   }
 
   // ── UPI UTR Submission ──────────────────────────────────────────────────────
@@ -120,15 +213,13 @@ export default function StudentPaymentPage() {
 
     const cleanRef = utrReference.trim()
     if (!cleanRef || cleanRef.length < 4) {
-      setNotice({
-        message: 'Please provide a valid UPI Transaction Reference / UTR (at least 4 characters).',
-        isError: true,
-      })
+      setFieldError('Please provide a valid UPI Transaction Reference / UTR (at least 4 characters).')
       return
     }
 
     setSubmitting(true)
     setNotice(null)
+    setFieldError(null)
 
     let uploadedScreenshotUrl = screenshotPreview
     if (screenshotFile) {
@@ -151,7 +242,7 @@ export default function StudentPaymentPage() {
 
     if (res.success) {
       setNotice({ message: res.message })
-      await loadData()
+      await loadData(true)
     } else {
       setNotice({ message: res.message, isError: true })
     }
@@ -180,6 +271,16 @@ export default function StudentPaymentPage() {
             <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin" />
             <span className="text-xs text-[var(--color-text-muted)]">Loading event payment details…</span>
           </div>
+        ) : isAuthorized === false ? (
+          <ResourceOwnerGuard
+            isAuthorized={false}
+            denialTitle="Payment Access Restricted"
+            denialMessage="You do not have permission to view or submit payments for this registration pass. Passes are strictly tied to the registering student."
+            fallbackUrl="/student/dashboard"
+            fallbackLabel="Back to My Passes"
+          >
+            <div />
+          </ResourceOwnerGuard>
         ) : !registration || !event ? (
           <Card className="p-8 text-center max-w-lg mx-auto">
             <AlertCircle size={40} className="text-rose-400 mx-auto mb-3" />
@@ -515,73 +616,202 @@ export default function StudentPaymentPage() {
                       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                         {/* Transaction Reference / UTR */}
                         <div>
-                          <label
-                            htmlFor="utr"
-                            className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
-                          >
-                            UPI Transaction Reference (UTR / RRN) <span className="text-rose-400">*</span>
-                          </label>
-                          <input
-                            id="utr"
-                            type="text"
-                            required
-                            disabled={submission?.status === 'approved' || registration.status === 'confirmed'}
-                            placeholder="e.g. 428910485923 or 210839401928"
-                            value={utrReference}
-                            onChange={(e) => setUtrReference(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] font-mono transition-colors disabled:opacity-50"
-                          />
+                          <div className="flex items-center justify-between mb-2">
+                            <label
+                              htmlFor="utr"
+                              className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]"
+                            >
+                              UPI Transaction Reference (UTR / RRN) <span className="text-rose-400">*</span>
+                            </label>
+                            {detectedUtrCandidate && utrReference.trim() !== detectedUtrCandidate && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUtrReference(detectedUtrCandidate)
+                                  hasUserEditedUtr.current = true
+                                  setFieldError(null)
+                                  setOcrStatusMessage({
+                                    type: 'success',
+                                    text: 'Applied detected UTR — please verify it.',
+                                  })
+                                }}
+                                className="text-[11px] font-semibold text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
+                              >
+                                <Sparkles size={12} /> Use detected: <span className="font-mono">{detectedUtrCandidate}</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="relative flex items-center">
+                            <input
+                              id="utr"
+                              name="transactionReference"
+                              type="text"
+                              required
+                              disabled={submission?.status === 'approved' || registration?.status === 'confirmed'}
+                              autoComplete="off"
+                              spellCheck={false}
+                              placeholder="e.g. 428910485923 or 210839401928"
+                              value={utrReference}
+                              onChange={(e) => {
+                                hasUserEditedUtr.current = true
+                                setUtrReference(e.target.value)
+                                if (fieldError) setFieldError(null)
+                              }}
+                              className={`w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm sm:text-base focus:outline-none font-mono transition-colors disabled:opacity-50 ${
+                                fieldError
+                                  ? 'border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-500'
+                                  : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] focus:ring-1 focus:ring-[var(--color-brand-purple)]'
+                              }`}
+                            />
+                            {utrReference && !(submission?.status === 'approved' || registration?.status === 'confirmed') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  hasUserEditedUtr.current = true
+                                  setUtrReference('')
+                                  setFieldError(null)
+                                }}
+                                aria-label="Clear UTR input"
+                                className="absolute right-3 text-xs text-[var(--color-text-muted)] hover:text-white p-1 cursor-pointer"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+
+                          {fieldError && (
+                            <p className="text-xs text-rose-400 mt-1.5 flex items-center gap-1" role="alert">
+                              <AlertCircle size={13} className="shrink-0" />
+                              <span>{fieldError}</span>
+                            </p>
+                          )}
+
                           <span className="text-[11px] text-[var(--color-text-muted)] mt-1.5 block">
-                            Look for the 12-digit UPI Reference Number / UTR in your Google Pay, PhonePe, Paytm, or bank statement.
+                            Look for the 12-digit UPI Reference Number / UTR in your Google Pay, PhonePe, Paytm, BHIM, or bank statement.
                           </span>
                         </div>
 
-                        {/* Screenshot Upload */}
+                        {/* Screenshot Upload with OCR Auto-Extraction */}
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2">
-                            Payment Screenshot / Receipt (Optional)
-                          </label>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                              Payment Screenshot / Receipt (Optional)
+                            </label>
+                            <span className="text-[11px] text-[var(--color-brand-cyan)] flex items-center gap-1">
+                              <Scan size={12} /> Auto-detects UTR
+                            </span>
+                          </div>
 
                           {screenshotPreview ? (
-                            <div className="relative group p-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <img
-                                  src={screenshotPreview}
-                                  alt="Proof preview"
-                                  className="w-12 h-12 object-cover rounded-lg border border-[var(--color-surface-3)]"
-                                />
-                                <span className="text-xs text-[var(--color-text-primary)] font-medium truncate max-w-[200px]">
-                                  {screenshotFile ? screenshotFile.name : 'Uploaded Payment Receipt'}
-                                </span>
+                            <div className="flex flex-col gap-2">
+                              <div className="relative group p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-between">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <img
+                                    src={screenshotPreview}
+                                    alt="Proof preview"
+                                    className="w-14 h-14 object-cover rounded-lg border border-[var(--color-surface-3)] shrink-0"
+                                  />
+                                  <div className="min-w-0">
+                                    <span className="text-xs text-[var(--color-text-primary)] font-medium truncate block max-w-[180px] sm:max-w-xs">
+                                      {screenshotFile ? screenshotFile.name : 'Uploaded Payment Receipt'}
+                                    </span>
+                                    {screenshotFile && (
+                                      <span className="text-[10px] text-[var(--color-text-muted)]">
+                                        {(screenshotFile.size / 1024).toFixed(0)} KB • Ready for verification
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {submission?.status !== 'approved' && registration?.status !== 'confirmed' && (
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {screenshotFile && (
+                                      <button
+                                        type="button"
+                                        disabled={isExtractingOcr}
+                                        onClick={() => runOcrExtraction(screenshotFile)}
+                                        title="Re-run text scan on this screenshot"
+                                        className="text-xs text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 px-2.5 py-1 rounded bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-4)] transition-colors cursor-pointer disabled:opacity-50"
+                                      >
+                                        <RefreshCw size={12} className={isExtractingOcr ? 'animate-spin' : ''} />
+                                        <span className="hidden sm:inline">Try extracting again</span>
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      disabled={isExtractingOcr || submitting}
+                                      onClick={() => {
+                                        setScreenshotFile(null)
+                                        setScreenshotPreview(null)
+                                        setOcrStatusMessage(null)
+                                        setDetectedUtrCandidate(null)
+                                      }}
+                                      className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                              {submission?.status !== 'approved' && registration.status !== 'confirmed' && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setScreenshotFile(null)
-                                    setScreenshotPreview(null)
-                                  }}
-                                  className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1"
+
+                              {/* OCR In-Progress Indicator */}
+                              {isExtractingOcr && (
+                                <div className="p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-brand-cyan)]/30 text-xs text-[var(--color-text-secondary)] space-y-2">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="flex items-center gap-2 text-[var(--color-brand-cyan)] font-semibold">
+                                      <Scan size={14} className="animate-spin" /> {ocrProgress.text || 'Scanning receipt for UTR…'}
+                                    </span>
+                                    <span className="font-mono text-[var(--color-text-muted)]">{ocrProgress.percent}%</span>
+                                  </div>
+                                  <div className="w-full bg-[var(--color-surface-3)] h-1.5 rounded-full overflow-hidden">
+                                    <div
+                                      className="bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-purple)] h-full transition-all duration-300 rounded-full"
+                                      style={{ width: `${Math.max(8, ocrProgress.percent)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* OCR Status Banner */}
+                              {!isExtractingOcr && ocrStatusMessage && (
+                                <div
+                                  className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                                    ocrStatusMessage.type === 'success'
+                                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                                      : ocrStatusMessage.type === 'info'
+                                      ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                                      : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                                  }`}
                                 >
-                                  Remove
-                                </button>
+                                  {ocrStatusMessage.type === 'success' ? (
+                                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                                  ) : ocrStatusMessage.type === 'info' ? (
+                                    <Sparkles size={16} className="text-cyan-400 shrink-0 mt-0.5" />
+                                  ) : (
+                                    <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                                  )}
+                                  <div className="flex-1 leading-relaxed">
+                                    <span>{ocrStatusMessage.text}</span>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           ) : (
                             <label className="border-2 border-dashed border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)]/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-[var(--color-surface-1)]">
                               <input
                                 type="file"
-                                accept="image/png,image/jpeg,image/webp"
+                                accept="image/png,image/jpeg,image/webp,image/*"
                                 className="hidden"
                                 onChange={handleScreenshotSelect}
-                                disabled={submission?.status === 'approved' || registration.status === 'confirmed'}
+                                disabled={submission?.status === 'approved' || registration?.status === 'confirmed'}
                               />
                               <Upload size={24} className="text-[var(--color-text-muted)] mb-2" />
                               <span className="text-xs text-[var(--color-text-primary)] font-medium">
                                 Upload transaction receipt screenshot
                               </span>
                               <span className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                                PNG, JPG or WEBP up to 10MB
+                                PNG, JPG or WEBP up to 10MB • Auto-extracts 12-digit UTR
                               </span>
                             </label>
                           )}
@@ -598,7 +828,7 @@ export default function StudentPaymentPage() {
                           <input
                             id="notes"
                             type="text"
-                            disabled={submission?.status === 'approved' || registration.status === 'confirmed'}
+                            disabled={submission?.status === 'approved' || registration?.status === 'confirmed'}
                             placeholder="e.g. Transferred from HDFC account ending in 4102"
                             value={studentNotes}
                             onChange={(e) => setStudentNotes(e.target.value)}
@@ -613,6 +843,7 @@ export default function StudentPaymentPage() {
                             variant="primary"
                             size="lg"
                             className="w-full"
+                            disabled={isExtractingOcr || submitting || uploadingScreenshot}
                             isLoading={submitting || uploadingScreenshot}
                             leftIcon={<ShieldCheck size={18} />}
                           >
@@ -620,7 +851,7 @@ export default function StudentPaymentPage() {
                               ? 'Submitting Proof…'
                               : submission?.status === 'pending_review'
                               ? 'Update Payment Reference'
-                              : submission?.status === 'rejected' || registration.status === 'rejected'
+                              : submission?.status === 'rejected' || registration?.status === 'rejected'
                               ? 'Resubmit Corrected Reference'
                               : 'Submit UPI Reference for Review'}
                           </Button>

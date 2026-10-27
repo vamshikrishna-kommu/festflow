@@ -8,18 +8,21 @@ import { AuthCard } from '@/components/auth/AuthCard'
 import { PasswordInput } from '@/components/auth/PasswordInput'
 import { useAuth } from '@/context/AuthContext'
 
+import { getSafeReturnUrl } from '@/lib/safeNavigation'
+
 export default function ClubLoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, role, signIn, resendVerification, isLoading } = useAuth()
 
   useEffect(() => {
-    if (user && role === 'club_member') {
-      const fromPath = (location.state as { from?: string })?.from
-      if (fromPath && fromPath !== '/club/login' && fromPath !== '/student/login') {
-        navigate(fromPath, { replace: true })
-      } else {
-        navigate('/club/dashboard', { replace: true })
+    if (user && role) {
+      if (role === 'club_member' || role === 'platform_admin') {
+        const fromPath = (location.state as { from?: string })?.from
+        const target = getSafeReturnUrl(fromPath, role, '/club/dashboard')
+        navigate(target, { replace: true })
+      } else if (role === 'student') {
+        navigate('/student/dashboard', { replace: true })
       }
     }
   }, [user, role, location.state, navigate])
@@ -56,14 +59,10 @@ export default function ClubLoginPage() {
     if (res.error) {
       setServerError(res.error)
     } else {
-      // Check target destination
       const fromPath = (location.state as { from?: string })?.from
-      if (fromPath && fromPath !== '/club/login' && fromPath !== '/student/login') {
-        navigate(fromPath, { replace: true })
-      } else {
-        // Direct to club dashboard
-        navigate('/club/dashboard', { replace: true })
-      }
+      const userRole = res.role || role || 'club_member'
+      const target = getSafeReturnUrl(fromPath, userRole, '/club/dashboard')
+      navigate(target, { replace: true })
     }
   }
 

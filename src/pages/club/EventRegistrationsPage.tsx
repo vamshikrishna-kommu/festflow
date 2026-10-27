@@ -21,16 +21,18 @@ import {
   reviewRegistrationApplication,
 } from '@/lib/registrations'
 import { useAuth } from '@/context/AuthContext'
+import { ResourceOwnerGuard } from '@/components/auth/ResourceOwnerGuard'
 import { fadeIn, staggerContainer } from '@/lib/animations'
 import type { EventRecord, RegistrationWithStudent, RegistrationStatus } from '@/types'
 
 export default function EventRegistrationsPage() {
   const { id } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [registrations, setRegistrations] = useState<RegistrationWithStudent[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus>('all')
 
@@ -54,13 +56,21 @@ export default function EventRegistrationsPage() {
     ])
     setLoading(false)
 
-    if (eventRes.event) setEvent(eventRes.event)
-    if (regsRes.registrations) setRegistrations(regsRes.registrations)
+    if (eventRes.event) {
+      const authorized = (user && eventRes.event.club_id === user.id) || role === 'platform_admin'
+      setIsAuthorized(authorized)
+      if (authorized) {
+        setEvent(eventRes.event)
+        if (regsRes.registrations) setRegistrations(regsRes.registrations)
+      }
+    } else {
+      setIsAuthorized(false)
+    }
   }
 
   useEffect(() => {
     loadData()
-  }, [id, user])
+  }, [id, user, role])
 
   // Count metrics
   const confirmedCount = registrations.filter((r) => r.status === 'confirmed').length
@@ -154,20 +164,18 @@ export default function EventRegistrationsPage() {
     )
   }
 
-  if (!event) {
+  if (isAuthorized === false || !event) {
     return (
       <PageShell>
-        <div className="py-24 px-4 flex flex-col items-center justify-center text-center">
-          <AlertTriangle size={36} className="text-rose-400 mb-3" />
-          <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)] mb-2">
-            Event Not Found
-          </h2>
-          <Link to="/club/events">
-            <Button variant="primary" size="md">
-              Return to Events
-            </Button>
-          </Link>
-        </div>
+        <ResourceOwnerGuard
+          isAuthorized={false}
+          denialTitle="Event Authorization Required"
+          denialMessage="Only the club organizing this event or authorized platform administrators can inspect registrations and attendee details."
+          fallbackUrl="/club/events"
+          fallbackLabel="Back to My Events"
+        >
+          <div />
+        </ResourceOwnerGuard>
       </PageShell>
     )
   }

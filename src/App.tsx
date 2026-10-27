@@ -279,6 +279,26 @@ const router = createBrowserRouter([
       </Suspense>
     ),
   },
+  {
+    path: '/payment/:registrationId',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute allowedRoles={['student', 'platform_admin']}>
+          <StudentPaymentPage />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/dashboard',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute allowedRoles={['student', 'platform_admin']}>
+          <StudentDashboardPage />
+        </ProtectedRoute>
+      </Suspense>
+    ),
+  },
 
   // Ticket alias route: supports direct links to /tickets/:id (from emails or QR)
   {
@@ -298,6 +318,18 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<PageLoader />}>
         <AuthCallbackPage />
+      </Suspense>
+    ),
+  },
+
+  // Admin-only route: platform administration
+  {
+    path: '/admin',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ProtectedRoute allowedRoles={['platform_admin']}>
+          <ClubDashboardPage />
+        </ProtectedRoute>
       </Suspense>
     ),
   },

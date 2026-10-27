@@ -281,6 +281,7 @@ function HeroScene3DInner() {
     let resizeObserver: ResizeObserver | null = null
     let intersectionObserver: IntersectionObserver | null = null
     let handleMouseMove: ((e: MouseEvent) => void) | null = null
+    let handleScroll: (() => void) | null = null
 
     try {
       // ─── 1. WebGL Verification ─────────────────────────────────────────────
@@ -499,9 +500,11 @@ function HeroScene3DInner() {
       const particlePoints = new THREE.Points(particleGeo, particleMat)
       scene.add(particlePoints)
 
-      // ─── 9. Interactive Mouse Parallax ────────────────────────────────────
+      // ─── 9. Interactive Mouse Parallax & Scroll Reactivity ───────────────
       const targetMouse = { x: 0, y: 0 }
       const currentMouse = { x: 0, y: 0 }
+      let targetScrollY = 0
+      let currentScrollY = 0
 
       handleMouseMove = (e: MouseEvent) => {
         const nx = (e.clientX / window.innerWidth) * 2 - 1
@@ -510,8 +513,13 @@ function HeroScene3DInner() {
         targetMouse.y = ny * 0.35
       }
 
+      handleScroll = () => {
+        targetScrollY = window.scrollY
+      }
+
       if (!reducedMotion) {
         window.addEventListener('mousemove', handleMouseMove, { passive: true })
+        window.addEventListener('scroll', handleScroll, { passive: true })
       }
 
       // ─── 10. Viewport Intersection Pausing ────────────────────────────────
@@ -547,33 +555,42 @@ function HeroScene3DInner() {
         const elapsed = clock.getElapsedTime()
 
         if (!reducedMotion) {
-          // Smooth spring damping for mouse tilt
+          // Smooth spring damping for mouse tilt & scroll progress
           currentMouse.x += (targetMouse.x - currentMouse.x) * 0.04
           currentMouse.y += (targetMouse.y - currentMouse.y) * 0.04
+          currentScrollY += (targetScrollY - currentScrollY) * 0.06
 
-          // Floating ticket respiration motion
+          const scrollProgress = Math.min(Math.max(currentScrollY / (window.innerHeight * 0.85), 0), 1)
+
+          // Floating ticket respiration motion combined with scroll reaction
           const floatY = Math.sin(elapsed * 1.25) * 0.12
           const floatRotZ = Math.sin(elapsed * 0.9) * 0.04
           const gentleYaw = Math.sin(elapsed * 0.6) * 0.18
 
-          ticketMesh.position.y = floatY
-          ticketMesh.rotation.x = 0.12 + -currentMouse.y * 0.45 + Math.cos(elapsed * 0.8) * 0.03
-          ticketMesh.rotation.y = -0.25 + gentleYaw + currentMouse.x * 0.55
-          ticketMesh.rotation.z = floatRotZ
+          // Position smoothly descends and recedes in depth as user scrolls
+          ticketMesh.position.y = floatY - scrollProgress * 1.4
+          ticketMesh.position.z = -scrollProgress * 2.2
+          ticketMesh.rotation.x = 0.12 + -currentMouse.y * 0.45 + Math.cos(elapsed * 0.8) * 0.03 + scrollProgress * 0.42
+          ticketMesh.rotation.y = -0.25 + gentleYaw + currentMouse.x * 0.55 - scrollProgress * 0.35
+          ticketMesh.rotation.z = floatRotZ + scrollProgress * 0.08
+          
+          const targetScale = Math.max(1 - scrollProgress * 0.22, 0.78)
+          ticketMesh.scale.setScalar(targetScale)
 
-          // Gyroscope Torus Rings Rotation
-          ring1.rotation.x = Math.PI / 3.2 + elapsed * 0.22
-          ring1.rotation.y = Math.PI / 5.5 + elapsed * 0.15
+          // Gyroscope Torus Rings Rotation (responds with slight velocity boost during scroll)
+          const ringSpeed = 1 + scrollProgress * 0.6
+          ring1.rotation.x = Math.PI / 3.2 + elapsed * 0.22 * ringSpeed
+          ring1.rotation.y = Math.PI / 5.5 + elapsed * 0.15 * ringSpeed
           ring1.rotation.z = Math.sin(elapsed * 0.5) * 0.2
 
-          ring2.rotation.x = -Math.PI / 3.8 - elapsed * 0.18
-          ring2.rotation.y = elapsed * 0.25
+          ring2.rotation.x = -Math.PI / 3.8 - elapsed * 0.18 * ringSpeed
+          ring2.rotation.y = elapsed * 0.25 * ringSpeed
           ring2.rotation.z = Math.PI / 4.2 + Math.cos(elapsed * 0.4) * 0.15
 
           // Satellite chips orbit
           for (let i = 0; i < satellites.length; i++) {
             const s = satellites[i]
-            const angle = elapsed * 0.75 + satelliteOffsets[i]
+            const angle = elapsed * 0.75 * ringSpeed + satelliteOffsets[i]
             const radius = 2.1 + Math.sin(elapsed * 1.5 + i) * 0.2
             s.position.x = Math.cos(angle) * radius
             s.position.y = Math.sin(angle * 0.8) * 0.65
@@ -590,6 +607,8 @@ function HeroScene3DInner() {
           ticketMesh.rotation.x = 0.14
           ticketMesh.rotation.y = -0.22
           ticketMesh.position.y = 0
+          ticketMesh.position.z = 0
+          ticketMesh.scale.setScalar(1)
           ring1.rotation.z = 0.4
           ring2.rotation.z = -0.3
           for (let i = 0; i < satellites.length; i++) {
@@ -616,6 +635,9 @@ function HeroScene3DInner() {
       }
       if (handleMouseMove) {
         window.removeEventListener('mousemove', handleMouseMove)
+      }
+      if (handleScroll) {
+        window.removeEventListener('scroll', handleScroll)
       }
       intersectionObserver?.disconnect()
       resizeObserver?.disconnect()

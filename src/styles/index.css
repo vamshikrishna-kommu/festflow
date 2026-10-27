@@ -309,8 +309,17 @@
 }
 
 /* ─── Mobile Safe Area & Touch ────────────────────────────────────────────── */
-.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)); }
+.pt-safe { padding-top: max(0.5rem, env(safe-area-inset-top, 0px)); }
+.pl-safe { padding-left: env(safe-area-inset-left, 0px); }
+.pr-safe { padding-right: env(safe-area-inset-right, 0px); }
+.mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Ensure 44x44px minimum touch targets */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar {
@@ -321,6 +330,16 @@
 .touch-pan-x {
   touch-action: pan-x;
   -webkit-overflow-scrolling: touch;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Eliminate mobile tap delay and unwanted grey tap highlight */
+a, button, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ─── Card ───────────────────────────────────────────────────────────────── */

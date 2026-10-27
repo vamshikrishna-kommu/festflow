@@ -773,6 +773,67 @@ export default function EventDetailPage() {
             }}
           />
         )}
+
+        {/* ── Persistent Mobile Registration Dock (Phones & Small Tablets) ────── */}
+        <div className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 px-3.5 py-2.5 glass-elevated border-t border-[oklch(100%_0_0_/_0.12)] bg-[oklch(10%_0.025_260_/_0.96)] backdrop-blur-xl shadow-[0_-6px_24px_oklch(0%_0_0_/_0.5)]">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)] block">
+                {event.is_free ? 'Gate Admission' : 'Entry Ticket'}
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-lg font-bold font-display text-[var(--color-brand-cyan)]">
+                  {event.is_free ? 'Free Pass' : `₹${event.price}`}
+                </span>
+                {event.participation_type === 'team' && (
+                  <span className="text-[10px] text-[var(--color-text-muted)]">
+                    / Squad ({event.min_team_size}–{event.max_team_size})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {existingReg ? (
+              <Link to={`/student/tickets/${existingReg.id}`}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Ticket size={16} />}
+                  className="min-h-[44px] font-semibold"
+                >
+                  View My Pass
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                variant="primary"
+                size="md"
+                disabled={!canRegister || checkingReg}
+                onClick={handleCtaClick}
+                leftIcon={<Ticket size={16} />}
+                className="min-h-[44px] font-semibold shadow-md bg-[var(--color-brand-purple)] hover:opacity-90"
+              >
+                {isCancelled
+                  ? 'Cancelled'
+                  : isCompleted
+                  ? 'Concluded'
+                  : isRegClosedStatus
+                  ? 'Closed'
+                  : !isRegOpenYet
+                  ? 'Opens Soon'
+                  : isRegDeadlinePassed
+                  ? 'Passed'
+                  : isStarted
+                  ? 'Started'
+                  : !user
+                  ? 'Sign In to Register'
+                  : event.is_free
+                  ? (event.participation_type === 'team' ? 'Register Team (Free)' : 'Claim Free Pass')
+                  : (event.participation_type === 'team' ? 'Register Team' : 'Register Pass')}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </PageShell>
   )

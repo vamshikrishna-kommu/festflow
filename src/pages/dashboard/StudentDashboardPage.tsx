@@ -32,7 +32,7 @@ import {
 } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { fadeIn, staggerContainer, metricItem, tabContent } from '@/lib/animations'
 import { getStudentRegistrations, cancelRegistration } from '@/lib/registrations'
 import type { RegistrationWithEvent } from '@/types'
@@ -61,6 +61,8 @@ export default function StudentDashboardPage() {
   const college = studentProfile?.college_name || 'Campus Student'
   const gradYear = studentProfile?.graduation_year
 
+  const [searchParams] = useSearchParams()
+
   const loadRegistrations = async () => {
     if (!user) return
     setLoading(true)
@@ -74,6 +76,18 @@ export default function StudentDashboardPage() {
   useEffect(() => {
     loadRegistrations()
   }, [user])
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam && ['upcoming', 'pending_approval', 'pending_payment', 'waitlisted', 'past', 'cancelled'].includes(tabParam)) {
+      setTab(tabParam as any)
+    }
+    const handler = (e: any) => {
+      if (e.detail) setTab(e.detail)
+    }
+    window.addEventListener('festflow:select-tab', handler)
+    return () => window.removeEventListener('festflow:select-tab', handler)
+  }, [searchParams])
 
   const nowMs = useMemo(() => Date.now(), [registrations])
   const now = useMemo(() => new Date(nowMs), [nowMs])

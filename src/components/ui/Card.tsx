@@ -1,8 +1,9 @@
 import type { HTMLAttributes, ReactNode } from 'react'
+import { motion } from 'motion/react'
 
 export type CardVariant = 'default' | 'glass' | 'subtle' | 'elevated' | 'interactive'
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onAnimationStart' | 'onDrag' | 'onDragEnd' | 'onDragStart'> {
   children: ReactNode
   variant?: CardVariant
   glass?: boolean
@@ -20,7 +21,7 @@ const variantClasses: Record<CardVariant, string> = {
   elevated:
     'glass-elevated shadow-[0_16px_48px_oklch(0%_0_0_/_0.55)]',
   interactive:
-    'bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.065)] transition-all duration-300 hover:border-[oklch(100%_0_0_/_0.15)] hover:bg-[var(--color-surface-2)] hover:shadow-[0_12px_40px_oklch(0%_0_0_/_0.5)] hover:-translate-y-1 cursor-pointer',
+    'bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.065)] hover:border-[oklch(100%_0_0_/_0.15)] hover:bg-[var(--color-surface-2)] hover:shadow-[0_12px_40px_oklch(0%_0_0_/_0.5)] cursor-pointer',
 }
 
 export function Card({
@@ -31,20 +32,23 @@ export function Card({
   className = '',
   ...props
 }: CardProps) {
-  const base = 'relative rounded-[var(--radius-card)] overflow-hidden'
+  const base = 'relative rounded-[var(--radius-card)] overflow-hidden transition-colors'
   const activeVariant = variant || (glass ? 'glass' : hoverable ? 'interactive' : 'default')
+  const isInteractive = activeVariant === 'interactive' || hoverable
   const surfaceClass = variantClasses[activeVariant]
-  const hoverClass =
-    hoverable && activeVariant !== 'interactive'
-      ? 'transition-all duration-300 hover:border-[oklch(100%_0_0_/_0.15)] hover:shadow-[0_12px_40px_oklch(0%_0_0_/_0.5)] hover:-translate-y-1'
-      : ''
 
   return (
-    <div
-      className={`${base} ${surfaceClass} ${hoverClass} ${className}`}
+    <motion.div
+      whileHover={
+        isInteractive
+          ? { y: -4, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }
+          : undefined
+      }
+      whileTap={isInteractive ? { scale: 0.99 } : undefined}
+      className={`${base} ${surfaceClass} ${className}`}
       {...props}
     >
       {children}
-    </div>
+    </motion.div>
   )
 }

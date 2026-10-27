@@ -49,7 +49,7 @@ interface ScanHistoryItem {
 
 export default function EventCheckInPage() {
   const { id } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [attendees, setAttendees] = useState<RegistrationWithCheckIn[]>([])
@@ -64,6 +64,8 @@ export default function EventCheckInPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+
+  const isAuthorized = Boolean(event && ((user && event.club_id === user.id) || role === 'platform_admin'))
 
   // Scanner & Manual Entry
   const [manualCode, setManualCode] = useState('')
@@ -104,6 +106,10 @@ export default function EventCheckInPage() {
       setLoadError(eventRes.error)
     } else if (eventRes.event) {
       setEvent(eventRes.event)
+      const authorized = (user && eventRes.event.club_id === user.id) || role === 'platform_admin'
+      if (!authorized) {
+        setLoadError('You are not authorized to check in attendees for this event.')
+      }
     } else {
       setLoadError('Event could not be found.')
     }
@@ -114,7 +120,7 @@ export default function EventCheckInPage() {
 
   useEffect(() => {
     loadData()
-  }, [id, user])
+  }, [id, user, role])
 
   // Handle Scan or Manual Check-In
   const handleCheckInAttempt = async (ticketCode: string) => {
@@ -208,13 +214,7 @@ export default function EventCheckInPage() {
     })
   }, [attendees, filterTab, searchQuery])
 
-  // Ownership and authorization verification
-  const isAuthorized = Boolean(
-    user &&
-    event &&
-    (event.club_id === user.id ||
-      user.role === 'platform_admin')
-  )
+
 
   // Loading state
   if (loading && !refreshing) {

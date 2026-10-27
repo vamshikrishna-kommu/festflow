@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
 import { ArrowRight, Sparkles, QrCode, ShieldCheck, Zap } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, KineticHeading } from '@/components/ui'
 import { fadeUp, fadeIn, staggerContainer } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { HeroScene3D } from './HeroScene3D'
@@ -55,15 +55,17 @@ export function HeroSection() {
               </span>
             </motion.div>
 
-            {/* Headline */}
-            <motion.h1
-              variants={reduced ? undefined : fadeUp}
-              className="font-display font-extrabold text-3xl sm:text-5xl lg:text-5xl xl:text-6xl leading-[1.12] tracking-tight mb-4 sm:mb-6 text-[var(--color-text-primary)] max-w-2xl"
-            >
-              Discover, organize <br className="hidden sm:inline" />
-              & ticket campus events{' '}
-              <span className="gradient-text">effortlessly.</span>
-            </motion.h1>
+            {/* Cinematic Masked Headline */}
+            <div className="mb-4 sm:mb-6 max-w-2xl">
+              <KineticHeading
+                as="h1"
+                className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl leading-[1.12]"
+                lines={[
+                  { text: 'Discover, organize' },
+                  { text: '& ticket campus events', highlight: 'effortlessly.', gradientClass: 'gradient-text' },
+                ]}
+              />
+            </div>
 
             {/* Subheadline describing genuine capabilities */}
             <motion.p

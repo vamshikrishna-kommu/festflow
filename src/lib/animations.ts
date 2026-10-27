@@ -383,14 +383,118 @@ export const heroWord: Variants = {
   },
 }
 
-// ─── 16. Static Reduced-Motion Variants (Accessibility Fallback) ───────────
+// ─── 16. The FestFlow Motion Journey Signature Utilities ──────────────────
+
+export const maskRevealContainer: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.05,
+    },
+  },
+}
+
+export const maskRevealLine: Variants = {
+  hidden: {
+    y: '115%',
+    opacity: 0,
+    rotateX: -12,
+  },
+  visible: {
+    y: '0%',
+    opacity: 1,
+    rotateX: 0,
+    transition: {
+      duration: 0.75,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+}
+
+export const kineticWordGroup: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.08,
+    },
+  },
+}
+
+export const kineticWord: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 28,
+    filter: 'blur(6px)',
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 0.55,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+}
+
+export const gradientShimmer: Variants = {
+  hidden: {
+    backgroundPosition: '200% center',
+    opacity: 0.8,
+  },
+  visible: {
+    backgroundPosition: '0% center',
+    opacity: 1,
+    transition: {
+      duration: 1.4,
+      ease: 'easeOut',
+      repeat: Infinity,
+      repeatType: 'reverse',
+    },
+  },
+}
+
+export const horizontalCardVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.92,
+    y: 30,
+  },
+  visible: (custom: number) => ({
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      delay: custom * 0.08,
+      duration: 0.6,
+      ease: EASINGS.brand,
+    },
+  }),
+}
+
+export const workflowProgressBeam: Variants = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: {
+    pathLength: 1,
+    opacity: 1,
+    transition: {
+      pathLength: { duration: 1.2, ease: 'easeInOut' },
+      opacity: { duration: 0.3 },
+    },
+  },
+}
+
+// ─── 17. Static Reduced-Motion Variants (Accessibility Fallback) ───────────
 
 export const staticVariants: Variants = {
-  hidden: { opacity: 1, y: 0, x: 0, scale: 1 },
-  visible: { opacity: 1, y: 0, x: 0, scale: 1 },
+  hidden: { opacity: 1, y: 0, x: 0, scale: 1, filter: 'none' },
+  visible: { opacity: 1, y: 0, x: 0, scale: 1, filter: 'none' },
   exit: { opacity: 1 },
 }
 
 export function getAccessibleVariants(normalVariants: Variants, isReduced: boolean): Variants {
   return isReduced ? staticVariants : normalVariants
 }
+

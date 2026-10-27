@@ -1,0 +1,43 @@
+{
+  "name": "FestFlow — College Event Platform",
+  "short_name": "FestFlow",
+  "description": "Discover, register, pay via UPI, and scan digital entry passes for college events.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#0d0a1e",
+  "theme_color": "#0d0a1e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/festflow-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "events", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Discover Events",
+      "url": "/discover",
+      "description": "Find upcoming campus hackathons and fests"
+    },
+    {
+      "name": "My Entry Passes",
+      "url": "/student/dashboard",
+      "description": "View active digital tickets and QR gate credentials"
+    }
+  ]
+}
