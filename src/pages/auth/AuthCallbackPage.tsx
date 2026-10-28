@@ -6,6 +6,13 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import { Button, Logo } from '@/components/ui'
 
+export function getSafeNextPath(candidate: string | null | undefined, defaultTarget: string): string {
+  if (candidate && candidate.startsWith('/') && !candidate.startsWith('//') && !candidate.includes(':')) {
+    return candidate
+  }
+  return defaultTarget
+}
+
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -56,8 +63,11 @@ export default function AuthCallbackPage() {
               }, 800)
               return
             }
+
+            const rawCandidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
             const userRole = (data.session.user.user_metadata?.role as string) || role || 'student'
-            const target = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+            const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+            const target = getSafeNextPath(rawCandidate, defaultTarget)
             setTimeout(() => {
               navigate(target, { replace: true })
             }, 800)
@@ -86,8 +96,10 @@ export default function AuthCallbackPage() {
           }
 
           // Role-based redirect
+          const rawCandidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
           const userRole = (session.user.user_metadata?.role as string) || role || 'student'
-          const target = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+          const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+          const target = getSafeNextPath(rawCandidate, defaultTarget)
           
           setTimeout(() => {
             navigate(target, { replace: true })
@@ -102,8 +114,16 @@ export default function AuthCallbackPage() {
                 navigate('/reset-password', { replace: true })
                 return
               }
+              function getSafeNextPath(defaultTarget: string): string {
+                const candidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
+                if (candidate && candidate.startsWith('/') && !candidate.startsWith('//') && !candidate.includes(':')) {
+                  return candidate
+                }
+                return defaultTarget
+              }
               const userRole = (currentSession.user.user_metadata?.role as string) || 'student'
-              const target = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+              const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+              const target = getSafeNextPath(defaultTarget)
               navigate(target, { replace: true })
             }
           })

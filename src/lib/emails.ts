@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 
 export interface EmailDispatchParams {
   template:
@@ -315,7 +316,7 @@ export async function sendRegistrationConfirmedEmail(params: {
   userId?: string
   isResend?: boolean
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
+  const origin = getFrontendBaseUrl()
   return triggerTransactionalEmail({
     template: 'registration_confirmed',
     to: params.to,
@@ -353,7 +354,7 @@ export async function sendApplicationSubmittedEmail(params: {
   eventId?: string
   userId?: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
+  const origin = getFrontendBaseUrl()
   return triggerTransactionalEmail({
     template: 'application_submitted',
     to: params.to,
@@ -411,7 +412,7 @@ export async function sendPaymentApprovedEmail(params: {
   registrationId: string
   eventId?: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
+  const origin = getFrontendBaseUrl()
   return triggerTransactionalEmail({
     template: 'payment_approved',
     to: params.to,
@@ -466,7 +467,7 @@ export async function sendTicketIssuedEmail(params: {
   registrationId: string
   eventId?: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
+  const origin = getFrontendBaseUrl()
   return triggerTransactionalEmail({
     template: 'ticket_issued',
     to: params.to,
@@ -648,7 +649,7 @@ export async function sendTeamInvitationEmail(params: {
   eventId: string
   teamId: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
+  const origin = getFrontendBaseUrl()
   const joinUrl = `${origin}/events/${params.eventSlug}?join=1&code=${encodeURIComponent(
     params.inviteCode
   )}&token=${encodeURIComponent(params.inviteToken)}`
@@ -685,7 +686,7 @@ export async function sendTeamInvitationAcceptedEmail(params: {
   eventId: string
   teamId: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
+  const origin = getFrontendBaseUrl()
   return triggerTransactionalEmail({
     template: 'team_invitation_accepted',
     to: params.leaderEmail,

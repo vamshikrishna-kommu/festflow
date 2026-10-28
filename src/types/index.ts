@@ -96,6 +96,10 @@ export interface ClubInvitationRecord {
   updated_at: string
   inviter?: Profile | null
   club?: ClubProfile | null
+  club_name?: string | null
+  inviter_name?: string | null
+  masked_email?: string | null
+  is_recipient_matched?: boolean
 }
 
 export interface ClubAuditLogRecord {

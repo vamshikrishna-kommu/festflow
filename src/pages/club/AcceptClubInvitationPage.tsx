@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router'
 import { motion } from 'motion/react'
 import {
@@ -10,6 +10,9 @@ import {
   UserPlus,
   Clock,
   XCircle,
+  LogOut,
+  ShieldCheck,
+  User,
 } from 'lucide-react'
 import { Button, Badge, Card, Logo, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
@@ -25,6 +28,8 @@ import { formatExcelDateTime } from '@/lib/excelExport'
 import { fadeIn } from '@/lib/animations'
 import type { ClubInvitationRecord, ClubPermission } from '@/types'
 
+const PENDING_TOKEN_STORAGE_KEY = 'festflow_pending_club_invitation_token'
+
 const PERMISSION_LABELS: Record<ClubPermission, string> = {
   manage_club: 'Organization profile and general settings',
   manage_members: 'Invite and manage club staff members',
@@ -36,39 +41,68 @@ const PERMISSION_LABELS: Record<ClubPermission, string> = {
 }
 
 export default function AcceptClubInvitationPage() {
-  const { token } = useParams<{ token: string }>()
+  const { token: routeToken } = useParams<{ token: string }>()
   const navigate = useNavigate()
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile, signOut } = useAuth()
+
+  // Token resolution with sessionStorage backup
+  const activeToken = useMemo(() => {
+    if (routeToken && routeToken.trim()) {
+      const decoded = decodeURIComponent(routeToken.trim())
+      try {
+        sessionStorage.setItem(PENDING_TOKEN_STORAGE_KEY, decoded)
+      } catch {
+        // ignore storage errors
+      }
+      return decoded
+    }
+    try {
+      return sessionStorage.getItem(PENDING_TOKEN_STORAGE_KEY) || ''
+    } catch {
+      return ''
+    }
+  }, [routeToken])
 
   const [invitation, setInvitation] = useState<ClubInvitationRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(false)
+  const [switchingAccount, setSwitchingAccount] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
   const [acceptedSuccess, setAcceptedSuccess] = useState(false)
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchInvitation() {
-      if (!token) {
-        setLoading(false)
+      if (!activeToken) {
+        if (isMounted) setLoading(false)
         return
       }
-      setLoading(true)
-      const res = await getInvitationByToken(token)
+      if (isMounted) setLoading(true)
+      const res = await getInvitationByToken(activeToken)
+      if (!isMounted) return
+
       setLoading(false)
       if (res.invitation) {
         setInvitation(res.invitation)
+      } else {
+        setInvitation(null)
       }
     }
 
     fetchInvitation()
-  }, [token])
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeToken])
 
   const handleAccept = async () => {
-    if (!token || !user || !invitation) return
+    if (!activeToken || !user || !invitation) return
     setAccepting(true)
     setNotice(null)
 
-    const res = await acceptClubInvitation(token, {
+    const res = await acceptClubInvitation(activeToken, {
       id: user.id,
       email: user.email || '',
       display_name: profile?.display_name || user.email?.split('@')[0],
@@ -76,12 +110,40 @@ export default function AcceptClubInvitationPage() {
 
     setAccepting(false)
     if (res.success) {
+      try {
+        sessionStorage.removeItem(PENDING_TOKEN_STORAGE_KEY)
+      } catch {
+        // ignore storage errors
+      }
+
       setAcceptedSuccess(true)
+
+      // Refresh auth profile to synchronize user role (transitioning from student to club_member)
+      try {
+        await refreshProfile()
+      } catch (err) {
+        console.warn('[FestFlow] Failed to refresh profile after acceptance:', err)
+      }
+
       setTimeout(() => {
         navigate('/club/dashboard')
-      }, 1500)
+      }, 2000)
     } else {
       setNotice({ message: res.message, isError: true })
+    }
+  }
+
+  const handleSignOutAndSwitch = async () => {
+    setSwitchingAccount(true)
+    try {
+      await signOut()
+      const redirectParam = encodeURIComponent(`/club/invitations/${activeToken}`)
+      navigate(`/student/login?redirect=${redirectParam}`)
+    } catch (err) {
+      console.error('[FestFlow] Sign out error:', err)
+      setNotice({ message: 'Failed to sign out. Please try again.', isError: true })
+    } finally {
+      setSwitchingAccount(false)
     }
   }
 
@@ -110,7 +172,7 @@ export default function AcceptClubInvitationPage() {
               Invitation Not Found
             </h2>
             <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mb-6">
-              This invitation link is invalid or has expired. Please ask the club administrator to generate a fresh invitation.
+              This invitation link is invalid, expired, or was already accepted. Please ask your club administrator to issue a fresh invitation.
             </p>
             <Link to="/discover">
               <Button variant="outline" size="sm">
@@ -128,9 +190,15 @@ export default function AcceptClubInvitationPage() {
   const isAlreadyAccepted = invitation.status === 'accepted' || acceptedSuccess
 
   const isAuthenticated = Boolean(user && user.email)
-  const isEmailMatching = isAuthenticated && user?.email?.toLowerCase() === invitation.email.toLowerCase()
+  const displayedEmail = invitation.masked_email || invitation.email
+  const isEmailMatching =
+    isAuthenticated &&
+    (invitation.is_recipient_matched === true ||
+      (Boolean(invitation.email && !invitation.email.includes('*')) &&
+        user?.email?.trim().toLowerCase() === invitation.email?.trim().toLowerCase()))
 
   const permissionsList = ROLE_PERMISSIONS[invitation.role] || []
+  const clubDisplayName = invitation.club_name || 'Organization'
 
   return (
     <PageShell>
@@ -153,7 +221,7 @@ export default function AcceptClubInvitationPage() {
                     Staff Invitation
                   </span>
                   <h1 className="text-xl sm:text-2xl font-bold font-display text-[var(--color-text-primary)]">
-                    Join Organization Team
+                    Join {clubDisplayName}
                   </h1>
                 </div>
               </div>
@@ -179,7 +247,7 @@ export default function AcceptClubInvitationPage() {
                     Invitation Expired
                   </strong>
                   <p className="leading-relaxed">
-                    This staff invitation expired on {formatExcelDateTime(invitation.expires_at)}. Please request a renewed link from your club organizer.
+                    This staff invitation expired on {formatExcelDateTime(invitation.expires_at)}. Please request a renewed link from {clubDisplayName}.
                   </p>
                 </div>
               </div>
@@ -200,7 +268,7 @@ export default function AcceptClubInvitationPage() {
               </div>
             )}
 
-            {/* Already Accepted State */}
+            {/* Already Accepted / Success State */}
             {isAlreadyAccepted && (
               <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col items-center text-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -208,15 +276,15 @@ export default function AcceptClubInvitationPage() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-bold text-base text-[var(--color-text-primary)]">
-                    Invitation Accepted!
+                    Welcome to {clubDisplayName}!
                   </h3>
                   <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                    You are now an active staff member of this organization. Head over to your club dashboard to get started.
+                    You have joined as an active <strong className="text-white capitalize">{ROLE_LABELS[invitation.role]}</strong>. You now have staff access to event management and operations.
                   </p>
                 </div>
                 <Link to="/club/dashboard" className="w-full mt-2">
                   <Button variant="primary" size="sm" className="w-full justify-center">
-                    Go to Club Dashboard
+                    Open Club Dashboard
                   </Button>
                 </Link>
               </div>
@@ -227,6 +295,22 @@ export default function AcceptClubInvitationPage() {
               <div className="flex flex-col gap-5">
                 {/* Invited Details Card */}
                 <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] space-y-3 text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-[oklch(100%_0_0_/_0.06)]">
+                    <span className="text-[var(--color-text-muted)]">Organization:</span>
+                    <strong className="text-[var(--color-text-primary)] font-semibold text-xs">
+                      {clubDisplayName}
+                    </strong>
+                  </div>
+
+                  {invitation.inviter_name && (
+                    <div className="flex items-center justify-between pb-2 border-b border-[oklch(100%_0_0_/_0.06)]">
+                      <span className="text-[var(--color-text-muted)]">Invited By:</span>
+                      <span className="text-[var(--color-text-primary)] font-medium">
+                        {invitation.inviter_name}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex flex-col gap-1.5 pb-2 border-b border-[oklch(100%_0_0_/_0.06)]">
                     <div className="flex items-center justify-between">
                       <span className="text-[var(--color-text-muted)]">Designated Role:</span>
@@ -238,12 +322,14 @@ export default function AcceptClubInvitationPage() {
                       {ROLE_DESCRIPTIONS[invitation.role]}
                     </p>
                   </div>
+
                   <div className="flex items-center justify-between pb-2 border-b border-[oklch(100%_0_0_/_0.06)]">
                     <span className="text-[var(--color-text-muted)]">Recipient Email:</span>
                     <strong className="text-[var(--color-text-primary)] font-mono text-[11px]">
-                      {invitation.email}
+                      {displayedEmail}
                     </strong>
                   </div>
+
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--color-text-muted)]">Valid Until:</span>
                     <span className="text-[var(--color-text-secondary)]">
@@ -254,9 +340,12 @@ export default function AcceptClubInvitationPage() {
 
                 {/* Role Permissions Preview */}
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
-                    Granted Permissions ({permissionsList.length})
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-[var(--color-brand-purple)]" />
+                    <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
+                      Granted Permissions ({permissionsList.length})
+                    </span>
+                  </div>
                   <div className="p-3.5 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-2 text-xs">
                     {permissionsList.map((perm) => (
                       <div key={perm} className="flex items-center gap-2 text-[var(--color-text-secondary)]">
@@ -271,15 +360,21 @@ export default function AcceptClubInvitationPage() {
                 {!isAuthenticated ? (
                   <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] space-y-3">
                     <div className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                      You must authenticate with <strong className="text-[var(--color-text-primary)]">{invitation.email}</strong> to accept this team invitation.
+                      You must authenticate with the invited account (<strong className="text-[var(--color-text-primary)]">{displayedEmail}</strong>) to accept this staff invitation.
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <Link to={`/student/login?redirect=/club/invitations/${token}`} className="w-full">
+                      <Link
+                        to={`/student/login?redirect=${encodeURIComponent(`/club/invitations/${activeToken}`)}`}
+                        className="w-full"
+                      >
                         <Button variant="outline" size="sm" className="w-full justify-center" leftIcon={<LogIn size={14} />}>
                           Log In to Accept
                         </Button>
                       </Link>
-                      <Link to={`/student/signup?redirect=/club/invitations/${token}`} className="w-full">
+                      <Link
+                        to={`/student/signup?redirect=${encodeURIComponent(`/club/invitations/${activeToken}`)}`}
+                        className="w-full"
+                      >
                         <Button variant="primary" size="sm" className="w-full justify-center" leftIcon={<UserPlus size={14} />}>
                           Create Account
                         </Button>
@@ -291,19 +386,31 @@ export default function AcceptClubInvitationPage() {
                     <div className="flex items-start gap-2.5 text-amber-300">
                       <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                       <div className="leading-relaxed">
-                        You are currently signed in as <strong className="text-white">{user?.email}</strong>. This invitation was sent specifically to <strong className="text-white">{invitation.email}</strong>.
+                        You are currently signed in as <strong className="text-white">{user?.email}</strong>. This invitation was sent specifically to <strong className="text-white">{displayedEmail}</strong>.
                       </div>
                     </div>
-                    <div className="pt-1">
-                      <Link to={`/student/login?redirect=/club/invitations/${token}`}>
-                        <Button variant="outline" size="sm" className="text-xs">
-                          Switch to {invitation.email}
-                        </Button>
-                      </Link>
+                    <div className="pt-1 flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSignOutAndSwitch}
+                        isLoading={switchingAccount}
+                        disabled={switchingAccount}
+                        leftIcon={<LogOut size={13} />}
+                        className="text-xs"
+                      >
+                        Sign Out & Switch Account
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="pt-2">
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2 px-1 text-xs text-[var(--color-text-muted)]">
+                      <User size={13} className="text-emerald-400" />
+                      <span>
+                        Verified as <strong className="text-[var(--color-text-primary)]">{user?.email}</strong>
+                      </span>
+                    </div>
                     <Button
                       variant="primary"
                       size="md"
@@ -313,7 +420,7 @@ export default function AcceptClubInvitationPage() {
                       rightIcon={<ArrowRight size={15} />}
                       className="w-full justify-center bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-semibold py-3 shadow-lg shadow-purple-600/20"
                     >
-                      Accept Invitation & Join Staff
+                      Accept Invitation & Join {clubDisplayName}
                     </Button>
                   </div>
                 )}

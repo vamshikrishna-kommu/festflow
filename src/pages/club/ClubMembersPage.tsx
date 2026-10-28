@@ -14,6 +14,7 @@ import {
 import { Button, Badge, Card, PageHeader, Modal, ModalBody, ModalFooter, EmptyState, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
+import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 import {
   ROLE_LABELS,
   ROLE_DESCRIPTIONS,
@@ -188,7 +189,7 @@ export default function ClubMembersPage() {
   }
 
   const handleCopyLink = (token: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'
+    const origin = getFrontendBaseUrl()
     const url = `${origin}/club/invitations/${token}`
     navigator.clipboard.writeText(url)
     setCopiedToken(token)

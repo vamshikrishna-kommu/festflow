@@ -90,6 +90,55 @@ export async function registerForEvent(
           // ignore
         }
       }
+
+      // Dispatch lifecycle transactional emails on successful registration
+      if (res.success && res.registration_id) {
+        try {
+          let studentEmail = options?.participantDetails?.email || ''
+          let studentName = options?.participantDetails?.student_name || ''
+          if (!studentEmail) {
+            const { data: authData } = await supabase.auth.getUser()
+            studentEmail = authData?.user?.email || ''
+            studentName = studentName || authData?.user?.user_metadata?.display_name || 'FestFlow Attendee'
+          }
+
+          if (studentEmail) {
+            const eventRes = await getEventById(eventId)
+            const event = eventRes?.event
+
+            if (res.status === 'confirmed') {
+              sendRegistrationConfirmedEmail({
+                to: studentEmail,
+                name: studentName || 'FestFlow Attendee',
+                eventTitle: event?.title || 'Campus Event',
+                ticketCode: res.ticket_code || '',
+                qrToken: res.qr_token,
+                startDate: event?.start_date || '',
+                venueName: event?.venue_name || '',
+                teamName: options?.teamName,
+                registrationId: res.registration_id,
+                eventId,
+                userId: studentId,
+              }).catch(() => {})
+            } else if (res.status === 'pending_approval') {
+              sendApplicationSubmittedEmail({
+                to: studentEmail,
+                name: studentName || 'FestFlow Student',
+                eventTitle: event?.title || 'Campus Event',
+                ticketCode: res.ticket_code || '',
+                startDate: event?.start_date || '',
+                venueName: event?.venue_name || '',
+                registrationId: res.registration_id,
+                eventId,
+                userId: studentId,
+              }).catch(() => {})
+            }
+          }
+        } catch {
+          // non-blocking
+        }
+      }
+
       return res
     } catch (err) {
       return {
@@ -357,11 +406,14 @@ export async function registerForEvent(
       }
     }
 
-    // Trigger transactional email at correct lifecycle stage
+    // Trigger transactional email at correct lifecycle stage with dynamic recipient
+    const recipientEmail = options?.participantDetails?.email || 'student@campus.edu'
+    const recipientName = options?.participantDetails?.student_name || 'FestFlow Student'
+
     if (initialStatus === 'confirmed') {
       sendRegistrationConfirmedEmail({
-        to: 'student@campus.edu',
-        name: 'FestFlow Student',
+        to: recipientEmail,
+        name: recipientName,
         eventTitle: event.title,
         ticketCode: ticketCode,
         qrToken: qrToken,
@@ -373,8 +425,8 @@ export async function registerForEvent(
       }).catch(() => {})
     } else if (initialStatus === 'pending_approval') {
       sendApplicationSubmittedEmail({
-        to: 'student@campus.edu',
-        name: 'FestFlow Student',
+        to: recipientEmail,
+        name: recipientName,
         eventTitle: event.title,
         ticketCode: ticketCode,
         startDate: event.start_date,

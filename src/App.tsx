@@ -388,6 +388,22 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      {
+        path: '/club/invitation/:token',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AcceptClubInvitationPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/accept-club-invitation/:token',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AcceptClubInvitationPage />
+          </Suspense>
+        ),
+      },
 
       // Protected Student Routes
       {

@@ -68,17 +68,21 @@ Apply the SQL migration scripts in numerical sequence via the **Supabase Dashboa
 1. Create a project at [supabase.com](https://supabase.com).
 2. Go to **SQL Editor** and execute migrations `001` through `007`.
 3. In **Authentication -> URL Configuration**:
-   - **Site URL:** `https://<your-vercel-domain>.vercel.app` (or your custom domain)
+   - **Site URL:** `https://festflow.online`
    - **Redirect URLs:** Add:
-     - `https://<your-vercel-domain>.vercel.app/auth/callback`
-     - `https://<your-vercel-domain>.vercel.app/club/dashboard`
-     - `https://<your-vercel-domain>.vercel.app/student/dashboard`
+     - `https://festflow.online/auth/callback`
+     - `https://festflow.online/reset-password`
+     - `https://festflow.online/club/dashboard`
+     - `https://festflow.online/student/dashboard`
+     - `https://festflow.online/**`
      - `http://localhost:5173/**` (for local development)
-4. Deploy the transactional email Edge Function:
+4. Deploy the transactional email Edge Function & configure secrets:
    ```bash
    npx supabase functions deploy send-email --no-verify-jwt
    npx supabase secrets set RESEND_API_KEY="re_..."
-   npx supabase secrets set RESEND_FROM_EMAIL="FestFlow <events@yourdomain.com>"
+   npx supabase secrets set RESEND_FROM_EMAIL="festflow.events@festflow.online"
+   npx supabase secrets set RESEND_FROM_NAME="FestFlow"
+   npx supabase secrets set RESEND_REPLY_TO="festflow.events@gmail.com"
    ```
 
 ### Step 2: Deploy Frontend on Vercel

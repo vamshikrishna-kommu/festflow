@@ -8,6 +8,7 @@ import type {
 } from '@/types'
 import { sendClubMemberInvitationEmail } from '@/lib/emails'
 import { broadcastStatusChange } from '@/lib/sync'
+import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 
 const LOCAL_STORAGE_MEMBERS_KEY = 'festflow_local_club_members'
 const LOCAL_STORAGE_INVITATIONS_KEY = 'festflow_local_club_invitations'
@@ -396,7 +397,7 @@ export async function inviteClubMember(params: {
 
   const token = generateSecureToken()
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days expiration
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'
+  const origin = getFrontendBaseUrl()
   const invitationUrl = `${origin}/club/invitations/${token}`
 
   const newInvitation: ClubInvitationRecord = {
@@ -498,13 +499,43 @@ export async function acceptClubInvitation(
     return { success: false, message: 'Authentication required. Please sign in to accept this invitation.', error_code: 'UNAUTHENTICATED' }
   }
 
+  const cleanToken = decodeURIComponent(token).trim()
+  const cleanUserEmail = user.email.trim().toLowerCase()
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('accept_club_invitation', {
+        p_token: cleanToken,
+        p_user_id: user.id,
+      })
+
+      if (!error && data) {
+        if (!data.success) {
+          return {
+            success: false,
+            message: data.message || 'Failed to accept invitation.',
+            error_code: data.error_code || 'RPC_ERROR',
+          }
+        }
+        return {
+          success: true,
+          message: data.message || 'Successfully joined organization team.',
+          clubId: data.club_id,
+          role: data.role as ClubRole,
+        }
+      }
+    } catch {
+      // Fall through to client-side logic / simulation
+    }
+  }
+
   let invitation: ClubInvitationRecord | null = null
 
   if (isSupabaseConfigured) {
     try {
       const { data } = await (supabase.from('club_invitations') as any)
         .select('*')
-        .eq('token', token)
+        .eq('token', cleanToken)
         .maybeSingle()
 
       if (data) invitation = data as ClubInvitationRecord
@@ -514,7 +545,7 @@ export async function acceptClubInvitation(
   }
 
   if (!invitation) {
-    invitation = getLocalInvitations().find((i) => i.token === token) || null
+    invitation = getLocalInvitations().find((i) => i.token === cleanToken) || null
   }
 
   if (!invitation) {
@@ -535,7 +566,7 @@ export async function acceptClubInvitation(
   }
 
   // 3. Verified Email Matching: Recipient must be authenticated as the invited email
-  if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
+  if (invitation.email.trim().toLowerCase() !== cleanUserEmail) {
     return {
       success: false,
       message: `This invitation was issued to ${invitation.email}. You are currently signed in as ${user.email}. Please switch to the invited account.`,
@@ -564,8 +595,8 @@ export async function acceptClubInvitation(
     updated_at: new Date().toISOString(),
     profile: {
       id: user.id,
-      email: user.email,
-      display_name: user.display_name || user.email.split('@')[0],
+      email: cleanUserEmail,
+      display_name: user.display_name || cleanUserEmail.split('@')[0],
       role: 'club_member',
       avatar_url: null,
       created_at: new Date().toISOString(),
@@ -707,7 +738,7 @@ export async function resendClubInvitation(
 
   const newToken = generateSecureToken()
   const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'
+  const origin = getFrontendBaseUrl()
   const invitationUrl = `${origin}/club/invitations/${newToken}`
 
   const updated: ClubInvitationRecord = {
@@ -984,28 +1015,70 @@ export async function getInvitationByToken(
   token: string
 ): Promise<{ invitation: ClubInvitationRecord | null; error?: string }> {
   if (!token) return { invitation: null }
+  const cleanToken = decodeURIComponent(token).trim()
 
   if (isSupabaseConfigured) {
+    // 1. Try public RPC if available
+    try {
+      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('get_club_invitation_preview', {
+        p_token: cleanToken,
+      })
+      if (!rpcErr && rpcData?.success && rpcData?.invitation) {
+        return { invitation: rpcData.invitation as ClubInvitationRecord }
+      }
+    } catch {
+      // ignore RPC error and fall through
+    }
+
+    // 2. Direct table query with safe columns (no broken join to club_profiles)
     try {
       const { data, error } = await (supabase.from('club_invitations') as any)
         .select(`
-          *,
-          inviter:profiles!invited_by (*),
-          club:club_profiles!club_id (*)
+          id,
+          club_id,
+          email,
+          role,
+          invited_by,
+          token,
+          status,
+          expires_at,
+          accepted_at,
+          accepted_by,
+          created_at,
+          updated_at
         `)
-        .eq('token', token)
+        .eq('token', cleanToken)
         .maybeSingle()
 
       if (!error && data) {
-        return { invitation: data as ClubInvitationRecord }
+        const record: ClubInvitationRecord = { ...data }
+        try {
+          const { data: clubProfile } = await (supabase.from('club_profiles') as any)
+            .select('club_name, representative_name')
+            .eq('profile_id', data.club_id)
+            .maybeSingle()
+          if (clubProfile?.club_name) {
+            record.club_name = clubProfile.club_name
+          }
+          const { data: inviterProfile } = await (supabase.from('profiles') as any)
+            .select('display_name')
+            .eq('id', data.invited_by)
+            .maybeSingle()
+          if (inviterProfile?.display_name) {
+            record.inviter_name = inviterProfile.display_name
+          }
+        } catch {
+          // non-blocking
+        }
+        return { invitation: record }
       }
     } catch {
       // ignore
     }
   }
 
-  // Simulation mode
+  // 3. Simulation mode fallback
   const localInvites = getLocalInvitations()
-  const found = localInvites.find((i) => i.token === token)
+  const found = localInvites.find((i) => i.token === cleanToken)
   return { invitation: found || null }
 }

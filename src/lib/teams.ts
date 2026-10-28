@@ -28,6 +28,7 @@ import {
   sendTicketIssuedEmail,
 } from '@/lib/emails'
 import { broadcastStatusChange } from '@/lib/sync'
+import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 
 const LOCAL_STORAGE_TEAMS_KEY = 'festflow_local_teams'
 const LOCAL_STORAGE_MEMBERS_KEY = 'festflow_local_team_members'
@@ -108,7 +109,7 @@ export function generateToken(): string {
 }
 
 export function buildTeamInviteLink(eventSlug: string, inviteCode: string, token?: string): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.app'
+  const origin = getFrontendBaseUrl()
   let url = `${origin}/events/${eventSlug}?join=1&code=${encodeURIComponent(inviteCode)}`
   if (token) {
     url += `&token=${encodeURIComponent(token)}`

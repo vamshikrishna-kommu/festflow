@@ -317,7 +317,52 @@ export async function submitPaymentProof(params: {
         }
       }
 
-      return data as PaymentSubmissionResponse
+      const res = data as PaymentSubmissionResponse
+      if (res.success) {
+        // Dispatch payment_received transactional email
+        try {
+          const { data: regData } = await (supabase.from('registrations') as any)
+            .select(`
+              id,
+              event_id,
+              student_id,
+              participant_details,
+              events (id, title, club_id, price),
+              profiles:student_id (email, display_name)
+            `)
+            .eq('id', registrationId)
+            .single()
+
+          if (regData) {
+            const recipientEmail =
+              regData.participant_details?.email ||
+              regData.profiles?.email ||
+              ''
+            const recipientName =
+              regData.participant_details?.student_name ||
+              regData.profiles?.display_name ||
+              'FestFlow Student'
+            const eventTitle = regData.events?.title || 'Campus Event'
+            const paidAmount = Number((regData.events as any)?.price) || 0
+
+            if (recipientEmail) {
+              sendPaymentReceivedEmail({
+                to: recipientEmail,
+                name: recipientName,
+                eventTitle,
+                transactionReference: cleanRef,
+                amount: paidAmount,
+                registrationId,
+                eventId: regData.event_id,
+              }).catch(() => {})
+            }
+          }
+        } catch {
+          // non-blocking
+        }
+      }
+
+      return res
     } catch (err) {
       return {
         success: false,
@@ -407,10 +452,13 @@ export async function submitPaymentProof(params: {
   })
   saveLocalNotifications(notifs)
 
-  // Send payment submission email
+  // Send payment submission email with dynamic recipient
+  const recipientEmail = targetReg?.participant_details?.email || 'student@campus.edu'
+  const recipientName = targetReg?.participant_details?.student_name || 'FestFlow Student'
+
   sendPaymentReceivedEmail({
-    to: 'student@campus.edu',
-    name: 'FestFlow Student',
+    to: recipientEmail,
+    name: recipientName,
     eventTitle: eventRes.event?.title || 'Campus Event',
     transactionReference: cleanRef,
     amount,
@@ -468,7 +516,84 @@ export async function reviewPaymentSubmission(params: {
         }
       }
 
-      return data as PaymentReviewResponse
+      const res = data as PaymentReviewResponse
+      if (res.success) {
+        // Dispatch payment_approved / payment_rejected transactional emails
+        try {
+          const { data: payData } = await (supabase.from('payment_submissions') as any)
+            .select(`
+              id,
+              registration_id,
+              event_id,
+              student_id,
+              registrations (
+                id,
+                ticket_code,
+                qr_token,
+                participant_details,
+                team_name,
+                team_id,
+                events (id, title, venue_name),
+                profiles:student_id (email, display_name)
+              )
+            `)
+            .eq('id', paymentId)
+            .single()
+
+          if (payData && payData.registrations) {
+            const reg = payData.registrations
+            const recipientEmail =
+              reg.participant_details?.email ||
+              reg.profiles?.email ||
+              ''
+            const recipientName =
+              reg.participant_details?.student_name ||
+              reg.profiles?.display_name ||
+              'FestFlow Student'
+            const eventTitle = reg.events?.title || 'Campus Event'
+            const venueName = reg.events?.venue_name || 'Campus Venue'
+            const ticketCode = reg.ticket_code || res.ticket_code || ''
+
+            if (recipientEmail) {
+              if (decision === 'approved') {
+                sendPaymentApprovedEmail({
+                  to: recipientEmail,
+                  name: recipientName,
+                  eventTitle,
+                  ticketCode,
+                  venueName,
+                  registrationId: payData.registration_id,
+                  eventId: payData.event_id,
+                }).catch(() => {})
+
+                sendTicketIssuedEmail({
+                  to: recipientEmail,
+                  name: recipientName,
+                  eventTitle,
+                  ticketCode,
+                  venueName,
+                  teamName: reg.team_name,
+                  registrationId: payData.registration_id,
+                  eventId: payData.event_id,
+                }).catch(() => {})
+              } else {
+                sendPaymentRejectedEmail({
+                  to: recipientEmail,
+                  name: recipientName,
+                  eventTitle,
+                  reason: notes || 'Transaction reference could not be verified in organizer account.',
+                  registrationId: payData.registration_id,
+                  eventId: payData.event_id,
+                }).catch(() => {})
+              }
+            }
+          }
+        } catch {
+          // non-blocking
+        }
+      }
+
+      return res
     } catch (err) {
       return {
         success: false,
@@ -583,23 +708,39 @@ export async function reviewPaymentSubmission(params: {
   })
   saveLocalNotifications(notifs)
 
-  // Trigger lifecycle email
+  // Trigger lifecycle email with dynamic recipient
+  const reviewRecipientEmail = targetReg?.participant_details?.email || 'student@campus.edu'
+  const reviewRecipientName = targetReg?.participant_details?.student_name || 'FestFlow Student'
+  const reviewEventTitle = 'Campus Event'
+
   if (decision === 'approved') {
     sendPaymentApprovedEmail({
-      to: 'student@campus.edu',
-      name: 'FestFlow Student',
-      eventTitle: 'Campus Event',
+      to: reviewRecipientEmail,
+      name: reviewRecipientName,
+      eventTitle: reviewEventTitle,
       ticketCode: issuedTicketCode || 'TKT-CONFIRMED',
       venueName: 'Campus Venue',
       registrationId: targetSub.registration_id,
+      eventId: targetSub.event_id,
+    }).catch(() => {})
+
+    sendTicketIssuedEmail({
+      to: reviewRecipientEmail,
+      name: reviewRecipientName,
+      eventTitle: reviewEventTitle,
+      ticketCode: issuedTicketCode || 'TKT-CONFIRMED',
+      venueName: 'Campus Venue',
+      registrationId: targetSub.registration_id,
+      eventId: targetSub.event_id,
     }).catch(() => {})
   } else {
     sendPaymentRejectedEmail({
-      to: 'student@campus.edu',
-      name: 'FestFlow Student',
-      eventTitle: 'Campus Event',
+      to: reviewRecipientEmail,
+      name: reviewRecipientName,
+      eventTitle: reviewEventTitle,
       reason: notes || 'Transaction reference could not be verified in organizer account.',
       registrationId: targetSub.registration_id,
+      eventId: targetSub.event_id,
     }).catch(() => {})
   }
 

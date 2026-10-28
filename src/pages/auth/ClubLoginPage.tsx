@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router'
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router'
 import { motion, AnimatePresence } from 'motion/react'
 import { Mail, AlertCircle, ArrowRight } from 'lucide-react'
 import { shakeError } from '@/lib/animations'
@@ -13,19 +13,22 @@ import { getSafeReturnUrl } from '@/lib/safeNavigation'
 export default function ClubLoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const { user, role, signIn, resendVerification, isLoading } = useAuth()
 
   useEffect(() => {
     if (user && role) {
+      const redirectParam = searchParams.get('redirect') || searchParams.get('next')
+      const fromPath = (location.state as { from?: string })?.from || redirectParam
       if (role === 'club_member' || role === 'platform_admin') {
-        const fromPath = (location.state as { from?: string })?.from
         const target = getSafeReturnUrl(fromPath, role, '/club/dashboard')
         navigate(target, { replace: true })
       } else if (role === 'student') {
-        navigate('/student/dashboard', { replace: true })
+        const target = getSafeReturnUrl(fromPath, role, '/student/dashboard')
+        navigate(target, { replace: true })
       }
     }
-  }, [user, role, location.state, navigate])
+  }, [user, role, location.state, searchParams, navigate])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -59,7 +62,8 @@ export default function ClubLoginPage() {
     if (res.error) {
       setServerError(res.error)
     } else {
-      const fromPath = (location.state as { from?: string })?.from
+      const redirectParam = searchParams.get('redirect') || searchParams.get('next')
+      const fromPath = (location.state as { from?: string })?.from || redirectParam
       const userRole = res.role || role || 'club_member'
       const target = getSafeReturnUrl(fromPath, userRole, '/club/dashboard')
       navigate(target, { replace: true })

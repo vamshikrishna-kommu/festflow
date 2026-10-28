@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured, isProduction } from '@/lib/supabase'
+import { getAuthCallbackUrl, getResetPasswordUrl } from '@/lib/canonicalUrl'
 import type { UserRole, Profile, ClubProfile, StudentProfile } from '@/types'
 
 export interface SignUpClubParams {
@@ -15,12 +16,14 @@ export interface SignUpClubParams {
   clubName: string
   email: string
   password: string
+  redirectTo?: string
 }
 
 export interface SignUpStudentParams {
   name: string
   email: string
   password: string
+  redirectTo?: string
 }
 
 export interface AuthContextType {
@@ -38,7 +41,7 @@ export interface AuthContextType {
   signUpClub: (params: SignUpClubParams) => Promise<{ error: string | null; requiresVerification: boolean }>
   signUpStudent: (params: SignUpStudentParams) => Promise<{ error: string | null; requiresVerification: boolean }>
   signOut: () => Promise<void>
-  resendVerification: (email: string) => Promise<{ error: string | null; success: boolean }>
+  resendVerification: (email: string, redirectTo?: string) => Promise<{ error: string | null; success: boolean }>
   resetPassword: (email: string) => Promise<{ error: string | null; success: boolean }>
   updatePassword: (newPassword: string) => Promise<{ error: string | null; success: boolean }>
   refreshProfile: () => Promise<void>
@@ -567,6 +570,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clubName,
       email,
       password,
+      redirectTo,
     }: SignUpClubParams): Promise<{ error: string | null; requiresVerification: boolean }> => {
       setIsLoading(true)
       try {
@@ -580,7 +584,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 display_name: name,
                 club_name: clubName,
               },
-              emailRedirectTo: `${window.location.origin}/auth/callback`,
+              emailRedirectTo: getAuthCallbackUrl(redirectTo),
             },
           })
 
@@ -624,6 +628,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name,
       email,
       password,
+      redirectTo,
     }: SignUpStudentParams): Promise<{ error: string | null; requiresVerification: boolean }> => {
       setIsLoading(true)
       try {
@@ -636,7 +641,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: 'student',
                 display_name: name,
               },
-              emailRedirectTo: `${window.location.origin}/auth/callback`,
+              emailRedirectTo: getAuthCallbackUrl(redirectTo),
             },
           })
 
@@ -675,14 +680,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Resend Verification Email ─────────────────────────────────────────────
   const resendVerification = useCallback(
-    async (email: string): Promise<{ error: string | null; success: boolean }> => {
+    async (email: string, redirectTo?: string): Promise<{ error: string | null; success: boolean }> => {
       try {
         if (isSupabaseConfigured) {
           const { error } = await supabase.auth.resend({
             type: 'signup',
             email,
             options: {
-              emailRedirectTo: `${window.location.origin}/auth/callback`,
+              emailRedirectTo: getAuthCallbackUrl(redirectTo),
             },
           })
           if (error) return { error: error.message, success: false }
@@ -707,7 +712,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (isSupabaseConfigured) {
           const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: getResetPasswordUrl(),
           })
           if (error) return { error: error.message, success: false }
           return { error: null, success: true }

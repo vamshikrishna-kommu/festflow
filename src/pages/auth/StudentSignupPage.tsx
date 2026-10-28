@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { motion } from 'motion/react'
 import { User, Mail, AlertCircle, ArrowRight, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui'
@@ -7,10 +7,14 @@ import { AuthCard } from '@/components/auth/AuthCard'
 import { PasswordInput } from '@/components/auth/PasswordInput'
 import { VerificationNotice } from '@/components/auth/VerificationNotice'
 import { useAuth } from '@/context/AuthContext'
+import { getSafeReturnUrl } from '@/lib/safeNavigation'
 
 export default function StudentSignupPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { signUpStudent, isLoading } = useAuth()
+
+  const redirectTarget = searchParams.get('redirect') || searchParams.get('next')
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -60,6 +64,7 @@ export default function StudentSignupPage() {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       password,
+      redirectTo: redirectTarget || undefined,
     })
 
     if (res.error) {
@@ -67,7 +72,8 @@ export default function StudentSignupPage() {
     } else if (res.requiresVerification) {
       setIsPendingVerification(true)
     } else {
-      navigate('/student/dashboard', { replace: true })
+      const target = getSafeReturnUrl(redirectTarget, 'student', '/student/dashboard')
+      navigate(target, { replace: true })
     }
   }
 
@@ -82,7 +88,13 @@ export default function StudentSignupPage() {
         <VerificationNotice
           email={email}
           role="student"
-          onBackToLogin={() => navigate('/student/login')}
+          onBackToLogin={() =>
+            navigate(
+              redirectTarget
+                ? `/student/login?redirect=${encodeURIComponent(redirectTarget)}`
+                : '/student/login'
+            )
+          }
         />
       </AuthCard>
     )

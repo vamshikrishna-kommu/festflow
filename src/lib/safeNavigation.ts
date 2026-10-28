@@ -81,6 +81,10 @@ export function isPathAllowedForRole(path: string, role: UserRole | null | undef
     cleanPath === '/' ||
     cleanPath === '/discover' ||
     cleanPath.startsWith('/events/') ||
+    cleanPath.startsWith('/join-team') ||
+    cleanPath.startsWith('/club/invitations/') ||
+    cleanPath.startsWith('/club/invitation/') ||
+    cleanPath.startsWith('/accept-club-invitation/') ||
     cleanPath === '/privacy' ||
     cleanPath === '/terms' ||
     cleanPath === '/contact'
