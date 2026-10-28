@@ -11,7 +11,10 @@ import { getEventById } from '@/lib/events'
 import {
   sendPaymentApprovedEmail,
   sendPaymentRejectedEmail,
+  sendPaymentReceivedEmail,
+  sendTicketIssuedEmail,
 } from '@/lib/emails'
+import { broadcastStatusChange } from '@/lib/sync'
 
 const LOCAL_STORAGE_PAYMENT_SETTINGS_KEY = 'festflow_local_club_payment_settings'
 const LOCAL_STORAGE_PAYMENT_SUBMISSIONS_KEY = 'festflow_local_payment_submissions'
@@ -404,6 +407,27 @@ export async function submitPaymentProof(params: {
   })
   saveLocalNotifications(notifs)
 
+  // Send payment submission email
+  sendPaymentReceivedEmail({
+    to: 'student@campus.edu',
+    name: 'FestFlow Student',
+    eventTitle: eventRes.event?.title || 'Campus Event',
+    transactionReference: cleanRef,
+    amount,
+    registrationId,
+    eventId,
+  }).catch(() => {})
+
+  // Broadcast realtime status change
+  broadcastStatusChange({
+    type: 'payment_submitted',
+    registrationId,
+    eventId,
+    studentId,
+    clubId: eventRes.event?.club_id,
+    payload: { transactionReference: cleanRef, amount },
+  })
+
   return {
     success: true,
     message: 'Payment reference submitted successfully for organizer verification.',
@@ -503,8 +527,37 @@ export async function reviewPaymentSubmission(params: {
         targetReg.ticket_code = issuedTicketCode
       }
       targetReg.ticket_issued_at = new Date().toISOString()
+
+      // Synchronize team squad registrations if applicable
+      if (targetReg.team_id) {
+        const squadRegs = localRegs.filter((r: any) => r.team_id === targetReg.team_id && r.id !== targetReg.id)
+        for (const sReg of squadRegs) {
+          sReg.status = 'confirmed'
+          if (!sReg.ticket_issued_at) {
+            sReg.ticket_issued_at = new Date().toISOString()
+          }
+          sReg.updated_at = new Date().toISOString()
+          sendTicketIssuedEmail({
+            to: sReg.participant_details?.email || 'teammate@campus.edu',
+            name: sReg.participant_details?.student_name || 'Squad Member',
+            eventTitle: 'Campus Event',
+            ticketCode: sReg.ticket_code || 'TKT-CONFIRMED',
+            venueName: 'Campus Venue',
+            teamName: targetReg.team_name,
+            registrationId: sReg.id,
+            eventId: sReg.event_id,
+          }).catch(() => {})
+        }
+      }
     } else {
       targetReg.status = 'rejected'
+      if (targetReg.team_id) {
+        const squadRegs = localRegs.filter((r: any) => r.team_id === targetReg.team_id && r.id !== targetReg.id)
+        for (const sReg of squadRegs) {
+          sReg.status = 'rejected'
+          sReg.updated_at = new Date().toISOString()
+        }
+      }
     }
     targetReg.updated_at = new Date().toISOString()
     localStorage.setItem('festflow_local_registrations', JSON.stringify(localRegs))
@@ -549,6 +602,27 @@ export async function reviewPaymentSubmission(params: {
       registrationId: targetSub.registration_id,
     }).catch(() => {})
   }
+
+  // Broadcast realtime status change
+  broadcastStatusChange({
+    type: 'payment_reviewed',
+    registrationId: targetSub.registration_id,
+    eventId: targetSub.event_id,
+    studentId: targetSub.student_id,
+    payload: { status: decision, notes },
+  })
+  broadcastStatusChange({
+    type: 'registration_updated',
+    registrationId: targetSub.registration_id,
+    eventId: targetSub.event_id,
+    studentId: targetSub.student_id,
+  })
+  broadcastStatusChange({
+    type: 'ticket_updated',
+    registrationId: targetSub.registration_id,
+    eventId: targetSub.event_id,
+    studentId: targetSub.student_id,
+  })
 
   return {
     success: true,

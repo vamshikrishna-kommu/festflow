@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import { Button, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
-import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 interface StudentSettingsModalProps {
   isOpen: boolean
@@ -26,7 +25,7 @@ export function StudentSettingsModal({
   onClose,
   initialSection = 'profile',
 }: StudentSettingsModalProps) {
-  const { user, profile, studentProfile, signOut, refreshProfile } = useAuth()
+  const { user, profile, studentProfile, signOut, updateProfile } = useAuth()
 
   const [activeSection, setActiveSection] = useState<'profile' | 'notifications' | 'sound' | 'appearance' | 'security'>(initialSection)
   
@@ -36,18 +35,27 @@ export function StudentSettingsModal({
   const [gradYear, setGradYear] = useState(studentProfile?.graduation_year ? String(studentProfile.graduation_year) : '')
   const [phone, setPhone] = useState(user?.user_metadata?.phone || '')
 
-  // Notification Preferences (stored in localStorage)
+  // Notification Preferences (Account-level: loaded from user_metadata first, fallback to localStorage)
   const [emailAlerts, setEmailAlerts] = useState<boolean>(() => {
+    if (user?.user_metadata?.preferences?.emailAlerts !== undefined) {
+      return Boolean(user.user_metadata.preferences.emailAlerts)
+    }
     return localStorage.getItem('festflow_pref_email') !== 'false'
   })
   const [reminderAlerts, setReminderAlerts] = useState<boolean>(() => {
+    if (user?.user_metadata?.preferences?.reminderAlerts !== undefined) {
+      return Boolean(user.user_metadata.preferences.reminderAlerts)
+    }
     return localStorage.getItem('festflow_pref_reminders') !== 'false'
   })
   const [ticketUpdates, setTicketUpdates] = useState<boolean>(() => {
+    if (user?.user_metadata?.preferences?.ticketUpdates !== undefined) {
+      return Boolean(user.user_metadata.preferences.ticketUpdates)
+    }
     return localStorage.getItem('festflow_pref_ticket_updates') !== 'false'
   })
 
-  // Sound & Haptic Preferences
+  // Sound & Haptic Preferences (Device-specific)
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     return localStorage.getItem('festflow_pref_sound') !== 'false'
   })
@@ -55,7 +63,7 @@ export function StudentSettingsModal({
     return localStorage.getItem('festflow_pref_haptics') !== 'false'
   })
 
-  // Appearance Preferences
+  // Appearance Preferences (Device-specific)
   const [scannerHighContrast, setScannerHighContrast] = useState<boolean>(() => {
     return localStorage.getItem('festflow_pref_high_contrast') === 'true'
   })
@@ -71,6 +79,11 @@ export function StudentSettingsModal({
       setCollegeName(studentProfile?.college_name || user?.user_metadata?.college || '')
       setGradYear(studentProfile?.graduation_year ? String(studentProfile.graduation_year) : '')
       setPhone(user?.user_metadata?.phone || '')
+      if (user?.user_metadata?.preferences) {
+        if (user.user_metadata.preferences.emailAlerts !== undefined) setEmailAlerts(Boolean(user.user_metadata.preferences.emailAlerts))
+        if (user.user_metadata.preferences.reminderAlerts !== undefined) setReminderAlerts(Boolean(user.user_metadata.preferences.reminderAlerts))
+        if (user.user_metadata.preferences.ticketUpdates !== undefined) setTicketUpdates(Boolean(user.user_metadata.preferences.ticketUpdates))
+      }
       setSavedNotice(null)
       setErrorMessage(null)
     }
@@ -79,17 +92,43 @@ export function StudentSettingsModal({
   const handleSavePreferences = async () => {
     setIsSaving(true)
     setErrorMessage(null)
+    setSavedNotice(null)
 
     try {
-      // Save profile changes if configured
-      if (user?.id && displayName.trim()) {
-        if (isSupabaseConfigured) {
-          await (supabase.from('profiles') as any).update({ display_name: displayName.trim() }).eq('id', user.id)
-        }
-        await refreshProfile()
+      if (!displayName.trim()) {
+        throw new Error('Full Name / Display Name cannot be empty.')
       }
 
-      // Save notification and sound settings to localStorage
+      if (gradYear.trim()) {
+        const yr = parseInt(gradYear.trim(), 10)
+        if (isNaN(yr) || yr < 1980 || yr > 2035) {
+          throw new Error('Please enter a valid graduation year (between 1980 and 2035).')
+        }
+      }
+
+      if (phone.trim() && !/^[0-9+\-\s()]{8,15}$/.test(phone.trim())) {
+        throw new Error('Please enter a valid mobile phone number (8-15 digits).')
+      }
+
+      const res = await updateProfile({
+        displayName: displayName.trim(),
+        collegeName: collegeName.trim() || undefined,
+        gradYear: gradYear.trim() ? parseInt(gradYear.trim(), 10) : null,
+        phone: phone.trim() || undefined,
+        preferences: {
+          emailAlerts,
+          reminderAlerts,
+          ticketUpdates,
+        },
+      })
+
+      if (res.error) {
+        setIsSaving(false)
+        setErrorMessage(res.error)
+        return
+      }
+
+      // Save notification and sound settings to localStorage for device caching
       localStorage.setItem('festflow_pref_email', String(emailAlerts))
       localStorage.setItem('festflow_pref_reminders', String(reminderAlerts))
       localStorage.setItem('festflow_pref_ticket_updates', String(ticketUpdates))
@@ -99,7 +138,7 @@ export function StudentSettingsModal({
 
       setIsSaving(false)
       setSavedNotice('Settings saved successfully!')
-      setTimeout(() => setSavedNotice(null), 3000)
+      setTimeout(() => setSavedNotice(null), 3500)
     } catch (err: any) {
       setIsSaving(false)
       setErrorMessage(err?.message || 'Failed to update preferences.')

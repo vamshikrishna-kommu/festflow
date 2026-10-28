@@ -18,10 +18,12 @@ import {
   GraduationCap,
   Copy,
   Check,
+  Share2,
 } from 'lucide-react'
 import { Button, Badge, Alert } from '@/components/ui'
 import { Link } from 'react-router'
 import { registerForEvent } from '@/lib/registrations'
+import { buildTeamInviteLink } from '@/lib/teams'
 import type {
   EventWithClub,
   Profile,
@@ -100,6 +102,7 @@ export function EventRegistrationModal({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [submissionResult, setSubmissionResult] = useState<RegistrationResponse | null>(null)
   const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedInvite, setCopiedInvite] = useState(false)
 
   if (!isOpen) return null
 
@@ -415,6 +418,31 @@ export function EventRegistrationModal({
     navigator.clipboard.writeText(code)
     setCopiedCode(true)
     setTimeout(() => setCopiedCode(false), 2000)
+  }
+
+  const handleCopyInviteCode = (inviteCode: string) => {
+    navigator.clipboard.writeText(inviteCode)
+    setCopiedInvite(true)
+    setTimeout(() => setCopiedInvite(false), 2000)
+  }
+
+  const handleShareInvite = async (inviteCode: string) => {
+    const link = buildTeamInviteLink(event.slug, inviteCode)
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join squad "${teamName}" for ${event.title}!`,
+          text: `Join our team "${teamName}" on FestFlow. Use code ${inviteCode} or link:`,
+          url: link,
+        })
+        return
+      } catch {
+        // Fallback to copy
+      }
+    }
+    navigator.clipboard.writeText(link)
+    setCopiedInvite(true)
+    setTimeout(() => setCopiedInvite(false), 2000)
   }
 
   const formattedDate = event.start_date
@@ -1329,6 +1357,47 @@ export function EventRegistrationModal({
                     <span className="text-[var(--color-brand-purple)] font-semibold">
                       {teamName} ({teamMembers.length + (event.leader_counts_towards_size ? 1 : 0)} members)
                     </span>
+                  </div>
+                )}
+
+                {hasTeam && submissionResult.invite_code && (
+                  <div className="mt-2 p-3.5 rounded-2xl bg-gradient-to-r from-[var(--color-brand-purple)]/15 to-[var(--color-brand-cyan)]/15 border border-[var(--color-brand-purple)]/30 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-brand-purple)]">
+                        Squad Invitation Code
+                      </span>
+                      <span className="text-[10px] text-[var(--color-text-muted)]">Share with members</span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-base font-bold text-[var(--color-brand-cyan)] tracking-wider">
+                        {submissionResult.invite_code}
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyInviteCode(submissionResult.invite_code!)}
+                          className="px-2.5 py-1 rounded-lg bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-4)] text-[var(--color-text-primary)] text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          {copiedInvite ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                          <span>{copiedInvite ? 'Copied' : 'Copy'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleShareInvite(submissionResult.invite_code!)}
+                          className="px-2.5 py-1 rounded-lg bg-[var(--color-brand-purple)] hover:bg-[var(--color-brand-purple-hover)] text-white text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Share2 size={13} />
+                          <span>Share</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-[var(--color-text-muted)] leading-relaxed">
+                      Teammates can use this code on the event page to join your squad directly.
+                    </p>
                   </div>
                 )}
               </div>

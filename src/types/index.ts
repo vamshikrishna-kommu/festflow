@@ -39,12 +39,135 @@ export type StudentProfile = Database['public']['Tables']['student_profiles']['R
 export type EventRecord = Database['public']['Tables']['events']['Row']
 export type EventInsert = Database['public']['Tables']['events']['Insert']
 export type EventUpdate = Database['public']['Tables']['events']['Update']
-export type RegistrationRecord = Database['public']['Tables']['registrations']['Row']
+export type RegistrationRecord = Database['public']['Tables']['registrations']['Row'] & {
+  attendance_status?: AttendanceStatus
+}
 export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert']
 export type ClubPaymentSettings = Database['public']['Tables']['club_payment_settings']['Row']
 export type PaymentSubmission = Database['public']['Tables']['payment_submissions']['Row']
 export type InAppNotification = Database['public']['Tables']['in_app_notifications']['Row']
 export type CheckInRecord = Database['public']['Tables']['check_ins']['Row']
+export type TeamRecord = Database['public']['Tables']['teams']['Row']
+export type TeamInsert = Database['public']['Tables']['teams']['Insert']
+export type TeamInvitationRecord = Database['public']['Tables']['team_invitations']['Row']
+export type TeamMemberRecord = Database['public']['Tables']['team_members']['Row']
+
+// ── Club Members & Permissions (Phase 6) ────────────────────────────────────
+export type ClubRole =
+  | 'owner'
+  | 'admin'
+  | 'event_manager'
+  | 'payment_reviewer'
+  | 'checkin_staff'
+  | 'viewer'
+
+export type ClubPermission =
+  | 'manage_club'
+  | 'manage_members'
+  | 'manage_events'
+  | 'view_attendees'
+  | 'gate_checkin'
+  | 'review_payments'
+  | 'view_reports'
+
+export interface ClubMemberRecord {
+  id: string
+  club_id: string
+  user_id: string
+  role: ClubRole
+  status: 'active' | 'suspended'
+  created_at: string
+  updated_at: string
+  profile?: Profile | null
+}
+
+export interface ClubInvitationRecord {
+  id: string
+  club_id: string
+  email: string
+  role: ClubRole
+  invited_by: string
+  token: string
+  status: 'pending' | 'accepted' | 'revoked' | 'expired'
+  expires_at: string
+  accepted_at?: string | null
+  accepted_by?: string | null
+  created_at: string
+  updated_at: string
+  inviter?: Profile | null
+  club?: ClubProfile | null
+}
+
+export interface ClubAuditLogRecord {
+  id: string
+  club_id: string
+  actor_id: string
+  action:
+    | 'member_invited'
+    | 'invitation_accepted'
+    | 'invitation_revoked'
+    | 'invitation_resent'
+    | 'role_updated'
+    | 'member_removed'
+    | 'ownership_transferred'
+  target_id?: string | null
+  target_email?: string | null
+  old_value?: string | null
+  new_value?: string | null
+  details?: Record<string, any>
+  created_at: string
+  actor?: Profile | null
+}
+
+export interface TeamPreview {
+  team_id: string
+  team_name: string
+  event_id: string
+  event_title: string
+  event_slug: string
+  event_category: EventCategory
+  event_poster?: string | null
+  start_date: string
+  venue_name: string
+  is_free: boolean
+  price?: number
+  leader_name: string
+  current_size: number
+  min_size: number
+  max_size: number
+  is_full: boolean
+  is_open: boolean
+  require_team_name: boolean
+}
+
+export interface TeamJoinResponse {
+  success: boolean
+  message: string
+  error_code?: string
+  team_id?: string
+  team_name?: string
+  registration_id?: string
+  ticket_code?: string
+  member_count?: number
+}
+
+export interface TeamInviteResponse {
+  success: boolean
+  message: string
+  error_code?: string
+  invitation_id?: string
+  token?: string
+  invite_code?: string
+  email?: string
+}
+
+export interface TeamDetails extends TeamRecord {
+  event?: EventRecord | null
+  leader?: { display_name: string; email?: string } | null
+  members: TeamMemberRecord[]
+  invitations: TeamInvitationRecord[]
+  userRole?: 'leader' | 'member' | null
+}
 
 export interface EventWithClub extends EventRecord {
   club?: {
@@ -98,6 +221,13 @@ export interface PaymentReviewResponse {
   ticket_code?: string
 }
 
+export type AttendanceStatus =
+  | 'not_checked_in'
+  | 'checked_in'
+  | 'checked_out'
+  | 'cancelled'
+  | 'ineligible'
+
 export interface CheckInResponse {
   success: boolean
   outcome: CheckInOutcome
@@ -105,6 +235,10 @@ export interface CheckInResponse {
   student_name?: string
   ticket_code?: string
   checked_in_at?: string
+  checked_out_at?: string
+  is_reentry?: boolean
+  entry_count?: number
+  allow_reentry?: boolean
   event_title?: string
   member_index?: number
   member_name?: string
@@ -115,6 +249,9 @@ export interface CheckInResponse {
 export interface CheckInStats {
   totalCapacity: number
   confirmedRegistrations: number
+  checkedInCount: number
+  checkedOutCount: number
+  notCheckedInCount: number
   successfulCheckIns: number
   remainingExpected: number
   attendancePercentage: number
@@ -123,6 +260,7 @@ export interface CheckInStats {
 export interface RegistrationWithCheckIn extends RegistrationWithStudent {
   check_in?: CheckInRecord | null
   check_ins?: CheckInRecord[]
+  attendance_status?: AttendanceStatus
 }
 
 export interface TeamMember {
@@ -144,6 +282,8 @@ export interface RegistrationResponse {
   approval_status?: string
   is_free?: boolean
   ticket_issued?: boolean
+  team_id?: string
+  invite_code?: string
 }
 
 export interface AuthUser {

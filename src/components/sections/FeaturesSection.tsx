@@ -76,7 +76,7 @@ export function FeaturesSection() {
 
   return (
     <section
-      id="features"
+      id="features-overview"
       ref={ref}
       aria-labelledby="features-heading"
       className="relative scroll-mt-24 py-20 sm:py-28 lg:py-36 px-4 sm:px-6 lg:px-8 overflow-hidden"

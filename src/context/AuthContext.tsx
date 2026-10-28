@@ -42,6 +42,17 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: string | null; success: boolean }>
   updatePassword: (newPassword: string) => Promise<{ error: string | null; success: boolean }>
   refreshProfile: () => Promise<void>
+  updateProfile: (data: {
+    displayName?: string
+    collegeName?: string
+    gradYear?: number | null
+    phone?: string
+    clubName?: string
+    repName?: string
+    description?: string
+    websiteUrl?: string
+    preferences?: Record<string, any>
+  }) => Promise<{ error: string | null }>
   // Demo simulation helper for testing when Supabase is not yet connected
   setDemoUser: (role: 'club_member' | 'student') => void
 }
@@ -239,10 +250,202 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Refresh Profile ───────────────────────────────────────────────────────
   const refreshProfile = useCallback(async () => {
+    if (isSupabaseConfigured) {
+      try {
+        const { data: { user: freshUser } } = await supabase.auth.getUser()
+        if (freshUser) {
+          setUser(freshUser)
+          await fetchProfile(freshUser.id, freshUser.user_metadata)
+          return
+        }
+      } catch (err) {
+        console.warn('[FestFlow Auth] Failed to fetch current user session:', err)
+      }
+    } else {
+      // Local simulation mode re-sync
+      try {
+        const stored = localStorage.getItem(MOCK_STORAGE_KEY)
+        if (stored) {
+          const parsed = JSON.parse(stored) as SimulatedAuthData
+          setUser(parsed.user as unknown as User)
+          setProfile(parsed.profile)
+          if (parsed.studentProfile !== undefined) setStudentProfile(parsed.studentProfile)
+          if (parsed.clubProfile !== undefined) setClubProfile(parsed.clubProfile)
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     if (user?.id) {
       await fetchProfile(user.id, user.user_metadata)
     }
   }, [user, fetchProfile])
+
+  // ── Update Profile & Settings ──────────────────────────────────────────────
+  const updateProfile = useCallback(
+    async (params: {
+      displayName?: string
+      collegeName?: string
+      gradYear?: number | null
+      phone?: string
+      clubName?: string
+      repName?: string
+      description?: string
+      websiteUrl?: string
+      preferences?: Record<string, any>
+    }): Promise<{ error: string | null }> => {
+      try {
+        if (!user?.id) {
+          return { error: 'No active authenticated user session found.' }
+        }
+
+        if (isSupabaseConfigured) {
+          // 1. Update profiles table if displayName provided
+          if (params.displayName !== undefined) {
+            const { error: pErr } = await (supabase.from('profiles') as any)
+              .update({
+                display_name: params.displayName.trim(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', user.id)
+            if (pErr) return { error: pErr.message }
+          }
+
+          // 2. Update student_profiles table if student fields provided
+          if (params.collegeName !== undefined || params.gradYear !== undefined) {
+            const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() }
+            if (params.collegeName !== undefined) updatePayload.college_name = params.collegeName?.trim() || null
+            if (params.gradYear !== undefined) updatePayload.graduation_year = params.gradYear
+
+            const { error: sErr } = await (supabase.from('student_profiles') as any)
+              .update(updatePayload)
+              .eq('profile_id', user.id)
+            if (sErr) return { error: sErr.message }
+          }
+
+          // 3. Update club_profiles table if club fields provided
+          if (
+            params.clubName !== undefined ||
+            params.repName !== undefined ||
+            params.description !== undefined ||
+            params.websiteUrl !== undefined
+          ) {
+            const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() }
+            if (params.clubName !== undefined) updatePayload.club_name = params.clubName.trim()
+            if (params.repName !== undefined) updatePayload.representative_name = params.repName.trim()
+            if (params.description !== undefined) updatePayload.description = params.description?.trim() || null
+            if (params.websiteUrl !== undefined) updatePayload.website_url = params.websiteUrl?.trim() || null
+
+            const { error: cErr } = await (supabase.from('club_profiles') as any)
+              .update(updatePayload)
+              .eq('profile_id', user.id)
+            if (cErr) return { error: cErr.message }
+          }
+
+          // 4. Update Supabase Auth user_metadata
+          const metadataUpdates: Record<string, any> = {}
+          if (params.displayName !== undefined) metadataUpdates.display_name = params.displayName.trim()
+          if (params.collegeName !== undefined) metadataUpdates.college = params.collegeName?.trim() || null
+          if (params.gradYear !== undefined) metadataUpdates.graduation_year = params.gradYear
+          if (params.phone !== undefined) metadataUpdates.phone = params.phone?.trim() || null
+          if (params.clubName !== undefined) metadataUpdates.club_name = params.clubName.trim()
+          if (params.preferences !== undefined) metadataUpdates.preferences = params.preferences
+
+          if (Object.keys(metadataUpdates).length > 0) {
+            const { error: authErr } = await supabase.auth.updateUser({
+              data: metadataUpdates,
+            })
+            if (authErr) return { error: authErr.message }
+          }
+
+          // 5. Refresh user session and profiles
+          await refreshProfile()
+          return { error: null }
+        } else {
+          // Offline / Local Simulation Mode (Development only)
+          const stored = localStorage.getItem(MOCK_STORAGE_KEY)
+          if (stored) {
+            const parsed = JSON.parse(stored) as SimulatedAuthData
+            if (params.displayName !== undefined) {
+              parsed.profile.display_name = params.displayName.trim()
+              parsed.user.user_metadata.display_name = params.displayName.trim()
+            }
+            if (params.phone !== undefined) {
+              ;(parsed.user.user_metadata as any).phone = params.phone?.trim() || ''
+            }
+            if (params.collegeName !== undefined || params.gradYear !== undefined) {
+              if (!parsed.studentProfile) {
+                parsed.studentProfile = {
+                  id: `sp_${user.id}`,
+                  profile_id: user.id,
+                  college_name: null,
+                  graduation_year: null,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }
+              }
+              if (params.collegeName !== undefined) {
+                parsed.studentProfile.college_name = params.collegeName?.trim() || null
+                ;(parsed.user.user_metadata as any).college = params.collegeName?.trim() || ''
+              }
+              if (params.gradYear !== undefined) {
+                parsed.studentProfile.graduation_year = params.gradYear
+                ;(parsed.user.user_metadata as any).graduation_year = params.gradYear
+              }
+            }
+            if (
+              params.clubName !== undefined ||
+              params.repName !== undefined ||
+              params.description !== undefined ||
+              params.websiteUrl !== undefined
+            ) {
+              if (!parsed.clubProfile) {
+                parsed.clubProfile = {
+                  id: `cp_${user.id}`,
+                  profile_id: user.id,
+                  club_name: 'Campus Club',
+                  representative_name: parsed.profile.display_name,
+                  website_url: null,
+                  description: null,
+                  is_verified: false,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }
+              }
+              if (params.clubName !== undefined) {
+                parsed.clubProfile.club_name = params.clubName.trim()
+                parsed.user.user_metadata.club_name = params.clubName.trim()
+              }
+              if (params.repName !== undefined) {
+                parsed.clubProfile.representative_name = params.repName.trim()
+              }
+              if (params.description !== undefined) {
+                parsed.clubProfile.description = params.description?.trim() || null
+              }
+              if (params.websiteUrl !== undefined) {
+                parsed.clubProfile.website_url = params.websiteUrl?.trim() || null
+              }
+            }
+            if (params.preferences !== undefined) {
+              ;(parsed.user.user_metadata as any).preferences = params.preferences
+            }
+
+            localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(parsed))
+            setUser(parsed.user as unknown as User)
+            setProfile(parsed.profile)
+            if (parsed.studentProfile) setStudentProfile(parsed.studentProfile)
+            if (parsed.clubProfile) setClubProfile(parsed.clubProfile)
+          }
+
+          return { error: null }
+        }
+      } catch (err: any) {
+        return { error: err?.message || 'Failed to update profile settings.' }
+      }
+    },
+    [user, refreshProfile]
+  )
 
   // ── Sign In ───────────────────────────────────────────────────────────────
   const signIn = useCallback(
@@ -659,6 +862,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetPassword,
     updatePassword,
     refreshProfile,
+    updateProfile,
     setDemoUser,
   }
 

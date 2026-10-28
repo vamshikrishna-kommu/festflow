@@ -137,7 +137,7 @@ export function BottomNav() {
 
               {/* 5. Settings */}
               <NavLink
-                to="/club/settings/payments"
+                to="/club/settings"
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
                     isActive

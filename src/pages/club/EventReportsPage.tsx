@@ -24,6 +24,12 @@ import {
   exportPaymentReconciliationCsv,
   exportAttendanceReportCsv,
 } from '@/lib/csvExport'
+import {
+  exportFullAttendeesXlsx,
+  exportAttendanceReportXlsx,
+  exportTeamsReportXlsx,
+  exportPaymentsReportXlsx,
+} from '@/lib/excelExport'
 import type {
   EventRecord,
   RegistrationWithStudent,
@@ -45,6 +51,7 @@ export default function EventReportsPage() {
   const [loading, setLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [exportingType, setExportingType] = useState<string | null>(null)
 
   // Reminder Modal
   const [showReminderModal, setShowReminderModal] = useState(false)
@@ -278,15 +285,17 @@ export default function EventReportsPage() {
           </Card>
         </div>
 
-        {/* Section 1: CSV Export Actions */}
+        {/* Section 1: Data Exports (Excel .xlsx & CSV) */}
         <div className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-base font-bold font-display text-[var(--color-text-primary)]">
-              Official Data Exports
-            </h2>
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              Download sanitized, formula-injection-safe UTF-8 CSV spreadsheets for administrative reporting.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-bold font-display text-[var(--color-text-primary)]">
+                Official Administrative Exports
+              </h2>
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                Download formatted Excel workbooks (.xlsx) with frozen panes and zebra styling, or raw CSV spreadsheets.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -304,42 +313,92 @@ export default function EventReportsPage() {
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => event && exportRegistrationsListCsv(event, registrations)}
-                disabled={!event || registrations.length === 0}
-                leftIcon={<Download size={14} />}
-                className="w-full"
-              >
-                Download CSV
-              </Button>
+              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    if (!event) return
+                    setExportingType('full_xlsx')
+                    try {
+                      await exportFullAttendeesXlsx({
+                        event,
+                        registrations,
+                        checkIns: attendeesWithCheckIn.flatMap(a => a.check_ins || (a.check_in ? [a.check_in] : [])),
+                        payments,
+                        isAuthorized: Boolean(isAuthorized),
+                      })
+                    } finally {
+                      setExportingType(null)
+                    }
+                  }}
+                  disabled={!event || registrations.length === 0 || Boolean(exportingType)}
+                  isLoading={exportingType === 'full_xlsx'}
+                  leftIcon={<Download size={14} />}
+                  className="w-full bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium"
+                >
+                  Download Excel (.xlsx)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => event && exportRegistrationsListCsv(event, registrations)}
+                  disabled={!event || registrations.length === 0 || Boolean(exportingType)}
+                  className="w-full text-xs text-[var(--color-text-secondary)]"
+                >
+                  Download CSV
+                </Button>
+              </div>
             </Card>
 
-            {/* Export 2: Confirmed Attendees */}
-            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-emerald-500/50 transition-colors">
+            {/* Export 2: Gate Attendance Report */}
+            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[var(--color-brand-cyan)]/50 transition-colors">
               <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 w-fit">
-                  <CheckCircle2 size={20} />
+                <div className="p-2.5 rounded-xl bg-[var(--color-brand-cyan)]/10 text-[var(--color-brand-cyan)] w-fit">
+                  <QrCode size={20} />
                 </div>
                 <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
-                  Confirmed Attendees
+                  Gate Attendance Report
                 </h3>
                 <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  List of valid ticket holders eligible for entry, seat allocation, and catering ({confirmedAttendees} rows).
+                  Real-time entry verification logs with exact check-in timestamps and admission status ({attendeesWithCheckIn.length} rows).
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => event && exportConfirmedAttendeesCsv(event, registrations)}
-                disabled={!event || confirmedAttendees === 0}
-                leftIcon={<Download size={14} />}
-                className="w-full"
-              >
-                Download CSV
-              </Button>
+              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    if (!event) return
+                    setExportingType('attendance_xlsx')
+                    try {
+                      await exportAttendanceReportXlsx({
+                        event,
+                        registrations: attendeesWithCheckIn,
+                        checkIns: attendeesWithCheckIn.flatMap(a => a.check_ins || (a.check_in ? [a.check_in] : [])),
+                      })
+                    } finally {
+                      setExportingType(null)
+                    }
+                  }}
+                  disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
+                  isLoading={exportingType === 'attendance_xlsx'}
+                  leftIcon={<Download size={14} />}
+                  className="w-full bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black font-semibold"
+                >
+                  Download Excel (.xlsx)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => event && exportAttendanceReportCsv(event, attendeesWithCheckIn)}
+                  disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
+                  className="w-full text-xs text-[var(--color-text-secondary)]"
+                >
+                  Download CSV
+                </Button>
+              </div>
             </Card>
 
             {/* Export 3: Payment Reconciliation */}
@@ -356,43 +415,143 @@ export default function EventReportsPage() {
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => event && exportPaymentReconciliationCsv(event, payments)}
-                disabled={!event || payments.length === 0}
-                leftIcon={<Download size={14} />}
-                className="w-full"
-              >
-                Download CSV
-              </Button>
-            </Card>
-
-            {/* Export 4: Gate Check-In Report */}
-            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[var(--color-brand-cyan)]/50 transition-colors">
-              <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-[var(--color-brand-cyan)]/10 text-[var(--color-brand-cyan)] w-fit">
-                  <QrCode size={20} />
-                </div>
-                <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
-                  Gate Attendance Report
-                </h3>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  Real-time entry verification logs with exact check-in timestamps and admission status ({attendeesWithCheckIn.length} rows).
-                </p>
+              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={async () => {
+                    if (!event) return
+                    setExportingType('payment_xlsx')
+                    try {
+                      await exportPaymentsReportXlsx({
+                        event,
+                        payments,
+                        isAuthorized: Boolean(isAuthorized),
+                      })
+                    } finally {
+                      setExportingType(null)
+                    }
+                  }}
+                  disabled={!event || payments.length === 0 || Boolean(exportingType)}
+                  isLoading={exportingType === 'payment_xlsx'}
+                  leftIcon={<Download size={14} />}
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+                >
+                  Download Excel (.xlsx)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => event && exportPaymentReconciliationCsv(event, payments)}
+                  disabled={!event || payments.length === 0 || Boolean(exportingType)}
+                  className="w-full text-xs text-[var(--color-text-secondary)]"
+                >
+                  Download CSV
+                </Button>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => event && exportAttendanceReportCsv(event, attendeesWithCheckIn)}
-                disabled={!event || attendeesWithCheckIn.length === 0}
-                leftIcon={<Download size={14} />}
-                className="w-full"
-              >
-                Download CSV
-              </Button>
             </Card>
+
+            {/* Export 4: Confirmed Attendees or Team Roster */}
+            {event?.participation_type === 'team' ? (
+              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-pink-500/50 transition-colors">
+                <div className="space-y-1.5">
+                  <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-400 w-fit">
+                    <Users size={20} />
+                  </div>
+                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Squads & Team Rosters
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                    Dedicated breakdown of team leaders, invited members, and individual squad credentials.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={async () => {
+                      if (!event) return
+                      setExportingType('team_xlsx')
+                      try {
+                        await exportTeamsReportXlsx({
+                          event,
+                          registrations,
+                        })
+                      } finally {
+                        setExportingType(null)
+                      }
+                    }}
+                    disabled={!event || registrations.length === 0 || Boolean(exportingType)}
+                    isLoading={exportingType === 'team_xlsx'}
+                    leftIcon={<Download size={14} />}
+                    className="w-full bg-pink-600 hover:bg-pink-500 text-white font-medium"
+                  >
+                    Download Excel (.xlsx)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => event && exportConfirmedAttendeesCsv(event, registrations)}
+                    disabled={!event || confirmedAttendees === 0 || Boolean(exportingType)}
+                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                  >
+                    Confirmed CSV
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-emerald-500/50 transition-colors">
+                <div className="space-y-1.5">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 w-fit">
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Confirmed Attendees
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                    List of valid ticket holders eligible for entry, seat allocation, and catering ({confirmedAttendees} rows).
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={async () => {
+                      if (!event) return
+                      setExportingType('confirmed_xlsx')
+                      try {
+                        await exportFullAttendeesXlsx({
+                          event,
+                          registrations: registrations.filter((r) => r.status === 'confirmed'),
+                          checkIns: attendeesWithCheckIn.flatMap(a => a.check_ins || (a.check_in ? [a.check_in] : [])),
+                          payments,
+                          isAuthorized: Boolean(isAuthorized),
+                        })
+                      } finally {
+                        setExportingType(null)
+                      }
+                    }}
+                    disabled={!event || confirmedAttendees === 0 || Boolean(exportingType)}
+                    isLoading={exportingType === 'confirmed_xlsx'}
+                    leftIcon={<Download size={14} />}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                  >
+                    Download Excel (.xlsx)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => event && exportConfirmedAttendeesCsv(event, registrations)}
+                    disabled={!event || confirmedAttendees === 0 || Boolean(exportingType)}
+                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                  >
+                    Download CSV
+                  </Button>
+                </div>
+              </Card>
+            )}
           </div>
         </div>
 

@@ -15,9 +15,12 @@ import {
   Calendar,
   CreditCard,
   Ticket,
+  Settings,
+  Users,
 } from 'lucide-react'
 import { Button, Badge, Logo } from '@/components/ui'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
 import { navbarSlide, dropdownMenu } from '@/lib/animations'
 import { useScrollProgress } from '@/hooks/useScrollProgress'
 import { useAuth } from '@/context/AuthContext'
@@ -44,6 +47,7 @@ const CLUB_NAV_LINKS: NavItem[] = [
   { label: 'Discover Events', href: '/discover' },
   { label: 'Club Dashboard', href: '/club/dashboard' },
   { label: 'Manage Events', href: '/club/events' },
+  { label: 'Team', href: '/club/members' },
   { label: 'Payments', href: '/club/payments' },
 ]
 
@@ -56,6 +60,7 @@ export function Navbar() {
   const [scrolled, setScrolled]       = useState(false)
   const [loginMenuOpen, setLoginMenu] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [studentSettingsOpen, setStudentSettingsOpen] = useState(false)
   const loginMenuRef                   = useRef<HTMLDivElement>(null)
   const userMenuRef                    = useRef<HTMLDivElement>(null)
   const progress                       = useScrollProgress()
@@ -294,6 +299,22 @@ export function Navbar() {
                                 <CreditCard size={14} className="text-[var(--color-brand-cyan)]" />
                                 <span>Payments & UPI</span>
                               </Link>
+                              <Link
+                                to="/club/members"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                              >
+                                <Users size={14} className="text-[var(--color-brand-violet)]" />
+                                <span>Team & Roles</span>
+                              </Link>
+                              <Link
+                                to="/club/settings"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                              >
+                                <Settings size={14} className="text-[var(--color-brand-pink)]" />
+                                <span>Club Settings</span>
+                              </Link>
                             </>
                           ) : isStudent ? (
                             <>
@@ -313,6 +334,17 @@ export function Navbar() {
                                 <Ticket size={14} className="text-[var(--color-brand-cyan)]" />
                                 <span>My Passes & Tickets</span>
                               </Link>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUserMenuOpen(false)
+                                  setStudentSettingsOpen(true)
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors cursor-pointer text-left"
+                              >
+                                <Settings size={14} className="text-[var(--color-brand-cyan)]" />
+                                <span>Settings & Preferences</span>
+                              </button>
                             </>
                           ) : (
                             <Link
@@ -435,6 +467,7 @@ export function Navbar() {
               {session && <NotificationBell />}
               <button
                 id="mobile-menu-toggle"
+                type="button"
                 aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu"
@@ -538,6 +571,11 @@ export function Navbar() {
                             Club Dashboard
                           </Button>
                         </Link>
+                        <Link to="/club/members" onClick={() => setMobileOpen(false)}>
+                          <Button variant="outline" size="lg" className="w-full" leftIcon={<Users size={16} />}>
+                            Team & Permissions
+                          </Button>
+                        </Link>
                         <Link to="/club/events/new" onClick={() => setMobileOpen(false)}>
                           <Button variant="outline" size="lg" className="w-full" leftIcon={<Plus size={16} />}>
                             Create New Event
@@ -593,6 +631,12 @@ export function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Student Settings Modal */}
+      <StudentSettingsModal
+        isOpen={studentSettingsOpen}
+        onClose={() => setStudentSettingsOpen(false)}
+      />
     </>
   )
 }

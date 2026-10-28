@@ -15,6 +15,8 @@ import {
   sendRegistrationCancelledEmail,
   resendPassEmail,
 } from '@/lib/emails'
+import { createTeam, getLocalTeamMembers } from '@/lib/teams'
+import { broadcastStatusChange } from '@/lib/sync'
 
 export { resendPassEmail }
 
@@ -69,6 +71,25 @@ export async function registerForEvent(
       }
 
       const res = data as RegistrationResponse
+      if (res.success && options?.teamName && res.registration_id) {
+        try {
+          const teamRes = await createTeam({
+            eventId,
+            leaderId: studentId,
+            leaderName: options.participantDetails?.student_name || 'Team Leader',
+            leaderEmail: options.participantDetails?.email || '',
+            teamName: options.teamName,
+            registrationId: res.registration_id,
+            initialMembers: options.teamMembers,
+          })
+          if (teamRes.success && teamRes.team) {
+            res.team_id = teamRes.team.id
+            res.invite_code = teamRes.inviteCode
+          }
+        } catch {
+          // ignore
+        }
+      }
       return res
     } catch (err) {
       return {
@@ -143,10 +164,13 @@ export async function registerForEvent(
       const totalTeamSize = membersCount + (event.leader_counts_towards_size ? 1 : 0)
 
       if (totalTeamSize < event.min_team_size) {
-        return {
-          success: false,
-          error_code: 'TEAM_TOO_SMALL',
-          message: `This event requires a minimum of ${event.min_team_size} team members (currently ${totalTeamSize}).`,
+        const isInviteMode = event.team_registration_mode === 'members_join_with_code'
+        if (!(isInviteMode && totalTeamSize >= 1)) {
+          return {
+            success: false,
+            error_code: 'TEAM_TOO_SMALL',
+            message: `This event requires a minimum of ${event.min_team_size} team members (currently ${totalTeamSize}).`,
+          }
         }
       }
 
@@ -313,6 +337,26 @@ export async function registerForEvent(
     currentRegs.unshift(newReg)
     saveLocalRegistrations(currentRegs)
 
+    let createdTeamId: string | undefined
+    let createdInviteCode: string | undefined
+    if (options?.teamName) {
+      const teamRes = await createTeam({
+        eventId: event.id,
+        leaderId: studentId,
+        leaderName: options.participantDetails?.student_name || 'Team Leader',
+        leaderEmail: options.participantDetails?.email || 'leader@campus.edu',
+        teamName: options.teamName,
+        registrationId: newReg.id,
+        initialMembers: options.teamMembers,
+      })
+      if (teamRes.success && teamRes.team) {
+        newReg.team_id = teamRes.team.id
+        createdTeamId = teamRes.team.id
+        createdInviteCode = teamRes.inviteCode
+        saveLocalRegistrations(currentRegs)
+      }
+    }
+
     // Trigger transactional email at correct lifecycle stage
     if (initialStatus === 'confirmed') {
       sendRegistrationConfirmedEmail({
@@ -340,6 +384,14 @@ export async function registerForEvent(
       }).catch(() => {})
     }
 
+    broadcastStatusChange({
+      type: 'registration_updated',
+      eventId: event.id,
+      registrationId: newReg.id,
+      studentId,
+      teamId: createdTeamId,
+    })
+
     return {
       success: true,
       registration_id: newReg.id,
@@ -349,6 +401,8 @@ export async function registerForEvent(
       approval_status: approvalStatus,
       is_free: isFree,
       ticket_issued: Boolean(newReg.ticket_issued_at),
+      team_id: createdTeamId,
+      invite_code: createdInviteCode,
       message: successMessage,
     }
   }
@@ -454,20 +508,38 @@ export async function reviewRegistrationApplication(
 
 // ── Cancel Registration ──────────────────────────────────────────────────────
 export async function cancelRegistration(
-  registrationId: string
+  registrationId: string,
+  reason?: string
 ): Promise<{ success: boolean; message: string }> {
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await (supabase.rpc as any)('cancel_registration', {
+      // First try enhanced RPC cancel_registration_with_policy
+      let res: any = null
+      const { data, error } = await (supabase.rpc as any)('cancel_registration_with_policy', {
         p_registration_id: registrationId,
+        p_reason: reason || null,
       })
 
       if (error) {
-        return { success: false, message: error.message }
+        // Fallback to legacy cancel_registration RPC if needed
+        const fallback = await (supabase.rpc as any)('cancel_registration', {
+          p_registration_id: registrationId,
+        })
+        if (fallback.error) {
+          return { success: false, message: fallback.error.message || error.message }
+        }
+        res = fallback.data
+      } else {
+        res = data
       }
 
-      const res = data as { success: boolean; message: string }
-      return res
+      if (res && res.success) {
+        broadcastStatusChange({
+          type: 'registration_updated',
+          registrationId,
+        })
+      }
+      return res as { success: boolean; message: string }
     } catch (err) {
       return {
         success: false,
@@ -475,7 +547,7 @@ export async function cancelRegistration(
       }
     }
   } else {
-    await new Promise((r) => setTimeout(r, 400))
+    await new Promise((r) => setTimeout(r, 100))
     const current = getInitialLocalRegistrations()
     const idx = current.findIndex((r) => r.id === registrationId)
     if (idx === -1) {
@@ -483,9 +555,47 @@ export async function cancelRegistration(
     }
 
     const reg = current[idx]
+    if (reg.status === 'cancelled') {
+      return { success: false, message: 'Registration is already cancelled.' }
+    }
+
+    // 1. Gate Check: Cannot cancel if ticket has already been used for check-in
+    try {
+      const rawCheckins = localStorage.getItem('festflow_local_checkins')
+      if (rawCheckins) {
+        const checkins = JSON.parse(rawCheckins)
+        const hasCheckin = checkins.some((c: any) => c.registration_id === registrationId)
+        if (hasCheckin) {
+          return {
+            success: false,
+            message: 'Cannot cancel a pass that has already been verified at the entry gate.',
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Policy Check: Cannot cancel if event already started
     const eventRes = await getEventById(reg.event_id)
-    if (eventRes.event && new Date(eventRes.event.start_date) <= new Date()) {
-      return { success: false, message: 'Pass cannot be cancelled because the event has already started.' }
+    const event = eventRes.event
+    if (event) {
+      if (new Date(event.start_date) <= new Date()) {
+        return { success: false, message: 'Pass cannot be cancelled because the event has already started.' }
+      }
+
+      // 3. Cutoff Check: Cannot cancel if cutoff deadline passed
+      const cutoffHours = (event as any).cancellation_cutoff_hours
+      if (cutoffHours && cutoffHours > 0) {
+        const cutoffMs = cutoffHours * 3600000
+        const eventStartMs = new Date(event.start_date).getTime()
+        if (Date.now() >= eventStartMs - cutoffMs) {
+          return {
+            success: false,
+            message: `Cancellation deadline has passed. Registrations cannot be cancelled within ${cutoffHours} hours of event start.`,
+          }
+        }
+      }
     }
 
     current[idx] = {
@@ -496,10 +606,25 @@ export async function cancelRegistration(
     }
     saveLocalRegistrations(current)
 
+    broadcastStatusChange({
+      type: 'registration_updated',
+      registrationId: reg.id,
+      eventId: reg.event_id,
+    })
+
     if (eventRes.event) {
+      const recipientEmail =
+        reg.participant_details?.email ||
+        (reg as any).student?.email ||
+        'student@campus.edu'
+      const recipientName =
+        reg.participant_details?.student_name ||
+        (reg as any).student?.display_name ||
+        'Attendee'
+
       sendRegistrationCancelledEmail({
-        to: 'student@campus.edu',
-        name: 'FestFlow Student',
+        to: recipientEmail,
+        name: recipientName,
         eventTitle: eventRes.event.title,
         ticketCode: reg.ticket_code,
         registrationId: reg.id,
@@ -507,7 +632,7 @@ export async function cancelRegistration(
       }).catch(() => {})
     }
 
-    return { success: true, message: 'Registration cancelled successfully.' }
+    return { success: true, message: 'Registration cancelled successfully. Your seat has been released.' }
   }
 }
 
@@ -520,14 +645,21 @@ export async function checkStudentRegistrationForEvent(
     try {
       const { data, error } = await supabase
         .from('registrations')
-        .select('*')
+        .select('*, check_ins(*)')
         .eq('event_id', eventId)
         .eq('student_id', studentId)
         .neq('status', 'cancelled')
         .maybeSingle()
 
       if (error || !data) return { registered: false, registration: null }
-      return { registered: true, registration: data as unknown as RegistrationRecord }
+      const reg = { ...(data as Record<string, any>) } as any
+      if (Array.isArray(reg.check_ins) && reg.check_ins.length > 0) {
+        const lastCheckIn = reg.check_ins[reg.check_ins.length - 1]
+        reg.attendance_status = lastCheckIn.status === 'checked_out' ? 'checked_out' : 'checked_in'
+      } else {
+        reg.attendance_status = 'not_checked_in'
+      }
+      return { registered: true, registration: reg as unknown as RegistrationRecord }
     } catch {
       return { registered: false, registration: null }
     }
@@ -536,7 +668,25 @@ export async function checkStudentRegistrationForEvent(
     const found = current.find(
       (r) => r.event_id === eventId && r.student_id === studentId && r.status !== 'cancelled'
     )
-    return { registered: Boolean(found), registration: found || null }
+    if (!found) return { registered: false, registration: null }
+    const copy = { ...found } as any
+    try {
+      const rawCheckins = localStorage.getItem('festflow_local_checkins')
+      if (rawCheckins) {
+        const checkins = JSON.parse(rawCheckins)
+        const match = checkins.find((c: any) => c.registration_id === found.id)
+        if (match) {
+          copy.attendance_status = match.status === 'checked_out' ? 'checked_out' : 'checked_in'
+        } else {
+          copy.attendance_status = 'not_checked_in'
+        }
+      } else {
+        copy.attendance_status = 'not_checked_in'
+      }
+    } catch {
+      copy.attendance_status = 'not_checked_in'
+    }
+    return { registered: true, registration: copy }
   }
 }
 
@@ -551,6 +701,7 @@ export async function getRegistrationById(
 
       const selectClause = `
         *,
+        check_ins (*),
         event:event_id (
           *,
           club:club_id (
@@ -582,8 +733,8 @@ export async function getRegistrationById(
       if (error && error.message.includes('infinite recursion')) {
         console.warn('[FestFlow] RLS recursion detected in getRegistrationById, performing decoupled fetch')
         const regRes: any = isUuid
-          ? await supabase.from('registrations').select('*').eq('id', cleanId).maybeSingle()
-          : await supabase.from('registrations').select('*').eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
+          ? await supabase.from('registrations').select('*, check_ins(*)').eq('id', cleanId).maybeSingle()
+          : await supabase.from('registrations').select('*, check_ins(*)').eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
 
         if (!regRes.error && regRes.data) {
           const rawItem = regRes.data as Record<string, any>
@@ -598,6 +749,16 @@ export async function getRegistrationById(
 
       if (error && !data) return { registration: null, error: error.message }
       if (!data) return { registration: null, error: 'Registration not found' }
+
+      if (data) {
+        const regObj = data as any
+        if (Array.isArray(regObj.check_ins) && regObj.check_ins.length > 0) {
+          const lastCheckIn = regObj.check_ins[regObj.check_ins.length - 1]
+          regObj.attendance_status = lastCheckIn.status === 'checked_out' ? 'checked_out' : 'checked_in'
+        } else if (!regObj.attendance_status) {
+          regObj.attendance_status = 'not_checked_in'
+        }
+      }
 
       return { registration: data as unknown as RegistrationWithEvent, error: null }
     } catch (err) {
@@ -615,8 +776,23 @@ export async function getRegistrationById(
     const eventRes = await getEventById(found.event_id)
     if (!eventRes.event) return { registration: null, error: 'Associated event not found' }
 
+    let attendance_status: 'not_checked_in' | 'checked_in' | 'checked_out' = 'not_checked_in'
+    try {
+      const rawCheckins = localStorage.getItem('festflow_local_checkins')
+      if (rawCheckins) {
+        const checkins = JSON.parse(rawCheckins)
+        const match = checkins.find((c: any) => c.registration_id === found.id)
+        if (match) {
+          attendance_status = match.status === 'checked_out' ? 'checked_out' : 'checked_in'
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     const withEvent: RegistrationWithEvent = {
       ...found,
+      attendance_status,
       event: {
         ...eventRes.event,
         club: {
@@ -748,6 +924,21 @@ export async function getStudentRegistrations(
   } else {
     const current = getInitialLocalRegistrations()
     const userRegs = current.filter((r) => r.student_id === studentId)
+
+    // Check if user is an accepted member of any team whose registration was created
+    const members = getLocalTeamMembers()
+    const acceptedSlots = members.filter((m) => m.user_id === studentId && m.status === 'accepted')
+    const existingIds = new Set(userRegs.map((r) => r.id))
+
+    for (const slot of acceptedSlots) {
+      if (slot.registration_id && !existingIds.has(slot.registration_id)) {
+        const linkedReg = current.find((r) => r.id === slot.registration_id)
+        if (linkedReg) {
+          userRegs.push(linkedReg)
+          existingIds.add(linkedReg.id)
+        }
+      }
+    }
 
     const list: RegistrationWithEvent[] = []
     for (const reg of userRegs) {

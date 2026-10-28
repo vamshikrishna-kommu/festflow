@@ -213,9 +213,15 @@ export default function ClubDashboardPage() {
               </Button>
             </Link>
 
-            <Link to="/club/settings/payments">
+            <Link to="/club/members">
+              <Button variant="outline" size="sm" leftIcon={<Users size={15} />}>
+                Team & Roles
+              </Button>
+            </Link>
+
+            <Link to="/club/settings">
               <Button variant="outline" size="sm" leftIcon={<Settings size={15} />}>
-                Payment Settings
+                Club Settings
               </Button>
             </Link>
 

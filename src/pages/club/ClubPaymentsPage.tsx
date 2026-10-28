@@ -22,6 +22,7 @@ import {
   getPaymentProofSignedUrl,
 } from '@/lib/payments'
 import { listClubEvents } from '@/lib/events'
+import { subscribeToStatusChanges } from '@/lib/sync'
 import type { PaymentSubmissionWithDetails, PaymentStatus, EventRecord } from '@/types'
 
 export default function ClubPaymentsPage() {
@@ -66,6 +67,14 @@ export default function ClubPaymentsPage() {
 
   useEffect(() => {
     loadData()
+
+    const unsubscribe = subscribeToStatusChanges(
+      ['payment_submitted', 'payment_reviewed', 'reconnect'],
+      () => {
+        loadData()
+      }
+    )
+    return () => unsubscribe()
   }, [clubId])
 
   // Copy helper

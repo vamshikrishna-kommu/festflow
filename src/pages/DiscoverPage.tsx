@@ -234,6 +234,7 @@ export default function DiscoverPage() {
                 return (
                   <motion.button
                     key={value}
+                    type="button"
                     id={`cat-filter-${value}`}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.95 }}

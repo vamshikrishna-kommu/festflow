@@ -40,6 +40,7 @@ import type {
 } from '@/types'
 
 import { ResourceOwnerGuard } from '@/components/auth/ResourceOwnerGuard'
+import { subscribeToStatusChanges } from '@/lib/sync'
 
 export default function StudentPaymentPage() {
   const { registrationId } = useParams<{ registrationId: string }>()
@@ -115,6 +116,16 @@ export default function StudentPaymentPage() {
 
   useEffect(() => {
     loadData(initialLoadDone.current)
+
+    const unsubscribe = subscribeToStatusChanges(
+      ['payment_reviewed', 'registration_updated', 'reconnect'],
+      (event) => {
+        if (!event.registrationId || event.registrationId === registrationId) {
+          loadData(true)
+        }
+      }
+    )
+    return () => unsubscribe()
   }, [registrationId, user?.id, role])
 
   const handleCopyUpi = () => {

@@ -69,7 +69,7 @@ async function runMobileAudit() {
   assert(bottomNavCode.includes('to="/club/events"'), 'Organizer navigation includes Events management')
   assert(bottomNavCode.includes('to="/club/payments"'), 'Organizer navigation includes Payments review')
   assert(bottomNavCode.includes('Check-In'), 'Organizer navigation includes Gate Check-In')
-  assert(bottomNavCode.includes('to="/club/settings/payments"'), 'Organizer navigation includes Club Settings')
+  assert(bottomNavCode.includes('to="/club/settings"'), 'Organizer navigation includes Club Settings')
 
   // Scanner exclusion check
   assert(

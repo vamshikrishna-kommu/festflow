@@ -17,6 +17,8 @@ import {
   History,
   WifiOff,
   RotateCcw,
+  LogIn,
+  LogOut,
 } from 'lucide-react'
 import { Button, Card, Badge, PageHeader } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
@@ -24,9 +26,11 @@ import { useAuth } from '@/context/AuthContext'
 import { getEventById } from '@/lib/events'
 import {
   checkInTicket,
+  checkOutTicket,
   getEventRegistrationsWithCheckIn,
   cleanTicketPayload,
 } from '@/lib/checkin'
+import { subscribeToStatusChanges } from '@/lib/sync'
 import { QrCameraScanner } from '@/components/checkin/QrCameraScanner'
 import { scannerAccepted, scannerRejected } from '@/lib/animations'
 import type {
@@ -44,6 +48,7 @@ interface ScanHistoryItem {
   outcome: CheckInOutcome
   message: string
   timestamp: string
+  mode?: 'check_in' | 'check_out'
   isNetworkError?: boolean
 }
 
@@ -56,6 +61,9 @@ export default function EventCheckInPage() {
   const [stats, setStats] = useState<CheckInStats>({
     totalCapacity: 0,
     confirmedRegistrations: 0,
+    checkedInCount: 0,
+    checkedOutCount: 0,
+    notCheckedInCount: 0,
     successfulCheckIns: 0,
     remainingExpected: 0,
     attendancePercentage: 0,
@@ -67,7 +75,8 @@ export default function EventCheckInPage() {
 
   const isAuthorized = Boolean(event && ((user && event.club_id === user.id) || role === 'platform_admin'))
 
-  // Scanner & Manual Entry
+  // Scanner Mode & Manual Entry
+  const [scannerMode, setScannerMode] = useState<'check_in' | 'check_out'>('check_in')
   const [manualCode, setManualCode] = useState('')
   const [processingScan, setProcessingScan] = useState(false)
   const [scanResult, setScanResult] = useState<CheckInResponse | null>(null)
@@ -83,7 +92,7 @@ export default function EventCheckInPage() {
 
   // Attendee Table Filtering
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterTab, setFilterTab] = useState<'all' | 'checked_in' | 'not_checked_in' | 'ineligible'>('all')
+  const [filterTab, setFilterTab] = useState<'all' | 'checked_in' | 'checked_out' | 'not_checked_in' | 'ineligible'>('all')
 
   const resultBannerRef = useRef<HTMLDivElement>(null)
   const manualInputRef = useRef<HTMLInputElement>(null)
@@ -120,17 +129,30 @@ export default function EventCheckInPage() {
 
   useEffect(() => {
     loadData()
+
+    const unsubscribe = subscribeToStatusChanges(
+      ['checkin_recorded', 'registration_updated', 'reconnect'],
+      (e) => {
+        if (!e.eventId || e.eventId === id) {
+          loadData(true)
+        }
+      }
+    )
+    return () => unsubscribe()
   }, [id, user, role])
 
-  // Handle Scan or Manual Check-In
-  const handleCheckInAttempt = async (ticketCode: string) => {
+  // Handle Scan or Manual Check-In / Check-Out
+  const handleScanAttempt = async (ticketCode: string, overrideMode?: 'check_in' | 'check_out') => {
     if (!id || processingScan) return
     const clean = cleanTicketPayload(ticketCode)
     if (!clean) return
 
+    const mode = overrideMode || scannerMode
     setLastAttemptedCode(clean)
     setProcessingScan(true)
-    const result = await checkInTicket(id, clean)
+    const result = mode === 'check_out'
+      ? await checkOutTicket(id, clean)
+      : await checkInTicket(id, clean)
     setProcessingScan(false)
     setScanResult(result)
 
@@ -142,6 +164,7 @@ export default function EventCheckInPage() {
         studentName: result.student_name,
         outcome: result.outcome,
         message: result.message,
+        mode,
         isNetworkError: result.isNetworkError,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       },
@@ -153,8 +176,8 @@ export default function EventCheckInPage() {
       resultBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 100)
 
-    // Refresh roster on success or already used
-    if (result.success || result.outcome === 'ALREADY_USED') {
+    // Refresh roster on success, duplicate, or checked-out
+    if (result.success || result.outcome === 'ALREADY_USED' || result.outcome === 'ALREADY_CHECKED_OUT') {
       await loadData(true)
     }
   }
@@ -162,7 +185,7 @@ export default function EventCheckInPage() {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!manualCode.trim()) return
-    await handleCheckInAttempt(manualCode)
+    await handleScanAttempt(manualCode)
     setManualCode('')
   }
 
@@ -184,13 +207,15 @@ export default function EventCheckInPage() {
   // Filtered Attendees Roster
   const filteredAttendees = useMemo(() => {
     return attendees.filter((a) => {
-      const isCheckedIn = Boolean(a.check_in)
+      const isCheckedIn = Boolean(a.check_in && a.check_in.status !== 'checked_out')
+      const isCheckedOut = Boolean(a.check_in && a.check_in.status === 'checked_out')
       const isCancelled = a.status === 'cancelled'
       const isIneligible = isCancelled || a.status === 'rejected' || a.status === 'pending_payment' || a.status === 'pending_approval'
 
       let matchesTab = true
       if (filterTab === 'checked_in') matchesTab = isCheckedIn
-      else if (filterTab === 'not_checked_in') matchesTab = !isCheckedIn && a.status === 'confirmed'
+      else if (filterTab === 'checked_out') matchesTab = isCheckedOut
+      else if (filterTab === 'not_checked_in') matchesTab = !a.check_in && a.status === 'confirmed'
       else if (filterTab === 'ineligible') matchesTab = isIneligible
 
       const q = searchQuery.trim().toLowerCase()
@@ -336,42 +361,38 @@ export default function EventCheckInPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card className="p-4 flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Admitted Attendees
+              Admitted Inside
             </span>
             <div className="text-2xl sm:text-3xl font-extrabold font-display text-emerald-400 mt-2">
-              {loading ? '…' : stats.successfulCheckIns}
+              {loading ? '…' : (stats.checkedInCount ?? stats.successfulCheckIns)}
             </div>
             <span className="text-[10px] text-[var(--color-text-muted)] mt-1">
-              verified entrance entries
+              currently inside venue
             </span>
           </Card>
 
           <Card className="p-4 flex flex-col justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Remaining Expected
+              Checked Out
             </span>
             <div className="text-2xl sm:text-3xl font-extrabold font-display text-amber-400 mt-2">
-              {loading ? '…' : stats.remainingExpected}
+              {loading ? '…' : (stats.checkedOutCount ?? 0)}
+            </div>
+            <span className="text-[10px] text-[var(--color-text-muted)] mt-1">
+              exited attendees {event?.allow_reentry ? '(re-entry allowed)' : ''}
+            </span>
+          </Card>
+
+          <Card className="p-4 flex flex-col justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              Yet to Arrive
+            </span>
+            <div className="text-2xl sm:text-3xl font-extrabold font-display text-[var(--color-brand-cyan)] mt-2">
+              {loading ? '…' : (stats.notCheckedInCount ?? stats.remainingExpected)}
             </div>
             <span className="text-[10px] text-[var(--color-text-muted)] mt-1">
               out of {stats.confirmedRegistrations} confirmed
             </span>
-          </Card>
-
-          <Card className="p-4 flex flex-col justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-              Turnout Rate
-            </span>
-            <div className="text-2xl sm:text-3xl font-extrabold font-display text-[var(--color-brand-cyan)] mt-2">
-              {loading ? '…' : `${stats.attendancePercentage}%`}
-            </div>
-            {/* Turnout Progress Bar */}
-            <div className="w-full bg-[var(--color-surface-2)] h-1.5 rounded-full overflow-hidden mt-2">
-              <div
-                className="bg-[var(--color-brand-cyan)] h-full transition-all duration-500 rounded-full"
-                style={{ width: `${Math.min(100, stats.attendancePercentage)}%` }}
-              />
-            </div>
           </Card>
 
           <Card className="p-4 flex flex-col justify-between">
@@ -382,7 +403,7 @@ export default function EventCheckInPage() {
               {loading ? '…' : stats.totalCapacity}
             </div>
             <span className="text-[10px] text-[var(--color-text-muted)] mt-1">
-              venue seat maximum
+              venue seat maximum ({stats.attendancePercentage}% turnout)
             </span>
           </Card>
         </div>
@@ -392,14 +413,16 @@ export default function EventCheckInPage() {
           <AnimatePresence>
             {scanResult && (
               <motion.div
-                variants={scanResult.outcome === 'VALID' ? scannerAccepted : scannerRejected}
+                variants={scanResult.outcome === 'VALID' || scanResult.outcome === 'CHECKED_OUT' ? scannerAccepted : scannerRejected}
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
                 className={`p-6 rounded-2xl border text-left shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                   scanResult.outcome === 'VALID'
                     ? 'bg-emerald-950/90 border-emerald-500 text-white'
-                    : scanResult.outcome === 'ALREADY_USED'
+                    : scanResult.outcome === 'CHECKED_OUT'
+                    ? 'bg-amber-950/90 border-amber-500 text-white'
+                    : scanResult.outcome === 'ALREADY_USED' || scanResult.outcome === 'ALREADY_CHECKED_OUT' || scanResult.outcome === 'NOT_CHECKED_IN'
                     ? 'bg-amber-950/90 border-amber-500 text-white'
                     : scanResult.isNetworkError
                     ? 'bg-orange-950/90 border-orange-500 text-white'
@@ -410,7 +433,9 @@ export default function EventCheckInPage() {
                   <div className="p-3 rounded-2xl bg-black/40 shrink-0 mt-0.5">
                     {scanResult.outcome === 'VALID' ? (
                       <CheckCircle2 size={32} className="text-emerald-400" />
-                    ) : scanResult.outcome === 'ALREADY_USED' ? (
+                    ) : scanResult.outcome === 'CHECKED_OUT' ? (
+                      <LogOut size={32} className="text-amber-400" />
+                    ) : scanResult.outcome === 'ALREADY_USED' || scanResult.outcome === 'ALREADY_CHECKED_OUT' || scanResult.outcome === 'NOT_CHECKED_IN' ? (
                       <AlertTriangle size={32} className="text-amber-400" />
                     ) : scanResult.isNetworkError ? (
                       <WifiOff size={32} className="text-orange-400" />
@@ -423,9 +448,15 @@ export default function EventCheckInPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-lg font-extrabold uppercase tracking-wide">
                         {scanResult.outcome === 'VALID'
-                          ? 'Valid Ticket — Entry Approved'
+                          ? (scanResult.is_reentry ? `Re-Entry Approved (Entry #${scanResult.entry_count})` : 'Valid Ticket — Entry Approved')
+                          : scanResult.outcome === 'CHECKED_OUT'
+                          ? 'Attendee Checked Out (Exit Logged)'
                           : scanResult.outcome === 'ALREADY_USED'
                           ? 'Pass Already Checked In'
+                          : scanResult.outcome === 'ALREADY_CHECKED_OUT'
+                          ? 'Attendee Already Checked Out'
+                          : scanResult.outcome === 'NOT_CHECKED_IN'
+                          ? 'Cannot Check Out — Not Checked In'
                           : scanResult.isNetworkError
                           ? 'Network Connectivity Issue'
                           : scanResult.outcome === 'WRONG_EVENT'
@@ -456,7 +487,7 @@ export default function EventCheckInPage() {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleCheckInAttempt(lastAttemptedCode)}
+                      onClick={() => handleScanAttempt(lastAttemptedCode)}
                       leftIcon={<RotateCcw size={14} />}
                       className="bg-orange-500 hover:bg-orange-600 text-white border-none"
                     >
@@ -481,19 +512,53 @@ export default function EventCheckInPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: QR Camera Scanner & Manual Lookup */}
           <div className="lg:col-span-5 flex flex-col gap-4">
+            {/* Gate Scanner Mode Switcher (Check-In vs Check-Out) */}
+            <div className="flex items-center justify-between p-1.5 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+              <button
+                type="button"
+                onClick={() => setScannerMode('check_in')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                  scannerMode === 'check_in'
+                    ? 'bg-emerald-500 text-black shadow-lg scale-[1.02]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                }`}
+              >
+                <LogIn size={15} />
+                Entry Gate (Check-In)
+              </button>
+              <button
+                type="button"
+                onClick={() => setScannerMode('check_out')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                  scannerMode === 'check_out'
+                    ? 'bg-amber-500 text-black shadow-lg scale-[1.02]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                }`}
+              >
+                <LogOut size={15} />
+                Exit Gate (Check-Out)
+              </button>
+            </div>
+
             <Card className="p-6 flex flex-col items-center text-center">
               <QrCameraScanner
-                onScan={handleCheckInAttempt}
+                onScan={handleScanAttempt}
                 isProcessing={processingScan}
                 onFocusManual={handleFocusManual}
               />
+              <div className="mt-3 flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
+                <span className={`w-2 h-2 rounded-full ${scannerMode === 'check_in' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                <span>
+                  Gate Mode: <strong className="text-[var(--color-text-primary)]">{scannerMode === 'check_in' ? 'Check-In (Admission)' : 'Check-Out (Departure)'}</strong>
+                </span>
+              </div>
             </Card>
 
             {/* Manual Code Entry Form Fallback */}
             <Card className="p-5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2 flex items-center gap-1.5">
                 <KeyRound size={14} className="text-[var(--color-brand-cyan)]" />
-                Manual Code Entry Fallback
+                Manual Code Entry ({scannerMode === 'check_in' ? 'Check-In' : 'Check-Out'})
               </h3>
               <p className="text-xs text-[var(--color-text-muted)] mb-3">
                 If the camera cannot read the attendee's screen, enter their ticket code or pass token manually:
@@ -510,13 +575,13 @@ export default function EventCheckInPage() {
                 />
                 <Button
                   type="submit"
-                  variant="primary"
+                  variant={scannerMode === 'check_in' ? 'primary' : 'outline'}
                   size="sm"
                   isLoading={processingScan}
                   disabled={!manualCode.trim()}
-                  className="w-full sm:w-auto min-h-[44px]"
+                  className={`w-full sm:w-auto min-h-[44px] ${scannerMode === 'check_out' ? 'border-amber-500 text-amber-300 hover:bg-amber-500/20' : ''}`}
                 >
-                  Verify
+                  {scannerMode === 'check_in' ? 'Verify Entry' : 'Verify Exit'}
                 </Button>
               </form>
             </Card>
@@ -549,13 +614,20 @@ export default function EventCheckInPage() {
                         <span className={`w-2 h-2 rounded-full shrink-0 ${
                           item.outcome === 'VALID'
                             ? 'bg-emerald-400'
-                            : item.outcome === 'ALREADY_USED'
+                            : item.outcome === 'CHECKED_OUT'
+                            ? 'bg-amber-400'
+                            : item.outcome === 'ALREADY_USED' || item.outcome === 'ALREADY_CHECKED_OUT' || item.outcome === 'NOT_CHECKED_IN'
                             ? 'bg-amber-400'
                             : 'bg-rose-400'
                         }`} />
                         <span className="font-mono text-[11px] font-semibold text-[var(--color-text-primary)] truncate">
                           {item.ticketCode}
                         </span>
+                        {item.mode && (
+                          <span className={`text-[9px] font-bold uppercase px-1 rounded ${item.mode === 'check_in' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            {item.mode === 'check_in' ? 'IN' : 'OUT'}
+                          </span>
+                        )}
                         {item.studentName && (
                           <span className="text-[11px] text-[var(--color-text-muted)] truncate hidden sm:inline">
                             • {item.studentName}
@@ -564,7 +636,7 @@ export default function EventCheckInPage() {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <Badge
-                          variant={item.outcome === 'VALID' ? 'success' : item.outcome === 'ALREADY_USED' ? 'amber' : 'danger'}
+                          variant={item.outcome === 'VALID' ? 'success' : item.outcome === 'CHECKED_OUT' ? 'amber' : 'danger'}
                           className="text-[9px] py-0 px-1.5"
                         >
                           {item.outcome}
@@ -589,7 +661,7 @@ export default function EventCheckInPage() {
                     Attendee Gate Roster
                   </h3>
                   <p className="text-xs text-[var(--color-text-secondary)]">
-                    Real-time check-in status for all registered passes
+                    Real-time attendance status and venue management
                   </p>
                 </div>
 
@@ -614,8 +686,9 @@ export default function EventCheckInPage() {
                 {(
                   [
                     { id: 'all', label: `All (${attendees.length})` },
-                    { id: 'checked_in', label: `Checked In (${stats.successfulCheckIns})` },
-                    { id: 'not_checked_in', label: `Expected (${stats.remainingExpected})` },
+                    { id: 'checked_in', label: `Inside (${stats.checkedInCount ?? stats.successfulCheckIns})` },
+                    { id: 'checked_out', label: `Checked Out (${stats.checkedOutCount ?? 0})` },
+                    { id: 'not_checked_in', label: `Not Arrived (${stats.notCheckedInCount ?? stats.remainingExpected})` },
                     { id: 'ineligible', label: 'Ineligible' },
                   ] as const
                 ).map((tab) => (
@@ -659,7 +732,9 @@ export default function EventCheckInPage() {
               ) : (
                 <div className="max-h-[520px] overflow-y-auto flex flex-col gap-2.5 pr-1">
                   {filteredAttendees.map((att) => {
-                    const isCheckedIn = Boolean(att.check_in)
+                    const latestCheckIn = att.check_in
+                    const isCheckedIn = Boolean(latestCheckIn && latestCheckIn.status !== 'checked_out')
+                    const isCheckedOut = Boolean(latestCheckIn && latestCheckIn.status === 'checked_out')
                     const isCancelled = att.status === 'cancelled'
                     const isIneligible = isCancelled || att.status === 'rejected' || att.status === 'pending_payment' || att.status === 'pending_approval'
 
@@ -672,7 +747,6 @@ export default function EventCheckInPage() {
                     const hasTeamMembers = teamMembers.length > 0
                     const isTeamExpanded = Boolean(expandedTeams[att.id])
 
-                    // Check member-level check-ins
                     const memberCheckIns = att.check_ins || (att.check_in ? [att.check_in] : [])
 
                     return (
@@ -681,6 +755,8 @@ export default function EventCheckInPage() {
                         className={`p-3.5 rounded-xl border transition-all flex flex-col gap-2 text-left ${
                           isCheckedIn
                             ? 'bg-emerald-500/[0.04] border-emerald-500/20'
+                            : isCheckedOut
+                            ? 'bg-amber-500/[0.04] border-amber-500/20'
                             : isIneligible
                             ? 'bg-rose-500/[0.04] border-rose-500/20 opacity-75'
                             : 'bg-[var(--color-surface-2)]/60 border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)]/40'
@@ -694,7 +770,11 @@ export default function EventCheckInPage() {
                               </span>
                               {isCheckedIn ? (
                                 <Badge variant="success" className="text-[10px] py-0">
-                                  Checked In
+                                  Inside (Checked In)
+                                </Badge>
+                              ) : isCheckedOut ? (
+                                <Badge variant="amber" className="text-[10px] py-0">
+                                  Checked Out
                                 </Badge>
                               ) : isCancelled ? (
                                 <Badge variant="danger" className="text-[10px] py-0">
@@ -744,10 +824,10 @@ export default function EventCheckInPage() {
                                   • {displayEmail}
                                 </span>
                               )}
-                              {att.check_in && (
-                                <span className="text-emerald-400 font-sans">
-                                  • In at{' '}
-                                  {new Date(att.check_in.checked_in_at).toLocaleTimeString([], {
+                              {latestCheckIn && (
+                                <span className={`font-sans ${isCheckedIn ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                  • {isCheckedIn ? 'In at ' : 'Out at '}
+                                  {new Date(isCheckedIn ? latestCheckIn.checked_in_at : (latestCheckIn.checked_out_at || latestCheckIn.checked_in_at)).toLocaleTimeString([], {
                                     hour: '2-digit',
                                     minute: '2-digit',
                                   })}
@@ -756,7 +836,7 @@ export default function EventCheckInPage() {
                             </div>
                           </div>
 
-                          {/* Action Button: Primary Check-In */}
+                          {/* Action Button: Check In / Check Out / Re-admit */}
                           <div className="flex items-center gap-2 shrink-0">
                             {hasTeamMembers && (
                               <Button
@@ -771,15 +851,37 @@ export default function EventCheckInPage() {
                             )}
 
                             {isCheckedIn ? (
-                              <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                                <CheckCircle2 size={14} /> Admitted
-                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={processingScan}
+                                onClick={() => handleScanAttempt(att.ticket_code, 'check_out')}
+                                leftIcon={<LogOut size={13} />}
+                                className="text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20 min-h-[38px]"
+                              >
+                                Check Out
+                              </Button>
+                            ) : isCheckedOut ? (
+                              event?.allow_reentry ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={processingScan}
+                                  onClick={() => handleScanAttempt(att.ticket_code, 'check_in')}
+                                  leftIcon={<LogIn size={13} />}
+                                  className="text-xs border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 min-h-[38px]"
+                                >
+                                  Re-admit
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-amber-400 font-medium">Exited (Single Entry)</span>
+                              )
                             ) : !isIneligible && att.status === 'confirmed' ? (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 disabled={processingScan}
-                                onClick={() => handleCheckInAttempt(att.ticket_code)}
+                                onClick={() => handleScanAttempt(att.ticket_code, 'check_in')}
                                 leftIcon={<UserCheck size={13} />}
                                 className="text-xs hover:border-emerald-500 hover:text-emerald-300 min-h-[38px]"
                               >
@@ -795,7 +897,7 @@ export default function EventCheckInPage() {
                         {hasTeamMembers && isTeamExpanded && (
                           <div className="mt-2 pt-2 border-t border-[var(--color-surface-3)]/60 space-y-1.5 pl-3">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] block">
-                              Team Members Pass Verification
+                              Team Members Pass Verification & Attendance
                             </span>
                             {teamMembers.map((member, mIdx) => {
                               const memberIndex = mIdx + 1
@@ -803,6 +905,8 @@ export default function EventCheckInPage() {
                               const memberCheckIn = memberCheckIns.find(
                                 (c) => c.member_index === memberIndex
                               )
+                              const memberIn = Boolean(memberCheckIn && memberCheckIn.status !== 'checked_out')
+                              const memberOut = Boolean(memberCheckIn && memberCheckIn.status === 'checked_out')
 
                               return (
                                 <div
@@ -817,6 +921,12 @@ export default function EventCheckInPage() {
                                       <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
                                         ({memberPassCode})
                                       </span>
+                                      {memberIn && (
+                                        <Badge variant="success" className="text-[9px] py-0 px-1">Inside</Badge>
+                                      )}
+                                      {memberOut && (
+                                        <Badge variant="amber" className="text-[9px] py-0 px-1">Exited</Badge>
+                                      )}
                                     </div>
                                     {member?.email && (
                                       <span className="text-[11px] text-[var(--color-text-secondary)] block truncate">
@@ -825,17 +935,37 @@ export default function EventCheckInPage() {
                                     )}
                                   </div>
 
-                                  <div className="shrink-0">
-                                    {memberCheckIn ? (
-                                      <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                                        <CheckCircle2 size={13} /> In
-                                      </span>
+                                  <div className="shrink-0 flex items-center gap-1.5">
+                                    {memberIn ? (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={processingScan}
+                                        onClick={() => handleScanAttempt(memberPassCode, 'check_out')}
+                                        className="text-[11px] py-1 px-2 border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
+                                      >
+                                        Check Out
+                                      </Button>
+                                    ) : memberOut ? (
+                                      event?.allow_reentry ? (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={processingScan}
+                                          onClick={() => handleScanAttempt(memberPassCode, 'check_in')}
+                                          className="text-[11px] py-1 px-2 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20"
+                                        >
+                                          Re-admit
+                                        </Button>
+                                      ) : (
+                                        <span className="text-[10px] text-amber-400">Exited</span>
+                                      )
                                     ) : att.status === 'confirmed' ? (
                                       <Button
                                         variant="outline"
                                         size="sm"
                                         disabled={processingScan}
-                                        onClick={() => handleCheckInAttempt(memberPassCode)}
+                                        onClick={() => handleScanAttempt(memberPassCode, 'check_in')}
                                         className="text-[11px] py-1 px-2.5 hover:border-emerald-500 hover:text-emerald-300"
                                       >
                                         Check In

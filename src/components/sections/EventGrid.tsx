@@ -83,6 +83,7 @@ export function EventGrid({
             {EVENT_CATEGORIES.map(({ value, label }) => (
               <button
                 key={value}
+                type="button"
                 id={`cat-filter-${value}`}
                 onClick={() => setCategory(value)}
                 aria-pressed={category === value}

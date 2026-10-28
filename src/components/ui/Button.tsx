@@ -32,6 +32,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 }
 
 export function Button({
+  type = 'button',
   variant = 'primary',
   size = 'md',
   leftIcon,
@@ -48,6 +49,7 @@ export function Button({
 
   return (
     <motion.button
+      type={type}
       whileHover={isInactive ? undefined : buttonHover}
       whileTap={isInactive ? undefined : buttonTap}
       disabled={isInactive}

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router'
-import { ArrowLeft, AlertCircle, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, AlertCircle, AlertTriangle, Users } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
 import { DigitalTicketCard } from '@/components/tickets/DigitalTicketCard'
+import { TeamManageModal } from '@/components/team/TeamManageModal'
 import { getRegistrationById, cancelRegistration } from '@/lib/registrations'
+import { subscribeToStatusChanges } from '@/lib/sync'
 import { useAuth } from '@/context/AuthContext'
 import type { RegistrationWithEvent } from '@/types'
 
@@ -16,6 +18,7 @@ export default function TicketDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showTeamModal, setShowTeamModal] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isOffline, setIsOffline] = useState(false)
@@ -65,6 +68,16 @@ export default function TicketDetailPage() {
 
   useEffect(() => {
     loadTicket()
+
+    const unsubscribe = subscribeToStatusChanges(
+      ['ticket_updated', 'payment_reviewed', 'team_updated', 'registration_updated', 'reconnect'],
+      (event) => {
+        if (!event.registrationId || event.registrationId === id) {
+          loadTicket()
+        }
+      }
+    )
+    return () => unsubscribe()
   }, [id, user, role])
 
   const handleCancel = async () => {
@@ -129,12 +142,50 @@ export default function TicketDetailPage() {
                 </div>
               </div>
             )}
+            {registration.team_name && (
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)]/90 border border-[oklch(100%_0_0_/_0.08)] text-xs mb-3 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-[var(--color-brand-purple)]/20 text-[var(--color-brand-purple)]">
+                    <Users size={16} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-[var(--color-text-primary)]">{registration.team_name}</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)] ml-2">
+                      {registration.team_role === 'leader' ? 'Team Leader' : 'Team Member'}
+                    </span>
+                  </div>
+                </div>
+
+                {registration.team_id && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTeamModal(true)}
+                    leftIcon={<Users size={14} />}
+                  >
+                    Manage Squad Roster
+                  </Button>
+                )}
+              </div>
+            )}
+
             <DigitalTicketCard
               registration={registration}
               studentName={profile?.display_name || 'FestFlow Student'}
               onCancel={() => setShowCancelModal(true)}
             />
           </div>
+        )}
+
+        {/* Squad Management Modal */}
+        {registration?.team_id && (
+          <TeamManageModal
+            isOpen={showTeamModal}
+            teamId={registration.team_id}
+            onClose={() => setShowTeamModal(false)}
+            onTeamUpdated={loadTicket}
+          />
         )}
 
         {/* Cancellation Confirmation Modal */}

@@ -53,6 +53,9 @@ export type CheckInOutcome =
   | 'NOT_CONFIRMED'
   | 'CANCELLED'
   | 'UNAUTHORIZED'
+  | 'CHECKED_OUT'
+  | 'NOT_CHECKED_IN'
+  | 'ALREADY_CHECKED_OUT'
 
 export interface Database {
   public: {
@@ -162,6 +165,9 @@ export interface Database {
           custom_questions: CustomQuestion[]
           participant_fields: ParticipantFieldsRequirement
           status: EventStatus
+          allow_reentry?: boolean
+          require_checkout?: boolean
+          cancellation_cutoff_hours?: number | null
           created_at: string
           updated_at: string
         }
@@ -204,6 +210,9 @@ export interface Database {
           custom_questions?: CustomQuestion[]
           participant_fields?: ParticipantFieldsRequirement
           status?: EventStatus
+          allow_reentry?: boolean
+          require_checkout?: boolean
+          cancellation_cutoff_hours?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -393,6 +402,11 @@ export interface Database {
           checkin_notes: string | null
           member_index: number
           member_name: string | null
+          checked_out_at: string | null
+          checked_out_by: string | null
+          checkout_notes: string | null
+          status: 'checked_in' | 'checked_out'
+          entry_count: number
           created_at: string
         }
         Insert: {
@@ -405,6 +419,11 @@ export interface Database {
           checkin_notes?: string | null
           member_index?: number
           member_name?: string | null
+          checked_out_at?: string | null
+          checked_out_by?: string | null
+          checkout_notes?: string | null
+          status?: 'checked_in' | 'checked_out'
+          entry_count?: number
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['check_ins']['Insert']>
@@ -445,6 +464,105 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['email_outbox']['Insert']>
+      }
+      teams: {
+        Row: {
+          id: string
+          event_id: string
+          leader_id: string
+          registration_id: string | null
+          name: string
+          invite_code: string
+          status: 'forming' | 'complete' | 'locked' | 'disbanded'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          leader_id: string
+          registration_id?: string | null
+          name: string
+          invite_code: string
+          status?: 'forming' | 'complete' | 'locked' | 'disbanded'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['teams']['Insert']>
+      }
+      team_invitations: {
+        Row: {
+          id: string
+          team_id: string
+          event_id: string
+          inviter_id: string
+          email: string
+          token: string
+          status: 'pending' | 'accepted' | 'declined' | 'expired' | 'revoked'
+          expires_at: string
+          accepted_by: string | null
+          accepted_at: string | null
+          last_sent_at: string
+          resend_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          event_id: string
+          inviter_id: string
+          email: string
+          token: string
+          status?: 'pending' | 'accepted' | 'declined' | 'expired' | 'revoked'
+          expires_at?: string
+          accepted_by?: string | null
+          accepted_at?: string | null
+          last_sent_at?: string
+          resend_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['team_invitations']['Insert']>
+      }
+      team_members: {
+        Row: {
+          id: string
+          team_id: string
+          event_id: string
+          user_id: string | null
+          registration_id: string | null
+          invitation_id: string | null
+          name: string
+          email: string
+          role: 'leader' | 'member'
+          status: 'pending' | 'accepted' | 'declined' | 'removed'
+          college: string | null
+          student_id_card: string | null
+          phone: string | null
+          joined_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          event_id: string
+          user_id?: string | null
+          registration_id?: string | null
+          invitation_id?: string | null
+          name: string
+          email: string
+          role?: 'leader' | 'member'
+          status?: 'pending' | 'accepted' | 'declined' | 'removed'
+          college?: string | null
+          student_id_card?: string | null
+          phone?: string | null
+          joined_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['team_members']['Insert']>
       }
     }
     Views: Record<string, never>

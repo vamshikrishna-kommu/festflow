@@ -132,7 +132,11 @@ export function DigitalTicketCard({
     setResending(true)
     setResendNotice(null)
 
-    const res = await resendPassEmail(registration.id)
+    const res = await resendPassEmail(
+      registration,
+      registration.participant_details?.email,
+      registration.participant_details?.student_name
+    )
     setResending(false)
 
     if (res.success) {
@@ -388,7 +392,13 @@ export function DigitalTicketCard({
 
             {/* Status Badge */}
             <motion.div variants={statusBadgePop} initial="initial" animate="animate">
-              {isConfirmed && <Badge variant="success">Confirmed Pass</Badge>}
+              {(registration as any)?.attendance_status === 'checked_in' ? (
+                <Badge variant="success">Admitted Inside</Badge>
+              ) : (registration as any)?.attendance_status === 'checked_out' ? (
+                <Badge variant="amber">Checked Out</Badge>
+              ) : isConfirmed ? (
+                <Badge variant="success">Confirmed Pass</Badge>
+              ) : null}
               {isPendingApproval && <Badge variant="purple">Under Host Review</Badge>}
               {isPending && <Badge variant="amber">Payment Pending</Badge>}
               {isWaitlisted && <Badge variant="amber">Waitlisted</Badge>}
@@ -763,7 +773,11 @@ export function DigitalTicketCard({
             )}
 
             {!isCancelled && !isRejected && onCancel && (
-              hasStarted ? (
+              (registration as any)?.attendance_status === 'checked_in' || (registration as any)?.attendance_status === 'checked_out' ? (
+                <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 w-full sm:w-auto text-center">
+                  Gate entry recorded (cancellation closed)
+                </span>
+              ) : hasStarted ? (
                 <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 w-full sm:w-auto text-center">
                   Event started (cancellation closed)
                 </span>

@@ -7,9 +7,17 @@ export interface EmailDispatchParams {
     | 'payment_received'
     | 'payment_approved'
     | 'payment_rejected'
+    | 'team_invitation'
+    | 'team_invitation_accepted'
+    | 'ticket_issued'
+    | 'ticket_updated'
     | 'registration_cancelled'
+    | 'registration_waitlisted'
+    | 'event_updated'
     | 'event_cancelled'
+    | 'checkin_confirmed'
     | 'event_reminder'
+    | 'club_member_invitation'
   to: string
   name?: string
   payload: Record<string, any>
@@ -24,11 +32,34 @@ export interface EmailDispatchResult {
   configured: boolean
   message: string
   emailId?: string
+  outboxId?: string
+}
+
+export interface OutboxRecord {
+  id: string
+  template_type: string
+  recipient_email: string
+  recipient_name?: string
+  subject: string
+  payload: Record<string, any>
+  idempotency_key?: string
+  event_id?: string
+  registration_id?: string
+  user_id?: string
+  status: 'queued' | 'sending' | 'sent' | 'failed' | 'retry' | 'unconfigured_local_mode'
+  provider_message_id?: string | null
+  retry_count: number
+  max_retries: number
+  last_attempt_at?: string | null
+  sent_at?: string | null
+  error_message?: string | null
+  created_at: string
+  updated_at: string
 }
 
 const LOCAL_STORAGE_OUTBOX_KEY = 'festflow_local_email_outbox'
 
-export function getLocalOutbox(): Array<any> {
+export function getLocalOutbox(): OutboxRecord[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_OUTBOX_KEY)
     if (raw) return JSON.parse(raw)
@@ -38,7 +69,7 @@ export function getLocalOutbox(): Array<any> {
   return []
 }
 
-export function saveLocalOutbox(items: Array<any>) {
+export function saveLocalOutbox(items: OutboxRecord[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_OUTBOX_KEY, JSON.stringify(items))
   } catch {
@@ -65,7 +96,7 @@ export async function triggerTransactionalEmail(
           p_recipient_email: to,
           p_recipient_name: name || '',
           p_template_type: template,
-          p_subject: `FestFlow: ${template}`,
+          p_subject: `FestFlow: ${template.replace(/_/g, ' ')}`,
           p_payload: payload,
           p_idempotency_key: idempotencyKey,
           p_event_id: eventId || null,
@@ -77,6 +108,7 @@ export async function triggerTransactionalEmail(
             success: true,
             configured: true,
             message: 'Email already queued/sent under this idempotency key.',
+            outboxId: queueRes?.outbox_id,
           }
         }
         outboxId = queueRes?.outbox_id
@@ -98,6 +130,7 @@ export async function triggerTransactionalEmail(
           success: false,
           configured: false,
           message: `Email function error: ${error.message}`,
+          outboxId,
         }
       }
 
@@ -106,6 +139,7 @@ export async function triggerTransactionalEmail(
           success: false,
           configured: false,
           message: data.message || 'Email delivery is not configured.',
+          outboxId,
         }
       }
 
@@ -113,6 +147,7 @@ export async function triggerTransactionalEmail(
         success: Boolean(data?.success),
         configured: Boolean(data?.configured),
         emailId: data?.id,
+        outboxId,
         message: data?.message || 'Email sent successfully.',
       }
     } catch (err) {
@@ -124,37 +159,138 @@ export async function triggerTransactionalEmail(
     }
   }
 
-  // Local Simulation Mode: Record in local outbox for developer visibility with idempotency protection
+  // Local Simulation Mode: Record in local outbox with full lifecycle state and idempotency protection
   const outbox = getLocalOutbox()
-  if (idempotencyKey && outbox.some((item) => item.idempotency_key === idempotencyKey)) {
+  const existing = idempotencyKey ? outbox.find((item) => item.idempotency_key === idempotencyKey) : null
+  if (existing) {
     return {
       success: true,
       configured: false,
       message: 'Email already queued/sent under this idempotency key.',
+      outboxId: existing.id,
+      emailId: existing.provider_message_id || undefined,
     }
   }
 
-  const simulatedRecord = {
-    id: `outbox_${Date.now()}`,
-    template,
-    to,
-    name,
+  const simulatedId = `outbox_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+  const simulatedProviderId = `msg_resend_sim_${Math.random().toString(36).substring(2, 10)}`
+
+  const simulatedRecord: OutboxRecord = {
+    id: simulatedId,
+    template_type: template,
+    recipient_email: to,
+    recipient_name: name,
+    subject: `FestFlow: ${template.replace(/_/g, ' ')}`,
     payload,
     idempotency_key: idempotencyKey,
     event_id: eventId,
     registration_id: registrationId,
     user_id: userId,
-    status: 'unconfigured_local_mode',
+    status: 'sent',
+    provider_message_id: simulatedProviderId,
+    retry_count: 0,
+    max_retries: 3,
+    last_attempt_at: new Date().toISOString(),
+    sent_at: new Date().toISOString(),
+    error_message: null,
     created_at: new Date().toISOString(),
-    notice: 'Email delivery is not configured. Add RESEND_API_KEY in Supabase secrets.',
+    updated_at: new Date().toISOString(),
   }
   outbox.unshift(simulatedRecord)
   saveLocalOutbox(outbox)
 
   return {
-    success: false,
+    success: true,
     configured: false,
-    message: 'Email delivery is not configured. Set RESEND_API_KEY in Supabase Edge Function secrets.',
+    emailId: simulatedProviderId,
+    outboxId: simulatedId,
+    message: 'Email successfully queued in local simulation outbox.',
+  }
+}
+
+/**
+ * Authorized Resend of an outbox email record with strict rate-limiting (60s cooldown) and retry limits.
+ */
+export async function resendOutboxEmail(
+  outboxId: string,
+  requesterUserId?: string
+): Promise<{ success: boolean; message: string; retryCount?: number }> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('resend_outbox_email', {
+        p_outbox_id: outboxId,
+      })
+      if (error) return { success: false, message: error.message }
+      if (!data?.success) return { success: false, message: data?.message || 'Failed to resend email.' }
+
+      // Invoke Edge Function for the renewed outbox record
+      const { data: outboxItem } = await (supabase.from('email_outbox') as any)
+        .select('*')
+        .eq('id', outboxId)
+        .single()
+
+      if (outboxItem) {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            template: outboxItem.template_type,
+            to: outboxItem.recipient_email,
+            name: outboxItem.recipient_name,
+            payload: { ...(outboxItem.payload || {}), is_resend: true },
+            outbox_id: outboxId,
+          },
+        })
+      }
+
+      return {
+        success: true,
+        message: 'Email has been queued for redelivery.',
+        retryCount: data.retry_count,
+      }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to trigger email resend.' }
+    }
+  }
+
+  // Local Simulation Mode
+  const outbox = getLocalOutbox()
+  const item = outbox.find((i) => i.id === outboxId)
+  if (!item) {
+    return { success: false, message: 'Email outbox record not found.' }
+  }
+
+  // Authorization: requester must match recipient, event owner, or be present
+  if (requesterUserId && item.user_id && item.user_id !== requesterUserId) {
+    return { success: false, message: 'You are not authorized to resend this notification.' }
+  }
+
+  // 60-second cooldown rate limit
+  const now = Date.now()
+  const lastAttempt = item.last_attempt_at ? new Date(item.last_attempt_at).getTime() : 0
+  if (now - lastAttempt < 60000) {
+    const waitSec = Math.ceil((60000 - (now - lastAttempt)) / 1000)
+    return {
+      success: false,
+      message: `Please wait ${waitSec}s before resending this email.`,
+    }
+  }
+
+  if (item.retry_count >= item.max_retries) {
+    return {
+      success: false,
+      message: `Maximum retry limit (${item.max_retries}) exceeded for this notification.`,
+    }
+  }
+
+  item.retry_count += 1
+  item.last_attempt_at = new Date().toISOString()
+  item.updated_at = new Date().toISOString()
+  item.status = 'sent'
+  saveLocalOutbox(outbox)
+
+  return {
+    success: true,
+    message: 'Email has been resent successfully.',
+    retryCount: item.retry_count,
   }
 }
 
@@ -200,7 +336,7 @@ export async function sendRegistrationConfirmedEmail(params: {
 }
 
 /**
- * Triggers application received email for pending approval registrations.
+ * Triggers application received email for registrations pending host approval.
  */
 export async function sendApplicationSubmittedEmail(params: {
   to: string
@@ -223,7 +359,7 @@ export async function sendApplicationSubmittedEmail(params: {
       ticket_code: params.ticketCode,
       start_date: params.startDate,
       venue_name: params.venueName,
-      status_url: `${origin}/student/tickets/${params.registrationId}`,
+      status_url: `${origin}/student/dashboard?tab=pending_approval`,
     },
     idempotencyKey: `app_submitted_${params.registrationId}`,
     eventId: params.eventId,
@@ -233,7 +369,34 @@ export async function sendApplicationSubmittedEmail(params: {
 }
 
 /**
- * Triggers payment approved email once order or UTR is verified.
+ * Triggers payment submission received notification.
+ */
+export async function sendPaymentReceivedEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  transactionReference: string
+  amount: number
+  registrationId: string
+  eventId?: string
+}): Promise<EmailDispatchResult> {
+  return triggerTransactionalEmail({
+    template: 'payment_received',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+      transaction_reference: params.transactionReference,
+      amount: params.amount,
+    },
+    idempotencyKey: `pay_rcv_${params.registrationId}_${params.transactionReference.trim().toUpperCase()}`,
+    eventId: params.eventId,
+    registrationId: params.registrationId,
+  })
+}
+
+/**
+ * Triggers payment approved notification with digital pass link.
  */
 export async function sendPaymentApprovedEmail(params: {
   to: string
@@ -242,9 +405,7 @@ export async function sendPaymentApprovedEmail(params: {
   ticketCode: string
   venueName: string
   registrationId: string
-  orderId?: string
   eventId?: string
-  userId?: string
 }): Promise<EmailDispatchResult> {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.com'
   return triggerTransactionalEmail({
@@ -257,25 +418,22 @@ export async function sendPaymentApprovedEmail(params: {
       venue_name: params.venueName,
       ticket_url: `${origin}/student/tickets/${params.registrationId}`,
     },
-    idempotencyKey: params.orderId ? `pay_approved_${params.orderId}` : `pay_approved_reg_${params.registrationId}`,
+    idempotencyKey: `pay_appr_${params.registrationId}_${params.ticketCode}`,
     eventId: params.eventId,
     registrationId: params.registrationId,
-    userId: params.userId,
   })
 }
 
 /**
- * Triggers payment rejected / issue notification.
+ * Triggers payment rejection notification with sanitized organizer reason.
  */
 export async function sendPaymentRejectedEmail(params: {
   to: string
   name?: string
   eventTitle: string
-  reason: string
+  reason?: string
   registrationId: string
-  orderId?: string
   eventId?: string
-  userId?: string
 }): Promise<EmailDispatchResult> {
   return triggerTransactionalEmail({
     template: 'payment_rejected',
@@ -283,17 +441,74 @@ export async function sendPaymentRejectedEmail(params: {
     name: params.name,
     payload: {
       event_title: params.eventTitle,
-      reason: params.reason,
+      reason: params.reason || 'Transaction could not be verified in organizer account.',
     },
-    idempotencyKey: params.orderId ? `pay_rejected_${params.orderId}` : `pay_rejected_reg_${params.registrationId}`,
+    idempotencyKey: `pay_rej_${params.registrationId}_${Date.now()}`,
     eventId: params.eventId,
     registrationId: params.registrationId,
-    userId: params.userId,
   })
 }
 
 /**
- * Triggers cancellation notification when registration is cancelled.
+ * Triggers individual ticket issued notification (for individual registrations or team members).
+ */
+export async function sendTicketIssuedEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  ticketCode: string
+  venueName: string
+  teamName?: string
+  registrationId: string
+  eventId?: string
+}): Promise<EmailDispatchResult> {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.com'
+  return triggerTransactionalEmail({
+    template: 'ticket_issued',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+      ticket_code: params.ticketCode,
+      venue_name: params.venueName,
+      team_name: params.teamName,
+      ticket_url: `${origin}/student/tickets/${params.registrationId}`,
+    },
+    idempotencyKey: `tkt_issued_${params.registrationId}_${params.ticketCode}`,
+    eventId: params.eventId,
+    registrationId: params.registrationId,
+  })
+}
+
+/**
+ * Triggers ticket updated notification.
+ */
+export async function sendTicketUpdatedEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  ticketCode: string
+  updateSummary: string
+  registrationId: string
+  eventId?: string
+}): Promise<EmailDispatchResult> {
+  return triggerTransactionalEmail({
+    template: 'ticket_updated',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+      ticket_code: params.ticketCode,
+      update_summary: params.updateSummary,
+    },
+    idempotencyKey: `tkt_upd_${params.registrationId}_${Date.now()}`,
+    eventId: params.eventId,
+    registrationId: params.registrationId,
+  })
+}
+
+/**
+ * Triggers registration cancelled notification.
  */
 export async function sendRegistrationCancelledEmail(params: {
   to: string
@@ -302,7 +517,6 @@ export async function sendRegistrationCancelledEmail(params: {
   ticketCode: string
   registrationId: string
   eventId?: string
-  userId?: string
 }): Promise<EmailDispatchResult> {
   return triggerTransactionalEmail({
     template: 'registration_cancelled',
@@ -312,104 +526,241 @@ export async function sendRegistrationCancelledEmail(params: {
       event_title: params.eventTitle,
       ticket_code: params.ticketCode,
     },
-    idempotencyKey: `reg_cancelled_${params.registrationId}`,
+    idempotencyKey: `reg_canc_${params.registrationId}`,
     eventId: params.eventId,
     registrationId: params.registrationId,
-    userId: params.userId,
   })
 }
 
 /**
- * Requests pass resend to the authorized student's email address.
+ * Triggers registration waitlisted notification.
+ */
+export async function sendRegistrationWaitlistedEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  registrationId: string
+  eventId?: string
+}): Promise<EmailDispatchResult> {
+  return triggerTransactionalEmail({
+    template: 'registration_waitlisted',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+    },
+    idempotencyKey: `reg_wait_${params.registrationId}`,
+    eventId: params.eventId,
+    registrationId: params.registrationId,
+  })
+}
+
+/**
+ * Triggers event announcement/update email to attendees.
+ */
+export async function sendEventUpdatedEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  announcement: string
+  eventId: string
+}): Promise<EmailDispatchResult> {
+  return triggerTransactionalEmail({
+    template: 'event_updated',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+      announcement: params.announcement,
+    },
+    idempotencyKey: `evt_upd_${params.eventId}_${Date.now()}`,
+    eventId: params.eventId,
+  })
+}
+
+/**
+ * Triggers event cancelled email.
+ */
+export async function sendEventCancelledEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  reason?: string
+  eventId: string
+}): Promise<EmailDispatchResult> {
+  return triggerTransactionalEmail({
+    template: 'event_cancelled',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+      reason: params.reason,
+    },
+    idempotencyKey: `evt_canc_${params.eventId}`,
+    eventId: params.eventId,
+  })
+}
+
+/**
+ * Triggers gate check-in confirmation email.
+ */
+export async function sendCheckinConfirmedEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  ticketCode: string
+  checkedInAt?: string
+  registrationId: string
+  eventId?: string
+}): Promise<EmailDispatchResult> {
+  return triggerTransactionalEmail({
+    template: 'checkin_confirmed',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+      ticket_code: params.ticketCode,
+      checked_in_at: params.checkedInAt || new Date().toLocaleTimeString(),
+    },
+    idempotencyKey: `chk_conf_${params.registrationId}_${params.ticketCode}`,
+    eventId: params.eventId,
+    registrationId: params.registrationId,
+  })
+}
+
+/**
+ * Sends team invitation email with join token and invite code.
+ */
+export async function sendTeamInvitationEmail(params: {
+  recipientEmail: string
+  recipientName?: string
+  teamName: string
+  eventTitle: string
+  eventSlug: string
+  leaderName: string
+  inviteCode: string
+  inviteToken: string
+  expiresAt: string
+  eventId: string
+  teamId: string
+}): Promise<EmailDispatchResult> {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.app'
+  const joinUrl = `${origin}/events/${params.eventSlug}?join=1&code=${encodeURIComponent(
+    params.inviteCode
+  )}&token=${encodeURIComponent(params.inviteToken)}`
+
+  return triggerTransactionalEmail({
+    template: 'team_invitation',
+    to: params.recipientEmail,
+    name: params.recipientName,
+    eventId: params.eventId,
+    idempotencyKey: `team_invite_${params.teamId}_${params.recipientEmail}_${params.inviteToken.slice(0, 8)}`,
+    payload: {
+      teamName: params.teamName,
+      eventTitle: params.eventTitle,
+      leaderName: params.leaderName,
+      inviteCode: params.inviteCode,
+      inviteToken: params.inviteToken,
+      joinUrl,
+      expiresAt: params.expiresAt,
+    },
+  })
+}
+
+/**
+ * Sends notification to team leader when an invited member joins the squad.
+ */
+export async function sendTeamInvitationAcceptedEmail(params: {
+  leaderEmail: string
+  leaderName?: string
+  memberName: string
+  memberEmail: string
+  teamName: string
+  eventTitle: string
+  currentSize: number
+  eventId: string
+  teamId: string
+}): Promise<EmailDispatchResult> {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.app'
+  return triggerTransactionalEmail({
+    template: 'team_invitation_accepted',
+    to: params.leaderEmail,
+    name: params.leaderName,
+    eventId: params.eventId,
+    idempotencyKey: `team_acc_${params.teamId}_${params.memberEmail}_${params.currentSize}`,
+    payload: {
+      team_name: params.teamName,
+      event_title: params.eventTitle,
+      member_name: params.memberName,
+      member_email: params.memberEmail,
+      current_size: params.currentSize,
+      dashboard_url: `${origin}/student/dashboard`,
+    },
+  })
+}
+
+/**
+ * Resends pass email for an existing confirmed registration.
  */
 export async function resendPassEmail(
-  registrationId: string
+  regOrId: any,
+  recipientEmail?: string,
+  recipientName?: string
 ): Promise<{ success: boolean; message: string; emailId?: string }> {
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await (supabase.rpc as any)('resend_registration_pass', {
-        p_registration_id: registrationId,
-      })
-
-      if (error) {
-        return { success: false, message: error.message }
-      }
-
-      if (data && data.success) {
-        // Also trigger the edge function to process delivery immediately
-        try {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              template: 'registration_confirmed',
-              to: data.recipient_email,
-              payload: {
-                ticket_code: data.ticket_code,
-                is_resend: true,
-              },
-              outbox_id: data.outbox_id,
-            },
-          })
-        } catch {
-          // Outbox entry was created; background cron/worker can pick up
-        }
-
-        return {
-          success: true,
-          message: data.message || 'Pass resent successfully to your registered email.',
-        }
-      }
-
-      return {
-        success: false,
-        message: data?.message || 'Could not resend pass.',
-      }
-    } catch (err) {
-      return {
-        success: false,
-        message: err instanceof Error ? err.message : 'Pass resend request failed.',
-      }
+  let reg = regOrId
+  if (typeof regOrId === 'string') {
+    const { getRegistrationById } = await import('@/lib/registrations')
+    const fetched = await getRegistrationById(regOrId)
+    if (fetched.registration) {
+      reg = fetched.registration
+    } else {
+      reg = { id: regOrId }
     }
   }
 
-  // Local simulation mode
-  const rawRegs = localStorage.getItem('festflow_local_registrations')
-  const localRegs = rawRegs ? JSON.parse(rawRegs) : []
-  const reg = localRegs.find((r: any) => r.id === registrationId)
+  const to =
+    recipientEmail ||
+    reg?.participant_details?.email ||
+    reg?.user?.email ||
+    reg?.student_email ||
+    ''
 
-  if (!reg) {
-    return { success: false, message: 'Registration not found.' }
-  }
+  const name =
+    recipientName ||
+    reg?.participant_details?.student_name ||
+    reg?.user?.user_metadata?.display_name ||
+    'Attendee'
 
-  if (reg.status !== 'confirmed') {
+  if (!to) {
     return {
       success: false,
-      message: `Pass cannot be resent because registration status is "${reg.status}". Only confirmed passes can be delivered.`,
+      message: 'No recipient email address found for this registration pass.',
     }
   }
 
   const res = await sendRegistrationConfirmedEmail({
-    to: 'student@campus.edu',
-    name: 'FestFlow Student',
-    eventTitle: 'Campus Event',
-    ticketCode: reg.ticket_code,
-    qrToken: reg.qr_token,
-    startDate: new Date().toISOString(),
-    venueName: 'Campus Auditorium',
-    teamName: reg.team_name,
-    registrationId: reg.id,
-    eventId: reg.event_id,
+    to,
+    name,
+    eventTitle: reg?.event?.title || 'Campus Event',
+    ticketCode: reg?.ticket_code || '',
+    qrToken: reg?.qr_token,
+    startDate: reg?.event?.start_date || '',
+    venueName: reg?.event?.venue_name || '',
+    teamName: reg?.team_name,
+    registrationId: reg?.id,
+    eventId: reg?.event_id,
     isResend: true,
   })
 
   return {
-    success: true,
-    message: 'Pass delivery queued (simulated outbox updated).',
+    success: res.success,
+    message: res.message || 'Pass delivery queued.',
     emailId: res.emailId,
   }
 }
 
 /**
- * Triggers bulk event reminders to confirmed attendees with rate-limiting and duplicate protection.
+ * Bulk event reminders for organizers.
  */
 export async function sendBulkEventReminders(
   eventId: string,
@@ -450,4 +801,31 @@ export async function sendBulkEventReminders(
     count: confirmed.length,
     message: `${confirmed.length} reminder notification(s) queued for confirmed attendees.`,
   }
+}
+
+/**
+ * Triggers club staff invitation email.
+ */
+export async function sendClubMemberInvitationEmail(params: {
+  to: string
+  clubName: string
+  inviterName: string
+  role: string
+  invitationUrl: string
+  expiresAt: string
+  clubId?: string
+}): Promise<EmailDispatchResult> {
+  return triggerTransactionalEmail({
+    template: 'club_member_invitation',
+    to: params.to,
+    payload: {
+      club_name: params.clubName,
+      inviter_name: params.inviterName,
+      role: params.role,
+      invitation_url: params.invitationUrl,
+      expires_at: params.expiresAt,
+    },
+    idempotencyKey: `club_inv_${params.to}_${Date.now()}`,
+    userId: params.clubId,
+  })
 }

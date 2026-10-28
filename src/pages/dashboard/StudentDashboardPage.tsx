@@ -18,6 +18,7 @@ import {
   Calendar,
   CreditCard,
   Search,
+  Settings,
 } from 'lucide-react'
 import {
   Button,
@@ -35,6 +36,9 @@ import { useAuth } from '@/context/AuthContext'
 import { Link, useSearchParams } from 'react-router'
 import { fadeIn, staggerContainer, metricItem, tabContent } from '@/lib/animations'
 import { getStudentRegistrations, cancelRegistration } from '@/lib/registrations'
+import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
+import { TeamManageModal } from '@/components/team/TeamManageModal'
+import { subscribeToStatusChanges } from '@/lib/sync'
 import type { RegistrationWithEvent } from '@/types'
 
 function getGreeting(): string {
@@ -51,11 +55,14 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'upcoming' | 'pending_approval' | 'pending_payment' | 'waitlisted' | 'past' | 'cancelled'>('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Cancellation modal
   const [cancellingReg, setCancellingReg] = useState<RegistrationWithEvent | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
+  const [showTeamModal, setShowTeamModal] = useState(false)
 
   const displayName = profile?.display_name || 'Campus Student'
   const college = studentProfile?.college_name || 'Campus Student'
@@ -75,12 +82,23 @@ export default function StudentDashboardPage() {
 
   useEffect(() => {
     loadRegistrations()
+
+    const unsubscribe = subscribeToStatusChanges(
+      ['registration_updated', 'payment_reviewed', 'team_updated', 'ticket_updated', 'reconnect'],
+      () => {
+        loadRegistrations()
+      }
+    )
+    return () => unsubscribe()
   }, [user])
 
   useEffect(() => {
     const tabParam = searchParams.get('tab')
     if (tabParam && ['upcoming', 'pending_approval', 'pending_payment', 'waitlisted', 'past', 'cancelled'].includes(tabParam)) {
       setTab(tabParam as any)
+    }
+    if (searchParams.get('settings') === 'true') {
+      setSettingsOpen(true)
     }
     const handler = (e: any) => {
       if (e.detail) setTab(e.detail)
@@ -297,6 +315,15 @@ export default function StudentDashboardPage() {
                 Discover Events
               </Button>
             </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSettingsOpen(true)}
+              leftIcon={<Settings size={15} />}
+              className="justify-center text-[var(--color-brand-cyan)] hover:border-[var(--color-brand-cyan)]"
+            >
+              Settings
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -639,7 +666,11 @@ export default function StudentDashboardPage() {
                         <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
                           <Badge
                             variant={
-                              isConfirmed
+                              (reg as any).attendance_status === 'checked_in'
+                                ? 'success'
+                                : (reg as any).attendance_status === 'checked_out'
+                                ? 'amber'
+                                : isConfirmed
                                 ? 'success'
                                 : isPendingApproval
                                 ? 'purple'
@@ -651,7 +682,11 @@ export default function StudentDashboardPage() {
                             }
                             className="text-[10px] uppercase font-semibold tracking-wider"
                           >
-                            {isConfirmed
+                            {(reg as any).attendance_status === 'checked_in'
+                              ? 'Admitted Inside'
+                              : (reg as any).attendance_status === 'checked_out'
+                              ? 'Checked Out'
+                              : isConfirmed
                               ? 'Confirmed'
                               : isPendingApproval
                               ? 'Under Review'
@@ -708,9 +743,23 @@ export default function StudentDashboardPage() {
                                   {reg.team_name || 'Team Registration'}
                                 </strong>
                               </span>
-                              <span className="text-[11px] text-[var(--color-text-muted)]">
-                                {reg.team_role === 'leader' ? 'Team Leader' : 'Team Member'}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-[var(--color-text-muted)]">
+                                  {reg.team_role === 'leader' ? 'Team Leader' : 'Team Member'}
+                                </span>
+                                {reg.team_id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedTeamId(reg.team_id)
+                                      setShowTeamModal(true)
+                                    }}
+                                    className="px-2 py-0.5 rounded-lg bg-[var(--color-brand-purple)]/15 hover:bg-[var(--color-brand-purple)]/25 text-[var(--color-brand-purple)] text-[11px] font-semibold transition-colors cursor-pointer"
+                                  >
+                                    {reg.team_role === 'leader' ? 'Manage Squad' : 'View Squad'}
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             {teamMembers.length > 0 && (
@@ -811,7 +860,11 @@ export default function StudentDashboardPage() {
                         )}
 
                         {!isCancelled && !isRejected && (
-                          hasStarted ? (
+                          (reg as any).attendance_status === 'checked_in' || (reg as any).attendance_status === 'checked_out' ? (
+                            <span className="text-[11px] text-[var(--color-text-muted)] italic px-2">
+                              Admitted at Gate
+                            </span>
+                          ) : hasStarted ? (
                             <span className="text-[11px] text-[var(--color-text-muted)] italic px-2">
                               Concluded
                             </span>
@@ -888,6 +941,25 @@ export default function StudentDashboardPage() {
             </Button>
           </ModalFooter>
         </Modal>
+
+        {/* Student Settings Modal */}
+        <StudentSettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
+
+        {/* Squad Roster & Invitation Management Modal */}
+        {selectedTeamId && (
+          <TeamManageModal
+            isOpen={showTeamModal}
+            teamId={selectedTeamId}
+            onClose={() => {
+              setShowTeamModal(false)
+              setSelectedTeamId(null)
+            }}
+            onTeamUpdated={loadRegistrations}
+          />
+        )}
       </div>
     </PageShell>
   )
