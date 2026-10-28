@@ -41,9 +41,9 @@ import type {
 } from '@/types'
 
 export default function ClubMembersPage() {
-  const { user, profile, clubProfile, role: globalRole } = useAuth()
-  const clubId = clubProfile?.profile_id || user?.id || ''
-  const clubName = clubProfile?.club_name || profile?.display_name || 'Organization'
+  const { user, profile, clubProfile, activeClubMembership, activeClubProfile, role: globalRole } = useAuth()
+  const clubId = clubProfile?.profile_id || activeClubMembership?.club_id || user?.id || ''
+  const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Organization'
 
   const [members, setMembers] = useState<ClubMemberRecord[]>([])
   const [invitations, setInvitations] = useState<ClubInvitationRecord[]>([])

@@ -16,7 +16,7 @@ export function ProtectedRoute({
   allowedRoles,
   fallbackPath,
 }: ProtectedRouteProps) {
-  const { session, role, isLoading, isRoleLoading, profileError, refreshProfile, signOut } = useAuth()
+  const { session, role, isLoading, isRoleLoading, profileError, refreshProfile, signOut, hasClubMembership } = useAuth()
   const location = useLocation()
 
   // 1. Session Hydration & Role Loading — Never briefly render protected content
@@ -108,9 +108,13 @@ export function ProtectedRoute({
     )
   }
 
-  // 4. Role Authorization — Deny if role does not match allowed roles
+  // 4. Role Authorization — Check global role and club membership coexistence
   if (allowedRoles && allowedRoles.length > 0 && role) {
-    if (!allowedRoles.includes(role)) {
+    const isClubTarget = allowedRoles.includes('club_member')
+    const isAuthorizedByClubMembership = isClubTarget && Boolean(hasClubMembership)
+    const isAuthorizedByRole = allowedRoles.includes(role)
+
+    if (!isAuthorizedByRole && !isAuthorizedByClubMembership) {
       return (
         <Navigate
           to="/unauthorized"

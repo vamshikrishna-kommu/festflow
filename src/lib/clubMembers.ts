@@ -429,11 +429,24 @@ export async function inviteClubMember(params: {
         .select()
         .single()
 
-      if (!error && data) {
+      if (error) {
+        console.error('[FestFlow ClubMembers] Failed to insert invitation:', error.message)
+        return {
+          success: false,
+          message: `Failed to save invitation: ${error.message}`,
+          error_code: 'DB_INSERT_FAILED',
+        }
+      }
+      if (data) {
         newInvitation.id = data.id
       }
-    } catch {
-      // ignore
+    } catch (insertErr) {
+      console.error('[FestFlow ClubMembers] Invitation insert exception:', insertErr)
+      return {
+        success: false,
+        message: insertErr instanceof Error ? insertErr.message : 'Database error saving invitation.',
+        error_code: 'DB_INSERT_FAILED',
+      }
     }
   }
 
@@ -458,7 +471,7 @@ export async function inviteClubMember(params: {
   saveLocalAuditLogs(localLogs)
 
   // Dispatch Transactional Email
-  await sendClubMemberInvitationEmail({
+  const emailRes = await sendClubMemberInvitationEmail({
     to: cleanEmail,
     clubName,
     inviterName,
@@ -466,6 +479,7 @@ export async function inviteClubMember(params: {
     invitationUrl,
     expiresAt,
     clubId,
+    invitationToken: token,
   })
 
   broadcastStatusChange({
@@ -473,9 +487,14 @@ export async function inviteClubMember(params: {
     clubId,
   })
 
+  const emailAccepted = emailRes.success
+  const feedbackMessage = emailAccepted
+    ? `Invitation successfully sent to ${cleanEmail} for the role of ${ROLE_LABELS[role]}.`
+    : `Invitation created, but email dispatch failed (${emailRes.message || 'delivery issue'}). You can copy and share the invitation link directly.`
+
   return {
     success: true,
-    message: `Invitation successfully sent to ${cleanEmail} for the role of ${ROLE_LABELS[role]}.`,
+    message: feedbackMessage,
     invitation: newInvitation,
   }
 }
@@ -781,7 +800,7 @@ export async function resendClubInvitation(
   localLogs.unshift(auditLog)
   saveLocalAuditLogs(localLogs)
 
-  await sendClubMemberInvitationEmail({
+  const emailRes = await sendClubMemberInvitationEmail({
     to: existing.email,
     clubName,
     inviterName: 'Club Administrator',
@@ -790,9 +809,14 @@ export async function resendClubInvitation(
     expiresAt: newExpiresAt,
     clubId,
     isResend: true,
+    invitationToken: newToken,
   })
 
-  return { success: true, message: `Invitation renewed and sent to ${existing.email}.`, invitation: updated }
+  const feedbackMessage = emailRes.success
+    ? `Invitation renewed and sent to ${existing.email}.`
+    : `Invitation renewed, but email dispatch failed (${emailRes.message || 'delivery issue'}). Share the link directly.`
+
+  return { success: true, message: feedbackMessage, invitation: updated }
 }
 
 // ── Update Member Role ──────────────────────────────────────────────────────

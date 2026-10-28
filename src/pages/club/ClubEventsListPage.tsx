@@ -24,7 +24,7 @@ import { fadeIn, staggerContainer } from '@/lib/animations'
 import type { EventRecord, EventStatus } from '@/types'
 
 export default function ClubEventsListPage() {
-  const { user, profile, clubProfile } = useAuth()
+  const { user, profile, clubProfile, activeClubMembership, activeClubProfile } = useAuth()
 
   const [events, setEvents] = useState<EventRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,15 +36,16 @@ export default function ClubEventsListPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
 
-  const clubName = clubProfile?.club_name || profile?.display_name || 'My Club'
+  const clubId = clubProfile?.profile_id || activeClubMembership?.club_id || user?.id || ''
+  const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'My Club'
 
   const loadEvents = async () => {
-    if (!user?.id) {
+    if (!clubId) {
       setLoading(false)
       return
     }
     setLoading(true)
-    const res = await listClubEvents(user.id)
+    const res = await listClubEvents(clubId)
     setLoading(false)
     if (res.events) {
       setEvents(res.events)
@@ -53,7 +54,7 @@ export default function ClubEventsListPage() {
 
   useEffect(() => {
     loadEvents()
-  }, [user])
+  }, [clubId])
 
   // Count summaries
   const statusCounts = useMemo(() => {

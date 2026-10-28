@@ -507,6 +507,69 @@ async function runPhase8TestSuite() {
   )
 
   // ──────────────────────────────────────────────────────────────────────────
+  // TEST GROUP 11: Student Dual-Role Coexistence & Route Authorization
+  // ──────────────────────────────────────────────────────────────────────────
+  console.log('\n11. Student Dual-Role Coexistence & Route Authorization')
+
+  // 1. Student with club membership can access /club/dashboard
+  const studentWithClubAllowed = isPathAllowedForRole('/club/dashboard', 'student', true)
+  assert(
+    studentWithClubAllowed === true,
+    'Student with active club membership is permitted on /club/dashboard'
+  )
+
+  // 2. Student without club membership is blocked from /club/dashboard
+  const studentWithoutClubAllowed = isPathAllowedForRole('/club/dashboard', 'student', false)
+  assert(
+    studentWithoutClubAllowed === false,
+    'Student without club membership is strictly denied access to /club/dashboard'
+  )
+
+  // 3. Safe return URL resolves to /club/dashboard when membership exists
+  const returnUrlWithMembership = getSafeReturnUrl('/club/dashboard', 'student', undefined, true)
+  assert(
+    returnUrlWithMembership === '/club/dashboard',
+    'getSafeReturnUrl permits /club/dashboard for student with active club membership'
+  )
+
+  // 4. Safe return URL falls back to /student/dashboard when membership does not exist
+  const returnUrlWithoutMembership = getSafeReturnUrl('/club/dashboard', 'student', undefined, false)
+  assert(
+    returnUrlWithoutMembership === '/student/dashboard',
+    'getSafeReturnUrl safely redirects unauthorized student to /student/dashboard'
+  )
+
+  // 5. Migration 024 does NOT mutate profiles.role to club_member
+  assert(
+    !migration024Content.includes("SET role = 'club_member'"),
+    'Migration 024 preserves Student role and does NOT overwrite profiles.role'
+  )
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TEST GROUP 12: Unique Idempotency Key & Edge Function Authorization
+  // ──────────────────────────────────────────────────────────────────────────
+  console.log('\n12. Unique Idempotency Key & Edge Function Authorization')
+
+  const emailsFile = fs.readFileSync(path.resolve(process.cwd(), 'src/lib/emails.ts'), 'utf-8')
+  assert(
+    emailsFile.includes('invitation_token'),
+    'emails.ts passes invitation_token into transactional email payload'
+  )
+  assert(
+    emailsFile.includes('Email accepted by delivery provider (Resend).'),
+    'emails.ts accurately distinguishes delivery provider acceptance from confirmed delivery'
+  )
+
+  assert(
+    edgeContent.includes('maybeSingle'),
+    'send-email Edge Function uses maybeSingle to safely handle non-existent records'
+  )
+  assert(
+    edgeContent.includes('ilike'),
+    'send-email Edge Function uses case-insensitive ilike for recipient verification'
+  )
+
+  // ──────────────────────────────────────────────────────────────────────────
   // Summary
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n===================================================================')

@@ -9,8 +9,10 @@ import {
   CreditCard,
   Globe,
   User,
+  AlertTriangle,
+  ArrowLeft,
 } from 'lucide-react'
-import { Button, Card, PageHeader, Alert } from '@/components/ui'
+import { Button, Card, PageHeader, Alert, EmptyState } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -19,15 +21,61 @@ import {
   uploadClubPaymentQr,
   validateUpiId,
 } from '@/lib/payments'
+import {
+  ROLE_LABELS,
+  hasPermission,
+  getUserClubRole,
+} from '@/lib/clubMembers'
+import type { ClubRole } from '@/types'
 
 export default function ClubPaymentSettingsPage() {
-  const { user, profile, clubProfile, updateProfile } = useAuth()
+  const {
+    user,
+    profile,
+    clubProfile,
+    activeClubId,
+    activeClubMembership,
+    activeClubProfile,
+    clubMemberships,
+    updateProfile,
+  } = useAuth()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const clubId = user?.id || ''
-  const currentClubName = clubProfile?.club_name || profile?.display_name || 'Campus Club'
-  const currentRepName = clubProfile?.representative_name || profile?.display_name || ''
+  // Resolve selected club strictly from authorized owner profile or active membership - NEVER fallback to user.id
+  const clubId = activeClubId || clubProfile?.profile_id || activeClubMembership?.club_id || null
+  const currentClubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Campus Club'
+  const currentRepName = clubProfile?.representative_name || activeClubProfile?.representative_name || profile?.display_name || ''
+
+  const initialClubRole: ClubRole | null =
+    clubProfile?.profile_id === user?.id
+      ? 'owner'
+      : (activeClubMembership?.role as ClubRole) || null
+
+  const [userClubRole, setUserClubRole] = useState<ClubRole | null>(initialClubRole)
+  const [roleLoading, setRoleLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    if (!clubId || !user) {
+      setUserClubRole(null)
+      setRoleLoading(false)
+      return
+    }
+
+    getUserClubRole(clubId, user.id).then((r) => {
+      if (!mounted) return
+      setUserClubRole(r || (clubProfile?.profile_id === user.id ? 'owner' : (activeClubMembership?.role as ClubRole) || null))
+      setRoleLoading(false)
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [clubId, user?.id, clubProfile?.profile_id, activeClubMembership?.role])
+
+  const canManageClub = Boolean(userClubRole && hasPermission(userClubRole, 'manage_club'))
+  const canReviewPayments = Boolean(userClubRole && hasPermission(userClubRole, 'review_payments'))
 
   // Determine active tab from URL or query
   const initialTab =
@@ -63,16 +111,21 @@ export default function ClubPaymentSettingsPage() {
       setRepNameInput(clubProfile.representative_name || profile?.display_name || '')
       setWebsiteInput(clubProfile.website_url || '')
       setDescriptionInput(clubProfile.description || '')
+    } else if (activeClubProfile) {
+      setClubNameInput(activeClubProfile.club_name || '')
+      setRepNameInput(activeClubProfile.representative_name || profile?.display_name || '')
+      setWebsiteInput(activeClubProfile.website_url || '')
+      setDescriptionInput(activeClubProfile.description || '')
     } else if (profile) {
       setClubNameInput(profile.display_name || 'Campus Club')
       setRepNameInput(profile.display_name || '')
     }
-  }, [clubProfile, profile])
+  }, [clubProfile, activeClubProfile, profile])
 
   // Load payment settings
   useEffect(() => {
     let mounted = true
-    if (!clubId) {
+    if (!clubId || !canManageClub) {
       setLoading(false)
       return
     }
@@ -94,7 +147,7 @@ export default function ClubPaymentSettingsPage() {
     return () => {
       mounted = false
     }
-  }, [clubId, currentClubName])
+  }, [clubId, currentClubName, canManageClub])
 
   const handleTabChange = (tab: 'profile' | 'payments') => {
     setActiveTab(tab)
@@ -103,6 +156,7 @@ export default function ClubPaymentSettingsPage() {
   }
 
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canManageClub || !clubId) return
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -131,6 +185,7 @@ export default function ClubPaymentSettingsPage() {
 
   const handleSavePayments = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canManageClub || !clubId) return
     setNotice(null)
 
     if (!validateUpiId(upiId)) {
@@ -165,6 +220,7 @@ export default function ClubPaymentSettingsPage() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canManageClub || !clubId) return
     setNotice(null)
 
     if (!clubNameInput.trim()) {
@@ -203,6 +259,76 @@ export default function ClubPaymentSettingsPage() {
     }
   }
 
+  if (!clubId) {
+    return (
+      <PageShell>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
+            <Link
+              to="/club/dashboard"
+              className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+            >
+              <ArrowLeft size={14} /> Club Dashboard
+            </Link>
+            <span>/</span>
+            <span className="text-[var(--color-text-primary)] font-medium">Club Settings</span>
+          </div>
+          <EmptyState
+            icon={AlertTriangle}
+            title="No Active Organization Found"
+            description="You do not have an active club profile or authorized club membership. To manage club settings and UPI payment gateways, you must be a registered club owner or an authorized administrator."
+            action={
+              <Link to="/club/dashboard">
+                <Button variant="primary" size="sm">
+                  Go to Club Dashboard
+                </Button>
+              </Link>
+            }
+          />
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (!roleLoading && !canManageClub) {
+    return (
+      <PageShell>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
+          <PageHeader
+            breadcrumbs={[
+              { label: 'Club Dashboard', href: '/club/dashboard' },
+              { label: 'Club Settings' },
+            ]}
+            title="Club Settings & Operations"
+            badge="Access Restricted"
+            badgeVariant="danger"
+            subtitle={`Configure your official student organization profile and manage direct zero-commission UPI payment channels.`}
+          />
+          <EmptyState
+            icon={AlertTriangle}
+            title="Role Permission Required"
+            description={`Your current role (${userClubRole ? ROLE_LABELS[userClubRole] : 'Staff Member'}) in ${currentClubName} does not have permission to modify organization profiles or UPI gateway settings. Only Club Owners and Administrators can manage these settings.`}
+            action={
+              canReviewPayments ? (
+                <Link to="/club/payments">
+                  <Button variant="primary" size="sm">
+                    Go to Payments Review
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/club/dashboard">
+                  <Button variant="primary" size="sm">
+                    Back to Dashboard
+                  </Button>
+                </Link>
+              )
+            }
+          />
+        </div>
+      </PageShell>
+    )
+  }
+
   return (
     <PageShell>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
@@ -213,15 +339,17 @@ export default function ClubPaymentSettingsPage() {
             { label: 'Club Settings' },
           ]}
           title="Club Settings & Operations"
-          badge="Club Administration"
+          badge={clubMemberships.length > 1 ? `${currentClubName} (Active)` : 'Club Administration'}
           badgeVariant="purple"
-          subtitle="Configure your official student organization profile and manage direct zero-commission UPI payment channels."
+          subtitle={`Configure your official student organization profile and manage direct zero-commission UPI payment channels.`}
           actions={
-            <Link to="/club/payments">
-              <Button variant="outline" size="sm" rightIcon={<ExternalLink size={14} />}>
-                Review Student Payments
-              </Button>
-            </Link>
+            canReviewPayments ? (
+              <Link to="/club/payments">
+                <Button variant="outline" size="sm" rightIcon={<ExternalLink size={14} />}>
+                  Review Student Payments
+                </Button>
+              </Link>
+            ) : undefined
           }
         />
 

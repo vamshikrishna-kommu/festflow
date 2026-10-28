@@ -25,21 +25,21 @@ import { getClubPaymentSubmissions } from '@/lib/payments'
 import type { EventRecord, PaymentSubmissionWithDetails } from '@/types'
 
 export default function ClubDashboardPage() {
-  const { user, profile, clubProfile, signOut } = useAuth()
+  const { user, profile, clubProfile, activeClubMembership, activeClubProfile, signOut } = useAuth()
   const [events, setEvents] = useState<EventRecord[]>([])
   const [submissions, setSubmissions] = useState<PaymentSubmissionWithDetails[]>([])
   const [loading, setLoading] = useState(true)
 
-  const clubName = clubProfile?.club_name || profile?.display_name || 'Campus Club'
+  const clubId = clubProfile?.profile_id || activeClubMembership?.club_id || user?.id || ''
+  const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Campus Club'
   const repName = profile?.display_name || clubProfile?.representative_name || 'Club Representative'
 
   useEffect(() => {
     let mounted = true
-    if (!user?.id) {
+    if (!clubId) {
       setLoading(false)
       return
     }
-    const clubId = user.id
     Promise.all([
       listClubEvents(clubId),
       getClubPaymentSubmissions(clubId),
@@ -52,7 +52,7 @@ export default function ClubDashboardPage() {
     return () => {
       mounted = false
     }
-  }, [user])
+  }, [clubId])
 
   const now = new Date()
 

@@ -85,6 +85,7 @@ function saveLocalNotifications(notifs: InAppNotification[]) {
 
 // ── Club Payment Settings API ───────────────────────────────────────────────
 export async function getClubPaymentSettings(clubId: string): Promise<ClubPaymentSettings | null> {
+  if (!clubId) return null
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -778,6 +779,10 @@ export async function getClubPaymentSubmissions(
   clubId?: string,
   eventId?: string
 ): Promise<{ submissions: PaymentSubmissionWithDetails[]; error?: string }> {
+  if (!clubId && !eventId) {
+    return { submissions: [] }
+  }
+
   if (isSupabaseConfigured) {
     try {
       let query = supabase
@@ -838,7 +843,11 @@ export async function getClubPaymentSubmissions(
     })
   )
 
-  return { submissions: enriched }
+  const finalSubmissions = clubId && !eventId
+    ? enriched.filter((s) => s.event?.club_id === clubId)
+    : enriched
+
+  return { submissions: finalSubmissions }
 }
 
 export async function getStudentPaymentSubmission(

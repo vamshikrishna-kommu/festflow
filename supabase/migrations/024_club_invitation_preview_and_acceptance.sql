@@ -191,6 +191,9 @@ GRANT EXECUTE ON FUNCTION public.get_club_invitation_preview(TEXT) TO anon, auth
 -- 4. Atomic row lock (FOR UPDATE)
 -- 5. Role validation against allowed club roles
 -- 6. Prevention of duplicate memberships and role escalation
+DROP FUNCTION IF EXISTS public.accept_club_invitation(TEXT, UUID);
+DROP FUNCTION IF EXISTS public.accept_club_invitation(TEXT);
+
 CREATE OR REPLACE FUNCTION public.accept_club_invitation(
     p_token    TEXT,
     p_user_id  UUID DEFAULT NULL
@@ -365,10 +368,9 @@ BEGIN
     SET status = 'accepted', accepted_at = now(), accepted_by = v_caller_id, updated_at = now()
     WHERE id = v_invitation.id;
 
-    -- 11. Ensure profile role grants club access
-    UPDATE public.profiles
-    SET role = 'club_member', updated_at = now()
-    WHERE id = v_caller_id AND role = 'student';
+    -- 11. Role coexistence: The user retains their primary account role (e.g. 'student'),
+    -- and their organization access is authorized through public.club_members membership records.
+    -- Accepting an invitation never creates a new club or mutates user profile roles.
 
     -- 12. Write audit log
     INSERT INTO public.club_audit_logs (club_id, actor_id, action, target_id, target_email, new_value, details)

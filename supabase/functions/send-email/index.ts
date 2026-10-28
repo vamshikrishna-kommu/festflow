@@ -528,37 +528,52 @@ export async function authorizeEmailDispatch(params: {
     // ── FIX 1: Club Member Invitation ──────────────────────────────────────
     if (template === 'club_member_invitation') {
       const clubId = body.club_id || payload?.club_id
+      let isClubAuthorized = false
+
       if (clubId) {
         // Direct club owner check (clubId is primary owner profile id)
         if (clubId === caller.id) {
-          return { authorized: true }
-        }
+          isClubAuthorized = true
+        } else {
+          // Check public.club_members table for active membership with manage_members permission (roles: owner, admin)
+          const { data: memberRecord } = await supabaseAdmin
+            .from('club_members')
+            .select('role, status')
+            .eq('club_id', clubId)
+            .eq('user_id', caller.id)
+            .eq('status', 'active')
+            .maybeSingle()
 
-        // Check public.club_members table for active membership with manage_members permission (roles: owner, admin)
-        const { data: memberRecord } = await supabaseAdmin
-          .from('club_members')
-          .select('role, status')
-          .eq('club_id', clubId)
-          .eq('user_id', caller.id)
-          .eq('status', 'active')
-          .single()
-
-        const role = memberRecord?.role
-        if (role === 'owner' || role === 'admin') {
-          return { authorized: true }
+          const role = memberRecord?.role
+          if (role === 'owner' || role === 'admin') {
+            isClubAuthorized = true
+          }
         }
       }
 
-      // Or verify existing active pending invitation created by this user
-      const { data: invRecord } = await supabaseAdmin
+      // Verify that the recipient email is tied to a legitimate, active pending invitation
+      let invQuery = supabaseAdmin
         .from('club_invitations')
-        .select('id')
-        .eq('email', targetEmail)
-        .eq('invited_by', caller.id)
+        .select('id, email, club_id')
+        .ilike('email', targetEmail)
         .eq('status', 'pending')
-        .limit(1)
 
-      if (invRecord && invRecord.length > 0) {
+      if (clubId) {
+        invQuery = invQuery.eq('club_id', clubId)
+      } else {
+        invQuery = invQuery.eq('invited_by', caller.id)
+      }
+
+      const { data: invRecords } = await invQuery.limit(1)
+
+      if (!invRecords || invRecords.length === 0) {
+        return {
+          authorized: false,
+          reason: 'No pending invitation found for this recipient in the target organization.',
+        }
+      }
+
+      if (isClubAuthorized || invRecords[0].club_id === clubId) {
         return { authorized: true }
       }
 
@@ -1052,7 +1067,7 @@ serve(async (req) => {
         success: true,
         configured: true,
         id: resendData.id,
-        message: 'Email delivered successfully via Resend.',
+        message: 'Email accepted by delivery provider (Resend).',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

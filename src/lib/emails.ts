@@ -153,7 +153,7 @@ export async function triggerTransactionalEmail(
         configured: Boolean(data?.configured),
         emailId: data?.id,
         outboxId,
-        message: data?.message || 'Email sent successfully.',
+        message: data?.message || 'Email accepted by delivery provider (Resend).',
       }
     } catch (err) {
       return {
@@ -820,8 +820,10 @@ export async function sendClubMemberInvitationEmail(params: {
   expiresAt: string
   clubId?: string
   isResend?: boolean
+  invitationToken?: string
 }): Promise<EmailDispatchResult> {
   const cleanTo = (params.to || '').trim().toLowerCase()
+  const tokenPart = params.invitationToken ? params.invitationToken.slice(0, 16) : ''
   const roleSlug = (params.role || 'member').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
   return triggerTransactionalEmail({
     template: 'club_member_invitation',
@@ -834,10 +836,11 @@ export async function sendClubMemberInvitationEmail(params: {
       expires_at: params.expiresAt,
       club_id: params.clubId,
       is_resend: params.isResend,
+      invitation_token: tokenPart,
     },
     idempotencyKey: params.isResend
-      ? `club_inv_resend_${params.clubId || 'c'}_${cleanTo}_${Date.now()}`
-      : `club_inv_${params.clubId || 'c'}_${cleanTo}_${roleSlug}`,
+      ? `club_inv_resend_${params.clubId || 'c'}_${cleanTo}_${tokenPart || Date.now()}`
+      : `club_inv_${params.clubId || 'c'}_${cleanTo}_${tokenPart || roleSlug}`,
     userId: params.clubId,
   })
 }

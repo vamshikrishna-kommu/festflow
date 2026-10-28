@@ -68,7 +68,11 @@ export function getRoleDefaultPath(role: UserRole | null | undefined): string {
  * Enforces role isolation so that students cannot be redirected to club management
  * and organizers cannot be redirected to student-only workflows.
  */
-export function isPathAllowedForRole(path: string, role: UserRole | null | undefined): boolean {
+export function isPathAllowedForRole(
+  path: string,
+  role: UserRole | null | undefined,
+  hasClubMembership?: boolean
+): boolean {
   if (!isSafeInternalRedirect(path)) {
     return false
   }
@@ -101,7 +105,7 @@ export function isPathAllowedForRole(path: string, role: UserRole | null | undef
   // Club organizer allowed routes
   const isClubRoute = cleanPath.startsWith('/club/')
   if (isClubRoute) {
-    return role === 'club_member'
+    return role === 'club_member' || Boolean(hasClubMembership)
   }
 
   // Student allowed routes
@@ -127,15 +131,16 @@ export function isPathAllowedForRole(path: string, role: UserRole | null | undef
 export function getSafeReturnUrl(
   candidatePath: unknown,
   role: UserRole | null | undefined,
-  defaultFallback?: string
+  defaultFallback?: string,
+  hasClubMembership?: boolean
 ): string {
-  const fallback = defaultFallback || getRoleDefaultPath(role)
+  const fallback = defaultFallback || (hasClubMembership ? '/club/dashboard' : getRoleDefaultPath(role))
 
   if (!isSafeInternalRedirect(candidatePath)) {
     return fallback
   }
 
-  if (!isPathAllowedForRole(candidatePath, role)) {
+  if (!isPathAllowedForRole(candidatePath, role, hasClubMembership)) {
     return fallback
   }
 

@@ -23,13 +23,60 @@ import {
 } from '@/lib/payments'
 import { listClubEvents } from '@/lib/events'
 import { subscribeToStatusChanges } from '@/lib/sync'
+import {
+  ROLE_LABELS,
+  hasPermission,
+  getUserClubRole,
+} from '@/lib/clubMembers'
+import type { ClubRole } from '@/types'
 import type { PaymentSubmissionWithDetails, PaymentStatus, EventRecord } from '@/types'
 
 export default function ClubPaymentsPage() {
-  const { user } = useAuth()
-  const clubId = user?.id || ''
+  const {
+    user,
+    profile,
+    clubProfile,
+    activeClubId,
+    activeClubMembership,
+    activeClubProfile,
+    clubMemberships,
+  } = useAuth()
   const [searchParams] = useSearchParams()
   const eventIdParam = searchParams.get('eventId')
+
+  // Resolve selected club strictly from authorized owner profile or active membership - NEVER fallback to user.id
+  const clubId = activeClubId || clubProfile?.profile_id || activeClubMembership?.club_id || null
+  const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Organization'
+
+  const initialClubRole: ClubRole | null =
+    clubProfile?.profile_id === user?.id
+      ? 'owner'
+      : (activeClubMembership?.role as ClubRole) || null
+
+  const [userClubRole, setUserClubRole] = useState<ClubRole | null>(initialClubRole)
+  const [roleLoading, setRoleLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    if (!clubId || !user) {
+      setUserClubRole(null)
+      setRoleLoading(false)
+      return
+    }
+
+    getUserClubRole(clubId, user.id).then((r) => {
+      if (!mounted) return
+      setUserClubRole(r || (clubProfile?.profile_id === user.id ? 'owner' : (activeClubMembership?.role as ClubRole) || null))
+      setRoleLoading(false)
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [clubId, user?.id, clubProfile?.profile_id, activeClubMembership?.role])
+
+  const canReviewPayments = Boolean(userClubRole && hasPermission(userClubRole, 'review_payments'))
+  const canManagePayments = Boolean(userClubRole && hasPermission(userClubRole, 'manage_club'))
 
   const [submissions, setSubmissions] = useState<PaymentSubmissionWithDetails[]>([])
   const [events, setEvents] = useState<EventRecord[]>([])
@@ -51,7 +98,7 @@ export default function ClubPaymentsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const loadData = async () => {
-    if (!clubId) {
+    if (!clubId || !canReviewPayments) {
       setLoading(false)
       return
     }
@@ -66,16 +113,20 @@ export default function ClubPaymentsPage() {
   }
 
   useEffect(() => {
-    loadData()
+    if (!roleLoading) {
+      loadData()
+    }
 
     const unsubscribe = subscribeToStatusChanges(
       ['payment_submitted', 'payment_reviewed', 'reconnect'],
       () => {
-        loadData()
+        if (!roleLoading && canReviewPayments && clubId) {
+          loadData()
+        }
       }
     )
     return () => unsubscribe()
-  }, [clubId])
+  }, [clubId, canReviewPayments, roleLoading])
 
   // Copy helper
   const handleCopy = (text: string, id: string) => {
@@ -86,7 +137,7 @@ export default function ClubPaymentsPage() {
 
   // Review Actions
   const handleApprove = async () => {
-    if (!approvingSub) return
+    if (!approvingSub || !canReviewPayments) return
     setActionLoading(true)
     setNotice(null)
     const res = await reviewPaymentSubmission({
@@ -106,7 +157,7 @@ export default function ClubPaymentsPage() {
   }
 
   const handleReject = async () => {
-    if (!rejectingSub) return
+    if (!rejectingSub || !canReviewPayments) return
     const cleanReason = rejectionReason.trim()
     if (!cleanReason) {
       setRejectError('Please provide a mandatory reason for rejecting this payment.')
@@ -159,6 +210,68 @@ export default function ClubPaymentsPage() {
     })
   }, [submissions, statusFilter, selectedEventId, searchQuery])
 
+  if (!clubId) {
+    return (
+      <PageShell>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
+            <Link
+              to="/club/dashboard"
+              className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+            >
+              <ArrowLeft size={14} /> Club Dashboard
+            </Link>
+            <span>/</span>
+            <span className="text-[var(--color-text-primary)] font-medium">Payment Review & Approvals</span>
+          </div>
+          <EmptyState
+            icon={AlertTriangle}
+            title="No Active Organization Found"
+            description="You do not have an active club profile or authorized club membership. To access payment verification, you must be a registered club owner or an invited staff member with payment review permissions."
+            action={
+              <Link to="/club/dashboard">
+                <Button variant="primary" size="sm">
+                  Go to Club Dashboard
+                </Button>
+              </Link>
+            }
+          />
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (!roleLoading && !canReviewPayments) {
+    return (
+      <PageShell>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
+            <Link
+              to="/club/dashboard"
+              className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+            >
+              <ArrowLeft size={14} /> Club Dashboard
+            </Link>
+            <span>/</span>
+            <span className="text-[var(--color-text-primary)] font-medium">Payment Review & Approvals</span>
+          </div>
+          <EmptyState
+            icon={AlertTriangle}
+            title="Role Permission Required"
+            description={`Your current role (${userClubRole ? ROLE_LABELS[userClubRole] : 'Staff Member'}) in ${clubName} does not have permission to view or verify payment submissions. Only Club Owners, Administrators, and Payment Reviewers can access this page.`}
+            action={
+              <Link to="/club/dashboard">
+                <Button variant="primary" size="sm">
+                  Back to Dashboard
+                </Button>
+              </Link>
+            }
+          />
+        </div>
+      </PageShell>
+    )
+  }
+
   return (
     <PageShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
@@ -181,6 +294,17 @@ export default function ClubPaymentsPage() {
               <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
                 Payment Verification
               </h1>
+              <Badge variant="purple">{clubName}</Badge>
+              {userClubRole && (
+                <Badge variant="outline" className="text-xs">
+                  {ROLE_LABELS[userClubRole]}
+                </Badge>
+              )}
+              {clubMemberships.length > 1 && (
+                <Badge variant="cyan" className="text-xs">
+                  Active Club
+                </Badge>
+              )}
               {pendingCount > 0 && (
                 <Badge variant="amber" className="animate-pulse">
                   {pendingCount} Awaiting Review
@@ -193,11 +317,13 @@ export default function ClubPaymentsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link to="/club/settings/payments">
-              <Button variant="outline" size="sm" leftIcon={<Settings size={14} />}>
-                UPI Settings
-              </Button>
-            </Link>
+            {canManagePayments && (
+              <Link to="/club/settings/payments">
+                <Button variant="outline" size="sm" leftIcon={<Settings size={14} />}>
+                  UPI Settings
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

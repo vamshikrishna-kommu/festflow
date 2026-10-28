@@ -9,7 +9,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured, isProduction } from '@/lib/supabase'
 import { getAuthCallbackUrl, getResetPasswordUrl } from '@/lib/canonicalUrl'
-import type { UserRole, Profile, ClubProfile, StudentProfile } from '@/types'
+import type { UserRole, Profile, ClubProfile, StudentProfile, ClubMemberRecord } from '@/types'
 
 export interface SignUpClubParams {
   name: string
@@ -32,6 +32,11 @@ export interface AuthContextType {
   profile: Profile | null
   clubProfile: ClubProfile | null
   studentProfile: StudentProfile | null
+  clubMemberships: ClubMemberRecord[]
+  activeClubMembership: ClubMemberRecord | null
+  hasClubMembership: boolean
+  activeClubId: string | null
+  activeClubProfile: ClubProfile | null
   role: UserRole | null
   isLoading: boolean
   isRoleLoading: boolean
@@ -86,6 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [clubProfile, setClubProfile] = useState<ClubProfile | null>(null)
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
+  const [clubMemberships, setClubMemberships] = useState<ClubMemberRecord[]>([])
+  const [activeClubMembership, setActiveClubMembership] = useState<ClubMemberRecord | null>(null)
+  const [activeClubProfile, setActiveClubProfile] = useState<ClubProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRoleLoading, setIsRoleLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -107,6 +115,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null)
           setClubProfile(null)
           setStudentProfile(null)
+          setClubMemberships([])
+          setActiveClubMembership(null)
+          setActiveClubProfile(null)
           setProfileError(error.message || 'Failed to verify account authorization.')
           return
         }
@@ -129,12 +140,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .maybeSingle()
             setStudentProfile((sData as unknown as StudentProfile | null) ?? null)
           }
+
+          // Fetch active club memberships for role and organization coexistence
+          try {
+            const { data: memberRows, error: mErr } = await (supabase.from('club_members') as any)
+              .select('*')
+              .eq('user_id', userId)
+              .eq('status', 'active')
+
+            if (!mErr && memberRows && memberRows.length > 0) {
+              const typedMembers = memberRows as ClubMemberRecord[]
+              setClubMemberships(typedMembers)
+              const primaryMembership = typedMembers[0]
+              setActiveClubMembership(primaryMembership)
+
+              const { data: cOrgData } = await (supabase.from('club_profiles') as any)
+                .select('*')
+                .eq('profile_id', primaryMembership.club_id)
+                .maybeSingle()
+              if (cOrgData) {
+                setActiveClubProfile(cOrgData as unknown as ClubProfile)
+              } else {
+                setActiveClubProfile(null)
+              }
+            } else {
+              setClubMemberships([])
+              setActiveClubMembership(null)
+              setActiveClubProfile(null)
+            }
+          } catch (mCatchErr) {
+            console.warn('[FestFlow Auth] Club members lookup warning:', mCatchErr)
+            setClubMemberships([])
+            setActiveClubMembership(null)
+            setActiveClubProfile(null)
+          }
         } else {
           // Profile missing in database — fail closed to prevent metadata privilege escalation
           console.warn('[FestFlow Security] No database profile found for user:', userId)
           setProfile(null)
           setClubProfile(null)
           setStudentProfile(null)
+          setClubMemberships([])
+          setActiveClubMembership(null)
+          setActiveClubProfile(null)
           setProfileError('Account profile record not found in database.')
         }
       } else {
@@ -163,6 +211,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
+          }
+
+          // Check simulation club memberships
+          try {
+            const rawMembers = localStorage.getItem('festflow_club_members')
+            if (rawMembers) {
+              const parsedMembers = JSON.parse(rawMembers) as ClubMemberRecord[]
+              const activeMembers = parsedMembers.filter(
+                (m) => m.user_id === userId && m.status === 'active'
+              )
+              setClubMemberships(activeMembers)
+              if (activeMembers.length > 0) {
+                setActiveClubMembership(activeMembers[0])
+              } else {
+                setActiveClubMembership(null)
+                setActiveClubProfile(null)
+              }
+            } else {
+              setClubMemberships([])
+              setActiveClubMembership(null)
+              setActiveClubProfile(null)
+            }
+          } catch {
+            setClubMemberships([])
+            setActiveClubMembership(null)
+            setActiveClubProfile(null)
           }
         }
       }
@@ -202,6 +276,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null)
           setClubProfile(null)
           setStudentProfile(null)
+          setClubMemberships([])
+          setActiveClubMembership(null)
+          setActiveClubProfile(null)
         }
       })
 
@@ -766,6 +843,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null)
       setClubProfile(null)
       setStudentProfile(null)
+      setClubMemberships([])
+      setActiveClubMembership(null)
+      setActiveClubProfile(null)
       setProfileError(null)
       setIsRoleLoading(false)
     } finally {
@@ -852,6 +932,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile,
     clubProfile,
     studentProfile,
+    clubMemberships,
+    activeClubMembership,
+    hasClubMembership: Boolean(
+      clubMemberships.length > 0 ||
+      clubProfile !== null ||
+      (isSupabaseConfigured
+        ? profile?.role === 'club_member'
+        : profile?.role === 'club_member' || (user?.user_metadata?.role as UserRole) === 'club_member')
+    ),
+    activeClubId: clubProfile?.profile_id || activeClubMembership?.club_id || null,
+    activeClubProfile,
     role: isSupabaseConfigured
       ? (profile?.role ?? null)
       : (profile?.role ?? (user?.user_metadata?.role as UserRole) ?? null),
