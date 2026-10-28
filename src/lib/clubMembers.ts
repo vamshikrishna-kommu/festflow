@@ -758,6 +758,7 @@ export async function resendClubInvitation(
     invitationUrl,
     expiresAt: newExpiresAt,
     clubId,
+    isResend: true,
   })
 
   return { success: true, message: `Invitation renewed and sent to ${existing.email}.`, invitation: updated }

@@ -122,6 +122,10 @@ export async function triggerTransactionalEmail(
           name,
           payload,
           outbox_id: outboxId,
+          event_id: eventId,
+          registration_id: registrationId,
+          user_id: userId,
+          club_id: (payload as any)?.club_id || (template === 'club_member_invitation' ? userId : undefined),
         },
       })
 
@@ -311,7 +315,7 @@ export async function sendRegistrationConfirmedEmail(params: {
   userId?: string
   isResend?: boolean
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.com'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
   return triggerTransactionalEmail({
     template: 'registration_confirmed',
     to: params.to,
@@ -349,7 +353,7 @@ export async function sendApplicationSubmittedEmail(params: {
   eventId?: string
   userId?: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.com'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
   return triggerTransactionalEmail({
     template: 'application_submitted',
     to: params.to,
@@ -407,7 +411,7 @@ export async function sendPaymentApprovedEmail(params: {
   registrationId: string
   eventId?: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.com'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
   return triggerTransactionalEmail({
     template: 'payment_approved',
     to: params.to,
@@ -462,7 +466,7 @@ export async function sendTicketIssuedEmail(params: {
   registrationId: string
   eventId?: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.com'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
   return triggerTransactionalEmail({
     template: 'ticket_issued',
     to: params.to,
@@ -644,7 +648,7 @@ export async function sendTeamInvitationEmail(params: {
   eventId: string
   teamId: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.app'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
   const joinUrl = `${origin}/events/${params.eventSlug}?join=1&code=${encodeURIComponent(
     params.inviteCode
   )}&token=${encodeURIComponent(params.inviteToken)}`
@@ -681,7 +685,7 @@ export async function sendTeamInvitationAcceptedEmail(params: {
   eventId: string
   teamId: string
 }): Promise<EmailDispatchResult> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.app'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://festflow.online'
   return triggerTransactionalEmail({
     template: 'team_invitation_accepted',
     to: params.leaderEmail,
@@ -814,7 +818,10 @@ export async function sendClubMemberInvitationEmail(params: {
   invitationUrl: string
   expiresAt: string
   clubId?: string
+  isResend?: boolean
 }): Promise<EmailDispatchResult> {
+  const cleanTo = (params.to || '').trim().toLowerCase()
+  const roleSlug = (params.role || 'member').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
   return triggerTransactionalEmail({
     template: 'club_member_invitation',
     to: params.to,
@@ -824,8 +831,12 @@ export async function sendClubMemberInvitationEmail(params: {
       role: params.role,
       invitation_url: params.invitationUrl,
       expires_at: params.expiresAt,
+      club_id: params.clubId,
+      is_resend: params.isResend,
     },
-    idempotencyKey: `club_inv_${params.to}_${Date.now()}`,
+    idempotencyKey: params.isResend
+      ? `club_inv_resend_${params.clubId || 'c'}_${cleanTo}_${Date.now()}`
+      : `club_inv_${params.clubId || 'c'}_${cleanTo}_${roleSlug}`,
     userId: params.clubId,
   })
 }
