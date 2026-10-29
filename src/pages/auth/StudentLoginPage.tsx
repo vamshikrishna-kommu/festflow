@@ -20,8 +20,18 @@ export default function StudentLoginPage() {
     if (user && role) {
       const redirectParam = searchParams.get('redirect') || searchParams.get('next')
       const fromPath = (location.state as { from?: string })?.from || redirectParam
+      const pendingTeamToken = sessionStorage.getItem('festflow_pending_team_token')
+      const pendingJoinCode = sessionStorage.getItem('festflow_pending_join_code')
+
+      let defaultTarget = '/student/dashboard'
+      if (pendingTeamToken) {
+        defaultTarget = `/join-team?token=${encodeURIComponent(pendingTeamToken)}`
+      } else if (pendingJoinCode) {
+        defaultTarget = `/join-team?code=${encodeURIComponent(pendingJoinCode)}`
+      }
+
       if (role === 'student') {
-        const target = getSafeReturnUrl(fromPath, 'student', '/student/dashboard')
+        const target = getSafeReturnUrl(fromPath, 'student', defaultTarget)
         navigate(target, { replace: true })
       } else if (role === 'club_member' || role === 'platform_admin') {
         const target = getSafeReturnUrl(fromPath, role, '/club/dashboard')
@@ -65,7 +75,19 @@ export default function StudentLoginPage() {
       const redirectParam = searchParams.get('redirect') || searchParams.get('next')
       const fromPath = (location.state as { from?: string })?.from || redirectParam
       const userRole = res.role || role || 'student'
-      const target = getSafeReturnUrl(fromPath, userRole, '/student/dashboard')
+      const pendingTeamToken = sessionStorage.getItem('festflow_pending_team_token')
+      const pendingJoinCode = sessionStorage.getItem('festflow_pending_join_code')
+
+      let defaultTarget = userRole === 'club_member' || userRole === 'platform_admin' ? '/club/dashboard' : '/student/dashboard'
+      if (userRole === 'student') {
+        if (pendingTeamToken) {
+          defaultTarget = `/join-team?token=${encodeURIComponent(pendingTeamToken)}`
+        } else if (pendingJoinCode) {
+          defaultTarget = `/join-team?code=${encodeURIComponent(pendingJoinCode)}`
+        }
+      }
+
+      const target = getSafeReturnUrl(fromPath, userRole, defaultTarget)
       navigate(target, { replace: true })
     }
   }

@@ -21,9 +21,11 @@ import {
 import { Button, Badge, Logo } from '@/components/ui'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
+import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { navbarSlide, dropdownMenu } from '@/lib/animations'
 import { useScrollProgress } from '@/hooks/useScrollProgress'
 import { useAuth } from '@/context/AuthContext'
+import { hasPermission } from '@/lib/clubMembers'
 import { isSupabaseConfigured, isProduction } from '@/lib/supabase'
 
 interface NavItem {
@@ -43,14 +45,6 @@ const STUDENT_NAV_LINKS: NavItem[] = [
   { label: 'My Dashboard', href: '/student/dashboard' },
 ]
 
-const CLUB_NAV_LINKS: NavItem[] = [
-  { label: 'Discover Events', href: '/discover' },
-  { label: 'Club Dashboard', href: '/club/dashboard' },
-  { label: 'Manage Events', href: '/club/events' },
-  { label: 'Team', href: '/club/members' },
-  { label: 'Payments', href: '/club/payments' },
-]
-
 const UNRESOLVED_NAV_LINKS: NavItem[] = [
   { label: 'Discover', href: '/discover' },
 ]
@@ -65,7 +59,16 @@ export function Navbar() {
   const userMenuRef                    = useRef<HTMLDivElement>(null)
   const progress                       = useScrollProgress()
   const navigate                       = useNavigate()
-  const { session, profile, role, signOut, isLoading } = useAuth()
+  const {
+    session,
+    profile,
+    signOut,
+    isLoading,
+    activeWorkspace,
+    isDualEligible,
+    activeClubRole,
+    switchWorkspace,
+  } = useAuth()
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 24)
@@ -103,17 +106,32 @@ export function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
-  const isClub = role === 'club_member' || role === 'platform_admin'
-  const isStudent = role === 'student'
+  const isClubWorkspace = activeWorkspace === 'club'
+  const isStudentWorkspace = activeWorkspace === 'student'
 
-  // Determine current active navigation links based on auth role
+  // Determine current active navigation links based on active workspace and granular permissions
   const activeNavLinks = useMemo(() => {
     if (isLoading) return []
     if (!session) return PUBLIC_NAV_LINKS
-    if (isClub) return CLUB_NAV_LINKS
-    if (isStudent) return STUDENT_NAV_LINKS
+    if (isClubWorkspace) {
+      const links: NavItem[] = [
+        { label: 'Discover Events', href: '/discover' },
+        { label: 'Club Dashboard', href: '/club/dashboard' },
+      ]
+      if (!activeClubRole || hasPermission(activeClubRole, 'manage_events')) {
+        links.push({ label: 'Manage Events', href: '/club/events' })
+      }
+      if (!activeClubRole || hasPermission(activeClubRole, 'manage_members')) {
+        links.push({ label: 'Team', href: '/club/members' })
+      }
+      if (!activeClubRole || hasPermission(activeClubRole, 'review_payments')) {
+        links.push({ label: 'Payments', href: '/club/payments' })
+      }
+      return links
+    }
+    if (isStudentWorkspace) return STUDENT_NAV_LINKS
     return UNRESOLVED_NAV_LINKS
-  }, [isLoading, session, isClub, isStudent])
+  }, [isLoading, session, isClubWorkspace, isStudentWorkspace, activeClubRole])
 
   const userInitial = (
     profile?.display_name?.charAt(0) ||
@@ -121,7 +139,8 @@ export function Navbar() {
     'U'
   ).toUpperCase()
 
-  const userDisplayName = profile?.display_name || (isClub ? 'Club Organizer' : 'Student')
+  const userDisplayName =
+    profile?.display_name || (isClubWorkspace ? 'Club Organizer' : 'Student')
 
   return (
     <>
@@ -210,9 +229,12 @@ export function Navbar() {
                 <div className="h-8 w-24 rounded-xl bg-[var(--color-surface-2)]/70 animate-pulse" />
               ) : session ? (
                 <div className="flex items-center gap-2">
+                  {/* Premium Dual Workspace Switcher */}
+                  <WorkspaceSwitcher variant="desktop" />
+
                   <NotificationBell />
 
-                  {isClub && (
+                  {isClubWorkspace && (!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
                     <Link to="/club/events/new">
                       <Button
                         variant="primary"
@@ -265,15 +287,62 @@ export function Navbar() {
                             <p className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">
                               {session.user.email}
                             </p>
-                            <div className="mt-1.5">
-                              <Badge variant={isClub ? 'purple' : 'cyan'} className="text-[10px] py-0 px-2 font-medium">
-                                {isClub ? (role === 'platform_admin' ? 'Admin' : 'Club Organizer') : 'Student'}
+                            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                              <Badge
+                                variant={isClubWorkspace ? 'purple' : 'cyan'}
+                                className="text-[10px] py-0 px-2 font-medium"
+                              >
+                                {isClubWorkspace
+                                  ? (activeClubRole ? `Club: ${activeClubRole.replace('_', ' ')}` : 'Club Organizer')
+                                  : 'Student'}
                               </Badge>
+                              {isDualEligible && (
+                                <Badge variant="default" className="text-[9px] py-0 px-1.5 opacity-80">
+                                  Dual Access
+                                </Badge>
+                              )}
                             </div>
                           </div>
 
+                          {/* Dual Workspace Quick Switcher Link in User Menu */}
+                          {isDualEligible && (
+                            <div className="px-1 py-1 mb-1 border-b border-[oklch(100%_0_0_/_0.08)]">
+                              {isClubWorkspace ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUserMenuOpen(false)
+                                    switchWorkspace('student', navigate)
+                                  }}
+                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10 transition-colors cursor-pointer text-left"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <GraduationCap size={14} className="text-[var(--color-brand-cyan)]" />
+                                    <span>Switch to Student Space</span>
+                                  </div>
+                                  <ChevronRight size={12} className="opacity-60" />
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUserMenuOpen(false)
+                                    switchWorkspace('club', navigate)
+                                  }}
+                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-purple-300 hover:bg-purple-500/10 transition-colors cursor-pointer text-left"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Building2 size={14} className="text-[var(--color-brand-purple)]" />
+                                    <span>Switch to Club Space</span>
+                                  </div>
+                                  <ChevronRight size={12} className="opacity-60" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+
                           {/* Role-Specific Navigation Links */}
-                          {isClub ? (
+                          {isClubWorkspace ? (
                             <>
                               <Link
                                 to="/club/dashboard"
@@ -316,7 +385,7 @@ export function Navbar() {
                                 <span>Club Settings</span>
                               </Link>
                             </>
-                          ) : isStudent ? (
+                          ) : isStudentWorkspace ? (
                             <>
                               <Link
                                 to="/student/dashboard"
@@ -523,20 +592,32 @@ export function Navbar() {
             >
               {/* Authenticated User Header in Mobile Drawer */}
               {session && (
-                <div className="flex items-center gap-3 px-3 py-3 mb-4 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)]">
+                <div className="flex items-center gap-3 px-3 py-3 mb-3 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)]">
                   <span className="w-10 h-10 rounded-full gradient-brand text-white text-sm font-bold flex items-center justify-center shrink-0 shadow-sm">
                     {userInitial}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{userDisplayName}</p>
                     <p className="text-xs text-[var(--color-text-muted)] truncate">{session.user.email}</p>
-                    <div className="mt-1">
-                      <Badge variant={isClub ? 'purple' : 'cyan'} className="text-[10px] py-0 px-2 font-medium">
-                        {isClub ? (role === 'platform_admin' ? 'Admin' : 'Club Organizer') : 'Student'}
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      <Badge variant={isClubWorkspace ? 'purple' : 'cyan'} className="text-[10px] py-0 px-2 font-medium">
+                        {isClubWorkspace
+                          ? (activeClubRole ? `Club: ${activeClubRole.replace('_', ' ')}` : 'Club Organizer')
+                          : 'Student'}
                       </Badge>
+                      {isDualEligible && (
+                        <Badge variant="default" className="text-[9px] py-0 px-1.5 opacity-80">
+                          Dual Access
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Mobile Dual Workspace Switcher */}
+              {session && (
+                <WorkspaceSwitcher variant="mobile" onNavigate={() => setMobileOpen(false)} />
               )}
 
               {/* Role-Aware Nav links */}
@@ -564,23 +645,27 @@ export function Navbar() {
               <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-[oklch(100%_0_0_/_0.08)]">
                 {session ? (
                   <>
-                    {isClub ? (
+                    {isClubWorkspace ? (
                       <>
                         <Link to="/club/dashboard" onClick={() => setMobileOpen(false)}>
                           <Button variant="primary" size="lg" className="w-full" leftIcon={<LayoutDashboard size={16} />}>
                             Club Dashboard
                           </Button>
                         </Link>
-                        <Link to="/club/members" onClick={() => setMobileOpen(false)}>
-                          <Button variant="outline" size="lg" className="w-full" leftIcon={<Users size={16} />}>
-                            Team & Permissions
-                          </Button>
-                        </Link>
-                        <Link to="/club/events/new" onClick={() => setMobileOpen(false)}>
-                          <Button variant="outline" size="lg" className="w-full" leftIcon={<Plus size={16} />}>
-                            Create New Event
-                          </Button>
-                        </Link>
+                        {(!activeClubRole || hasPermission(activeClubRole, 'manage_members')) && (
+                          <Link to="/club/members" onClick={() => setMobileOpen(false)}>
+                            <Button variant="outline" size="lg" className="w-full" leftIcon={<Users size={16} />}>
+                              Team & Permissions
+                            </Button>
+                          </Link>
+                        )}
+                        {(!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
+                          <Link to="/club/events/new" onClick={() => setMobileOpen(false)}>
+                            <Button variant="outline" size="lg" className="w-full" leftIcon={<Plus size={16} />}>
+                              Create New Event
+                            </Button>
+                          </Link>
+                        )}
                       </>
                     ) : (
                       <Link to="/student/dashboard" onClick={() => setMobileOpen(false)}>

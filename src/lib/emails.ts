@@ -10,6 +10,7 @@ export interface EmailDispatchParams {
     | 'payment_rejected'
     | 'team_invitation'
     | 'team_invitation_accepted'
+    | 'team_member_added'
     | 'ticket_issued'
     | 'ticket_updated'
     | 'registration_cancelled'
@@ -19,21 +20,38 @@ export interface EmailDispatchParams {
     | 'checkin_confirmed'
     | 'event_reminder'
     | 'club_member_invitation'
+    | 'club_invitation_accepted'
   to: string
   name?: string
   payload: Record<string, any>
   idempotencyKey?: string
   eventId?: string
+  teamId?: string
   registrationId?: string
   userId?: string
 }
+
+export type EmailFailureCategory =
+  | 'EDGE_FUNCTION_UNREACHABLE' // Pre-execution: CORS preflight failure, function not deployed, or offline
+  | 'GATEWAY_RELAY_ERROR'       // Supabase relay failure
+  | 'GATEWAY_AUTH_REJECTED'     // HTTP 401: Gateway JWT or session rejection
+  | 'DISPATCH_FORBIDDEN'        // HTTP 403: Server authorization denied
+  | 'FUNCTION_NOT_FOUND'        // HTTP 404: Edge Function not deployed or route missing
+  | 'RATE_LIMITED'              // HTTP 429: Rate limit exceeded
+  | 'FUNCTION_RUNTIME_ERROR'    // HTTP 500: Server-side execution exception
+  | 'PROVIDER_UNCONFIGURED'     // Resend API key unconfigured in secrets
+  | 'PROVIDER_REJECTED'         // Resend rejected payload (unverified sender, etc.)
+  | 'CLIENT_DISPATCH_EXCEPTION' // Uncaught client invocation exception
 
 export interface EmailDispatchResult {
   success: boolean
   configured: boolean
   message: string
+  error?: string
   emailId?: string
   outboxId?: string
+  failureCategory?: EmailFailureCategory
+  httpStatus?: number
 }
 
 export interface OutboxRecord {
@@ -131,19 +149,124 @@ export async function triggerTransactionalEmail(
       })
 
       if (error) {
+        let failureCategory: EmailFailureCategory = 'FUNCTION_RUNTIME_ERROR'
+        let failureMessage = `Email function error: ${error.message}`
+        let httpStatus: number | undefined
+
+        // Detect FunctionsFetchError (Pre-execution: CORS preflight failure, function not deployed, or network/DNS failure)
+        if (
+          error.name === 'FunctionsFetchError' ||
+          error.message?.includes('Failed to send a request to the Edge Function')
+        ) {
+          failureCategory = 'EDGE_FUNCTION_UNREACHABLE'
+          failureMessage =
+            'send-email Edge Function is unreachable (network error, CORS preflight failure, or function not deployed on Supabase).'
+        } else if (
+          error.name === 'FunctionsRelayError' ||
+          error.message?.includes('relay')
+        ) {
+          failureCategory = 'GATEWAY_RELAY_ERROR'
+          failureMessage = 'Supabase gateway relay error while reaching Edge Function.'
+        } else if (error.name === 'FunctionsHttpError') {
+          // FunctionsHttpError exposes the Response object in error.context
+          const resp = (error as any).context as Response | undefined
+          httpStatus = resp?.status
+
+          let parsedBody: any = null
+          if (resp) {
+            try {
+              if (typeof resp.json === 'function') {
+                parsedBody = await resp.json()
+              }
+            } catch {
+              try {
+                if (typeof resp.text === 'function') {
+                  parsedBody = { error: await resp.text() }
+                }
+              } catch {
+                // ignore body parse failure
+              }
+            }
+          }
+
+          const serverErrorText =
+            parsedBody?.error || parsedBody?.message || error.message
+
+          if (httpStatus === 401) {
+            failureCategory = 'GATEWAY_AUTH_REJECTED'
+            failureMessage = 'Authentication rejected by Edge Function gateway. (Valid user session required)'
+          } else if (httpStatus === 403) {
+            failureCategory = 'DISPATCH_FORBIDDEN'
+            failureMessage = serverErrorText || 'Not authorized to dispatch email to this recipient.'
+          } else if (httpStatus === 404) {
+            failureCategory = 'FUNCTION_NOT_FOUND'
+            failureMessage = 'send-email Edge Function not found on Supabase (404).'
+          } else if (httpStatus === 429) {
+            failureCategory = 'RATE_LIMITED'
+            failureMessage = serverErrorText || 'Email dispatch rate limit reached. Please wait before retrying.'
+          } else if (httpStatus && httpStatus >= 500) {
+            if (serverErrorText && (serverErrorText.toLowerCase().includes('resend') || serverErrorText.toLowerCase().includes('provider'))) {
+              failureCategory = 'PROVIDER_REJECTED'
+              failureMessage = `Email provider error: ${serverErrorText}`
+            } else {
+              failureCategory = 'FUNCTION_RUNTIME_ERROR'
+              failureMessage = serverErrorText || 'Edge Function encountered an unexpected internal error.'
+            }
+          } else {
+            failureMessage = serverErrorText || failureMessage
+          }
+        }
+
+        // Safe diagnostic logging: NEVER log email addresses, names, tokens, or credentials
+        console.warn('[FestFlow Email] Dispatch failure:', {
+          category: failureCategory,
+          template,
+          httpStatus: httpStatus ?? 'N/A',
+          errorType: error?.name ?? 'UnknownError',
+          hasOutboxId: Boolean(outboxId),
+        })
+
         return {
           success: false,
           configured: false,
-          message: `Email function error: ${error.message}`,
+          failureCategory,
+          httpStatus,
+          message: failureMessage,
+          error: failureMessage,
           outboxId,
         }
       }
 
       if (data && data.configured === false) {
+        console.warn('[FestFlow Email] Provider unconfigured:', {
+          category: 'PROVIDER_UNCONFIGURED',
+          template,
+          hasOutboxId: Boolean(outboxId),
+        })
+        const msg = data.message || 'Email delivery is not configured. RESEND_API_KEY secret is required on Supabase.'
         return {
           success: false,
           configured: false,
-          message: data.message || 'Email delivery is not configured.',
+          failureCategory: 'PROVIDER_UNCONFIGURED',
+          message: msg,
+          error: msg,
+          outboxId,
+        }
+      }
+
+      if (data && data.success === false) {
+        console.warn('[FestFlow Email] Provider rejected dispatch:', {
+          category: 'PROVIDER_REJECTED',
+          template,
+          hasOutboxId: Boolean(outboxId),
+        })
+        const msg = data.message || data.error || 'Email rejected by delivery provider (Resend).'
+        return {
+          success: false,
+          configured: Boolean(data.configured),
+          failureCategory: 'PROVIDER_REJECTED',
+          message: msg,
+          error: msg,
           outboxId,
         }
       }
@@ -156,10 +279,18 @@ export async function triggerTransactionalEmail(
         message: data?.message || 'Email accepted by delivery provider (Resend).',
       }
     } catch (err) {
+      console.warn('[FestFlow Email] Exception invoking email delivery:', {
+        category: 'CLIENT_DISPATCH_EXCEPTION',
+        template,
+        error: err instanceof Error ? err.name : 'UnknownError',
+      })
+      const msg = err instanceof Error ? err.message : 'Failed to invoke email delivery.'
       return {
         success: false,
         configured: false,
-        message: err instanceof Error ? err.message : 'Failed to invoke email delivery.',
+        failureCategory: 'CLIENT_DISPATCH_EXCEPTION',
+        message: msg,
+        error: msg,
       }
     }
   }
@@ -211,6 +342,50 @@ export async function triggerTransactionalEmail(
     outboxId: simulatedId,
     message: 'Email successfully queued in local simulation outbox.',
   }
+}
+
+/**
+ * Dispatches an email with controlled retries and exponential backoff for transient failures.
+ * Transient categories: EDGE_FUNCTION_UNREACHABLE, GATEWAY_RELAY_ERROR, RATE_LIMITED, or 5xx server errors.
+ * Terminal categories (401, 403, 404, PROVIDER_UNCONFIGURED) exit immediately without retrying.
+ */
+export async function triggerTransactionalEmailWithRetry(
+  params: EmailDispatchParams,
+  options: { maxRetries?: number; initialDelayMs?: number } = {}
+): Promise<EmailDispatchResult> {
+  const maxRetries = options.maxRetries ?? 2
+  const initialDelayMs = options.initialDelayMs ?? 800
+
+  let attempt = 0
+  let lastResult: EmailDispatchResult = {
+    success: false,
+    configured: false,
+    message: 'Initial dispatch attempt pending.',
+  }
+
+  while (attempt <= maxRetries) {
+    lastResult = await triggerTransactionalEmail(params)
+    if (lastResult.success) {
+      return lastResult
+    }
+
+    const cat = lastResult.failureCategory
+    const isTransient =
+      cat === 'EDGE_FUNCTION_UNREACHABLE' ||
+      cat === 'GATEWAY_RELAY_ERROR' ||
+      cat === 'RATE_LIMITED' ||
+      (cat === 'FUNCTION_RUNTIME_ERROR' && (lastResult.httpStatus ? lastResult.httpStatus >= 500 : true))
+
+    if (!isTransient || attempt >= maxRetries) {
+      break
+    }
+
+    attempt++
+    const delay = initialDelayMs * Math.pow(2, attempt - 1) + Math.random() * 150
+    await new Promise((r) => setTimeout(r, delay))
+  }
+
+  return lastResult
 }
 
 /**
@@ -430,7 +605,7 @@ export async function sendPaymentApprovedEmail(params: {
 }
 
 /**
- * Triggers payment rejection notification with sanitized organizer reason.
+ * Triggers payment rejection notification with sanitized organizer reason and resubmission URL.
  */
 export async function sendPaymentRejectedEmail(params: {
   to: string
@@ -440,6 +615,7 @@ export async function sendPaymentRejectedEmail(params: {
   registrationId: string
   eventId?: string
 }): Promise<EmailDispatchResult> {
+  const origin = getFrontendBaseUrl()
   return triggerTransactionalEmail({
     template: 'payment_rejected',
     to: params.to,
@@ -447,6 +623,7 @@ export async function sendPaymentRejectedEmail(params: {
     payload: {
       event_title: params.eventTitle,
       reason: params.reason || 'Transaction could not be verified in organizer account.',
+      payment_url: `${origin}/student/payments/${params.registrationId}`,
     },
     idempotencyKey: `pay_rej_${params.registrationId}_${Date.now()}`,
     eventId: params.eventId,
@@ -650,7 +827,7 @@ export async function sendTeamInvitationEmail(params: {
   teamId: string
 }): Promise<EmailDispatchResult> {
   const origin = getFrontendBaseUrl()
-  const joinUrl = `${origin}/events/${params.eventSlug}?join=1&code=${encodeURIComponent(
+  const joinUrl = `${origin}/join-team?code=${encodeURIComponent(
     params.inviteCode
   )}&token=${encodeURIComponent(params.inviteToken)}`
 
@@ -659,14 +836,24 @@ export async function sendTeamInvitationEmail(params: {
     to: params.recipientEmail,
     name: params.recipientName,
     eventId: params.eventId,
+    teamId: params.teamId,
     idempotencyKey: `team_invite_${params.teamId}_${params.recipientEmail}_${params.inviteToken.slice(0, 8)}`,
     payload: {
+      team_name: params.teamName,
       teamName: params.teamName,
+      event_title: params.eventTitle,
       eventTitle: params.eventTitle,
+      event_slug: params.eventSlug,
+      eventSlug: params.eventSlug,
+      leader_name: params.leaderName,
       leaderName: params.leaderName,
+      invite_code: params.inviteCode,
       inviteCode: params.inviteCode,
+      invite_token: params.inviteToken,
       inviteToken: params.inviteToken,
+      join_url: joinUrl,
       joinUrl,
+      expires_at: params.expiresAt,
       expiresAt: params.expiresAt,
     },
   })
@@ -809,6 +996,114 @@ export async function sendBulkEventReminders(
 }
 
 /**
+ * Bulk event update / announcement email to all confirmed attendees.
+ */
+export async function sendBulkEventUpdate(
+  eventId: string,
+  eventTitle: string,
+  announcement: string
+): Promise<{ success: boolean; count: number; message: string }> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: attendees } = await (supabase.from('registrations') as any)
+        .select('id, participant_details, profiles:student_id(email, display_name)')
+        .eq('event_id', eventId)
+        .eq('status', 'confirmed')
+
+      let count = 0
+      for (const att of (attendees || [])) {
+        const email = att.participant_details?.email || att.profiles?.email
+        const name = att.participant_details?.student_name || att.profiles?.display_name
+        if (email) {
+          count++
+          sendEventUpdatedEmail({
+            to: email,
+            name,
+            eventTitle,
+            announcement,
+            eventId,
+          }).catch(() => {})
+        }
+      }
+      return { success: true, count, message: `${count} update notification(s) dispatched to attendees.` }
+    } catch (err: any) {
+      return { success: false, count: 0, message: err?.message || 'Failed to dispatch event updates.' }
+    }
+  }
+
+  // Simulation mode
+  const rawRegs = localStorage.getItem('festflow_local_registrations')
+  const localRegs = rawRegs ? JSON.parse(rawRegs) : []
+  const confirmed = localRegs.filter((r: any) => r.event_id === eventId && r.status === 'confirmed')
+  for (const reg of confirmed) {
+    const email = reg.participant_details?.email || 'student@campus.edu'
+    const name = reg.participant_details?.student_name || 'Attendee'
+    sendEventUpdatedEmail({
+      to: email,
+      name,
+      eventTitle,
+      announcement,
+      eventId,
+    }).catch(() => {})
+  }
+  return { success: true, count: confirmed.length, message: `${confirmed.length} update notification(s) queued for attendees.` }
+}
+
+/**
+ * Bulk event cancellation email to all confirmed attendees.
+ */
+export async function sendBulkEventCancellation(
+  eventId: string,
+  eventTitle: string,
+  reason?: string
+): Promise<{ success: boolean; count: number; message: string }> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: attendees } = await (supabase.from('registrations') as any)
+        .select('id, participant_details, profiles:student_id(email, display_name)')
+        .eq('event_id', eventId)
+        .eq('status', 'confirmed')
+
+      let count = 0
+      for (const att of (attendees || [])) {
+        const email = att.participant_details?.email || att.profiles?.email
+        const name = att.participant_details?.student_name || att.profiles?.display_name
+        if (email) {
+          count++
+          sendEventCancelledEmail({
+            to: email,
+            name,
+            eventTitle,
+            reason,
+            eventId,
+          }).catch(() => {})
+        }
+      }
+      return { success: true, count, message: `${count} cancellation notification(s) dispatched to attendees.` }
+    } catch (err: any) {
+      return { success: false, count: 0, message: err?.message || 'Failed to dispatch cancellation notifications.' }
+    }
+  }
+
+  // Simulation mode
+  const rawRegs = localStorage.getItem('festflow_local_registrations')
+  const localRegs = rawRegs ? JSON.parse(rawRegs) : []
+  const confirmed = localRegs.filter((r: any) => r.event_id === eventId && r.status === 'confirmed')
+  for (const reg of confirmed) {
+    const email = reg.participant_details?.email || 'student@campus.edu'
+    const name = reg.participant_details?.student_name || 'Attendee'
+    sendEventCancelledEmail({
+      to: email,
+      name,
+      eventTitle,
+      reason,
+      eventId,
+    }).catch(() => {})
+  }
+  return { success: true, count: confirmed.length, message: `${confirmed.length} cancellation notification(s) queued for attendees.` }
+}
+
+/**
  * Triggers club staff invitation email.
  */
 export async function sendClubMemberInvitationEmail(params: {
@@ -842,5 +1137,112 @@ export async function sendClubMemberInvitationEmail(params: {
       ? `club_inv_resend_${params.clubId || 'c'}_${cleanTo}_${tokenPart || Date.now()}`
       : `club_inv_${params.clubId || 'c'}_${cleanTo}_${tokenPart || roleSlug}`,
     userId: params.clubId,
+  })
+}
+
+/**
+ * Sends notification to a team member when added to a squad by the leader.
+ */
+export async function sendTeamMemberAddedEmail(params: {
+  to: string
+  name?: string
+  teamName: string
+  eventTitle: string
+  leaderName: string
+  startDate: string
+  venueName: string
+  ticketCode?: string
+  registrationId?: string
+  eventId?: string
+  teamId?: string
+  isPaid?: boolean
+}): Promise<EmailDispatchResult> {
+  const origin = getFrontendBaseUrl()
+  const cleanTo = (params.to || '').toLowerCase().trim()
+  return triggerTransactionalEmail({
+    template: 'team_member_added',
+    to: params.to,
+    name: params.name,
+    eventId: params.eventId,
+    teamId: params.teamId,
+    registrationId: params.registrationId,
+    idempotencyKey: `team_member_added_${params.teamId || params.eventId}_${cleanTo}`,
+    payload: {
+      team_name: params.teamName,
+      teamName: params.teamName,
+      event_title: params.eventTitle,
+      eventTitle: params.eventTitle,
+      leader_name: params.leaderName,
+      leaderName: params.leaderName,
+      start_date: params.startDate,
+      venue_name: params.venueName,
+      ticket_code: params.ticketCode,
+      ticket_url: params.registrationId
+        ? `${origin}/student/tickets/${params.registrationId}`
+        : `${origin}/student/dashboard`,
+      is_paid: params.isPaid,
+    },
+  })
+}
+
+/**
+ * Sends notification to club owner / administrators when a staff member accepts their invitation.
+ */
+export async function sendClubInvitationAcceptedEmail(params: {
+  to: string
+  adminName?: string
+  clubName: string
+  memberName: string
+  memberEmail: string
+  role: string
+  clubId: string
+}): Promise<EmailDispatchResult> {
+  const origin = getFrontendBaseUrl()
+  const cleanMemberEmail = (params.memberEmail || '').toLowerCase().trim()
+  return triggerTransactionalEmail({
+    template: 'club_invitation_accepted',
+    to: params.to,
+    name: params.adminName,
+    idempotencyKey: `club_inv_acc_${params.clubId}_${cleanMemberEmail}_${params.role}`,
+    payload: {
+      club_id: params.clubId,
+      club_name: params.clubName,
+      member_name: params.memberName,
+      member_email: params.memberEmail,
+      role: params.role,
+      club_url: `${origin}/club/members`,
+    },
+    userId: params.clubId,
+  })
+}
+
+/**
+ * Sends an event reminder notification to an individual attendee.
+ */
+export async function sendEventReminderEmail(params: {
+  to: string
+  name?: string
+  eventTitle: string
+  startDate: string
+  venueName: string
+  ticketCode: string
+  registrationId: string
+  eventId: string
+}): Promise<EmailDispatchResult> {
+  const origin = getFrontendBaseUrl()
+  return triggerTransactionalEmail({
+    template: 'event_reminder',
+    to: params.to,
+    name: params.name,
+    payload: {
+      event_title: params.eventTitle,
+      start_date: params.startDate,
+      venue_name: params.venueName,
+      ticket_code: params.ticketCode,
+      ticket_url: `${origin}/student/tickets/${params.registrationId}`,
+    },
+    idempotencyKey: `evt_remind_${params.eventId}_${params.registrationId}_${Date.now()}`,
+    eventId: params.eventId,
+    registrationId: params.registrationId,
   })
 }

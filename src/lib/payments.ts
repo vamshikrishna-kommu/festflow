@@ -47,7 +47,7 @@ function saveLocalPaymentSettings(settings: Record<string, ClubPaymentSettings>)
   }
 }
 
-function getLocalPaymentSubmissions(): PaymentSubmission[] {
+export function getLocalPaymentSubmissions(): PaymentSubmission[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_PAYMENT_SUBMISSIONS_KEY)
     if (raw) return JSON.parse(raw)
@@ -57,7 +57,7 @@ function getLocalPaymentSubmissions(): PaymentSubmission[] {
   return []
 }
 
-function saveLocalPaymentSubmissions(subs: PaymentSubmission[]) {
+export function saveLocalPaymentSubmissions(subs: PaymentSubmission[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_PAYMENT_SUBMISSIONS_KEY, JSON.stringify(subs))
   } catch {
@@ -436,6 +436,16 @@ export async function submitPaymentProof(params: {
   // Update local registration status to pending_payment if previously rejected
   if (targetReg) {
     targetReg.status = 'pending_payment'
+    targetReg.rejection_reason = null
+    targetReg.updated_at = new Date().toISOString()
+    if (targetReg.team_id && targetReg.team_role === 'leader') {
+      const squadRegs = localRegs.filter((r: any) => r.team_id === targetReg.team_id && r.id !== targetReg.id)
+      for (const sReg of squadRegs) {
+        sReg.status = 'pending_payment'
+        sReg.rejection_reason = null
+        sReg.updated_at = new Date().toISOString()
+      }
+    }
     localStorage.setItem('festflow_local_registrations', JSON.stringify(localRegs))
   }
 
@@ -653,34 +663,76 @@ export async function reviewPaymentSubmission(params: {
         targetReg.ticket_code = issuedTicketCode
       }
       targetReg.ticket_issued_at = new Date().toISOString()
+      targetReg.rejection_reason = null
 
       // Synchronize team squad registrations if applicable
-      if (targetReg.team_id) {
-        const squadRegs = localRegs.filter((r: any) => r.team_id === targetReg.team_id && r.id !== targetReg.id)
-        for (const sReg of squadRegs) {
-          sReg.status = 'confirmed'
-          if (!sReg.ticket_issued_at) {
-            sReg.ticket_issued_at = new Date().toISOString()
+      if (targetReg.team_id && targetReg.team_role === 'leader') {
+        const rawMembers = localStorage.getItem('festflow_local_team_members')
+        const members = rawMembers ? JSON.parse(rawMembers) : []
+        const acceptedMembers = members.filter(
+          (m: any) => m.team_id === targetReg.team_id && m.status === 'accepted' && m.user_id !== targetReg.student_id
+        )
+
+        let mIdx = 0
+        for (const m of acceptedMembers) {
+          mIdx++
+          let sReg = localRegs.find((r: any) => r.event_id === targetReg.event_id && r.student_id === m.user_id)
+          const memberTicket = `${issuedTicketCode}-M${mIdx}`
+          const memberQr = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+
+          if (!sReg) {
+            sReg = {
+              id: `reg_tm_${Date.now()}_${mIdx}`,
+              event_id: targetReg.event_id,
+              student_id: m.user_id,
+              ticket_code: memberTicket,
+              qr_token: memberQr,
+              status: 'confirmed',
+              ticket_issued_at: new Date().toISOString(),
+              team_name: targetReg.team_name,
+              team_id: targetReg.team_id,
+              team_role: 'member',
+              participant_details: { student_name: m.name || 'Squad Member', email: m.email || '' },
+              approval_status: 'approved',
+              rejection_reason: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+            localRegs.push(sReg)
+          } else {
+            sReg.status = 'confirmed'
+            sReg.team_id = targetReg.team_id
+            sReg.team_name = targetReg.team_name
+            sReg.team_role = 'member'
+            if (!sReg.ticket_code) sReg.ticket_code = memberTicket
+            if (!sReg.qr_token) sReg.qr_token = memberQr
+            sReg.ticket_issued_at = sReg.ticket_issued_at || new Date().toISOString()
+            sReg.rejection_reason = null
+            sReg.updated_at = new Date().toISOString()
           }
-          sReg.updated_at = new Date().toISOString()
+          m.registration_id = sReg.id
+
           sendTicketIssuedEmail({
-            to: sReg.participant_details?.email || 'teammate@campus.edu',
-            name: sReg.participant_details?.student_name || 'Squad Member',
+            to: sReg.participant_details?.email || m.email || 'teammate@campus.edu',
+            name: sReg.participant_details?.student_name || m.name || 'Squad Member',
             eventTitle: 'Campus Event',
-            ticketCode: sReg.ticket_code || 'TKT-CONFIRMED',
+            ticketCode: sReg.ticket_code || memberTicket,
             venueName: 'Campus Venue',
             teamName: targetReg.team_name,
             registrationId: sReg.id,
             eventId: sReg.event_id,
           }).catch(() => {})
         }
+        localStorage.setItem('festflow_local_team_members', JSON.stringify(members))
       }
     } else {
       targetReg.status = 'rejected'
-      if (targetReg.team_id) {
+      targetReg.rejection_reason = notes || 'Payment rejected by organizer.'
+      if (targetReg.team_id && targetReg.team_role === 'leader') {
         const squadRegs = localRegs.filter((r: any) => r.team_id === targetReg.team_id && r.id !== targetReg.id)
         for (const sReg of squadRegs) {
           sReg.status = 'rejected'
+          sReg.rejection_reason = notes || 'Team payment rejected by organizer.'
           sReg.updated_at = new Date().toISOString()
         }
       }
@@ -863,8 +915,27 @@ export async function getStudentPaymentSubmission(
         .limit(1)
         .maybeSingle()
 
-      if (error) return null
-      return data as PaymentSubmission | null
+      if (!error && data) return data as PaymentSubmission
+
+      // If registration belongs to a squad whose leader submitted, check leader's submission
+      const { data: reg } = await (supabase.from('registrations') as any)
+        .select('team_id, event_id, team_role')
+        .eq('id', registrationId)
+        .maybeSingle()
+
+      if (reg?.team_id && reg.team_role === 'member') {
+        const { data: leaderSub } = await (supabase.from('payment_submissions') as any)
+          .select('*, registrations!inner(team_id, team_role)')
+          .eq('registrations.team_id', reg.team_id)
+          .eq('registrations.team_role', 'leader')
+          .order('submitted_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (leaderSub) return leaderSub as PaymentSubmission
+      }
+
+      return null
     } catch {
       return null
     }
@@ -872,7 +943,21 @@ export async function getStudentPaymentSubmission(
 
   const subs = getLocalPaymentSubmissions()
   const found = subs.find((s) => s.registration_id === registrationId)
-  return found || null
+  if (found) return found
+
+  // In local simulation: check if registration is a team member whose leader submitted
+  const rawRegs = localStorage.getItem('festflow_local_registrations')
+  const localRegs = rawRegs ? JSON.parse(rawRegs) : []
+  const thisReg = localRegs.find((r: any) => r.id === registrationId)
+  if (thisReg?.team_id && thisReg.team_role === 'member') {
+    const leaderReg = localRegs.find((r: any) => r.team_id === thisReg.team_id && r.team_role === 'leader')
+    if (leaderReg) {
+      const leaderSub = subs.find((s) => s.registration_id === leaderReg.id)
+      if (leaderSub) return leaderSub
+    }
+  }
+
+  return null
 }
 
 // ── In-App Notifications API ────────────────────────────────────────────────

@@ -19,6 +19,7 @@ import {
   CreditCard,
   Search,
   Settings,
+  Building2,
 } from 'lucide-react'
 import {
   Button,
@@ -33,7 +34,7 @@ import {
 } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useSearchParams, useNavigate } from 'react-router'
 import { fadeIn, staggerContainer, metricItem, tabContent } from '@/lib/animations'
 import { getStudentRegistrations, cancelRegistration } from '@/lib/registrations'
 import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
@@ -49,7 +50,8 @@ function getGreeting(): string {
 }
 
 export default function StudentDashboardPage() {
-  const { user, profile, studentProfile, signOut } = useAuth()
+  const { user, profile, studentProfile, isDualEligible, switchWorkspace, signOut } = useAuth()
+  const navigate = useNavigate()
 
   const [registrations, setRegistrations] = useState<RegistrationWithEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -315,6 +317,19 @@ export default function StudentDashboardPage() {
                 Discover Events
               </Button>
             </Link>
+
+            {isDualEligible && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => switchWorkspace('club', navigate)}
+                leftIcon={<Building2 size={15} />}
+                className="text-purple-300 border-purple-500/30 hover:bg-purple-500/10 justify-center"
+              >
+                Club Space
+              </Button>
+            )}
+
             <Button
               variant="outline"
               size="sm"

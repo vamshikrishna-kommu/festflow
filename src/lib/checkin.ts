@@ -9,6 +9,7 @@ import type {
 } from '@/types'
 import { getEventRegistrations } from '@/lib/registrations'
 import { getEventById } from '@/lib/events'
+import { sendCheckinConfirmedEmail } from '@/lib/emails'
 
 const LOCAL_STORAGE_CHECKINS_KEY = 'festflow_local_checkins'
 
@@ -136,7 +137,7 @@ export function triggerScanFeedback(outcome: CheckInOutcome) {
 }
 
 // ── Local Storage Helpers ───────────────────────────────────────────────────
-function getLocalCheckIns(): CheckInRecord[] {
+export function getLocalCheckIns(): CheckInRecord[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_CHECKINS_KEY)
     if (raw) return JSON.parse(raw)
@@ -146,7 +147,7 @@ function getLocalCheckIns(): CheckInRecord[] {
   return []
 }
 
-function saveLocalCheckIns(checkins: CheckInRecord[]) {
+export function saveLocalCheckIns(checkins: CheckInRecord[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_CHECKINS_KEY, JSON.stringify(checkins))
   } catch {
@@ -540,6 +541,25 @@ export async function checkInTicket(
     }
 
     triggerScanFeedback(res.outcome)
+
+    // Dispatch gate check-in confirmation email if attendee email is available
+    const attendeeEmail =
+      (memberIndex > 0 && Array.isArray(reg.team_members) && reg.team_members[memberIndex - 1]?.email) ||
+      reg.participant_details?.email ||
+      reg.student?.email ||
+      ''
+    if (attendeeEmail) {
+      sendCheckinConfirmedEmail({
+        to: attendeeEmail,
+        name: memberName || primaryName,
+        eventTitle: targetEvent?.title || 'Campus Event',
+        ticketCode: reg.ticket_code || cleanCode,
+        checkedInAt: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        registrationId: reg.id,
+        eventId,
+      }).catch(() => {})
+    }
+
     return res
   } finally {
     activeSimulationLocks.delete(lockKey)

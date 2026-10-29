@@ -19,6 +19,7 @@ import {
   Scan,
   Sparkles,
   RefreshCw,
+  Users,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Card, Badge, PageHeader, Alert } from '@/components/ui'
@@ -467,6 +468,30 @@ export default function StudentPaymentPage() {
                 </p>
               </motion.div>
             ) : null}
+
+            {/* ── Team Squad Information Banner ─────────────────────────────────── */}
+            {registration.team_name && (
+              <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <span className="p-2.5 rounded-xl bg-[var(--color-brand-purple)]/20 text-[var(--color-brand-purple)] shrink-0">
+                    <Users size={18} />
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-xs text-[var(--color-text-primary)]">
+                      Team Squad: {registration.team_name}
+                    </h4>
+                    <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
+                      {registration.team_role === 'leader'
+                        ? 'You are the Team Leader. You submit payment proof for the entire squad.'
+                        : 'You are a Team Member. Squad fee payment is managed by your Team Leader.'}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="purple" className="text-[10px]">
+                  {registration.team_role === 'leader' ? 'Team Leader' : 'Team Member'}
+                </Badge>
+              </div>
+            )}
 
             {notice && (
               <Alert

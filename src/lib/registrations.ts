@@ -13,9 +13,10 @@ import {
   sendApplicationSubmittedEmail,
   sendPaymentRejectedEmail,
   sendRegistrationCancelledEmail,
+  sendTeamMemberAddedEmail,
   resendPassEmail,
 } from '@/lib/emails'
-import { createTeam, getLocalTeamMembers } from '@/lib/teams'
+import { createTeam, getLocalTeamMembers, saveLocalTeamMembers, getLocalTeams } from '@/lib/teams'
 import { broadcastStatusChange } from '@/lib/sync'
 
 export { resendPassEmail }
@@ -23,7 +24,7 @@ export { resendPassEmail }
 const LOCAL_STORAGE_REGISTRATIONS_KEY = 'festflow_local_registrations'
 
 // Local Storage fallback for offline / development
-function getInitialLocalRegistrations(): RegistrationRecord[] {
+export function getInitialLocalRegistrations(): RegistrationRecord[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_REGISTRATIONS_KEY)
     if (raw) return JSON.parse(raw) as RegistrationRecord[]
@@ -33,7 +34,7 @@ function getInitialLocalRegistrations(): RegistrationRecord[] {
   return []
 }
 
-function saveLocalRegistrations(regs: RegistrationRecord[]) {
+export function saveLocalRegistrations(regs: RegistrationRecord[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_REGISTRATIONS_KEY, JSON.stringify(regs))
   } catch {
@@ -434,6 +435,26 @@ export async function registerForEvent(
         registrationId: newReg.id,
         eventId: event.id,
       }).catch(() => {})
+    }
+
+    // Notify registered squad members when leader directly registers them
+    if (options?.teamMembers && Array.isArray(options.teamMembers) && options.teamName) {
+      for (const tm of options.teamMembers) {
+        if (tm.email && tm.email.includes('@')) {
+          sendTeamMemberAddedEmail({
+            to: tm.email,
+            name: tm.name,
+            teamName: options.teamName,
+            eventTitle: event.title,
+            leaderName: options.participantDetails?.student_name || 'Team Leader',
+            startDate: event.start_date,
+            venueName: event.venue_name,
+            eventId: event.id,
+            teamId: createdTeamId,
+            isPaid: !isFree,
+          }).catch(() => {})
+        }
+      }
     }
 
     broadcastStatusChange({
@@ -977,19 +998,65 @@ export async function getStudentRegistrations(
     const current = getInitialLocalRegistrations()
     const userRegs = current.filter((r) => r.student_id === studentId)
 
-    // Check if user is an accepted member of any team whose registration was created
+    // Check if user is an accepted member of any team whose registration needs syncing
     const members = getLocalTeamMembers()
     const acceptedSlots = members.filter((m) => m.user_id === studentId && m.status === 'accepted')
-    const existingIds = new Set(userRegs.map((r) => r.id))
+    const existingEventIds = new Set(userRegs.map((r) => r.event_id))
 
+    let updatedStorage = false
     for (const slot of acceptedSlots) {
-      if (slot.registration_id && !existingIds.has(slot.registration_id)) {
-        const linkedReg = current.find((r) => r.id === slot.registration_id)
-        if (linkedReg) {
-          userRegs.push(linkedReg)
-          existingIds.add(linkedReg.id)
+      if (!existingEventIds.has(slot.event_id)) {
+        // Find team and leader registration to determine status
+        const teams = getLocalTeams()
+        const team = teams.find((t) => t.id === slot.team_id)
+        const leaderReg = current.find(
+          (r) => r.id === team?.registration_id || (r.event_id === slot.event_id && r.student_id === team?.leader_id)
+        )
+        const eventRes = await getEventById(slot.event_id)
+        const event = eventRes.event
+
+        const isFree = Boolean(event?.is_free)
+        const isLeaderConfirmed = leaderReg?.status === 'confirmed' && Boolean(leaderReg.ticket_issued_at)
+        const isConfirmed = isFree || isLeaderConfirmed
+
+        const memberIndex = members.filter((m) => m.team_id === slot.team_id && m.status === 'accepted').length
+        const ticketCode = leaderReg?.ticket_code
+          ? `${leaderReg.ticket_code}-M${memberIndex}`
+          : `FF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+        const qrToken = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+
+        const newMemberReg: RegistrationRecord = {
+          id: `reg_tm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          event_id: slot.event_id,
+          student_id: studentId,
+          status: isConfirmed ? 'confirmed' : 'pending_payment',
+          ticket_code: ticketCode,
+          qr_token: qrToken,
+          ticket_issued_at: isConfirmed ? new Date().toISOString() : null,
+          cancelled_at: null,
+          team_name: team?.name || null,
+          team_id: slot.team_id,
+          team_role: 'member',
+          team_members: leaderReg?.team_members || [],
+          custom_responses: {},
+          participant_details: { student_name: slot.name, email: slot.email },
+          approval_status: isConfirmed ? 'approved' : 'pending',
+          rejection_reason: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         }
+
+        current.push(newMemberReg)
+        userRegs.push(newMemberReg)
+        existingEventIds.add(slot.event_id)
+        slot.registration_id = newMemberReg.id
+        updatedStorage = true
       }
+    }
+
+    if (updatedStorage) {
+      saveLocalRegistrations(current)
+      saveLocalTeamMembers(members)
     }
 
     const list: RegistrationWithEvent[] = []

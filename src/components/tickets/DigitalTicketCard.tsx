@@ -43,10 +43,6 @@ export function DigitalTicketCard({
   const [resending, setResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendNotice, setResendNotice] = useState<{ message: string; isError?: boolean } | null>(null)
-  
-  // Team pass vs individual member pass toggle
-  const [activePassView, setActivePassView] = useState<'squad' | 'member'>('squad')
-  const [selectedMemberIdx, setSelectedMemberIdx] = useState(0)
 
   // Mobile gate scanner high-contrast mode toggle
   const [highContrast, setHighContrast] = useState<boolean>(() => {
@@ -57,7 +53,7 @@ export function DigitalTicketCard({
   const event = registration.event || null
   const qrToken = (registration as any).qr_token || registration.ticket_code
 
-  const isConfirmed = registration.status === 'confirmed'
+  const isConfirmed = registration.status === 'confirmed' && Boolean(registration.ticket_issued_at)
 
   // Offline ticket persistence: safely caches confirmed pass for offline gate scan
   useEffect(() => {
@@ -103,14 +99,8 @@ export function DigitalTicketCard({
     : []
   const hasTeamMembers = Boolean(event && event.participation_type === 'team' && teamMembers.length > 0)
 
-  // Active pass details based on squad vs member pass view
-  const currentMember = hasTeamMembers && activePassView === 'member' ? teamMembers[selectedMemberIdx] : null
-  const currentPassCode = currentMember
-    ? `${registration.ticket_code}-M${selectedMemberIdx + 1}`
-    : registration.ticket_code
-  const currentToken = currentMember
-    ? `${qrToken}-M${selectedMemberIdx + 1}`
-    : qrToken
+  const currentPassCode = registration.ticket_code
+  const currentToken = qrToken
 
   // Opaque token only: Never encode student email, phone, or payment secrets inside QR
   const qrPayload = `festflow://pass/${currentToken}`
@@ -222,17 +212,16 @@ export function DigitalTicketCard({
       // Attendee Details
       ctx.fillStyle = '#94a3b8'
       ctx.font = '12px system-ui, sans-serif'
-      ctx.fillText(currentMember ? 'TEAM ATTENDEE' : 'PASS HOLDER', 40, 295)
+      ctx.fillText(registration.team_role === 'leader' ? 'SQUAD LEADER' : 'PASS HOLDER', 40, 295)
 
       ctx.fillStyle = '#ffffff'
       ctx.font = 'bold 18px system-ui, sans-serif'
-      const attendeeDisplay = currentMember ? currentMember.name : attendee
-      ctx.fillText(attendeeDisplay, 40, 325)
+      ctx.fillText(attendee, 40, 325)
 
       if (registration.team_name) {
         ctx.fillStyle = '#a78bfa'
         ctx.font = '13px system-ui, sans-serif'
-        ctx.fillText(`Team: ${registration.team_name} ${currentMember ? `(Member #${selectedMemberIdx + 1})` : '(Squad Pass)'}`, 40, 350)
+        ctx.fillText(`Team: ${registration.team_name} (${registration.team_role === 'leader' ? 'Leader' : 'Member'})`, 40, 350)
       }
 
       // QR Code Background Box
@@ -320,56 +309,7 @@ export function DigitalTicketCard({
         }
       `}</style>
 
-      {/* ── Team Pass View Switcher ────────────────────────────────────────── */}
-      {hasTeamMembers && isConfirmed && (
-        <div className="flex items-center justify-between p-1.5 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] print:hidden">
-          <button
-            type="button"
-            onClick={() => setActivePassView('squad')}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-              activePassView === 'squad'
-                ? 'bg-gradient-to-r from-[var(--color-brand-purple)] to-[var(--color-brand-cyan)] text-white shadow-md'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-            }`}
-          >
-            <Users size={14} />
-            <span>Squad Pass (Leader)</span>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => setActivePassView('member')}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-              activePassView === 'member'
-                ? 'bg-gradient-to-r from-[var(--color-brand-purple)] to-[var(--color-brand-cyan)] text-white shadow-md'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-            }`}
-          >
-            <User size={14} />
-            <span>Member Passes ({teamMembers.length})</span>
-          </button>
-        </div>
-      )}
-
-      {/* ── Member Pass Selector Bar ───────────────────────────────────────── */}
-      {hasTeamMembers && activePassView === 'member' && isConfirmed && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 print:hidden">
-          {teamMembers.map((m, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setSelectedMemberIdx(idx)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium shrink-0 transition-all border ${
-                selectedMemberIdx === idx
-                  ? 'border-[var(--color-brand-cyan)] bg-[var(--color-brand-cyan)]/15 text-[var(--color-brand-cyan)] font-bold'
-                  : 'border-[var(--color-surface-3)] bg-[var(--color-surface-1)] text-[var(--color-text-secondary)] hover:border-[var(--color-surface-4)]'
-              }`}
-            >
-              {m.name || `Member #${idx + 1}`}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* ── Main Ticket Card ──────────────────────────────────────────────── */}
       <motion.div
@@ -422,16 +362,11 @@ export function DigitalTicketCard({
         <div className="p-5 sm:p-6 grid grid-cols-2 gap-4 text-xs border-b border-[var(--color-surface-3)]">
           <div>
             <span className="text-[var(--color-text-muted)] flex items-center gap-1 mb-1">
-              <User size={13} /> {currentMember ? 'Member Attendee' : 'Pass Holder'}
+              <User size={13} /> {registration.team_role === 'leader' ? 'Squad Leader' : 'Pass Holder'}
             </span>
             <strong className="text-sm text-[var(--color-text-primary)] font-semibold block truncate">
-              {currentMember ? currentMember.name : attendee}
+              {attendee}
             </strong>
-            {currentMember?.studentId && (
-              <span className="text-[10px] text-[var(--color-text-muted)] font-mono">
-                ID: {currentMember.studentId}
-              </span>
-            )}
           </div>
 
           <div>
@@ -470,21 +405,24 @@ export function DigitalTicketCard({
                 <Users size={14} /> Team: {registration.team_name}
               </span>
               <Badge variant="purple" className="text-[10px]">
-                {hasTeamMembers ? `${teamMembers.length + 1} Members` : 'Team Leader'}
+                {registration.team_role === 'leader' ? 'Squad Leader' : 'Team Member'}
               </Badge>
             </div>
-            {hasTeamMembers && (
-              <div className="text-[11px] text-[var(--color-text-secondary)] flex flex-wrap gap-x-2 gap-y-1">
-                <span className="text-[var(--color-text-muted)] font-medium">Squad:</span>
-                <span className="font-medium text-[var(--color-text-primary)]">{attendee} (Leader)</span>
-                {teamMembers.map((m: any, i: number) => (
-                  <span
-                    key={i}
-                    className={`${activePassView === 'member' && selectedMemberIdx === i ? 'text-[var(--color-brand-cyan)] font-bold' : 'text-[var(--color-text-secondary)]'}`}
-                  >
-                    • {m.name} {m.studentId ? `(${m.studentId})` : ''}
-                  </span>
-                ))}
+            {hasTeamMembers && registration.team_role === 'leader' && (
+              <div className="text-[11px] text-[var(--color-text-secondary)] mt-1.5">
+                <div className="text-[10px] text-[var(--color-text-muted)] font-medium mb-1">
+                  Squad Roster (Individual passes delivered directly to each member):
+                </div>
+                <div className="flex flex-wrap gap-x-2 gap-y-1">
+                  {teamMembers.map((m: any, i: number) => (
+                    <span
+                      key={i}
+                      className="bg-[var(--color-surface-3)] px-2 py-0.5 rounded-md text-[10px] text-[var(--color-text-secondary)]"
+                    >
+                      • {m.name} {m.studentId ? `(${m.studentId})` : ''}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -548,7 +486,7 @@ export function DigitalTicketCard({
 
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[11px] text-[var(--color-text-muted)]">
-                  {currentMember ? 'Member Entry Pass Token' : 'Official Gate Scanner Pass Token'}
+                  Official Gate Scanner Pass Token
                 </span>
                 <button
                   type="button"

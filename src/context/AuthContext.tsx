@@ -4,12 +4,22 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured, isProduction } from '@/lib/supabase'
 import { getAuthCallbackUrl, getResetPasswordUrl } from '@/lib/canonicalUrl'
-import type { UserRole, Profile, ClubProfile, StudentProfile, ClubMemberRecord } from '@/types'
+import type { UserRole, Profile, ClubProfile, StudentProfile, ClubMemberRecord, ClubRole } from '@/types'
+import {
+  canAccessStudentWorkspace,
+  canAccessClubWorkspace,
+  isDualWorkspaceEligible,
+  getWorkspaceFromPath,
+  type WorkspaceType,
+  type AvailableClub,
+} from '@/lib/workspace'
+import { broadcastStatusChange } from '@/lib/sync'
 
 export interface SignUpClubParams {
   name: string
@@ -37,11 +47,17 @@ export interface AuthContextType {
   hasClubMembership: boolean
   activeClubId: string | null
   activeClubProfile: ClubProfile | null
+  activeWorkspace: WorkspaceType
+  isDualEligible: boolean
+  availableClubs: AvailableClub[]
+  activeClubRole: ClubRole | null
   role: UserRole | null
   isLoading: boolean
   isRoleLoading: boolean
   profileError: string | null
   isConfigured: boolean
+  switchWorkspace: (target: WorkspaceType, navigate?: (path: string) => void) => void
+  switchActiveClub: (clubId: string) => Promise<boolean>
   signIn: (email: string, password: string) => Promise<{ error: string | null; role?: UserRole }>
   signUpClub: (params: SignUpClubParams) => Promise<{ error: string | null; requiresVerification: boolean }>
   signUpStudent: (params: SignUpStudentParams) => Promise<{ error: string | null; requiresVerification: boolean }>
@@ -150,18 +166,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (!mErr && memberRows && memberRows.length > 0) {
               const typedMembers = memberRows as ClubMemberRecord[]
-              setClubMemberships(typedMembers)
-              const primaryMembership = typedMembers[0]
-              setActiveClubMembership(primaryMembership)
+              const clubIds = typedMembers.map((m) => m.club_id)
 
-              const { data: cOrgData } = await (supabase.from('club_profiles') as any)
-                .select('*')
-                .eq('profile_id', primaryMembership.club_id)
-                .maybeSingle()
-              if (cOrgData) {
-                setActiveClubProfile(cOrgData as unknown as ClubProfile)
+              // Fetch matching organization profiles to enrich club names
+              let enrichedMembers: ClubMemberRecord[] = typedMembers
+              try {
+                const { data: orgData } = await (supabase.from('club_profiles') as any)
+                  .select('*')
+                  .in('profile_id', clubIds)
+                if (orgData && orgData.length > 0) {
+                  const orgList = orgData as ClubProfile[]
+                  enrichedMembers = typedMembers.map((m) => {
+                    const org = orgList.find((o) => o.profile_id === m.club_id)
+                    return {
+                      ...m,
+                      club: org || null,
+                      club_name: org?.club_name || 'Campus Club',
+                    }
+                  })
+                }
+              } catch {
+                // ignore org lookup failure
+              }
+
+              setClubMemberships(enrichedMembers)
+
+              // Check preferred club from sessionStorage
+              let preferredId: string | null = null
+              try {
+                preferredId = sessionStorage.getItem('festflow_preferred_club_id')
+              } catch {
+                // ignore
+              }
+
+              const matched = preferredId
+                ? enrichedMembers.find((m) => m.club_id === preferredId)
+                : null
+              const selectedMembership = matched || enrichedMembers[0]
+
+              setActiveClubMembership(selectedMembership)
+              if (selectedMembership.club) {
+                setActiveClubProfile(selectedMembership.club)
               } else {
-                setActiveClubProfile(null)
+                const { data: cOrgData } = await (supabase.from('club_profiles') as any)
+                  .select('*')
+                  .eq('profile_id', selectedMembership.club_id)
+                  .maybeSingle()
+                setActiveClubProfile(cOrgData ? (cOrgData as unknown as ClubProfile) : null)
               }
             } else {
               setClubMemberships([])
@@ -215,17 +266,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Check simulation club memberships
           try {
-            const rawMembers = localStorage.getItem('festflow_club_members')
+            const rawMembers =
+              localStorage.getItem('festflow_local_club_members') ||
+              localStorage.getItem('festflow_club_members')
             if (rawMembers) {
               const parsedMembers = JSON.parse(rawMembers) as ClubMemberRecord[]
               const activeMembers = parsedMembers.filter(
                 (m) => m.user_id === userId && m.status === 'active'
               )
-              setClubMemberships(activeMembers)
-              if (activeMembers.length > 0) {
-                setActiveClubMembership(activeMembers[0])
+
+              // Load mock club profiles for club names if available
+              let enriched = activeMembers
+              try {
+                const rawClubs = localStorage.getItem('festflow_local_clubs')
+                if (rawClubs) {
+                  const parsedClubs = JSON.parse(rawClubs) as Array<{ id: string; name: string }>
+                  enriched = activeMembers.map((m) => {
+                    const c = parsedClubs.find((cl) => cl.id === m.club_id)
+                    return {
+                      ...m,
+                      club_name: c?.name || m.club_name || 'Campus Club',
+                    }
+                  })
+                }
+              } catch {
+                // ignore
+              }
+
+              setClubMemberships(enriched)
+
+              let preferredId: string | null = null
+              try {
+                preferredId = sessionStorage.getItem('festflow_preferred_club_id')
+              } catch {
+                // ignore
+              }
+              const matched = preferredId ? enriched.find((m) => m.club_id === preferredId) : null
+              const selected = matched || (enriched.length > 0 ? enriched[0] : null)
+
+              setActiveClubMembership(selected)
+              if (selected && selected.club) {
+                setActiveClubProfile(selected.club)
+              } else if (selected) {
+                setActiveClubProfile({
+                  id: `cp_${selected.club_id}`,
+                  profile_id: selected.club_id,
+                  club_name: selected.club_name || 'Campus Club',
+                  representative_name: fallbackProfile.display_name,
+                  website_url: null,
+                  description: null,
+                  is_verified: true,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
               } else {
-                setActiveClubMembership(null)
                 setActiveClubProfile(null)
               }
             } else {
@@ -926,6 +1020,209 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [])
 
+  // ── Dual Workspace & Active Club Helpers ─────────────────────────────────
+  const [preferredWorkspace, setPreferredWorkspace] = useState<WorkspaceType>(() => {
+    try {
+      const stored = sessionStorage.getItem('festflow_active_workspace')
+      if (stored === 'student' || stored === 'club') return stored
+    } catch {
+      // ignore
+    }
+    return 'student'
+  })
+
+  const [routeWorkspace, setRouteWorkspace] = useState<WorkspaceType | null>(() => {
+    if (typeof window !== 'undefined') {
+      return getWorkspaceFromPath(window.location.pathname)
+    }
+    return null
+  })
+
+  // Synchronize workspace with current route and popstate navigation
+  useEffect(() => {
+    const syncFromPath = () => {
+      if (typeof window !== 'undefined') {
+        setRouteWorkspace(getWorkspaceFromPath(window.location.pathname))
+      }
+    }
+    window.addEventListener('popstate', syncFromPath)
+    window.addEventListener('festflow:navigation', syncFromPath)
+    return () => {
+      window.removeEventListener('popstate', syncFromPath)
+      window.removeEventListener('festflow:navigation', syncFromPath)
+    }
+  }, [])
+
+  const hasClubMembership = Boolean(
+    clubProfile !== null ||
+    clubMemberships.some((m) => m.status === 'active') ||
+    (isSupabaseConfigured
+      ? profile?.role === 'club_member'
+      : profile?.role === 'club_member' || (user?.user_metadata?.role as UserRole) === 'club_member')
+  )
+
+  const activeClubId = clubProfile?.profile_id || activeClubMembership?.club_id || null
+
+  const availableClubs: AvailableClub[] = useMemo(() => {
+    const list: AvailableClub[] = []
+    if (clubProfile) {
+      list.push({
+        id: clubProfile.profile_id,
+        name: clubProfile.club_name,
+        role: 'owner',
+        isOwner: true,
+      })
+    }
+    for (const m of clubMemberships) {
+      if (m.status === 'active' && !list.some((c) => c.id === m.club_id)) {
+        list.push({
+          id: m.club_id,
+          name: m.club_name || m.club?.club_name || 'Campus Club',
+          role: m.role,
+          isOwner: m.role === 'owner',
+        })
+      }
+    }
+    return list
+  }, [clubProfile, clubMemberships])
+
+  const activeClubRole: ClubRole | null = useMemo(() => {
+    if (clubProfile && activeClubId === clubProfile.profile_id) {
+      return 'owner'
+    }
+    if (activeClubMembership && activeClubMembership.club_id === activeClubId) {
+      return activeClubMembership.role
+    }
+    return null
+  }, [clubProfile, activeClubId, activeClubMembership])
+
+  const effectiveRole = isSupabaseConfigured
+    ? (profile?.role ?? null)
+    : (profile?.role ?? (user?.user_metadata?.role as UserRole) ?? null)
+
+  const isDualEligible = useMemo(() => {
+    return isDualWorkspaceEligible(
+      effectiveRole,
+      clubProfile,
+      clubMemberships
+    )
+  }, [effectiveRole, clubProfile, clubMemberships])
+
+  const activeWorkspace: WorkspaceType = useMemo(() => {
+    // Route explicitly dedicated to a workspace takes immediate priority
+    if (
+      routeWorkspace === 'club' &&
+      canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)
+    ) {
+      return 'club'
+    }
+    if (routeWorkspace === 'student' && canAccessStudentWorkspace(effectiveRole)) {
+      return 'student'
+    }
+
+    // On neutral routes (e.g. /discover, /events/:id, /): respect user preference
+    if (
+      preferredWorkspace === 'club' &&
+      canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)
+    ) {
+      return 'club'
+    }
+    if (canAccessStudentWorkspace(effectiveRole)) {
+      return 'student'
+    }
+    if (canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)) {
+      return 'club'
+    }
+    return 'student'
+  }, [routeWorkspace, preferredWorkspace, effectiveRole, clubProfile, clubMemberships])
+
+  const switchWorkspace = useCallback(
+    (target: WorkspaceType, navigate?: (path: string) => void) => {
+      if (target === 'club') {
+        if (!canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)) {
+          console.warn('[FestFlow Security] Access to Club Workspace denied: no active club membership.')
+          return
+        }
+        setPreferredWorkspace('club')
+        try {
+          sessionStorage.setItem('festflow_active_workspace', 'club')
+        } catch {
+          // ignore
+        }
+        if (navigate) {
+          navigate('/club/dashboard')
+        } else if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/club/')) {
+          window.location.assign('/club/dashboard')
+        }
+      } else {
+        if (!canAccessStudentWorkspace(effectiveRole)) {
+          console.warn('[FestFlow Security] Access to Student Workspace denied.')
+          return
+        }
+        setPreferredWorkspace('student')
+        try {
+          sessionStorage.setItem('festflow_active_workspace', 'student')
+        } catch {
+          // ignore
+        }
+        if (navigate) {
+          navigate('/student/dashboard')
+        } else if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/student/')) {
+          window.location.assign('/student/dashboard')
+        }
+      }
+    },
+    [effectiveRole, hasClubMembership, clubProfile, clubMemberships]
+  )
+
+  const switchActiveClub = useCallback(
+    async (clubId: string): Promise<boolean> => {
+      const targetClub = availableClubs.find((c) => c.id === clubId)
+      if (!targetClub) {
+        console.warn('[FestFlow Security] Unauthorized attempt to switch to unknown club ID:', clubId)
+        return false
+      }
+
+      try {
+        sessionStorage.setItem('festflow_preferred_club_id', clubId)
+      } catch {
+        // ignore
+      }
+
+      if (clubProfile && clubProfile.profile_id === clubId) {
+        setActiveClubMembership(null)
+        setActiveClubProfile(clubProfile)
+        broadcastStatusChange({ type: 'team_updated', clubId })
+        return true
+      }
+
+      const membership = clubMemberships.find((m) => m.club_id === clubId && m.status === 'active')
+      if (membership) {
+        setActiveClubMembership(membership)
+        if (membership.club) {
+          setActiveClubProfile(membership.club)
+        } else if (isSupabaseConfigured) {
+          try {
+            const { data: cOrgData } = await (supabase.from('club_profiles') as any)
+              .select('*')
+              .eq('profile_id', clubId)
+              .maybeSingle()
+            if (cOrgData) {
+              setActiveClubProfile(cOrgData as unknown as ClubProfile)
+            }
+          } catch {
+            // ignore
+          }
+        }
+        broadcastStatusChange({ type: 'team_updated', clubId })
+        return true
+      }
+
+      return false
+    },
+    [availableClubs, clubProfile, clubMemberships]
+  )
+
   const value: AuthContextType = {
     session,
     user,
@@ -934,22 +1231,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     studentProfile,
     clubMemberships,
     activeClubMembership,
-    hasClubMembership: Boolean(
-      clubMemberships.length > 0 ||
-      clubProfile !== null ||
-      (isSupabaseConfigured
-        ? profile?.role === 'club_member'
-        : profile?.role === 'club_member' || (user?.user_metadata?.role as UserRole) === 'club_member')
-    ),
-    activeClubId: clubProfile?.profile_id || activeClubMembership?.club_id || null,
+    hasClubMembership,
+    activeClubId,
     activeClubProfile,
-    role: isSupabaseConfigured
-      ? (profile?.role ?? null)
-      : (profile?.role ?? (user?.user_metadata?.role as UserRole) ?? null),
+    activeWorkspace,
+    isDualEligible,
+    availableClubs,
+    activeClubRole,
+    role: effectiveRole,
     isLoading,
     isRoleLoading,
     profileError,
     isConfigured: isSupabaseConfigured,
+    switchWorkspace,
+    switchActiveClub,
     signIn,
     signUpClub,
     signUpStudent,

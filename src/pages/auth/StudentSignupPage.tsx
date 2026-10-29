@@ -72,7 +72,15 @@ export default function StudentSignupPage() {
     } else if (res.requiresVerification) {
       setIsPendingVerification(true)
     } else {
-      const target = getSafeReturnUrl(redirectTarget, 'student', '/student/dashboard')
+      const pendingTeamToken = sessionStorage.getItem('festflow_pending_team_token')
+      const pendingJoinCode = sessionStorage.getItem('festflow_pending_join_code')
+      let defaultTarget = '/student/dashboard'
+      if (pendingTeamToken) {
+        defaultTarget = `/join-team?token=${encodeURIComponent(pendingTeamToken)}`
+      } else if (pendingJoinCode) {
+        defaultTarget = `/join-team?code=${encodeURIComponent(pendingJoinCode)}`
+      }
+      const target = getSafeReturnUrl(redirectTarget, 'student', defaultTarget)
       navigate(target, { replace: true })
     }
   }

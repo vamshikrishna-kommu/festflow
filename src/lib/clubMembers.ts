@@ -6,7 +6,11 @@ import type {
   ClubInvitationRecord,
   ClubAuditLogRecord,
 } from '@/types'
-import { sendClubMemberInvitationEmail } from '@/lib/emails'
+import {
+  sendClubMemberInvitationEmail,
+  sendClubInvitationAcceptedEmail,
+  type EmailDispatchResult,
+} from '@/lib/emails'
 import { broadcastStatusChange } from '@/lib/sync'
 import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 
@@ -351,6 +355,7 @@ export async function inviteClubMember(params: {
   message: string
   invitation?: ClubInvitationRecord
   error_code?: string
+  emailDelivery?: EmailDispatchResult
 }> {
   const { clubId, email, role, inviterId, inviterRole = 'owner', clubName = 'Campus Club', inviterName = 'Organizer' } = params
 
@@ -488,14 +493,25 @@ export async function inviteClubMember(params: {
   })
 
   const emailAccepted = emailRes.success
-  const feedbackMessage = emailAccepted
-    ? `Invitation successfully sent to ${cleanEmail} for the role of ${ROLE_LABELS[role]}.`
-    : `Invitation created, but email dispatch failed (${emailRes.message || 'delivery issue'}). You can copy and share the invitation link directly.`
+  let feedbackMessage = `Invitation successfully sent to ${cleanEmail} for the role of ${ROLE_LABELS[role]}.`
+
+  if (!emailAccepted) {
+    if (emailRes.failureCategory === 'EDGE_FUNCTION_UNREACHABLE') {
+      feedbackMessage = `Invitation created and active! However, automated email could not be sent because the send-email Edge Function is unreachable (not deployed to Supabase). You can copy the invitation link directly from the list below.`
+    } else if (emailRes.failureCategory === 'PROVIDER_UNCONFIGURED') {
+      feedbackMessage = `Invitation created and active! However, automated email delivery is not configured (missing RESEND_API_KEY). You can copy the invitation link directly from the list below.`
+    } else if (emailRes.failureCategory === 'GATEWAY_AUTH_REJECTED') {
+      feedbackMessage = `Invitation created and active! However, email gateway authentication failed. You can copy the invitation link directly from the list below.`
+    } else {
+      feedbackMessage = `Invitation created and active! However, email dispatch failed (${emailRes.message || 'delivery issue'}). You can copy and share the invitation link directly.`
+    }
+  }
 
   return {
     success: true,
     message: feedbackMessage,
     invitation: newInvitation,
+    emailDelivery: emailRes,
   }
 }
 
@@ -689,6 +705,40 @@ export async function acceptClubInvitation(
     clubId: invitation.club_id,
   })
 
+  // Trigger transactional notification to club administrator / owner
+  try {
+    let inviterEmail = ''
+    let clubName = 'Campus Club'
+    if (isSupabaseConfigured) {
+      const { data: clubProfile } = await (supabase.from('profiles') as any)
+        .select('email, display_name')
+        .eq('id', invitation.invited_by || invitation.club_id)
+        .maybeSingle()
+      inviterEmail = clubProfile?.email || ''
+      clubName = clubProfile?.display_name || 'Campus Club'
+    }
+    if (!inviterEmail) {
+      const rawClubs = localStorage.getItem('festflow_local_club_profiles')
+      const localClubs = rawClubs ? JSON.parse(rawClubs) : []
+      const c = localClubs.find((cl: any) => cl.id === invitation.club_id)
+      inviterEmail = c?.email || 'organizer@campus.edu'
+      clubName = c?.display_name || c?.name || 'Campus Club'
+    }
+
+    if (inviterEmail) {
+      sendClubInvitationAcceptedEmail({
+        to: inviterEmail,
+        clubName,
+        memberName: user.display_name || user.email.split('@')[0],
+        memberEmail: user.email,
+        role: ROLE_LABELS[invitation.role] || invitation.role,
+        clubId: invitation.club_id,
+      }).catch(() => {})
+    }
+  } catch {
+    // non-blocking
+  }
+
   return {
     success: true,
     message: `Welcome to the team! You have successfully joined as ${ROLE_LABELS[invitation.role]}.`,
@@ -747,7 +797,7 @@ export async function resendClubInvitation(
   actorId: string,
   clubId: string,
   clubName = 'Campus Club'
-): Promise<{ success: boolean; message: string; invitation?: ClubInvitationRecord }> {
+): Promise<{ success: boolean; message: string; invitation?: ClubInvitationRecord; emailDelivery?: EmailDispatchResult }> {
   const invitesRes = await getClubInvitations(clubId)
   const existing = invitesRes.invitations.find((i) => i.id === invitationId)
 
@@ -812,11 +862,18 @@ export async function resendClubInvitation(
     invitationToken: newToken,
   })
 
-  const feedbackMessage = emailRes.success
-    ? `Invitation renewed and sent to ${existing.email}.`
-    : `Invitation renewed, but email dispatch failed (${emailRes.message || 'delivery issue'}). Share the link directly.`
+  let feedbackMessage = `Invitation renewed and sent to ${existing.email}.`
+  if (!emailRes.success) {
+    if (emailRes.failureCategory === 'EDGE_FUNCTION_UNREACHABLE') {
+      feedbackMessage = `Invitation renewed and active! However, automated email could not be sent because the send-email Edge Function is unreachable (not deployed to Supabase). Share the link directly.`
+    } else if (emailRes.failureCategory === 'PROVIDER_UNCONFIGURED') {
+      feedbackMessage = `Invitation renewed and active! However, automated email delivery is not configured (missing RESEND_API_KEY). Share the link directly.`
+    } else {
+      feedbackMessage = `Invitation renewed, but email dispatch failed (${emailRes.message || 'delivery issue'}). Share the link directly.`
+    }
+  }
 
-  return { success: true, message: feedbackMessage, invitation: updated }
+  return { success: true, message: feedbackMessage, invitation: updated, emailDelivery: emailRes }
 }
 
 // ── Update Member Role ──────────────────────────────────────────────────────

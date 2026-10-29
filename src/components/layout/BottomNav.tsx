@@ -22,7 +22,7 @@ import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
 import type { InAppNotification } from '@/types'
 
 export function BottomNav() {
-  const { session, role, user, isLoading } = useAuth()
+  const { session, user, isLoading, activeWorkspace } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -59,8 +59,8 @@ export function BottomNav() {
     return null
   }
 
-  const isClub = role === 'club_member'
-  const isStudent = role === 'student' || (!isClub && !!session)
+  const isClub = activeWorkspace === 'club'
+  const isStudent = activeWorkspace === 'student' || (!isClub && !!session)
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
   return (

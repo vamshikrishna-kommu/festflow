@@ -14,23 +14,36 @@ import {
   QrCode,
   FileSpreadsheet,
   TrendingUp,
+  GraduationCap,
 } from 'lucide-react'
 import { Button, Badge, Card, Logo, EmptyState } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { fadeIn, staggerContainer, metricItem } from '@/lib/animations'
 import { listClubEvents } from '@/lib/events'
 import { getClubPaymentSubmissions } from '@/lib/payments'
+import { hasPermission, ROLE_LABELS } from '@/lib/clubMembers'
 import type { EventRecord, PaymentSubmissionWithDetails } from '@/types'
 
 export default function ClubDashboardPage() {
-  const { user, profile, clubProfile, activeClubMembership, activeClubProfile, signOut } = useAuth()
+  const {
+    profile,
+    clubProfile,
+    activeClubMembership,
+    activeClubProfile,
+    activeClubId,
+    activeClubRole,
+    isDualEligible,
+    switchWorkspace,
+    signOut,
+  } = useAuth()
+  const navigate = useNavigate()
   const [events, setEvents] = useState<EventRecord[]>([])
   const [submissions, setSubmissions] = useState<PaymentSubmissionWithDetails[]>([])
   const [loading, setLoading] = useState(true)
 
-  const clubId = clubProfile?.profile_id || activeClubMembership?.club_id || user?.id || ''
+  const clubId = activeClubId || clubProfile?.profile_id || activeClubMembership?.club_id || ''
   const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Campus Club'
   const repName = profile?.display_name || clubProfile?.representative_name || 'Club Representative'
 
@@ -143,6 +156,29 @@ export default function ClubDashboardPage() {
     }
   }, [pendingPaymentsCount, publishedEvents, draftEvents, draftCount, now])
 
+  if (!clubId && !loading) {
+    return (
+      <PageShell>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex flex-col items-center justify-center text-center">
+          <EmptyState
+            icon={Building2}
+            title="No Active Club Organization"
+            description="You do not currently belong to an active club organization. When a club invites you to their team, you'll manage events and turnstile gate check-in here."
+            action={
+              <Button
+                variant="primary"
+                onClick={() => switchWorkspace('student', navigate)}
+                leftIcon={<GraduationCap size={16} />}
+              >
+                Return to Student Workspace
+              </Button>
+            }
+          />
+        </div>
+      </PageShell>
+    )
+  }
+
   return (
     <PageShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 text-left">
@@ -174,7 +210,7 @@ export default function ClubDashboardPage() {
                   {clubName}
                 </h1>
                 <Badge variant="purple" className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs">
-                  <Logo variant="compact" /> Campus Organizer
+                  <Logo variant="compact" /> {activeClubRole ? ROLE_LABELS[activeClubRole] : 'Campus Organizer'}
                 </Badge>
               </div>
 
@@ -193,43 +229,63 @@ export default function ClubDashboardPage() {
           </div>
 
           <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)] shrink-0">
-            <Link to="/club/payments">
+            {(!activeClubRole || hasPermission(activeClubRole, 'review_payments')) && (
+              <Link to="/club/payments">
+                <Button
+                  variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
+                  size="sm"
+                  leftIcon={<CreditCard size={15} />}
+                  className={
+                    pendingPaymentsCount > 0
+                      ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-md'
+                      : ''
+                  }
+                >
+                  Payments
+                  {pendingPaymentsCount > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-black text-amber-300 text-[10px] font-bold">
+                      {pendingPaymentsCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
+
+            {(!activeClubRole || hasPermission(activeClubRole, 'manage_members')) && (
+              <Link to="/club/members">
+                <Button variant="outline" size="sm" leftIcon={<Users size={15} />}>
+                  Team & Roles
+                </Button>
+              </Link>
+            )}
+
+            {(!activeClubRole || hasPermission(activeClubRole, 'manage_club')) && (
+              <Link to="/club/settings">
+                <Button variant="outline" size="sm" leftIcon={<Settings size={15} />}>
+                  Club Settings
+                </Button>
+              </Link>
+            )}
+
+            {(!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
+              <Link to="/club/events/new">
+                <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
+                  Create Event
+                </Button>
+              </Link>
+            )}
+
+            {isDualEligible && (
               <Button
-                variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
+                variant="outline"
                 size="sm"
-                leftIcon={<CreditCard size={15} />}
-                className={
-                  pendingPaymentsCount > 0
-                    ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-md'
-                    : ''
-                }
+                onClick={() => switchWorkspace('student', navigate)}
+                className="text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/10"
+                leftIcon={<GraduationCap size={15} />}
               >
-                Payments
-                {pendingPaymentsCount > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-black text-amber-300 text-[10px] font-bold">
-                    {pendingPaymentsCount}
-                  </span>
-                )}
+                Student Space
               </Button>
-            </Link>
-
-            <Link to="/club/members">
-              <Button variant="outline" size="sm" leftIcon={<Users size={15} />}>
-                Team & Roles
-              </Button>
-            </Link>
-
-            <Link to="/club/settings">
-              <Button variant="outline" size="sm" leftIcon={<Settings size={15} />}>
-                Club Settings
-              </Button>
-            </Link>
-
-            <Link to="/club/events/new">
-              <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
-                Create Event
-              </Button>
-            </Link>
+            )}
 
             <Button
               variant="outline"

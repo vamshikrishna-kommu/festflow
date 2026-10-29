@@ -15,6 +15,7 @@ export type EmailTemplateType =
   | 'payment_rejected'
   | 'team_invitation'
   | 'team_invitation_accepted'
+  | 'team_member_added'
   | 'ticket_issued'
   | 'ticket_updated'
   | 'registration_cancelled'
@@ -24,6 +25,7 @@ export type EmailTemplateType =
   | 'checkin_confirmed'
   | 'event_reminder'
   | 'club_member_invitation'
+  | 'club_invitation_accepted'
 
 export const VALID_TEMPLATES = new Set<string>([
   'registration_confirmed',
@@ -33,6 +35,7 @@ export const VALID_TEMPLATES = new Set<string>([
   'payment_rejected',
   'team_invitation',
   'team_invitation_accepted',
+  'team_member_added',
   'ticket_issued',
   'ticket_updated',
   'registration_cancelled',
@@ -42,6 +45,7 @@ export const VALID_TEMPLATES = new Set<string>([
   'checkin_confirmed',
   'event_reminder',
   'club_member_invitation',
+  'club_invitation_accepted',
 ])
 
 export interface EmailRequest {
@@ -183,6 +187,35 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
       break
     }
 
+    case 'club_invitation_accepted': {
+      const clubName = sanitizeText(payload.club_name || 'Campus Club')
+      const memberName = sanitizeText(payload.member_name || 'A new staff member')
+      const memberEmail = sanitizeText(payload.member_email || '')
+      const role = sanitizeText(payload.role || 'Member')
+      const safeClubUrl = sanitizeSafeUrl(payload.club_url, 'https://festflow.online/club/members')
+
+      subject = `Staff Update: ${memberName} joined ${clubName}`
+      textFallback = `Hello ${recipient},\n\n${memberName} (${memberEmail}) has accepted their staff invitation to join ${clubName} as ${role} on FestFlow.\n\nManage club team & permissions:\n${safeClubUrl}\n\nFestFlow Team`
+      bodyContent = `
+        <h2 style="color: #34d399; margin-top: 0;">🤝 Staff Invitation Accepted!</h2>
+        <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
+          Hi <strong>${recipient}</strong>, <strong>${memberName}</strong> has accepted the staff invitation to join <strong>${clubName}</strong> on FestFlow.
+        </p>
+        <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 12px; padding: 18px; margin: 20px 0;">
+          <p style="margin: 4px 0; color: ${textWhite};">🏛️ <strong>Club:</strong> ${clubName}</p>
+          <p style="margin: 4px 0; color: ${textWhite};">👤 <strong>Staff Member:</strong> ${memberName} ${memberEmail ? `(${memberEmail})` : ''}</p>
+          <p style="margin: 4px 0; color: ${textWhite};">🛡️ <strong>Assigned Role:</strong> <span style="background: rgba(124, 58, 237, 0.3); border: 1px solid rgba(124, 58, 237, 0.5); padding: 2px 8px; border-radius: 6px; font-weight: bold; color: #c4b5fd;">${role}</span></p>
+        </div>
+        <p style="color: ${textMuted}; font-size: 14px; line-height: 1.5;">
+          Their access permissions have been activated. You can review staff privileges and team assignments in your club management portal.
+        </p>
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="${safeClubUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Club Roster</a>
+        </p>
+      `
+      break
+    }
+
     case 'application_submitted': {
       const safeStatusUrl = sanitizeSafeUrl(payload.status_url, 'https://festflow.online/student/dashboard')
       subject = `Application Received: ${eventTitle}`
@@ -271,8 +304,10 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
     }
 
     case 'payment_rejected': {
+      const safePaymentUrl = sanitizeSafeUrl(payload.payment_url, 'https://festflow.online/student/dashboard')
+      const reason = sanitizeText(payload.reason || 'Transaction reference not found in bank statement.')
       subject = `Payment Verification Issue: ${eventTitle}`
-      textFallback = `Hello ${recipient},\n\nYour payment submission for ${eventTitle} could not be verified by the organizers.\nReason: ${sanitizeText(payload.reason || 'Transaction could not be matched.')}\nPlease resubmit with your correct 12-digit UTR.`
+      textFallback = `Hello ${recipient},\n\nYour payment submission for ${eventTitle} could not be verified by the organizers.\nReason: ${reason}\n\nNext Steps:\n1. Check your bank/UPI application statement to locate the official 12-digit UTR number.\n2. Resubmit your payment details here: ${safePaymentUrl}\n\nIf you believe this is an error, contact festflow.events@gmail.com.`
       bodyContent = `
         <h2 style="color: #f87171; margin-top: 0;">⚠️ Payment Verification Issue</h2>
         <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
@@ -280,27 +315,36 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
         </p>
         <div style="background: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.25); border-radius: 12px; padding: 16px; margin: 20px 0;">
           <p style="margin: 4px 0; color: #fca5a5;"><strong>Organizer Reason:</strong></p>
-          <p style="margin: 4px 0; color: ${textWhite}; font-style: italic;">"${sanitizeText(payload.reason || 'Transaction reference not found in statement')}"</p>
+          <p style="margin: 4px 0; color: ${textWhite}; font-style: italic;">"${reason}"</p>
         </div>
-        <p style="color: ${textMuted}; font-size: 13px;">
-          Please check your bank/UPI app statement for the 12-digit UTR number and resubmit your details to unlock your ticket.
+        <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 14px 18px; margin: 20px 0;">
+          <p style="margin: 0 0 6px 0; color: ${textWhite}; font-weight: bold; font-size: 14px;">Next Steps to Unlock Your Ticket:</p>
+          <ol style="margin: 0; padding-left: 20px; color: ${textMuted}; font-size: 13px; line-height: 1.6;">
+            <li>Check your UPI/banking app (GPay, PhonePe, Paytm, etc.) for the 12-digit UTR / UPI Ref ID.</li>
+            <li>Click the button below to resubmit your transaction reference.</li>
+          </ol>
+        </div>
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="${safePaymentUrl}" style="background: linear-gradient(135deg, #ef4444, #f97316); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Resubmit Payment Details</a>
         </p>
       `
       break
     }
 
     case 'team_invitation': {
-      const safeJoinUrl = sanitizeSafeUrl(payload.join_url, 'https://festflow.online/join-team')
+      const safeJoinUrl = sanitizeSafeUrl(payload.join_url || payload.joinUrl, 'https://festflow.online/join-team')
+      const invCode = sanitizeText(payload.invite_code || payload.inviteCode || '')
+      const ldrName = sanitizeText(payload.leader_name || payload.leaderName || 'A team leader')
       subject = `Squad Invitation: Join "${teamName}" for ${eventTitle}`
-      textFallback = `Hello ${recipient},\n\n${sanitizeText(payload.leader_name || 'A team leader')} has invited you to join "${teamName}" for ${eventTitle}.\nTeam Invite Code: ${sanitizeText(payload.invite_code)}\n\nAccept your invitation and claim your ticket: ${safeJoinUrl}`
+      textFallback = `Hello ${recipient},\n\n${ldrName} has invited you to join "${teamName}" for ${eventTitle}.\nTeam Invite Code: ${invCode}\n\nAccept your invitation and claim your ticket: ${safeJoinUrl}`
       bodyContent = `
         <h2 style="color: ${brandCyan}; margin-top: 0;">🛡️ You're Invited to Join a Squad!</h2>
         <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
-          Hi <strong>${recipient}</strong>, <strong>${sanitizeText(payload.leader_name || 'Your teammate')}</strong> invited you to join <strong>"${teamName}"</strong> for <strong>${eventTitle}</strong>.
+          Hi <strong>${recipient}</strong>, <strong>${ldrName}</strong> invited you to join <strong>"${teamName}"</strong> for <strong>${eventTitle}</strong>.
         </p>
         <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 12px; padding: 18px; margin: 20px 0;">
           <p style="margin: 4px 0; color: ${textWhite};">🛡️ <strong>Squad:</strong> ${teamName}</p>
-          <p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Invite Code:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: ${brandCyan};">${sanitizeText(payload.invite_code || '')}</span></p>
+          <p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Invite Code:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: ${brandCyan};">${invCode}</span></p>
           <p style="margin: 4px 0; color: ${textMuted}; font-size: 13px;">Expires in 7 days</p>
         </div>
         <p style="text-align: center; margin: 25px 0;">
@@ -323,6 +367,33 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
           <p style="margin: 4px 0; color: ${textWhite};">👥 <strong>Member:</strong> ${sanitizeText(payload.member_name || 'Teammate')} (${sanitizeText(payload.member_email || '')})</p>
           <p style="margin: 4px 0; color: ${textWhite};">🛡️ <strong>Current Squad Size:</strong> ${sanitizeText(String(payload.current_size || 'Updated'))} members</p>
         </div>
+      `
+      break
+    }
+
+    case 'team_member_added': {
+      const safeTicketUrl = sanitizeSafeUrl(payload.ticket_url, 'https://festflow.online/student/dashboard')
+      const ldrName = sanitizeText(payload.leader_name || payload.leaderName || 'Your team leader')
+      const isPaid = Boolean(payload.is_paid)
+      subject = `You've been added to team "${teamName}" for ${eventTitle}`
+      textFallback = `Hello ${recipient},\n\n${ldrName} has registered you as a member of squad "${teamName}" for ${eventTitle}.\nEvent Date: ${sanitizeText(payload.start_date || 'Check dashboard')}\nVenue: ${venueName}\n\nView your squad registration and entry pass:\n${safeTicketUrl}`
+      bodyContent = `
+        <h2 style="color: ${brandCyan}; margin-top: 0;">🛡️ You're On The Team!</h2>
+        <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
+          Hi <strong>${recipient}</strong>, <strong>${ldrName}</strong> added you to squad <strong>"${teamName}"</strong> for <strong>${eventTitle}</strong>.
+        </p>
+        <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 12px; padding: 18px; margin: 20px 0;">
+          <p style="margin: 4px 0; color: ${textWhite};">🛡️ <strong>Squad:</strong> ${teamName}</p>
+          <p style="margin: 4px 0; color: ${textWhite};">📅 <strong>Date:</strong> ${sanitizeText(payload.start_date || 'Check dashboard')}</p>
+          <p style="margin: 4px 0; color: ${textWhite};">📍 <strong>Venue:</strong> ${venueName}</p>
+          ${ticketCode ? `<p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Pass Code:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: ${brandCyan};">${ticketCode}</span></p>` : ''}
+        </div>
+        <p style="color: ${textMuted}; font-size: 13px; line-height: 1.5;">
+          ${isPaid ? 'Payment verification is managed by your team leader. Once verified, your entry pass will be active.' : 'Your team registration is recorded. Access your pass and QR code directly from your student dashboard.'}
+        </p>
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Squad Pass</a>
+        </p>
       `
       break
     }
@@ -488,9 +559,10 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
             </td>
           </tr>
           <tr>
-            <td style="padding: 20px 30px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; color: ${textMuted}; font-size: 12px;">
-              <p style="margin: 0 0 4px 0;">FestFlow — College Event Platform</p>
-              <p style="margin: 0;">This is an automated transactional notification. You can manage your event passes in your dashboard.</p>
+            <td style="padding: 20px 30px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; color: ${textMuted}; font-size: 12px; line-height: 1.5;">
+              <p style="margin: 0 0 4px 0; font-weight: 600; color: #cbd5e1;">FestFlow — Campus Event Platform</p>
+              <p style="margin: 0 0 6px 0;">Official Website: <a href="https://festflow.online" style="color: ${brandCyan}; text-decoration: none;">https://festflow.online</a></p>
+              <p style="margin: 0; color: #64748b; font-size: 11px;">This is an automated transactional notification. For inquiries, reply directly to this email or contact <a href="mailto:festflow.events@gmail.com" style="color: ${brandCyan}; text-decoration: none;">festflow.events@gmail.com</a>.</p>
             </td>
           </tr>
         </table>
@@ -498,7 +570,8 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
     </html>
   `
 
-  return { subject, html, text: textFallback }
+  const fullText = `${textFallback}\n\n---\nFestFlow — Campus Event Platform\nhttps://festflow.online | Contact: festflow.events@gmail.com`
+  return { subject, html, text: fullText }
 }
 
 /**
@@ -633,9 +706,74 @@ export async function authorizeEmailDispatch(params: {
       return { authorized: true }
     }
 
-    // ── Team Invitation (Team leader invites a student) ────────────────────
-    if (template === 'team_invitation') {
-      const eventId = body.event_id || payload?.event_id
+    // ── Club Staff Invitation Accepted (Staff notifies club owner/inviter) ───
+    if (template === 'club_invitation_accepted') {
+      const clubId = body.club_id || payload?.club_id
+      if (!clubId) {
+        return { authorized: false, reason: 'Missing required club_id in payload.' }
+      }
+
+      // Verify caller is an active member of this club
+      const { data: callerMember } = await supabaseAdmin
+        .from('club_members')
+        .select('id, status')
+        .eq('club_id', clubId)
+        .eq('user_id', caller.id)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (!callerMember) {
+        return { authorized: false, reason: 'Caller is not an active member of this club.' }
+      }
+
+      // If clubId matches caller, self-owner action
+      if (clubId === caller.id) {
+        return { authorized: true }
+      }
+
+      // Verify recipient is club owner or active admin
+      const { data: recipientProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .ilike('email', targetEmail)
+        .maybeSingle()
+
+      if (recipientProfile) {
+        if (recipientProfile.id === clubId) {
+          return { authorized: true }
+        }
+        const { data: recipientMember } = await supabaseAdmin
+          .from('club_members')
+          .select('role, status')
+          .eq('club_id', clubId)
+          .eq('user_id', recipientProfile.id)
+          .eq('status', 'active')
+          .maybeSingle()
+
+        if (recipientMember?.role === 'owner' || recipientMember?.role === 'admin') {
+          return { authorized: true }
+        }
+      }
+
+      return { authorized: false, reason: 'Recipient is not verified as an owner or administrator of this club.' }
+    }
+
+    // ── Team Invitation / Team Member Added (Team leader invites/adds a student) ─
+    if (template === 'team_invitation' || template === 'team_member_added') {
+      const teamId = body.team_id || payload?.team_id || payload?.teamId
+      if (teamId) {
+        const { data: teamRecord } = await supabaseAdmin
+          .from('teams')
+          .select('id, leader_id')
+          .eq('id', teamId)
+          .single()
+
+        if (teamRecord?.leader_id === caller.id) {
+          return { authorized: true }
+        }
+      }
+
+      const eventId = body.event_id || payload?.event_id || payload?.eventId
       const teamName = payload?.teamName || payload?.team_name
       if (eventId && teamName) {
         const { data: teamRecord } = await supabaseAdmin
@@ -810,8 +948,17 @@ export async function authorizeEmailDispatch(params: {
     return { authorized: false, reason: 'Missing club context in simulation mode.' }
   }
 
-  if (template === 'team_invitation') {
-    if (payload?.teamName && payload?.invite_code) {
+  if (template === 'club_invitation_accepted') {
+    const clubName = payload?.club_name
+    if (clubName) {
+      return { authorized: true }
+    }
+    return { authorized: false, reason: 'Missing club context in simulation mode.' }
+  }
+
+  if (template === 'team_invitation' || template === 'team_member_added') {
+    const teamName = payload?.teamName || payload?.team_name
+    if (teamName) {
       return { authorized: true }
     }
     return { authorized: false, reason: 'Missing team context in simulation mode.' }

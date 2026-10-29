@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { motion } from 'motion/react'
 import { Building2, GraduationCap, AlertTriangle, Sparkles } from 'lucide-react'
 import { Badge, Logo } from '@/components/ui'
@@ -16,6 +16,8 @@ interface AuthCardProps {
 
 export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProps) {
   const { isConfigured, setDemoUser } = useAuth()
+  const location = useLocation()
+  const search = location.search || ''
   const isClub = role === 'club_member'
   const isLocalDev = Boolean(import.meta.env?.DEV) && !isProduction
 
@@ -113,7 +115,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
             {/* Role switcher */}
             <div className="grid grid-cols-2 p-1 bg-[var(--color-surface-2)] rounded-xl mb-6 border border-[var(--color-surface-3)]">
               <Link
-                to={mode === 'login' ? '/student/login' : '/student/signup'}
+                to={mode === 'login' ? `/student/login${search}` : `/student/signup${search}`}
                 className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-[10px] text-xs font-semibold transition-all ${
                   !isClub
                     ? 'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] shadow-sm'
@@ -124,7 +126,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
                 Student
               </Link>
               <Link
-                to={mode === 'login' ? '/club/login' : '/club/signup'}
+                to={mode === 'login' ? `/club/login${search}` : `/club/signup${search}`}
                 className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-[10px] text-xs font-semibold transition-all ${
                   isClub
                     ? 'text-[var(--color-brand-violet)] shadow-sm'
@@ -156,7 +158,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
                 <p>
                   Don&apos;t have an account?{' '}
                   <Link
-                    to={isClub ? '/club/signup' : '/student/signup'}
+                    to={isClub ? `/club/signup${search}` : `/student/signup${search}`}
                     className="font-semibold text-[var(--color-brand-violet)] hover:underline ml-1 transition-colors"
                   >
                     Sign up as {isClub ? 'Club' : 'Student'}
@@ -166,7 +168,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
                 <p>
                   Already registered?{' '}
                   <Link
-                    to={isClub ? '/club/login' : '/student/login'}
+                    to={isClub ? `/club/login${search}` : `/student/login${search}`}
                     className="font-semibold text-[var(--color-brand-violet)] hover:underline ml-1 transition-colors"
                   >
                     Sign in

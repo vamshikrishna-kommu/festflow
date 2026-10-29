@@ -75,10 +75,12 @@ export interface ClubMemberRecord {
   club_id: string
   user_id: string
   role: ClubRole
-  status: 'active' | 'suspended'
+  status: 'active' | 'suspended' | 'revoked'
   created_at: string
   updated_at: string
   profile?: Profile | null
+  club?: ClubProfile | null
+  club_name?: string | null
 }
 
 export interface ClubInvitationRecord {
@@ -163,6 +165,32 @@ export interface TeamInviteResponse {
   token?: string
   invite_code?: string
   email?: string
+  invitation_created_email_failed?: boolean
+  email_dispatch_error?: string
+}
+
+export interface TeamInvitationPreview {
+  id: string
+  team_id: string
+  team_name: string
+  event_id: string
+  event_title: string
+  event_slug: string
+  event_category?: EventCategory
+  venue_name?: string
+  start_date?: string
+  is_free?: boolean
+  price?: number
+  leader_name: string
+  invite_code: string
+  recipient_email?: string
+  masked_email: string
+  is_recipient_matched: boolean
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'revoked'
+  expires_at: string
+  current_size: number
+  max_size: number
+  is_full: boolean
 }
 
 export interface TeamDetails extends TeamRecord {

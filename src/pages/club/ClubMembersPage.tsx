@@ -72,7 +72,11 @@ export default function ClubMembersPage() {
 
   // Clipboard Notification
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
-  const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
+  const [notice, setNotice] = useState<{
+    message: string
+    isError?: boolean
+    variant?: 'info' | 'success' | 'warning' | 'error' | 'neutral'
+  } | null>(null)
 
   const loadData = async (silent = false) => {
     if (!clubId || !user) return
@@ -123,12 +127,17 @@ export default function ClubMembersPage() {
 
     setInviting(false)
     if (res.success) {
-      setNotice({ message: res.message, isError: false })
+      const emailFailed = res.emailDelivery && !res.emailDelivery.success
+      setNotice({
+        message: res.message,
+        isError: false,
+        variant: emailFailed ? 'warning' : 'success',
+      })
       setInviteEmail('')
       setInviteModalOpen(false)
       loadData(true)
     } else {
-      setNotice({ message: res.message, isError: true })
+      setNotice({ message: res.message, isError: true, variant: 'error' })
     }
   }
 
@@ -181,10 +190,15 @@ export default function ClubMembersPage() {
     if (!user || !clubId) return
     const res = await resendClubInvitation(invitationId, user.id, clubId, clubName)
     if (res.success) {
-      setNotice({ message: res.message, isError: false })
+      const emailFailed = res.emailDelivery && !res.emailDelivery.success
+      setNotice({
+        message: res.message,
+        isError: false,
+        variant: emailFailed ? 'warning' : 'success',
+      })
       loadData(true)
     } else {
-      setNotice({ message: res.message, isError: true })
+      setNotice({ message: res.message, isError: true, variant: 'error' })
     }
   }
 
@@ -286,7 +300,7 @@ export default function ClubMembersPage() {
         {/* Temporary Notification Notice */}
         {notice && (
           <Alert
-            variant={notice.isError ? 'error' : 'success'}
+            variant={notice.variant || (notice.isError ? 'error' : 'success')}
             dismissible
             onDismiss={() => setNotice(null)}
           >

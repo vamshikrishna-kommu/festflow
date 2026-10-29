@@ -13,6 +13,21 @@ export function getSafeNextPath(candidate: string | null | undefined, defaultTar
   return defaultTarget
 }
 
+export function getTargetWithPendingTeam(candidate: string | null | undefined, defaultTarget: string): string {
+  const pendingTeamToken = sessionStorage.getItem('festflow_pending_team_token')
+  const pendingJoinCode = sessionStorage.getItem('festflow_pending_join_code')
+
+  if (pendingTeamToken) {
+    sessionStorage.removeItem('festflow_pending_team_token')
+    return `/join-team?token=${encodeURIComponent(pendingTeamToken)}`
+  }
+  if (pendingJoinCode) {
+    sessionStorage.removeItem('festflow_pending_join_code')
+    return `/join-team?code=${encodeURIComponent(pendingJoinCode)}`
+  }
+  return getSafeNextPath(candidate, defaultTarget)
+}
+
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -67,7 +82,7 @@ export default function AuthCallbackPage() {
             const rawCandidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
             const userRole = (data.session.user.user_metadata?.role as string) || role || 'student'
             const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
-            const target = getSafeNextPath(rawCandidate, defaultTarget)
+            const target = getTargetWithPendingTeam(rawCandidate, defaultTarget)
             setTimeout(() => {
               navigate(target, { replace: true })
             }, 800)
@@ -99,7 +114,7 @@ export default function AuthCallbackPage() {
           const rawCandidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
           const userRole = (session.user.user_metadata?.role as string) || role || 'student'
           const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
-          const target = getSafeNextPath(rawCandidate, defaultTarget)
+          const target = getTargetWithPendingTeam(rawCandidate, defaultTarget)
           
           setTimeout(() => {
             navigate(target, { replace: true })
@@ -114,16 +129,10 @@ export default function AuthCallbackPage() {
                 navigate('/reset-password', { replace: true })
                 return
               }
-              function getSafeNextPath(defaultTarget: string): string {
-                const candidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
-                if (candidate && candidate.startsWith('/') && !candidate.startsWith('//') && !candidate.includes(':')) {
-                  return candidate
-                }
-                return defaultTarget
-              }
+              const candidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
               const userRole = (currentSession.user.user_metadata?.role as string) || 'student'
               const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
-              const target = getSafeNextPath(defaultTarget)
+              const target = getTargetWithPendingTeam(candidate, defaultTarget)
               navigate(target, { replace: true })
             }
           })

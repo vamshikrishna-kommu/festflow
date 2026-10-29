@@ -16,6 +16,7 @@ import type {
   TeamMemberRecord,
   TeamInvitationRecord,
   TeamPreview,
+  TeamInvitationPreview,
   TeamJoinResponse,
   TeamInviteResponse,
   TeamDetails,
@@ -342,6 +343,121 @@ export async function getTeamPreview(
   return { success: true, preview }
 }
 
+// ── Get Team Invitation Preview (Token-based) ──────────────────────────────
+export async function getTeamInvitationPreview(
+  token: string
+): Promise<{ success: boolean; preview?: TeamInvitationPreview; message?: string; error_code?: string }> {
+  const cleanToken = (token || '').trim()
+  if (!cleanToken || cleanToken.length < 8) {
+    return { success: false, message: 'Invalid or missing invitation token.', error_code: 'INVALID_TOKEN' }
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('get_team_invitation_preview', {
+        p_token: cleanToken,
+      })
+      if (error) {
+        return { success: false, message: error.message, error_code: 'RPC_ERROR' }
+      }
+      if (!data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Invitation not found or expired.',
+          error_code: data?.error_code || 'INVITATION_NOT_FOUND',
+        }
+      }
+      return { success: true, preview: data.invitation }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to inspect invitation.', error_code: 'NETWORK_ERROR' }
+    }
+  }
+
+  // Simulation mode
+  const invites = getLocalTeamInvites()
+  const inv = invites.find((i) => i.token === cleanToken)
+  if (!inv) {
+    return { success: false, message: 'Invitation not found or link has expired.', error_code: 'INVITATION_NOT_FOUND' }
+  }
+
+  if (inv.status === 'revoked') {
+    return { success: false, message: 'This squad invitation has been revoked by the team leader.', error_code: 'INVITATION_REVOKED' }
+  }
+
+  if (inv.status === 'accepted') {
+    return { success: false, message: 'This squad invitation has already been accepted and claimed.', error_code: 'ALREADY_ACCEPTED' }
+  }
+
+  if (new Date(inv.expires_at) < new Date()) {
+    return { success: false, message: 'This squad invitation has expired.', error_code: 'INVITATION_EXPIRED' }
+  }
+
+  const teams = getLocalTeams()
+  const team = teams.find((t) => t.id === inv.team_id)
+  if (!team || team.status === 'disbanded') {
+    return { success: false, message: 'This squad is no longer active.', error_code: 'TEAM_NOT_FOUND' }
+  }
+
+  const eventRes = await getEventById(inv.event_id)
+  const event = eventRes.event
+  if (!event) {
+    return { success: false, message: 'Event associated with this invitation was not found.', error_code: 'EVENT_NOT_FOUND' }
+  }
+
+  const members = getLocalTeamMembers().filter((m) => m.team_id === team.id && m.status === 'accepted')
+  const maxSize = event.max_team_size || 5
+
+  // Mask email
+  const emailParts = inv.email.split('@')
+  const localPart = emailParts[0] || ''
+  const domainPart = emailParts[1] || ''
+  const maskedLocal = localPart.length > 2 ? localPart.substring(0, 2) + '***' : localPart.substring(0, 1) + '***'
+  const maskedEmail = `${maskedLocal}@${domainPart}`
+
+  // Check current session email if available
+  let isMatched = false
+  let safeEmail = ''
+  try {
+    const rawAuth = localStorage.getItem('festflow_mock_session') || localStorage.getItem('sb-current-user')
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth)
+      const callerEmail = parsed?.user?.email || parsed?.email
+      if (callerEmail && callerEmail.toLowerCase().trim() === inv.email.toLowerCase().trim()) {
+        isMatched = true
+        safeEmail = inv.email
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  const preview: TeamInvitationPreview = {
+    id: inv.id,
+    team_id: team.id,
+    team_name: team.name,
+    event_id: event.id,
+    event_title: event.title,
+    event_slug: event.slug,
+    event_category: event.category,
+    venue_name: event.venue_name,
+    start_date: event.start_date,
+    is_free: event.is_free,
+    price: event.price,
+    leader_name: 'Team Leader',
+    invite_code: team.invite_code,
+    recipient_email: safeEmail,
+    masked_email: maskedEmail,
+    is_recipient_matched: isMatched,
+    status: inv.status,
+    expires_at: inv.expires_at,
+    current_size: members.length,
+    max_size: maxSize,
+    is_full: members.length >= maxSize,
+  }
+
+  return { success: true, preview }
+}
+
 // ── Join Team With Code ────────────────────────────────────────────────────
 export async function joinTeam(params: {
   inviteCode: string
@@ -545,7 +661,15 @@ export async function joinTeam(params: {
     ? `${leaderReg.ticket_code}-M${memberIndex}`
     : `FF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
   const memberQrToken = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
-  const memberStatus = leaderReg?.status || (event.is_free ? 'confirmed' : 'pending_payment')
+  const isFree = Boolean(event.is_free)
+  const isLeaderConfirmed = leaderReg?.status === 'confirmed' && Boolean(leaderReg.ticket_issued_at)
+  const isApproved = isFree || isLeaderConfirmed
+
+  let memberStatus = isApproved ? 'confirmed' : 'pending_payment'
+  if (isFree && event.approval_type === 'manual' && leaderReg?.status === 'pending_approval') {
+    memberStatus = 'pending_approval'
+  }
+  const memberTicketIssuedAt = memberStatus === 'confirmed' ? new Date().toISOString() : null
 
   if (!memberReg) {
     memberReg = {
@@ -555,12 +679,13 @@ export async function joinTeam(params: {
       status: memberStatus,
       ticket_code: memberTicketCode,
       qr_token: memberQrToken,
-      ticket_issued_at: memberStatus === 'confirmed' ? new Date().toISOString() : null,
+      ticket_issued_at: memberTicketIssuedAt,
       team_name: team.name,
       team_id: team.id,
+      team_role: 'member',
       team_members: leaderReg?.team_members || [],
       participant_details: params.participantDetails,
-      approval_status: leaderReg?.approval_status || 'approved',
+      approval_status: memberStatus === 'confirmed' ? 'approved' : 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -569,6 +694,7 @@ export async function joinTeam(params: {
     // If existing registration, update squad linkage
     memberReg.team_id = team.id
     memberReg.team_name = team.name
+    memberReg.team_role = 'member'
     memberReg.status = memberStatus
     memberReg.ticket_issued_at = memberStatus === 'confirmed' ? (memberReg.ticket_issued_at || new Date().toISOString()) : null
     memberReg.updated_at = new Date().toISOString()
@@ -654,6 +780,329 @@ export async function joinTeam(params: {
     team_id: team.id,
     team_name: team.name,
     registration_id: memberReg.id,
+    ticket_code: memberReg.ticket_code,
+    member_count: acceptedMembers.length + 1,
+  }
+}
+
+// ── Accept Team Invitation (Token-based) ───────────────────────────────────
+export async function acceptTeamInvitation(params: {
+  token: string
+  participantDetails: {
+    student_name: string
+    college_name?: string
+    phone?: string
+    id_card_number?: string
+  }
+}): Promise<TeamJoinResponse> {
+  const cleanToken = (params.token || '').trim()
+  if (!cleanToken || cleanToken.length < 8) {
+    return { success: false, message: 'Invalid or missing invitation token.', error_code: 'INVALID_TOKEN' }
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('accept_team_invitation', {
+        p_token: cleanToken,
+        p_participant_details: params.participantDetails,
+      })
+
+      if (error) {
+        return { success: false, message: error.message, error_code: 'RPC_ERROR' }
+      }
+
+      if (!data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Failed to accept invitation.',
+          error_code: data?.error_code || 'ACCEPT_FAILED',
+        }
+      }
+
+      // Broadcast changes to real-time sync
+      broadcastStatusChange({
+        type: 'team_updated',
+        teamId: data.team_id,
+      })
+      broadcastStatusChange({
+        type: 'invitation_accepted',
+        teamId: data.team_id,
+      })
+      broadcastStatusChange({
+        type: 'registration_updated',
+        teamId: data.team_id,
+        registrationId: data.registration_id,
+      })
+
+      return data as TeamJoinResponse
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to accept invitation.', error_code: 'NETWORK_ERROR' }
+    }
+  }
+
+  // Simulation Mode
+  const invites = getLocalTeamInvites()
+  const inv = invites.find((i) => i.token === cleanToken)
+  if (!inv) {
+    return { success: false, message: 'Invitation not found or link has expired.', error_code: 'INVITATION_NOT_FOUND' }
+  }
+
+  if (inv.status === 'revoked') {
+    return { success: false, message: 'This squad invitation has been revoked by the team leader.', error_code: 'INVITATION_REVOKED' }
+  }
+
+  if (inv.status === 'accepted') {
+    return { success: false, message: 'This squad invitation has already been accepted and claimed.', error_code: 'ALREADY_ACCEPTED' }
+  }
+
+  if (new Date(inv.expires_at) < new Date()) {
+    return { success: false, message: 'This squad invitation has expired.', error_code: 'INVITATION_EXPIRED' }
+  }
+
+  // Caller identity check in simulation mode
+  let callerId = ''
+  let callerEmail = ''
+  try {
+    const rawAuth = localStorage.getItem('festflow_mock_session') || localStorage.getItem('sb-current-user')
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth)
+      callerId = parsed?.user?.id || parsed?.id || ''
+      callerEmail = (parsed?.user?.email || parsed?.email || '').toLowerCase().trim()
+    }
+  } catch {
+    // ignore
+  }
+
+  if (!callerEmail) {
+    return { success: false, message: 'You must be signed in to accept an invitation.', error_code: 'UNAUTHENTICATED' }
+  }
+
+  if (callerEmail !== inv.email.toLowerCase().trim()) {
+    return {
+      success: false,
+      message: `This invitation was issued to ${inv.email}. You are currently signed in as ${callerEmail}.`,
+      error_code: 'EMAIL_MISMATCH',
+    }
+  }
+
+  const teams = getLocalTeams()
+  const team = teams.find((t) => t.id === inv.team_id)
+  if (!team || team.status === 'disbanded') {
+    return { success: false, message: 'This squad is no longer active.', error_code: 'TEAM_NOT_FOUND' }
+  }
+
+  if (team.leader_id === callerId) {
+    return { success: false, message: 'You are the leader of this team and cannot accept your own invitation.', error_code: 'ALREADY_LEADER' }
+  }
+
+  const eventRes = await getEventById(team.event_id)
+  const event = eventRes.event
+  if (!event || event.status !== 'published') {
+    return { success: false, message: 'Registration for this event is closed or not available.', error_code: 'EVENT_NOT_OPEN' }
+  }
+
+  const now = new Date()
+  if (event.registration_closes_at && new Date(event.registration_closes_at) < now) {
+    return { success: false, message: 'Registration deadline for this event has passed.', error_code: 'DEADLINE_PASSED' }
+  }
+
+  if (new Date(event.start_date) <= now) {
+    return { success: false, message: 'This event has already started.', error_code: 'EVENT_STARTED' }
+  }
+
+  const members = getLocalTeamMembers()
+  const existingInEvent = members.find(
+    (m) =>
+      m.event_id === team.event_id &&
+      (m.user_id === callerId || m.email.toLowerCase() === callerEmail) &&
+      m.status === 'accepted'
+  )
+  if (existingInEvent) {
+    return { success: false, message: 'You are already an active member of a team for this event.', error_code: 'ALREADY_IN_TEAM' }
+  }
+
+  const acceptedMembers = members.filter((m) => m.team_id === team.id && m.status === 'accepted')
+  const maxSize = event.max_team_size || 5
+  if (acceptedMembers.length >= maxSize) {
+    return { success: false, message: `This team is already full (${acceptedMembers.length}/${maxSize} members).`, error_code: 'TEAM_FULL' }
+  }
+
+  // Update invite status
+  inv.status = 'accepted'
+  inv.accepted_by = callerId
+  inv.accepted_at = new Date().toISOString()
+  inv.updated_at = new Date().toISOString()
+  saveLocalTeamInvites(invites)
+
+  // Update or insert member record
+  const existingSlotIdx = members.findIndex(
+    (m) => m.team_id === team.id && (m.email.toLowerCase() === callerEmail || m.invitation_id === inv.id)
+  )
+
+  const rawRegs = localStorage.getItem('festflow_local_registrations')
+  const localRegs = rawRegs ? JSON.parse(rawRegs) : []
+  const leaderReg = localRegs.find(
+    (r: any) => r.id === team.registration_id || (r.event_id === team.event_id && r.student_id === team.leader_id)
+  )
+
+  const memberIndex = acceptedMembers.length + 1
+  const memberTicketCode = leaderReg?.ticket_code
+    ? `${leaderReg.ticket_code}-M${memberIndex}`
+    : `FF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+  const memberQrToken = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+  const isFree = Boolean(event.is_free)
+  const isLeaderConfirmed = leaderReg?.status === 'confirmed' && Boolean(leaderReg.ticket_issued_at)
+  const isApproved = isFree || isLeaderConfirmed
+
+  let memberStatus = isApproved ? 'confirmed' : 'pending_payment'
+  if (isFree && event.approval_type === 'manual' && leaderReg?.status === 'pending_approval') {
+    memberStatus = 'pending_approval'
+  }
+  const memberTicketIssuedAt = memberStatus === 'confirmed' ? new Date().toISOString() : null
+
+  let memberReg = localRegs.find((r: any) => r.event_id === team.event_id && r.student_id === callerId)
+  if (!memberReg) {
+    memberReg = {
+      id: `reg_tm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      event_id: team.event_id,
+      student_id: callerId,
+      status: memberStatus,
+      ticket_code: memberTicketCode,
+      qr_token: memberQrToken,
+      ticket_issued_at: memberTicketIssuedAt,
+      team_name: team.name,
+      team_id: team.id,
+      team_role: 'member',
+      team_members: leaderReg?.team_members || [],
+      participant_details: params.participantDetails,
+      approval_status: memberStatus === 'confirmed' ? 'approved' : 'pending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    localRegs.push(memberReg)
+  } else {
+    memberReg.team_id = team.id
+    memberReg.team_name = team.name
+    memberReg.team_role = 'member'
+    memberReg.status = memberStatus
+    memberReg.ticket_issued_at = memberStatus === 'confirmed' ? (memberReg.ticket_issued_at || new Date().toISOString()) : null
+    memberReg.updated_at = new Date().toISOString()
+  }
+
+  if (existingSlotIdx >= 0) {
+    members[existingSlotIdx] = {
+      ...members[existingSlotIdx],
+      user_id: callerId,
+      registration_id: memberReg.id,
+      name: params.participantDetails.student_name,
+      email: callerEmail,
+      college: params.participantDetails.college_name || members[existingSlotIdx].college,
+      phone: params.participantDetails.phone || members[existingSlotIdx].phone,
+      student_id_card: params.participantDetails.id_card_number || members[existingSlotIdx].student_id_card,
+      status: 'accepted',
+      joined_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+  } else {
+    members.push({
+      id: `tm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      team_id: team.id,
+      event_id: team.event_id,
+      user_id: callerId,
+      registration_id: memberReg.id,
+      invitation_id: inv.id,
+      name: params.participantDetails.student_name,
+      email: callerEmail,
+      role: 'member',
+      status: 'accepted',
+      college: params.participantDetails.college_name || null,
+      phone: params.participantDetails.phone || null,
+      student_id_card: params.participantDetails.id_card_number || null,
+      joined_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+  }
+  saveLocalTeamMembers(members)
+
+  if (acceptedMembers.length + 1 >= maxSize) {
+    team.status = 'complete'
+    team.updated_at = new Date().toISOString()
+    saveLocalTeams(teams)
+  }
+
+  if (leaderReg) {
+    leaderReg.team_members = members
+      .filter((m) => m.team_id === team.id && m.role === 'member')
+      .map((m) => ({
+        name: m.name,
+        email: m.email,
+        college: m.college,
+        studentId: m.student_id_card,
+        phone: m.phone,
+        user_id: m.user_id,
+        status: m.status,
+      }))
+  }
+  localStorage.setItem('festflow_local_registrations', JSON.stringify(localRegs))
+
+  broadcastStatusChange({
+    type: 'team_updated',
+    eventId: team.event_id,
+    teamId: team.id,
+    studentId: callerId,
+  })
+  broadcastStatusChange({
+    type: 'invitation_accepted',
+    eventId: team.event_id,
+    teamId: team.id,
+    studentId: callerId,
+  })
+  broadcastStatusChange({
+    type: 'registration_updated',
+    eventId: team.event_id,
+    teamId: team.id,
+    studentId: callerId,
+    registrationId: memberReg.id,
+  })
+
+  // Dispatch individual ticket email to member if ticket is active
+  if (memberReg.status === 'confirmed') {
+    sendTicketIssuedEmail({
+      to: callerEmail,
+      name: params.participantDetails.student_name,
+      eventTitle: event.title,
+      ticketCode: memberReg.ticket_code,
+      venueName: event.venue_name,
+      teamName: team.name,
+      registrationId: memberReg.id,
+      eventId: team.event_id,
+    }).catch(() => {})
+  }
+
+  // Notify team leader that member accepted invitation
+  const leaderMem = members.find((m) => m.role === 'leader')
+  if (leaderMem?.email) {
+    sendTeamInvitationAcceptedEmail({
+      leaderEmail: leaderMem.email,
+      leaderName: leaderMem.name,
+      memberName: params.participantDetails.student_name,
+      memberEmail: callerEmail,
+      teamName: team.name,
+      eventTitle: event.title,
+      currentSize: acceptedMembers.length + 1,
+      eventId: team.event_id,
+      teamId: team.id,
+    }).catch(() => {})
+  }
+
+  return {
+    success: true,
+    message: `Successfully joined ${team.name}! Your spot and digital pass are confirmed.`,
+    team_id: team.id,
+    team_name: team.name,
+    registration_id: memberReg.id,
+    ticket_code: memberReg.ticket_code,
     member_count: acceptedMembers.length + 1,
   }
 }
@@ -688,12 +1137,15 @@ export async function inviteTeamMember(params: {
 
       // Fetch team & event info for email
       const { data: teamRec } = await (supabase.from('teams') as any)
-        .select('name, invite_code, events(title, slug, club_id)')
+        .select('name, invite_code, event_id, events(title, slug, club_id)')
         .eq('id', params.teamId)
         .single()
 
+      let emailSent = false
+      let emailError: string | undefined
+
       if (teamRec) {
-        await sendTeamInvitationEmail({
+        const emailRes = await sendTeamInvitationEmail({
           recipientEmail: cleanEmail,
           recipientName: params.name,
           teamName: teamRec.name,
@@ -706,6 +1158,21 @@ export async function inviteTeamMember(params: {
           eventId: teamRec.event_id,
           teamId: params.teamId,
         })
+        emailSent = emailRes.success
+        emailError = emailRes.error
+      }
+
+      if (!emailSent) {
+        return {
+          success: true,
+          invitation_created_email_failed: true,
+          email_dispatch_error: emailError || 'Email provider could not deliver message.',
+          message: `Invitation saved for ${cleanEmail}, but email dispatch failed: ${emailError || 'Provider unreachable'}. You can share the link or invite code directly.`,
+          invitation_id: data.invitation_id,
+          token: data.token,
+          invite_code: data.invite_code,
+          email: cleanEmail,
+        }
       }
 
       return {
@@ -809,19 +1276,41 @@ export async function inviteTeamMember(params: {
   saveLocalTeamMembers(members)
 
   // Queue simulated email
-  await sendTeamInvitationEmail({
-    recipientEmail: cleanEmail,
-    recipientName: params.name,
-    teamName: team.name,
-    eventTitle: event?.title || 'FestFlow Squad Event',
-    eventSlug: event?.slug || '',
-    leaderName: 'Team Leader',
-    inviteCode: team.invite_code,
-    inviteToken: token,
-    expiresAt,
-    eventId: team.event_id,
-    teamId: team.id,
-  })
+  let simEmailSent = false
+  let simEmailError: string | undefined
+  try {
+    const emailRes = await sendTeamInvitationEmail({
+      recipientEmail: cleanEmail,
+      recipientName: params.name,
+      teamName: team.name,
+      eventTitle: event?.title || 'FestFlow Squad Event',
+      eventSlug: event?.slug || '',
+      leaderName: 'Team Leader',
+      inviteCode: team.invite_code,
+      inviteToken: token,
+      expiresAt,
+      eventId: team.event_id,
+      teamId: team.id,
+    })
+    simEmailSent = emailRes.success
+    simEmailError = emailRes.error
+  } catch (err: any) {
+    simEmailSent = false
+    simEmailError = err?.message || 'Email delivery failed'
+  }
+
+  if (!simEmailSent) {
+    return {
+      success: true,
+      invitation_created_email_failed: true,
+      email_dispatch_error: simEmailError || 'Email provider could not deliver message',
+      message: `Invitation saved for ${cleanEmail}, but email dispatch failed: ${simEmailError || 'Provider unreachable'}. You can share the link or invite code directly.`,
+      invitation_id: invitationId,
+      token,
+      invite_code: team.invite_code,
+      email: cleanEmail,
+    }
+  }
 
   return {
     success: true,
