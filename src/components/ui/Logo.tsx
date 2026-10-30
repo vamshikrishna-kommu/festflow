@@ -17,13 +17,13 @@ export interface LogoProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'sr
 
 const VARIANT_CONTAINER_CLASSES: Record<NonNullable<LogoProps['variant']>, string> = {
   navbar:
-    'h-10 sm:h-12 md:h-14 w-auto max-w-[160px] flex items-center justify-center rounded-xl bg-black/60 p-1 border border-white/10 shadow-sm transition-all duration-200 group-hover:border-purple-500/40 group-hover:shadow-[0_0_15px_oklch(58%_0.24_290_/_0.25)]',
+    'h-10 sm:h-12 md:h-14 w-auto max-w-[160px] flex items-center justify-center rounded-xl bg-black/60 p-1 border border-white/10 shadow-sm transition-all duration-200 group-hover:border-[#18CFFC]/40 group-hover:shadow-[0_0_18px_rgba(24,207,252,0.25)]',
   auth:
-    'w-[160px] sm:w-[180px] md:w-[200px] max-w-full flex items-center justify-center rounded-2xl bg-black/75 p-2.5 border border-white/10 shadow-2xl transition-all duration-300 group-hover:border-purple-500/40 group-hover:shadow-[0_0_25px_oklch(58%_0.24_290_/_0.25)]',
+    'w-[160px] sm:w-[180px] md:w-[200px] max-w-full flex items-center justify-center rounded-2xl bg-black/75 p-2.5 border border-white/10 shadow-2xl transition-all duration-300 group-hover:border-[#18CFFC]/40 group-hover:shadow-[0_0_25px_rgba(127,26,251,0.30)]',
   footer:
     'w-[120px] sm:w-[140px] md:w-[150px] max-w-full flex items-center justify-center rounded-xl bg-black/60 p-2 border border-white/10 shadow-sm transition-all duration-200 hover:border-white/20',
   hero:
-    'w-[180px] sm:w-[210px] md:w-[240px] max-w-full flex items-center justify-center rounded-3xl bg-black/80 p-3 sm:p-4 border border-purple-500/30 shadow-2xl backdrop-blur-md ring-1 ring-white/10 transition-transform duration-300 hover:scale-[1.02] hover:border-purple-500/50 hover:shadow-[0_0_35px_oklch(58%_0.24_290_/_0.35)]',
+    'w-[180px] sm:w-[210px] md:w-[240px] max-w-full flex items-center justify-center rounded-3xl bg-black/80 p-3 sm:p-4 border border-[#18CFFC]/30 shadow-2xl backdrop-blur-md ring-1 ring-white/10 transition-transform duration-300 hover:scale-[1.02] hover:border-[#7F1AFB]/50 hover:shadow-[0_0_35px_rgba(127,26,251,0.40)]',
   ticket:
     'h-9 sm:h-10 w-auto max-w-[100px] flex items-center justify-center rounded-lg bg-black/80 p-1 border border-white/10 shadow-inner',
   emblem:

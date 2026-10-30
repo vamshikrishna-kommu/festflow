@@ -214,7 +214,7 @@ export default function ClubMembersPage() {
     return (
       <PageShell>
         <div className="py-24 flex flex-col items-center justify-center text-center">
-          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
+          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
           <span className="text-xs text-[var(--color-text-muted)] font-medium">
             Loading team roster and role authorization…
           </span>
@@ -288,7 +288,7 @@ export default function ClubMembersPage() {
                     setInviteModalOpen(true)
                   }}
                   leftIcon={<UserPlus size={14} />}
-                  className="bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium shadow-sm"
+                  className="bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-medium shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
                 >
                   Invite Staff Member
                 </Button>
@@ -354,10 +354,10 @@ export default function ClubMembersPage() {
               Your Permission Tier
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-xl sm:text-2xl font-bold font-display text-[var(--color-brand-cyan)] truncate">
+              <span className="text-xl sm:text-2xl font-bold font-display text-[#18CFFC] truncate">
                 {ROLE_LABELS[userRole || 'owner']}
               </span>
-              <ShieldCheck size={18} className="text-[var(--color-brand-cyan)] shrink-0" />
+              <ShieldCheck size={18} className="text-[#18CFFC] shrink-0" />
             </div>
             <span className="text-[11px] text-[var(--color-text-muted)] mt-2 truncate">
               {ROLE_DESCRIPTIONS[userRole || 'owner']}
@@ -441,11 +441,11 @@ export default function ClubMembersPage() {
                   return (
                     <Card
                       key={member.id}
-                      className="p-4 flex flex-col justify-between gap-3 border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)]/40 transition-colors"
+                      className="p-4 flex flex-col justify-between gap-3 border-[var(--color-surface-3)] hover:border-[#18CFFC]/40 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-10 h-10 rounded-full bg-[var(--color-surface-3)] text-xs font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
+                          <span className="w-10 h-10 rounded-full bg-[#1E1E26] text-xs font-bold font-display flex items-center justify-center text-[#18CFFC] border border-white/10 shrink-0">
                             {memberName.charAt(0).toUpperCase()}
                           </span>
                           <div className="min-w-0">
@@ -554,10 +554,10 @@ export default function ClubMembersPage() {
                         const isRevoked = inv.status === 'revoked'
 
                         return (
-                          <tr key={inv.id} className="hover:bg-[var(--color-surface-2)]/40 transition-colors">
+                          <tr key={inv.id} className="hover:bg-white/[0.03] transition-colors">
                             <td className="py-3 px-4 font-medium text-[var(--color-text-primary)]">
                               <div className="flex items-center gap-2">
-                                <Mail size={13} className="text-[var(--color-brand-cyan)]" />
+                                <Mail size={13} className="text-[#18CFFC]" />
                                 <span>{inv.email}</span>
                               </div>
                             </td>
@@ -596,7 +596,7 @@ export default function ClubMembersPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleCopyLink(inv.token)}
-                                      className="text-[11px] text-[var(--color-text-secondary)] hover:text-white px-2 py-1 rounded hover:bg-[var(--color-surface-3)] transition-colors flex items-center gap-1"
+                                      className="text-[11px] text-[var(--color-text-secondary)] hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors flex items-center gap-1"
                                       title="Copy invitation acceptance link"
                                     >
                                       {copiedToken === inv.token ? (
@@ -617,7 +617,7 @@ export default function ClubMembersPage() {
                                         <button
                                           type="button"
                                           onClick={() => handleResendInvite(inv.id)}
-                                          className="text-[11px] text-[var(--color-brand-cyan)] hover:underline px-2 py-1 transition-colors"
+                                          className="text-[11px] text-[#18CFFC] hover:text-[#18CFFC] hover:underline px-2 py-1 transition-colors"
                                         >
                                           Resend
                                         </button>
@@ -637,7 +637,7 @@ export default function ClubMembersPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleResendInvite(inv.id)}
-                                    className="text-[11px] text-[var(--color-brand-cyan)] hover:underline px-2 py-1 transition-colors"
+                                    className="text-[11px] text-[#18CFFC] hover:text-[#18CFFC] hover:underline px-2 py-1 transition-colors"
                                   >
                                     Renew & Resend
                                   </button>
@@ -739,7 +739,7 @@ export default function ClubMembersPage() {
                     placeholder="e.g. colleague@festflow.edu"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-white/10 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                   />
                 </div>
 
@@ -765,7 +765,7 @@ export default function ClubMembersPage() {
                             !allowed
                               ? 'opacity-40 cursor-not-allowed bg-[var(--color-surface-2)]/40 border-transparent'
                               : isSelected
-                              ? 'bg-[var(--color-brand-purple)]/10 border-[var(--color-brand-purple)] text-white'
+                              ? 'bg-[#18CFFC]/10 border-[#18CFFC] text-white'
                               : 'bg-[var(--color-surface-2)] border-[oklch(100%_0_0_/_0.06)] hover:bg-[var(--color-surface-3)]/60'
                           }`}
                         >
@@ -776,7 +776,7 @@ export default function ClubMembersPage() {
                             disabled={!allowed}
                             checked={isSelected}
                             onChange={() => setInviteRole(r)}
-                            className="mt-0.5 text-[var(--color-brand-purple)]"
+                            className="mt-0.5 text-[#18CFFC]"
                           />
                           <div className="min-w-0">
                             <strong className="font-semibold block text-sm">
@@ -810,7 +810,7 @@ export default function ClubMembersPage() {
                 disabled={inviting || !inviteEmail.trim()}
                 isLoading={inviting}
                 leftIcon={<Mail size={14} />}
-                className="bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium"
+                className="bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-medium shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
               >
                 Send Invitation
               </Button>

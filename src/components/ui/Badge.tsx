@@ -10,14 +10,20 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-[var(--color-surface-3)] text-[var(--color-text-secondary)]',
-  purple:  'bg-[oklch(58%_0.26_285_/_0.15)] text-[var(--color-brand-violet)] ring-1 ring-[oklch(58%_0.26_285_/_0.28)]',
-  pink:    'bg-[oklch(62%_0.24_318_/_0.15)] text-[var(--color-brand-fuchsia)] ring-1 ring-[oklch(62%_0.24_318_/_0.28)]',
-  amber:   'bg-[oklch(76%_0.17_68_/_0.15)]  text-[var(--color-brand-amber)]  ring-1 ring-[oklch(76%_0.17_68_/_0.28)]',
-  cyan:    'bg-[oklch(72%_0.16_200_/_0.15)] text-[var(--color-brand-cyan)]   ring-1 ring-[oklch(72%_0.16_200_/_0.28)]',
-  success: 'bg-[oklch(65%_0.18_145_/_0.15)] text-[oklch(68%_0.18_145)]      ring-1 ring-[oklch(65%_0.18_145_/_0.28)]',
-  outline: 'bg-transparent text-[var(--color-text-secondary)] ring-1 ring-[oklch(100%_0_0_/_0.15)]',
-  danger:  'bg-rose-500/15 text-rose-400 ring-1 ring-rose-500/25',
+  default: 'bg-white/[0.06] text-zinc-300 border border-white/10',
+  brand:   'bg-gradient-to-r from-[#18CFFC]/15 to-[#7F1AFB]/15 text-[#18CFFC] border border-[#18CFFC]/40 shadow-[0_0_14px_rgba(24,207,252,0.25)]',
+  cyan:    'bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/35 shadow-[0_0_12px_rgba(24,207,252,0.20)]',
+  blue:    'bg-[#07A4FC]/15 text-[#38BDF8] border border-[#07A4FC]/35 shadow-[0_0_12px_rgba(7,164,252,0.20)]',
+  violet:  'bg-[#7F1AFB]/15 text-[#C084FC] border border-[#7F1AFB]/35 shadow-[0_0_12px_rgba(127,26,251,0.20)]',
+  purple:  'bg-[#7F1AFB]/15 text-[#C084FC] border border-[#7F1AFB]/35 shadow-[0_0_12px_rgba(127,26,251,0.20)]',
+  magenta: 'bg-[#ED47FC]/15 text-[#FE7EE8] border border-[#ED47FC]/35 shadow-[0_0_12px_rgba(237,71,252,0.20)]',
+  pink:    'bg-[#ED47FC]/15 text-[#FE7EE8] border border-[#ED47FC]/35 shadow-[0_0_12px_rgba(237,71,252,0.20)]',
+  orange:  'bg-[#7F1AFB]/15 text-[#18CFFC] border border-[#7F1AFB]/40 shadow-[0_0_12px_rgba(127,26,251,0.20)]',
+  amber:   'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+  success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+  outline: 'bg-transparent text-zinc-300 border border-white/15',
+  danger:  'bg-rose-500/15 text-rose-400 border border-rose-500/30',
+  neutral: 'bg-white/[0.08] text-white border border-white/15',
 }
 
 const CATEGORY_VARIANT_MAP: Record<string, BadgeVariant> = {

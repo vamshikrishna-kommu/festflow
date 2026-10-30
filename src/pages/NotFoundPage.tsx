@@ -22,7 +22,7 @@ export default function NotFoundPage() {
           <motion.div
             variants={reduced ? undefined : fadeUp}
             aria-hidden="true"
-            className="font-display font-extrabold text-[8rem] leading-none gradient-text select-none mb-2"
+            className="font-display font-extrabold text-[8rem] sm:text-[10rem] leading-none bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] bg-clip-text text-transparent select-none mb-2 tracking-tighter drop-shadow-[0_10px_30px_rgba(24,207,252,0.35)]"
           >
             404
           </motion.div>

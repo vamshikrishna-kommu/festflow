@@ -31,21 +31,21 @@ const SOCIALS = [
 export function Footer() {
   return (
     <footer
-      className="relative mt-0 border-t border-[oklch(100%_0_0_/_0.06)] overflow-hidden"
-      style={{ background: 'var(--color-surface-1)' }}
+      className="relative mt-0 border-t border-white/[0.07] overflow-hidden"
+      style={{ background: '#08080A' }}
       aria-label="Site footer"
     >
       {/* Gradient top line */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[480px] max-w-full h-px pointer-events-none"
-        style={{ background: 'linear-gradient(90deg, transparent, var(--color-brand-violet), var(--color-brand-fuchsia), transparent)' }}
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] max-w-full h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, #18CFFC, #7F1AFB, #ED47FC, transparent)' }}
         aria-hidden="true"
       />
 
       {/* Subtle background glow */}
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top, oklch(58% 0.26 285 / 0.05) 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(ellipse at top, rgba(127, 26, 251, 0.12) 0%, rgba(24, 207, 252, 0.05) 50%, transparent 70%)' }}
         aria-hidden="true"
       />
 

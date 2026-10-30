@@ -22,39 +22,34 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
   const isLocalDev = Boolean(import.meta.env?.DEV) && !isProduction
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-10 sm:py-16 relative overflow-hidden bg-[var(--color-surface-0)]">
+    <div className="min-h-screen w-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-10 sm:py-16 relative overflow-hidden bg-[#08080A]">
       {/* Background ambient lighting */}
       <div
         aria-hidden="true"
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none -z-0"
         style={{
-          background: isClub
-            ? 'radial-gradient(ellipse at center, oklch(58% 0.26 285 / 0.12) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse at center, oklch(72% 0.16 200 / 0.10) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(127, 26, 251, 0.14) 0%, rgba(24, 207, 252, 0.08) 50%, transparent 70%)',
         }}
       />
-      <div aria-hidden="true" className="absolute inset-0 grid-pattern opacity-25 pointer-events-none -z-0" />
+      <div aria-hidden="true" className="absolute inset-0 grid-pattern opacity-20 pointer-events-none -z-0" />
 
       {/* Centered composition container */}
-      <div className="w-full max-w-4xl mx-auto my-auto relative z-10">
+      <div className="w-full max-w-4xl mx-auto my-auto relative z-10 min-w-0">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.09)] glass-elevated shadow-[0_24px_64px_oklch(0%_0_0_/_0.6)] overflow-hidden grid grid-cols-1 lg:grid-cols-12"
+          className="w-full rounded-[var(--radius-card)] border border-white/10 bg-[#0E0E12]/90 backdrop-blur-xl shadow-[0_24px_64px_rgba(0,0,0,0.8)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-w-0"
         >
           {/* Left branding panel — visible on desktop */}
           <div
-            className="hidden lg:flex lg:col-span-5 flex-col justify-between p-8 sm:p-10 border-r border-[oklch(100%_0_0_/_0.08)] relative overflow-hidden text-left"
-            style={{ background: 'oklch(10% 0.022 265)' }}
+            className="hidden lg:flex lg:col-span-5 flex-col justify-between p-8 sm:p-10 border-r border-white/10 relative overflow-hidden text-left bg-[#14141A]"
           >
             {/* Background subtle radial */}
             <div
               className="absolute -top-24 -left-24 w-72 h-72 rounded-full pointer-events-none"
               style={{
-                background: isClub
-                  ? 'radial-gradient(circle, oklch(58% 0.26 285 / 0.22) 0%, transparent 70%)'
-                  : 'radial-gradient(circle, oklch(72% 0.16 200 / 0.20) 0%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(127, 26, 251, 0.22) 0%, rgba(24, 207, 252, 0.12) 50%, transparent 70%)',
               }}
             />
 
@@ -65,7 +60,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
 
               <div className="space-y-6">
                 <div>
-                  <h2 className="font-display font-bold text-xl text-[var(--color-text-primary)] mb-2">
+                  <h2 className="font-display font-bold text-xl text-white mb-2">
                     {isClub ? 'Campus Club Management' : 'All Your Campus Passes'}
                   </h2>
                   <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
@@ -82,7 +77,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
                     { icon: '🔒', text: 'Direct UPI collection to club accounts' },
                   ].map(({ icon, text }) => (
                     <div key={text} className="flex items-center gap-3 text-xs text-[var(--color-text-secondary)]">
-                      <span className="text-[var(--color-brand-violet)] font-bold">{icon}</span>
+                      <span className="text-[#18CFFC] font-bold">{icon}</span>
                       <span>{text}</span>
                     </div>
                   ))}
@@ -96,13 +91,13 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
           </div>
 
           {/* Right form panel */}
-          <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-center text-left">
+          <div className="lg:col-span-7 p-4 sm:p-8 lg:p-10 flex flex-col justify-center text-left w-full min-w-0">
             {/* Mobile logo header */}
             <div className="lg:hidden mb-6 flex flex-col items-center text-center gap-2">
               <Link to="/" aria-label="FestFlow home">
                 <Logo variant="navbar" />
               </Link>
-              <Badge variant={isClub ? 'purple' : 'cyan'}>
+              <Badge variant="brand">
                 {isClub ? 'Club Portal' : 'Student Hub'}
               </Badge>
               {!isConfigured && (
@@ -113,35 +108,34 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
             </div>
 
             {/* Role switcher */}
-            <div className="grid grid-cols-2 p-1 bg-[var(--color-surface-2)] rounded-xl mb-6 border border-[var(--color-surface-3)]">
+            <div className="grid grid-cols-2 p-1 bg-[#14141A] rounded-xl mb-6 border border-white/10 gap-1">
               <Link
                 to={mode === 'login' ? `/student/login${search}` : `/student/signup${search}`}
-                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-[10px] text-xs font-semibold transition-all ${
+                className={`flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-[10px] text-[11px] sm:text-xs font-semibold transition-all ${
                   !isClub
-                    ? 'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] shadow-sm'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                    ? 'bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white shadow-[0_4px_16px_rgba(127,26,251,0.35)]'
+                    : 'text-[var(--color-text-muted)] hover:text-white'
                 }`}
               >
-                <GraduationCap size={14} />
-                Student
+                <GraduationCap size={14} className="shrink-0" />
+                <span className="truncate">Student</span>
               </Link>
               <Link
                 to={mode === 'login' ? `/club/login${search}` : `/club/signup${search}`}
-                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-[10px] text-xs font-semibold transition-all ${
+                className={`flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 rounded-[10px] text-[11px] sm:text-xs font-semibold transition-all ${
                   isClub
-                    ? 'text-[var(--color-brand-violet)] shadow-sm'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                    ? 'bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white shadow-[0_4px_16px_rgba(127,26,251,0.35)]'
+                    : 'text-[var(--color-text-muted)] hover:text-white'
                 }`}
-                style={isClub ? { background: 'oklch(58% 0.26 285 / 0.18)', border: '1px solid oklch(58% 0.26 285 / 0.3)' } : {}}
               >
-                <Building2 size={14} />
-                Club Organizer
+                <Building2 size={14} className="shrink-0" />
+                <span className="truncate">Club Organizer</span>
               </Link>
             </div>
 
             {/* Title */}
             <div className="mb-6">
-              <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-text-primary)] tracking-tight">
+              <h1 className="font-display font-extrabold text-lg sm:text-2xl text-white tracking-tight break-words">
                 {title}
               </h1>
               <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-1.5 leading-relaxed">
@@ -153,13 +147,13 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
             {children}
 
             {/* Mode Switcher Link */}
-            <div className="mt-6 pt-5 border-t border-[oklch(100%_0_0_/_0.07)] text-center text-xs text-[var(--color-text-secondary)]">
+            <div className="mt-6 pt-5 border-t border-white/5 text-center text-xs text-[var(--color-text-secondary)]">
               {mode === 'login' ? (
                 <p>
                   Don&apos;t have an account?{' '}
                   <Link
                     to={isClub ? `/club/signup${search}` : `/student/signup${search}`}
-                    className="font-semibold text-[var(--color-brand-violet)] hover:underline ml-1 transition-colors"
+                    className="font-semibold text-[#18CFFC] hover:text-[#07A4FC] hover:underline ml-1 transition-colors"
                   >
                     Sign up as {isClub ? 'Club' : 'Student'}
                   </Link>
@@ -169,7 +163,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
                   Already registered?{' '}
                   <Link
                     to={isClub ? `/club/login${search}` : `/student/login${search}`}
-                    className="font-semibold text-[var(--color-brand-violet)] hover:underline ml-1 transition-colors"
+                    className="font-semibold text-[#18CFFC] hover:text-[#07A4FC] hover:underline ml-1 transition-colors"
                   >
                     Sign in
                   </Link>
@@ -193,17 +187,17 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
 
             {/* Local testing helper — displayed in local dev */}
             {isLocalDev && (
-              <div className="mt-4 p-3 bg-[var(--color-surface-2)]/60 rounded-xl border border-dashed border-[var(--color-surface-3)] text-[11px] text-[var(--color-text-muted)]">
+              <div className="mt-4 p-3 bg-[#14141A] rounded-xl border border-dashed border-white/10 text-[11px] text-[var(--color-text-muted)]">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="font-semibold text-[var(--color-text-secondary)] flex items-center gap-1.5">
-                    <Sparkles size={11} /> Local Testing Helper
+                    <Sparkles size={11} className="text-[#18CFFC]" /> Local Testing Helper
                   </span>
-                  <span className="text-[10px] text-[var(--color-brand-amber)] font-medium">Dev Simulation</span>
+                  <span className="text-[10px] text-amber-400 font-medium">Dev Simulation</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDemoUser(role)}
-                  className="w-full mt-1.5 py-2 px-3 rounded-xl bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold transition-colors text-center text-xs border border-[oklch(100%_0_0_/_0.06)] flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full mt-1.5 py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors text-center text-xs border border-white/10 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>⚡</span>
                   <span>1-Click Test Sign-In as {isClub ? 'Club Leader' : 'Student'}</span>

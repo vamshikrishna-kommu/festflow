@@ -138,7 +138,7 @@ export default function EventReportsPage() {
     return (
       <PageShell>
         <div className="py-24 flex flex-col items-center justify-center text-center">
-          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
           <span className="text-xs text-[var(--color-text-muted)] font-medium">
             Generating event report & analytics…
           </span>
@@ -199,7 +199,7 @@ export default function EventReportsPage() {
                     variant="primary"
                     size="sm"
                     leftIcon={<QrCode size={14} />}
-                    className="w-full justify-center bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold shadow-sm"
+                    className="w-full justify-center bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white border-none font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
                   >
                     Gate Check-In
                   </Button>
@@ -252,7 +252,7 @@ export default function EventReportsPage() {
             <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
               Gate Admitted
             </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-[var(--color-brand-cyan)] mt-1">
+            <div className="text-xl sm:text-2xl font-bold font-display text-emerald-400 mt-1">
               {loading ? '…' : successfulCheckIns}
             </div>
           </Card>
@@ -261,7 +261,7 @@ export default function EventReportsPage() {
             <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
               Turnout Rate
             </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-purple-400 mt-1">
+            <div className="text-xl sm:text-2xl font-bold font-display text-[#18CFFC] mt-1">
               {loading ? '…' : `${attendanceRate}%`}
             </div>
           </Card>
@@ -300,9 +300,9 @@ export default function EventReportsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Export 1: All Registrations */}
-            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)]/50 transition-colors">
+            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[#18CFFC]/50 transition-colors">
               <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-[var(--color-brand-purple)]/10 text-[var(--color-brand-purple)] w-fit">
+                <div className="p-2.5 rounded-xl bg-[#18CFFC]/10 text-[#18CFFC] w-fit">
                   <Users size={20} />
                 </div>
                 <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
@@ -335,7 +335,7 @@ export default function EventReportsPage() {
                   disabled={!event || registrations.length === 0 || Boolean(exportingType)}
                   isLoading={exportingType === 'full_xlsx'}
                   leftIcon={<Download size={14} />}
-                  className="w-full bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium"
+                  className="w-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-medium shadow-[0_2px_10px_rgba(255,87,34,0.3)]"
                 >
                   Download Excel (.xlsx)
                 </Button>
@@ -352,9 +352,9 @@ export default function EventReportsPage() {
             </Card>
 
             {/* Export 2: Gate Attendance Report */}
-            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[var(--color-brand-cyan)]/50 transition-colors">
+            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-emerald-500/50 transition-colors">
               <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-[var(--color-brand-cyan)]/10 text-[var(--color-brand-cyan)] w-fit">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 w-fit">
                   <QrCode size={20} />
                 </div>
                 <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
@@ -385,7 +385,7 @@ export default function EventReportsPage() {
                   disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
                   isLoading={exportingType === 'attendance_xlsx'}
                   leftIcon={<Download size={14} />}
-                  className="w-full bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black font-semibold"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
                 >
                   Download Excel (.xlsx)
                 </Button>
@@ -559,7 +559,7 @@ export default function EventReportsPage() {
         <Card className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-[var(--color-surface-3)]">
           <div className="space-y-1 max-w-xl">
             <div className="flex items-center gap-2">
-              <Mail size={18} className="text-[var(--color-brand-cyan)]" />
+              <Mail size={18} className="text-[#18CFFC]" />
               <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
                 Send Bulk Event Reminders
               </h3>
@@ -575,7 +575,7 @@ export default function EventReportsPage() {
             onClick={() => setShowReminderModal(true)}
             disabled={!event || confirmedAttendees === 0}
             leftIcon={<Send size={15} />}
-            className="shrink-0"
+            className="shrink-0 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
           >
             Preview & Send Reminder
           </Button>
@@ -616,7 +616,7 @@ export default function EventReportsPage() {
                     placeholder="e.g. Please bring your college ID card and arrive 15 minutes before opening."
                     value={customReminderNote}
                     onChange={(e) => setCustomReminderNote(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-cyan)] transition-colors"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-white/10 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                   />
                 </div>
               </div>

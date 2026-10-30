@@ -148,7 +148,7 @@ export default function StudentSignupPage() {
               className={`w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
                 errors.name
                   ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-cyan)] focus:ring-2 focus:ring-[var(--color-brand-cyan)]/20'
+                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
               }`}
             />
             <User
@@ -182,7 +182,7 @@ export default function StudentSignupPage() {
               className={`w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
                 errors.email
                   ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-cyan)] focus:ring-2 focus:ring-[var(--color-brand-cyan)]/20'
+                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
               }`}
             />
             <Mail
@@ -222,7 +222,7 @@ export default function StudentSignupPage() {
 
         {/* Perks badge */}
         <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--color-surface-2)]/60 text-[11px] text-[var(--color-text-muted)] text-left">
-          <Sparkles size={14} className="text-[var(--color-brand-cyan)] shrink-0" />
+          <Sparkles size={14} className="text-[#18CFFC] shrink-0" />
           <span>
             Free registration for student badges, bookmarks, and instant event updates.
           </span>

@@ -7,21 +7,21 @@ export default function TermsPage() {
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="flex items-center gap-3 mb-3">
-          <Badge variant="purple">Terms of Agreement</Badge>
+          <Badge variant="brand">Terms of Agreement</Badge>
           <span className="text-xs text-[var(--color-text-muted)]">Effective: October 2026</span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-[var(--color-text-primary)] mb-4">
+        <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white mb-4">
           Terms of Service
         </h1>
         <p className="text-sm text-[var(--color-text-secondary)] mb-8 max-w-2xl">
           Guidelines and responsibilities governing student event registrations, ticket issuance, and club event administration.
         </p>
 
-        <Card className="p-6 sm:p-8 space-y-6 text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        <Card className="p-6 sm:p-8 space-y-6 text-sm text-[var(--color-text-secondary)] leading-relaxed border-white/10 bg-[#0E0E12]/80 backdrop-blur-md">
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-              <FileText className="text-[var(--color-brand-purple)]" size={18} />
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <FileText className="text-[#18CFFC]" size={18} />
               1. Acceptance of Terms
             </h2>
             <p>
@@ -62,7 +62,7 @@ export default function TermsPage() {
             </h2>
             <p>
               Questions regarding these terms should be directed to{' '}
-              <a href="mailto:terms@festflow.com" className="text-[var(--color-brand-purple)] underline">
+              <a href="mailto:terms@festflow.com" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
                 terms@festflow.com
               </a>.
             </p>

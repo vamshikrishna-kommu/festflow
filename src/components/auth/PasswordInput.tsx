@@ -54,7 +54,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             className={`w-full px-3.5 py-2.5 pr-11 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
               error
                 ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] focus:ring-2 focus:ring-[var(--color-brand-purple)]/20'
+                : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
             }`}
           />
           <button

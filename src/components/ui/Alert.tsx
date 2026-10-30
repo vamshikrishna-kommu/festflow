@@ -48,8 +48,8 @@ const variantStyles: Record<
     defaultIcon: AlertCircle,
   },
   neutral: {
-    container: 'bg-[var(--color-surface-2)] border-[oklch(100%_0_0_/_0.1)] text-[var(--color-text-secondary)]',
-    iconColor: 'text-[var(--color-text-muted)]',
+    container: 'bg-[#14141A] border-white/10 text-[#A1A1AA]',
+    iconColor: 'text-[#71717A]',
     defaultIcon: Info,
   },
 }

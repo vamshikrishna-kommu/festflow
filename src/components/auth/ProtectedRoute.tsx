@@ -28,7 +28,7 @@ export function ProtectedRoute({
         role="status"
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin" />
+          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin" />
           <span className="text-xs text-[var(--color-text-muted)] font-medium">
             Verifying FestFlow access…
           </span>

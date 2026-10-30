@@ -245,7 +245,7 @@ export default function EventCheckInPage() {
   if (loading && !refreshing) {
     return (
       <div className="min-h-screen pt-32 pb-24 px-4 bg-[var(--color-surface-0)] flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-cyan)] animate-spin" />
+        <div className="w-10 h-10 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin" />
         <span className="text-sm text-[var(--color-text-muted)]">Loading gate scanner & attendee roster…</span>
       </div>
     )
@@ -387,7 +387,7 @@ export default function EventCheckInPage() {
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
               Yet to Arrive
             </span>
-            <div className="text-2xl sm:text-3xl font-extrabold font-display text-[var(--color-brand-cyan)] mt-2">
+            <div className="text-2xl sm:text-3xl font-extrabold font-display text-[#18CFFC] mt-2">
               {loading ? '…' : (stats.notCheckedInCount ?? stats.remainingExpected)}
             </div>
             <span className="text-[10px] text-[var(--color-text-muted)] mt-1">
@@ -425,7 +425,7 @@ export default function EventCheckInPage() {
                     : scanResult.outcome === 'ALREADY_USED' || scanResult.outcome === 'ALREADY_CHECKED_OUT' || scanResult.outcome === 'NOT_CHECKED_IN'
                     ? 'bg-amber-950/90 border-amber-500 text-white'
                     : scanResult.isNetworkError
-                    ? 'bg-orange-950/90 border-orange-500 text-white'
+                    ? 'bg-blue-950/90 border-[#18CFFC] text-white'
                     : 'bg-rose-950/90 border-rose-500 text-white'
                 }`}
               >
@@ -438,7 +438,7 @@ export default function EventCheckInPage() {
                     ) : scanResult.outcome === 'ALREADY_USED' || scanResult.outcome === 'ALREADY_CHECKED_OUT' || scanResult.outcome === 'NOT_CHECKED_IN' ? (
                       <AlertTriangle size={32} className="text-amber-400" />
                     ) : scanResult.isNetworkError ? (
-                      <WifiOff size={32} className="text-orange-400" />
+                      <WifiOff size={32} className="text-[#18CFFC]" />
                     ) : (
                       <XCircle size={32} className="text-rose-400" />
                     )}
@@ -489,7 +489,7 @@ export default function EventCheckInPage() {
                       size="sm"
                       onClick={() => handleScanAttempt(lastAttemptedCode)}
                       leftIcon={<RotateCcw size={14} />}
-                      className="bg-orange-500 hover:bg-orange-600 text-white border-none"
+                      className="bg-[#18CFFC] hover:bg-[#07A4FC] text-black font-semibold border-none"
                     >
                       Retry
                     </Button>
@@ -557,7 +557,7 @@ export default function EventCheckInPage() {
             {/* Manual Code Entry Form Fallback */}
             <Card className="p-5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2 flex items-center gap-1.5">
-                <KeyRound size={14} className="text-[var(--color-brand-cyan)]" />
+                <KeyRound size={14} className="text-[#18CFFC]" />
                 Manual Code Entry ({scannerMode === 'check_in' ? 'Check-In' : 'Check-Out'})
               </h3>
               <p className="text-xs text-[var(--color-text-muted)] mb-3">
@@ -571,7 +571,7 @@ export default function EventCheckInPage() {
                   placeholder="e.g. TKT-INNOVATE-2026 or FFQ_…"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] font-mono focus:outline-none focus:border-[var(--color-brand-cyan)] transition-colors min-h-[40px]"
+                  className="flex-1 px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] font-mono focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors min-h-[40px]"
                 />
                 <Button
                   type="submit"
@@ -591,13 +591,13 @@ export default function EventCheckInPage() {
               <Card className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] flex items-center gap-1.5">
-                    <History size={14} className="text-[var(--color-brand-cyan)]" />
+                    <History size={14} className="text-[#18CFFC]" />
                     Recent Gate Scans ({scanHistory.length})
                   </h4>
                   <button
                     type="button"
                     onClick={() => setShowHistory(!showHistory)}
-                    className="text-xs text-[var(--color-brand-cyan)] hover:underline flex items-center gap-0.5"
+                    className="text-xs text-[#18CFFC] hover:text-[#18CFFC] hover:underline flex items-center gap-0.5"
                   >
                     {showHistory ? 'Collapse' : 'Expand'}
                     {showHistory ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -676,13 +676,13 @@ export default function EventCheckInPage() {
                     placeholder="Search name, email, or code…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-cyan)] transition-colors"
+                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                   />
                 </div>
               </div>
 
               {/* Filter Tabs */}
-              <div className="flex items-center gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl text-xs overflow-x-auto no-scrollbar touch-pan-x">
+              <div className="flex items-center gap-1 bg-[#0E0E12] p-1 rounded-xl text-xs overflow-x-auto no-scrollbar touch-pan-x border border-white/5">
                 {(
                   [
                     { id: 'all', label: `All (${attendees.length})` },
@@ -698,8 +698,8 @@ export default function EventCheckInPage() {
                     onClick={() => setFilterTab(tab.id)}
                     className={`px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap min-h-[36px] flex items-center justify-center ${
                       filterTab === tab.id
-                        ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow'
-                        : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                        ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
+                        : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {tab.label}
@@ -710,7 +710,7 @@ export default function EventCheckInPage() {
               {/* Attendee Roster Rows */}
               {loading ? (
                 <div className="py-16 flex flex-col items-center justify-center gap-2">
-                  <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-cyan)] animate-spin" />
+                  <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin" />
                   <span className="text-xs text-[var(--color-text-muted)]">Loading roster…</span>
                 </div>
               ) : attendees.length === 0 ? (
@@ -759,7 +759,7 @@ export default function EventCheckInPage() {
                             ? 'bg-amber-500/[0.04] border-amber-500/20'
                             : isIneligible
                             ? 'bg-rose-500/[0.04] border-rose-500/20 opacity-75'
-                            : 'bg-[var(--color-surface-2)]/60 border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)]/40'
+                            : 'bg-[#14141A] border-white/5 hover:border-[#18CFFC]/40'
                         }`}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -789,7 +789,7 @@ export default function EventCheckInPage() {
                                   Payment Due
                                 </Badge>
                               ) : att.status === 'pending_approval' ? (
-                                <Badge variant="amber" className="text-[10px] py-0">
+                                <Badge variant="brand" className="text-[10px] py-0">
                                   Pending Review
                                 </Badge>
                               ) : (
@@ -799,7 +799,7 @@ export default function EventCheckInPage() {
                               )}
 
                               {hasTeamMembers && (
-                                <Badge variant="purple" className="text-[10px] py-0 flex items-center gap-1">
+                                <Badge variant="brand" className="text-[10px] py-0 flex items-center gap-1">
                                   <Users size={10} /> {teamMembers.length} Members
                                 </Badge>
                               )}
@@ -809,7 +809,7 @@ export default function EventCheckInPage() {
                               <button
                                 type="button"
                                 onClick={() => handleCopy(att.ticket_code)}
-                                className="hover:text-[var(--color-brand-cyan)] transition-colors flex items-center gap-1"
+                                className="hover:text-white transition-colors flex items-center gap-1"
                                 title="Click to copy code"
                               >
                                 <span>{att.ticket_code}</span>

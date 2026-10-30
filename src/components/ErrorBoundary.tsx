@@ -80,7 +80,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </Button>
               <Button
                 variant="outline"
-                className="w-full justify-center gap-2 border-[var(--color-brand-cyan)]/30 text-[var(--color-brand-cyan)] hover:bg-[var(--color-brand-cyan)]/10"
+                className="w-full justify-center gap-2 border-[#18CFFC]/30 text-[#18CFFC] hover:bg-[#18CFFC]/10"
                 onClick={() => {
                   this.handleRetry()
                   window.location.href = '/discover'

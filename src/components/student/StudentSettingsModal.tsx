@@ -163,7 +163,7 @@ export function StudentSettingsModal({
       <ModalBody>
         <div className="flex flex-col gap-4">
           {/* Section Navigation Tabs — Horizontally Scrollable on Mobile */}
-          <div className="flex items-center gap-1.5 p-1 bg-[var(--color-surface-2)] rounded-2xl overflow-x-auto no-scrollbar touch-pan-x text-xs border border-[oklch(100%_0_0_/_0.06)]">
+          <div className="flex items-center gap-1.5 p-1 bg-[#14141A] rounded-2xl overflow-x-auto no-scrollbar touch-pan-x text-xs border border-white/[0.08]">
             {sections.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -173,13 +173,13 @@ export function StudentSettingsModal({
                   setSavedNotice(null)
                   setErrorMessage(null)
                 }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-medium shrink-0 transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-medium shrink-0 transition-all cursor-pointer ${
                   activeSection === id
-                    ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow-sm'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                    ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10'
+                    : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <Icon size={14} />
+                <Icon size={14} className={activeSection === id ? 'text-[#18CFFC]' : ''} />
                 <span>{label}</span>
               </button>
             ))}

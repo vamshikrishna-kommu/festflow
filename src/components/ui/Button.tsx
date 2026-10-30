@@ -14,21 +14,21 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onD
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'gradient-brand text-white shadow-lg hover:brightness-110 hover:shadow-[0_0_28px_oklch(58%_0.26_285_/_0.5)] active:brightness-95',
+    'bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white font-semibold border border-cyan-300/30 shadow-[0_4px_22px_rgba(127,26,251,0.40)] hover:shadow-[0_6px_30px_rgba(24,207,252,0.50)] hover:brightness-110 active:scale-[0.98]',
   secondary:
-    'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)] border border-[oklch(100%_0_0_/_0.06)] active:bg-[var(--color-surface-2)]',
+    'bg-[#1C1C24] text-[#EDEDF0] hover:text-white hover:bg-[#262632] border border-white/10 shadow-sm active:bg-[#14141A]',
   ghost:
-    'bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] active:bg-[var(--color-surface-3)]',
+    'bg-transparent text-[#A1A1AA] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.10]',
   outline:
-    'border border-[oklch(100%_0_0_/_0.20)] bg-[var(--color-surface-1)]/70 backdrop-blur-md text-[var(--color-text-primary)] hover:border-[var(--color-brand-violet)] hover:bg-[var(--color-surface-2)] hover:text-white shadow-sm active:bg-[var(--color-surface-3)]',
+    'border border-white/15 bg-[#0E0E12]/80 backdrop-blur-md text-[#EDEDF0] hover:border-[#18CFFC] hover:text-white hover:bg-[#1C1C24] hover:shadow-[0_0_22px_rgba(24,207,252,0.25)] active:bg-[#14141A]',
   danger:
-    'bg-rose-600/90 text-white hover:bg-rose-600 shadow-sm active:bg-rose-700',
+    'bg-rose-600 text-white hover:bg-rose-500 shadow-sm active:bg-rose-700',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3.5 text-xs gap-1.5 rounded-[var(--radius-button)]',
-  md: 'h-10 px-5 text-sm gap-2 rounded-[var(--radius-button)]',
-  lg: 'h-12 px-7 text-sm gap-2.5 rounded-[var(--radius-lg)] font-semibold',
+  sm: 'h-8 px-3.5 text-xs gap-1.5 rounded-[var(--radius-button)] tracking-wide',
+  md: 'h-10 px-5 text-sm gap-2 rounded-[var(--radius-button)] tracking-wide',
+  lg: 'h-12 px-7 text-sm gap-2.5 rounded-[var(--radius-lg)] font-semibold tracking-wide',
 }
 
 export function Button({
@@ -45,7 +45,7 @@ export function Button({
 }: ButtonProps) {
   const isInactive = Boolean(disabled || isLoading)
   const base =
-    'relative inline-flex items-center justify-center font-semibold transition-all duration-200 cursor-pointer select-none overflow-hidden disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-violet)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-0)]'
+    'relative inline-flex items-center justify-center font-semibold transition-all duration-200 cursor-pointer select-none overflow-hidden disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-cyan)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-0)]'
 
   return (
     <motion.button

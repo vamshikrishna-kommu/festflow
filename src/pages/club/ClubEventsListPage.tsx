@@ -161,7 +161,7 @@ export default function ClubEventsListPage() {
         )}
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[var(--color-surface-1)] rounded-2xl border border-[oklch(100%_0_0_/_0.08)] shadow-sm">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[#0E0E12] rounded-2xl border border-white/[0.08] shadow-sm">
           {/* Status Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs no-scrollbar touch-pan-x">
             {(['all', 'published', 'draft', 'cancelled', 'completed'] as const).map((st) => (
@@ -169,18 +169,18 @@ export default function ClubEventsListPage() {
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 min-h-[36px] flex items-center gap-1.5 capitalize ${
+                className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 min-h-[36px] flex items-center gap-1.5 capitalize cursor-pointer ${
                   statusFilter === st
-                    ? 'bg-[var(--color-brand-purple)] text-white shadow-sm font-semibold'
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
+                    ? 'bg-[#242430] text-white shadow-sm font-semibold border border-white/10'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
                 <span>{st}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                     statusFilter === st
-                      ? 'bg-black/25 text-white'
-                      : 'bg-[var(--color-surface-3)] text-[var(--color-text-muted)]'
+                      ? 'bg-[#18CFFC] text-white font-bold'
+                      : 'bg-white/10 text-zinc-400'
                   }`}
                 >
                   {statusCounts[st]}
@@ -196,14 +196,14 @@ export default function ClubEventsListPage() {
               placeholder="Search your events…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 px-3.5 pl-9 pr-8 rounded-xl text-xs bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] focus:border-[var(--color-brand-purple)] outline-none"
+              className="w-full h-10 px-3.5 pl-9 pr-8 rounded-xl text-xs bg-[#14141A] text-white border border-white/[0.08] focus:border-[#18CFFC] outline-none"
             />
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X size={14} />
               </button>
@@ -268,46 +268,46 @@ export default function ClubEventsListPage() {
                 <motion.div
                   key={evt.id}
                   variants={fadeIn}
-                  className="glass p-4 sm:p-5 rounded-2xl border border-[oklch(100%_0_0_/_0.08)] hover:border-[oklch(100%_0_0_/_0.15)] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
+                  className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-white/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
                 >
                   {/* Left: Poster thumbnail + Details */}
                   <div className="flex items-start sm:items-center gap-4 min-w-0">
                     <img
                       src={evt.poster_url || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=200'}
                       alt={evt.title}
-                      className="w-20 h-20 sm:w-24 sm:h-20 rounded-xl object-cover shrink-0 border border-[var(--color-surface-3)]"
+                      className="w-20 h-20 sm:w-24 sm:h-20 rounded-xl object-cover shrink-0 border border-white/10"
                     />
                     <div className="flex flex-col gap-1 text-left min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         {getStatusBadge(evt.status)}
-                        <Badge variant="purple" className="capitalize text-[10px]">
+                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-300">
                           {evt.category}
-                        </Badge>
+                        </span>
                         {evt.participation_type === 'team' && (
                           <Badge variant="pink" className="text-[10px]">
                             Team
                           </Badge>
                         )}
-                        <span className="text-[11px] text-[var(--color-text-muted)] font-mono truncate max-w-[160px]">
+                        <span className="text-[11px] text-zinc-500 font-mono truncate max-w-[160px]">
                           /{evt.slug}
                         </span>
                       </div>
 
-                      <h3 className="text-base font-bold text-[var(--color-text-primary)] hover:text-[var(--color-brand-purple)] transition-colors truncate">
+                      <h3 className="text-base font-bold text-white hover:text-[#18CFFC] transition-colors truncate font-heading">
                         <Link to={`/events/${evt.slug}`}>{evt.title}</Link>
                       </h3>
 
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--color-text-muted)]">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400 font-sans">
                         <span className="flex items-center gap-1">
-                          <Calendar size={13} className="text-[var(--color-brand-cyan)]" /> {formattedDate} at {formattedTime}
+                          <Calendar size={13} className="text-[#18CFFC]" /> {formattedDate} at {formattedTime}
                         </span>
                         <span className="flex items-center gap-1 truncate">
-                          <MapPin size={13} className="text-[var(--color-brand-pink)]" /> {evt.venue_name || 'Venue TBA'}
+                          <MapPin size={13} className="text-[#18CFFC]" /> {evt.venue_name || 'Venue TBA'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Users size={13} /> {evt.capacity} seats
                         </span>
-                        <span className="font-semibold text-[var(--color-text-secondary)]">
+                        <span className="font-semibold text-white font-mono">
                           {evt.is_free ? 'Free' : `₹${evt.price}`}
                         </span>
                       </div>
@@ -315,7 +315,7 @@ export default function ClubEventsListPage() {
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-3 md:pt-0 border-t md:border-t-0 border-[var(--color-surface-3)] w-full md:w-auto justify-start md:justify-end shrink-0">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.08] w-full md:w-auto justify-start md:justify-end shrink-0">
                     {/* View Attendees */}
                     <Link to={`/club/events/${evt.id}/registrations`} title="View registered attendees and passes">
                       <Button variant="ghost" size="sm" leftIcon={<Users size={14} />}>
@@ -329,8 +329,8 @@ export default function ClubEventsListPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          leftIcon={<QrCode size={14} />}
-                          className="text-[var(--color-brand-cyan)] hover:text-cyan-300"
+                          leftIcon={<QrCode size={14} className="text-[#18CFFC]" />}
+                          className="text-[#18CFFC] hover:text-[#FF641A]"
                         >
                           Check In
                         </Button>

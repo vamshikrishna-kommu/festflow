@@ -21,7 +21,7 @@ export function PageHeader({
   subtitle,
   breadcrumbs,
   badge,
-  badgeVariant = 'purple',
+  badgeVariant = 'brand',
   actions,
   backLink,
   className = '',

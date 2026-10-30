@@ -151,7 +151,7 @@ export default function AcceptClubInvitationPage() {
     return (
       <PageShell>
         <div className="min-h-[70vh] flex flex-col items-center justify-center text-center">
-          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
+          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
           <span className="text-xs text-[var(--color-text-muted)] font-medium">
             Verifying staff invitation credentials…
           </span>
@@ -213,11 +213,11 @@ export default function AcceptClubInvitationPage() {
             {/* Header Icon & Brand */}
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-[oklch(100%_0_0_/_0.06)]">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--color-brand-purple)]/15 border border-[var(--color-brand-purple)]/30 flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-[#18CFFC]/15 border border-[#18CFFC]/30 flex items-center justify-center text-[#18CFFC] shrink-0">
                   <Building size={24} />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[var(--color-brand-purple)] tracking-wider block">
+                  <span className="text-[10px] uppercase font-bold text-[#18CFFC] tracking-wider block">
                     Staff Invitation
                   </span>
                   <h1 className="text-xl sm:text-2xl font-bold font-display text-[var(--color-text-primary)]">
@@ -341,7 +341,7 @@ export default function AcceptClubInvitationPage() {
                 {/* Role Permissions Preview */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
-                    <ShieldCheck size={14} className="text-[var(--color-brand-purple)]" />
+                    <ShieldCheck size={14} className="text-[#18CFFC]" />
                     <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
                       Granted Permissions ({permissionsList.length})
                     </span>
@@ -418,7 +418,7 @@ export default function AcceptClubInvitationPage() {
                       isLoading={accepting}
                       disabled={accepting}
                       rightIcon={<ArrowRight size={15} />}
-                      className="w-full justify-center bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-semibold py-3 shadow-lg shadow-purple-600/20"
+                      className="w-full justify-center bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold py-3 shadow-[0_4px_20px_rgba(255,87,34,0.3)]"
                     >
                       Accept Invitation & Join {clubDisplayName}
                     </Button>

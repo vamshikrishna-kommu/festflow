@@ -67,8 +67,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           } ${rightIcon ? 'pr-10' : 'pr-3.5'} ${
             error
               ? 'border-rose-500/70 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20'
-              : 'border-[oklch(100%_0_0_/_0.09)] focus:border-[var(--color-brand-violet)] focus:ring-2 focus:ring-[oklch(58%_0.26_285_/_0.20)]'
-          } ${disabled ? 'opacity-50 cursor-not-allowed bg-[var(--color-surface-3)]/40' : 'hover:border-[oklch(100%_0_0_/_0.15)]'} ${className}`}
+              : 'border-white/10 bg-[#14141A] focus:border-[#18CFFC] focus:ring-2 focus:ring-[#18CFFC]/20'
+          } ${disabled ? 'opacity-50 cursor-not-allowed bg-white/5' : 'hover:border-white/20'} ${className}`}
           {...props}
         />
 

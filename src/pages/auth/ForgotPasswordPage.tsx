@@ -122,7 +122,7 @@ export default function ForgotPasswordPage() {
                   if (error) setError(null)
                 }}
                 disabled={isSubmitting}
-                className="w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] focus:ring-2 focus:ring-[var(--color-brand-purple)]/20 transition-all outline-none placeholder:text-[var(--color-text-muted)]"
+                className="w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-all outline-none placeholder:text-[var(--color-text-muted)]"
               />
               <Mail
                 size={16}

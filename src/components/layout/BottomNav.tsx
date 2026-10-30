@@ -67,7 +67,7 @@ export function BottomNav() {
     <>
       <nav
         aria-label="Mobile bottom navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden glass border-t border-[oklch(100%_0_0_/_0.08)] bg-[oklch(11%_0.025_260_/_0.94)] backdrop-blur-2xl shadow-[0_-8px_32px_oklch(0%_0_0_/_0.5)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1 px-1.5 transition-all"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden glass border-t border-white/10 bg-[#08080A]/95 backdrop-blur-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.6)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1 px-1.5 transition-all"
       >
         <div className="flex items-center justify-around max-w-lg mx-auto">
           {!isLoading && session && isClub ? (
@@ -80,7 +80,7 @@ export function BottomNav() {
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'text-[var(--color-brand-purple)] font-semibold'
+                      ? 'text-[var(--color-brand-cyan)] font-semibold'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   }`
                 }
@@ -96,7 +96,7 @@ export function BottomNav() {
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'text-[var(--color-brand-purple)] font-semibold'
+                      ? 'text-[var(--color-brand-violet)] font-semibold'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   }`
                 }
@@ -111,7 +111,7 @@ export function BottomNav() {
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'text-[var(--color-brand-purple)] font-semibold'
+                      ? 'text-[var(--color-brand-cyan)] font-semibold'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   }`
                 }
@@ -141,7 +141,7 @@ export function BottomNav() {
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'text-[var(--color-brand-purple)] font-semibold'
+                      ? 'text-[var(--color-brand-magenta)] font-semibold'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   }`
                 }
@@ -285,7 +285,7 @@ export function BottomNav() {
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'text-[var(--color-brand-purple)] font-semibold'
+                      ? 'text-[var(--color-brand-cyan)] font-semibold'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   }`
                 }
@@ -313,7 +313,7 @@ export function BottomNav() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full max-h-[80dvh] flex flex-col rounded-t-3xl glass-elevated border-t border-[oklch(100%_0_0_/_0.15)] bg-[var(--color-surface-1)] p-4 pb-safe text-left shadow-2xl"
+              className="w-full max-h-[80dvh] flex flex-col rounded-t-3xl glass-elevated border-t border-white/15 bg-[#0E0E12] p-4 pb-safe text-left shadow-2xl"
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-[var(--color-surface-3)]">

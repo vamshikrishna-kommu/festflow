@@ -18,7 +18,7 @@ const CAPABILITY_LIST = [
     title: 'Custom Registration Fields',
     description:
       'Ask attendees custom questions: branch, year of study, GitHub profiles, dietary needs, or document uploads — configured with custom required rules.',
-    colorVar: '--color-brand-violet',
+    accentColor: '#18CFFC',
     badge: 'Form Builder',
     direction: -1,
   },
@@ -27,7 +27,7 @@ const CAPABILITY_LIST = [
     title: 'Team & Solo Roster Controls',
     description:
       'Configure precise team limits (e.g. 2 to 4 members for hackathons), mandate team names, and allow team leaders to submit complete member details.',
-    colorVar: '--color-brand-fuchsia',
+    accentColor: '#7F1AFB',
     badge: 'Team Engine',
     direction: 0,
   },
@@ -36,7 +36,7 @@ const CAPABILITY_LIST = [
     title: 'Direct UPI Payments',
     description:
       'Direct club UPI collection with QR codes and intent links. Secure UTR transaction submission and manual organizer verification protect against duplicate entries.',
-    colorVar: '--color-brand-cyan',
+    accentColor: '#07A4FC',
     badge: 'Payment Security',
     direction: 1,
   },
@@ -45,7 +45,7 @@ const CAPABILITY_LIST = [
     title: 'Camera QR Gate Check-in',
     description:
       'Gate volunteers validate digital passes using mobile phone cameras. Real-time check-in recording prevents pass sharing and duplicate admissions.',
-    colorVar: '--color-brand-amber',
+    accentColor: '#ED47FC',
     badge: 'Gate Scanner',
     direction: -1,
   },
@@ -54,7 +54,7 @@ const CAPABILITY_LIST = [
     title: 'Registered Club Profiles',
     description:
       'Every organizer completes email verification before hosting. Students can review the hosting club profile, past events, and official contact details.',
-    colorVar: '--color-brand-emerald',
+    accentColor: '#10B981',
     badge: 'Club Directory',
     direction: 0,
   },
@@ -63,7 +63,7 @@ const CAPABILITY_LIST = [
     title: 'Real-Time Notification Pipeline',
     description:
       'Attendees and club leads receive immediate in-app notifications whenever passes are issued, payments are verified, or applications are approved.',
-    colorVar: '--color-brand-violet',
+    accentColor: '#18CFFC',
     badge: 'Live Alerts',
     direction: 1,
   },
@@ -96,14 +96,14 @@ export function PlatformCapabilitiesSection() {
             { text: 'Built for scale.', highlight: 'Zero fluff.', gradientClass: 'gradient-text' },
           ]}
         />
-        <p className="text-xs sm:text-sm md:text-base text-[var(--color-text-secondary)] mt-3 leading-relaxed">
+        <p className="text-xs sm:text-sm md:text-base text-zinc-400 mt-3 leading-relaxed">
           Engineered from the ground up to solve actual campus event challenges with genuine, production-verified features.
         </p>
       </div>
 
-      {/* Choreographed Cards Grid */}
+      {/* Choreographed Bento Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {CAPABILITY_LIST.map(({ icon: Icon, title, description, colorVar, badge, direction }, index) => {
+        {CAPABILITY_LIST.map(({ icon: Icon, title, description, accentColor, badge, direction }, index) => {
           const initialOffset = {
             opacity: 0,
             y: 24,
@@ -124,15 +124,15 @@ export function PlatformCapabilitiesSection() {
               className="h-full"
             >
               <Card
-                className="p-6 h-full rounded-[var(--radius-card)] bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.065)] hover:border-[oklch(100%_0_0_/_0.18)] hover:bg-[var(--color-surface-2)] transition-all duration-300 flex flex-col justify-between group shadow-lg hover:shadow-2xl relative overflow-hidden"
+                className="p-6 h-full rounded-2xl bg-[#0E0E12] border border-white/[0.07] hover:border-white/20 hover:bg-[#14141A] transition-all duration-300 flex flex-col justify-between group shadow-xl hover:shadow-[0_20px_50px_rgba(0,0,0,0.7),0_0_25px_rgba(255,87,34,0.1)] relative overflow-hidden"
               >
                 {/* Subtle radial mouse hover illumination */}
                 <div
                   aria-hidden="true"
                   className="absolute -right-12 -top-12 w-32 h-32 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   style={{
-                    background: `radial-gradient(circle, var(${colorVar}) 0%, transparent 70%)`,
-                    filter: 'blur(20px)',
+                    background: `radial-gradient(circle, ${accentColor} 0%, transparent 70%)`,
+                    filter: 'blur(25px)',
                   }}
                 />
 
@@ -140,25 +140,29 @@ export function PlatformCapabilitiesSection() {
                   <div className="flex items-center justify-between mb-4">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300"
-                      style={{ background: 'oklch(58% 0.26 285 / 0.14)' }}
+                      style={{
+                        background: `${accentColor}18`,
+                        color: accentColor,
+                        border: `1px solid ${accentColor}30`,
+                      }}
                     >
-                      <Icon size={20} style={{ color: `var(${colorVar})` }} />
+                      <Icon size={20} />
                     </div>
-                    <span className="text-[10px] font-semibold text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors">
+                    <span className="text-[10px] font-semibold tracking-wider uppercase text-zinc-500 group-hover:text-zinc-300 transition-colors">
                       {badge}
                     </span>
                   </div>
 
-                  <h3 className="font-display font-bold text-base text-[var(--color-text-primary)] mb-2 group-hover:text-white transition-colors">
+                  <h3 className="font-display font-bold text-base text-white mb-2 transition-colors">
                     {title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
                     {description}
                   </p>
                 </div>
 
-                <div className="pt-4 mt-5 border-t border-[oklch(100%_0_0_/_0.06)] flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-[var(--color-text-muted)]">Verified Feature</span>
+                <div className="pt-4 mt-5 border-t border-white/[0.06] flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-zinc-500">Production Ready</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
                 </div>
               </Card>
@@ -169,4 +173,3 @@ export function PlatformCapabilitiesSection() {
     </section>
   )
 }
-

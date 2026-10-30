@@ -24,7 +24,6 @@ import {
 import {
   Button,
   Badge,
-  Card,
   Logo,
   Modal,
   ModalBody,
@@ -249,49 +248,47 @@ export default function StudentDashboardPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="relative rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] overflow-hidden p-5 sm:p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_12px_40px_oklch(0%_0_0_/_0.4)]"
-          style={{ background: 'linear-gradient(135deg, oklch(10% 0.025 265), oklch(12% 0.03 275))' }}
+          className="relative rounded-3xl border border-white/[0.08] overflow-hidden p-5 sm:p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl bg-gradient-to-b from-[#0E0E12] to-[#08080A]"
         >
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at 15% 40%, oklch(72% 0.16 200 / 0.1) 0%, transparent 65%)' }}
+            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(255, 87, 34, 0.12) 0%, transparent 65%)' }}
           />
 
           <div className="relative flex items-center gap-4 sm:gap-5">
             <div
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 border border-white/10"
-              style={{ background: 'linear-gradient(135deg, var(--color-brand-cyan), var(--color-brand-violet))' }}
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-[#18CFFC]/20 shrink-0 border border-white/10 bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB]"
             >
               <GraduationCap size={32} className="sm:w-9 sm:h-9" />
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="text-xs uppercase tracking-wider text-[var(--color-brand-cyan)] font-semibold">
+                <span className="text-xs uppercase tracking-wider text-[#18CFFC] font-semibold">
                   {getGreeting()}
                 </span>
-                <Badge variant="cyan" className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC]">
                   <Logo variant="compact" /> Student Companion
-                </Badge>
+                </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)] truncate">
+              <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white truncate">
                 {displayName}
               </h1>
 
-              <div className="flex items-center gap-2 mt-1 text-xs text-[var(--color-text-secondary)] flex-wrap">
+              <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 flex-wrap font-sans">
                 <span className="truncate">{college}</span>
                 {gradYear && (
                   <>
-                    <span>•</span>
-                    <span className="text-[var(--color-text-muted)] font-mono">Class of {gradYear}</span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-500 font-mono">Class of {gradYear}</span>
                   </>
                 )}
                 {profile?.email && (
                   <>
-                    <span className="hidden sm:inline">•</span>
-                    <span className="text-[var(--color-text-muted)] hidden sm:inline truncate max-w-[200px]">
+                    <span className="hidden sm:inline text-zinc-600">•</span>
+                    <span className="text-zinc-500 hidden sm:inline truncate max-w-[200px]">
                       {profile.email}
                     </span>
                   </>
@@ -300,7 +297,7 @@ export default function StudentDashboardPage() {
             </div>
           </div>
 
-          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)] shrink-0">
+          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.08] shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -324,7 +321,7 @@ export default function StudentDashboardPage() {
                 size="sm"
                 onClick={() => switchWorkspace('club', navigate)}
                 leftIcon={<Building2 size={15} />}
-                className="text-purple-300 border-purple-500/30 hover:bg-purple-500/10 justify-center"
+                className="text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10 justify-center"
               >
                 Club Space
               </Button>
@@ -335,7 +332,7 @@ export default function StudentDashboardPage() {
               size="sm"
               onClick={() => setSettingsOpen(true)}
               leftIcon={<Settings size={15} />}
-              className="justify-center text-[var(--color-brand-cyan)] hover:border-[var(--color-brand-cyan)]"
+              className="justify-center text-zinc-300 hover:text-white"
             >
               Settings
             </Button>
@@ -367,25 +364,7 @@ export default function StudentDashboardPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="relative rounded-2xl overflow-hidden p-5 sm:p-6 border transition-all shadow-md"
-          style={{
-            background:
-              nextActionItem.type === 'pending_payment'
-                ? 'linear-gradient(135deg, oklch(76% 0.17 68 / 0.12), oklch(62% 0.22 45 / 0.08))'
-                : nextActionItem.type === 'pending_approval'
-                ? 'linear-gradient(135deg, oklch(58% 0.26 285 / 0.12), oklch(50% 0.2 265 / 0.08))'
-                : nextActionItem.type === 'upcoming_event'
-                ? 'linear-gradient(135deg, oklch(72% 0.16 200 / 0.12), oklch(58% 0.26 285 / 0.08))'
-                : 'linear-gradient(135deg, oklch(14% 0.03 270), oklch(12% 0.02 265))',
-            borderColor:
-              nextActionItem.type === 'pending_payment'
-                ? 'oklch(76% 0.17 68 / 0.3)'
-                : nextActionItem.type === 'pending_approval'
-                ? 'oklch(58% 0.26 285 / 0.3)'
-                : nextActionItem.type === 'upcoming_event'
-                ? 'oklch(72% 0.16 200 / 0.3)'
-                : 'oklch(100% 0 0 / 0.08)',
-          }}
+          className="relative rounded-2xl overflow-hidden p-5 sm:p-6 border transition-all shadow-md bg-[#0E0E12] border-white/[0.08]"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3.5">
@@ -394,10 +373,10 @@ export default function StudentDashboardPage() {
                   nextActionItem.type === 'pending_payment'
                     ? 'bg-amber-500/20 text-amber-300'
                     : nextActionItem.type === 'pending_approval'
-                    ? 'bg-purple-500/20 text-purple-300'
+                    ? 'bg-[#18CFFC]/15 text-[#18CFFC]'
                     : nextActionItem.type === 'upcoming_event'
                     ? 'bg-emerald-500/20 text-emerald-300'
-                    : 'bg-[var(--color-surface-2)] text-[var(--color-brand-cyan)]'
+                    : 'bg-[#14141A] text-[#18CFFC]'
                 }`}
               >
                 {nextActionItem.type === 'pending_payment' ? (
@@ -413,7 +392,7 @@ export default function StudentDashboardPage() {
 
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)]">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                     Recommended Next Action
                   </span>
                   {nextActionItem.type === 'pending_payment' && (
@@ -428,10 +407,10 @@ export default function StudentDashboardPage() {
                   )}
                 </div>
 
-                <h2 className="text-base sm:text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-base sm:text-lg font-bold font-heading text-white">
                   {nextActionItem.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-0.5 max-w-2xl leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 max-w-2xl leading-relaxed font-sans">
                   {nextActionItem.description}
                 </p>
               </div>
@@ -439,14 +418,9 @@ export default function StudentDashboardPage() {
 
             <Link to={nextActionItem.ctaLink} className="self-start sm:self-center shrink-0">
               <Button
-                variant={nextActionItem.type === 'pending_payment' ? 'primary' : 'outline'}
+                variant={nextActionItem.type === 'pending_payment' || nextActionItem.type === 'upcoming_event' ? 'primary' : 'outline'}
                 size="md"
                 rightIcon={<ArrowRight size={15} />}
-                className={
-                  nextActionItem.type === 'pending_payment'
-                    ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-md'
-                    : ''
-                }
               >
                 {nextActionItem.ctaLabel}
               </Button>
@@ -475,7 +449,7 @@ export default function StudentDashboardPage() {
               value: loading ? '…' : pendingApprovalCount.toString(),
               subtitle: 'Awaiting organizer check',
               icon: Clock,
-              badgeStyle: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+              badgeStyle: 'text-[#18CFFC] bg-[#18CFFC]/10 border-[#18CFFC]/20',
               activeTabKey: 'pending_approval' as const,
             },
             {
@@ -491,7 +465,7 @@ export default function StudentDashboardPage() {
               value: loading ? '…' : pastCount.toString(),
               subtitle: 'Historical event records',
               icon: CheckCircle2,
-              badgeStyle: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
+              badgeStyle: 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20',
               activeTabKey: 'past' as const,
             },
           ].map((stat, i) => {
@@ -499,16 +473,16 @@ export default function StudentDashboardPage() {
             const isCurrentTab = tab === stat.activeTabKey
             return (
               <motion.div variants={metricItem} className="h-full" key={i}>
-                <Card
-                  className={`p-4 sm:p-5 flex flex-col justify-between gap-3 cursor-pointer h-full transition-all duration-200 ${
+                <div
+                  className={`p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border flex flex-col justify-between gap-3 cursor-pointer h-full transition-all duration-200 ${
                     isCurrentTab
-                      ? 'border-[var(--color-brand-cyan)] shadow-[0_0_20px_oklch(72%_0.16_200_/_0.15)]'
-                      : 'hover:border-[oklch(100%_0_0_/_0.15)]'
+                      ? 'border-[#18CFFC] shadow-[0_0_24px_rgba(24,207,252,0.25)] bg-[#14141A]'
+                      : 'border-white/[0.08] hover:border-white/20'
                   }`}
                   onClick={() => setTab(stat.activeTabKey)}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--color-text-muted)] font-medium">
+                    <span className="text-xs text-zinc-400 font-medium">
                       {stat.label}
                     </span>
                     <div className={`p-2 rounded-xl border ${stat.badgeStyle}`}>
@@ -517,14 +491,14 @@ export default function StudentDashboardPage() {
                   </div>
 
                   <div>
-                    <span className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
+                    <span className="text-2xl sm:text-3xl font-extrabold font-heading text-white font-mono">
                       {stat.value}
                     </span>
-                    <span className="text-[11px] text-[var(--color-text-muted)] block mt-0.5 truncate">
+                    <span className="text-[11px] text-zinc-500 block mt-0.5 truncate font-sans">
                       {stat.subtitle}
                     </span>
                   </div>
-                </Card>
+                </div>
               </motion.div>
             )
           })}
@@ -532,12 +506,12 @@ export default function StudentDashboardPage() {
 
         {/* ── Passes & Registrations Section ──────────────────────────────── */}
         <div className="flex flex-col gap-5 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[var(--color-surface-3)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/[0.08]">
             <div>
-              <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)]">
+              <h2 className="text-xl font-bold font-heading text-white">
                 Event Passes & Registration History
               </h2>
-              <p className="text-xs text-[var(--color-text-secondary)]">
+              <p className="text-xs text-zinc-400">
                 Digital tickets, team rosters, and real-time gate entry credentials
               </p>
             </div>
@@ -546,13 +520,13 @@ export default function StudentDashboardPage() {
               {/* Optional search within list */}
               {registrations.length > 3 && (
                 <div className="relative w-48 sm:w-56">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                   <input
                     type="search"
                     placeholder="Search my passes…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-8 pl-8 pr-3 text-xs rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-cyan)]"
+                    className="w-full h-8 pl-8 pr-3 text-xs rounded-xl bg-[#14141A] border border-white/[0.08] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC]"
                   />
                 </div>
               )}
@@ -566,31 +540,34 @@ export default function StudentDashboardPage() {
           </div>
 
           {/* Sub-Tabs: Upcoming, Under Review, Pending Payment, Past, Cancelled */}
-          <div className="flex items-center gap-1.5 p-1.5 bg-[var(--color-surface-2)] rounded-2xl w-full overflow-x-auto no-scrollbar touch-pan-x text-xs border border-[oklch(100%_0_0_/_0.06)]">
+          <div className="flex items-center gap-1.5 p-1.5 bg-[#14141A] rounded-2xl w-full overflow-x-auto no-scrollbar touch-pan-x text-xs border border-white/[0.08]">
             {([
-              { id: 'upcoming', label: 'Upcoming Passes', count: upcomingCount, activeStyle: 'bg-[var(--color-brand-cyan)] text-black' },
-              { id: 'pending_approval', label: 'Under Review', count: pendingApprovalCount, activeStyle: 'bg-[oklch(58%_0.26_285_/_0.2)] text-[var(--color-brand-violet)] ring-1 ring-[oklch(58%_0.26_285_/_0.3)]' },
-              { id: 'pending_payment', label: 'Payment Due', count: pendingPaymentCount, activeStyle: 'bg-[oklch(76%_0.17_68_/_0.2)] text-[var(--color-brand-amber)] ring-1 ring-[oklch(76%_0.17_68_/_0.3)]' },
-              ...(waitlistedCount > 0 ? [{ id: 'waitlisted', label: 'Waitlisted', count: waitlistedCount, activeStyle: 'bg-[oklch(76%_0.17_68_/_0.15)] text-[var(--color-brand-amber)]' }] : []),
-              { id: 'past', label: 'Past Events', count: pastCount, activeStyle: 'bg-[var(--color-surface-3)] text-[var(--color-text-primary)]' },
-              { id: 'cancelled', label: 'Cancelled / Declined', count: cancelledCount, activeStyle: 'bg-rose-500/15 text-rose-300' },
-            ] as const).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id as typeof tab)}
-                className={`px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition-all duration-200 flex items-center gap-1.5 ${
-                  tab === t.id
-                    ? `${t.activeStyle} font-semibold shadow-sm`
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
-                }`}
-              >
-                <span>{t.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${tab === t.id ? 'bg-black/20 text-inherit font-bold' : 'bg-[var(--color-surface-3)] text-[var(--color-text-muted)]'}`}>
-                  {t.count}
-                </span>
-              </button>
-            ))}
+              { id: 'upcoming', label: 'Upcoming Passes', count: upcomingCount },
+              { id: 'pending_approval', label: 'Under Review', count: pendingApprovalCount },
+              { id: 'pending_payment', label: 'Payment Due', count: pendingPaymentCount },
+              ...(waitlistedCount > 0 ? [{ id: 'waitlisted', label: 'Waitlisted', count: waitlistedCount }] : []),
+              { id: 'past', label: 'Past Events', count: pastCount },
+              { id: 'cancelled', label: 'Cancelled / Declined', count: cancelledCount },
+            ] as const).map((t) => {
+              const isSelected = tab === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id as typeof tab)}
+                  className={`px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span>{t.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${isSelected ? 'bg-[#18CFFC] text-white font-bold' : 'bg-white/10 text-zinc-400'}`}>
+                    {t.count}
+                  </span>
+                </button>
+              )
+            })}
           </div>
 
           {/* Content Area with smooth Tab Content transition */}
@@ -671,9 +648,9 @@ export default function StudentDashboardPage() {
                 const isTeam = Boolean(reg.team_name || event?.participation_type === 'team')
 
                 return (
-                  <Card
+                  <div
                     key={reg.id}
-                    className="p-5 flex flex-col justify-between gap-4 border border-[oklch(100%_0_0_/_0.08)] hover:border-[oklch(100%_0_0_/_0.15)] transition-all shadow-sm"
+                    className="p-5 rounded-2xl bg-[#0E0E12] flex flex-col justify-between gap-4 border border-white/[0.08] hover:border-white/20 transition-all shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -716,9 +693,9 @@ export default function StudentDashboardPage() {
 
                           {event ? (
                             <>
-                              <Badge variant="cyan" className="capitalize text-[10px]">
+                              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-300">
                                 {event.category}
-                              </Badge>
+                              </span>
                               {event.participation_type === 'team' && (
                                 <Badge variant="pink" className="text-[10px] flex items-center gap-1">
                                   <Users size={10} /> Team Event
@@ -726,23 +703,23 @@ export default function StudentDashboardPage() {
                               )}
                             </>
                           ) : (
-                            <Badge variant="outline" className="text-[10px] text-[var(--color-text-muted)]">
+                            <Badge variant="outline" className="text-[10px] text-zinc-500">
                               Event Unavailable
                             </Badge>
                           )}
                         </div>
 
                         {/* Event Title */}
-                        <h3 className="font-bold text-[var(--color-text-primary)] text-base line-clamp-1">
+                        <h3 className="font-bold text-white text-base line-clamp-1 font-heading">
                           {event?.slug ? (
                             <Link
                               to={`/events/${event.slug}`}
-                              className="hover:text-[var(--color-brand-cyan)] transition-colors"
+                              className="hover:text-[#18CFFC] transition-colors"
                             >
                               {event.title}
                             </Link>
                           ) : (
-                            <span className="text-[var(--color-text-secondary)] italic">
+                            <span className="text-zinc-400 italic">
                               {event?.title || 'Event Details Unavailable'}
                             </span>
                           )}
@@ -750,16 +727,16 @@ export default function StudentDashboardPage() {
 
                         {/* Team Info if Team Event */}
                         {isTeam && (
-                          <div className="mt-2 p-2 rounded-xl bg-[var(--color-surface-2)]/70 border border-[var(--color-surface-3)] text-xs">
-                            <div className="flex items-center justify-between text-[var(--color-brand-purple)] font-medium">
+                          <div className="mt-2 p-2.5 rounded-xl bg-[#14141A] border border-white/[0.06] text-xs">
+                            <div className="flex items-center justify-between text-[#18CFFC] font-medium">
                               <span className="flex items-center gap-1.5">
                                 <Users size={13} />
-                                <strong className="text-[var(--color-text-primary)]">
+                                <strong className="text-white">
                                   {reg.team_name || 'Team Registration'}
                                 </strong>
                               </span>
                               <div className="flex items-center gap-2">
-                                <span className="text-[11px] text-[var(--color-text-muted)]">
+                                <span className="text-[11px] text-zinc-400">
                                   {reg.team_role === 'leader' ? 'Team Leader' : 'Team Member'}
                                 </span>
                                 {reg.team_id && (
@@ -769,7 +746,7 @@ export default function StudentDashboardPage() {
                                       setSelectedTeamId(reg.team_id)
                                       setShowTeamModal(true)
                                     }}
-                                    className="px-2 py-0.5 rounded-lg bg-[var(--color-brand-purple)]/15 hover:bg-[var(--color-brand-purple)]/25 text-[var(--color-brand-purple)] text-[11px] font-semibold transition-colors cursor-pointer"
+                                    className="px-2 py-0.5 rounded-lg bg-[#18CFFC]/15 hover:bg-[#18CFFC]/25 text-[#18CFFC] text-[11px] font-semibold transition-colors cursor-pointer"
                                   >
                                     {reg.team_role === 'leader' ? 'Manage Squad' : 'View Squad'}
                                   </button>
@@ -778,7 +755,7 @@ export default function StudentDashboardPage() {
                             </div>
 
                             {teamMembers.length > 0 && (
-                              <div className="text-[11px] text-[var(--color-text-secondary)] mt-1 truncate">
+                              <div className="text-[11px] text-zinc-400 mt-1 truncate">
                                 Members: {teamMembers.map((m: any) => m.name || m.email).filter(Boolean).join(', ')}
                               </div>
                             )}
@@ -796,12 +773,12 @@ export default function StudentDashboardPage() {
                         )}
 
                         {/* Date & Venue Metadata */}
-                        <div className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)] mt-2">
+                        <div className="flex flex-col gap-1 text-xs text-zinc-400 mt-2">
                           <span className="flex items-center gap-1.5">
-                            <Calendar size={12} className="text-[var(--color-brand-cyan)]" /> {formattedDate} • {startDate ? formattedTime : ''}
+                            <Calendar size={12} className="text-[#18CFFC]" /> {formattedDate} • {startDate ? formattedTime : ''}
                           </span>
                           <span className="flex items-center gap-1.5 truncate">
-                            <MapPin size={12} className="text-[var(--color-brand-pink)]" /> {event?.venue_name || 'Venue details unavailable'}
+                            <MapPin size={12} className="text-[#18CFFC]" /> {event?.venue_name || 'Venue details unavailable'}
                           </span>
                         </div>
                       </div>
@@ -811,20 +788,20 @@ export default function StudentDashboardPage() {
                         <img
                           src={event.poster_url}
                           alt={event.title || 'Event'}
-                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0 border border-[var(--color-surface-3)] shadow-sm"
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0 border border-white/10 shadow-sm"
                         />
                       ) : (
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#14141A] border border-white/10 flex items-center justify-center text-zinc-500 shrink-0">
                           <Ticket size={24} />
                         </div>
                       )}
                     </div>
 
                     {/* Bottom ticket action row */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[var(--color-surface-3)] text-xs">
-                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--color-text-muted)] min-w-0">
-                        <QrCode size={13} className="text-[var(--color-brand-cyan)] shrink-0" />
-                        <span className="truncate">{reg.ticket_code}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/[0.08] text-xs">
+                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-zinc-400 min-w-0">
+                        <QrCode size={13} className="text-[#18CFFC] shrink-0" />
+                        <span className="truncate bg-black/40 px-2 py-0.5 rounded font-bold text-white">{reg.ticket_code}</span>
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
@@ -841,7 +818,7 @@ export default function StudentDashboardPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-[var(--color-brand-purple)]/40 text-[var(--color-brand-purple)] hover:bg-[var(--color-brand-purple)]/10"
+                              className="border-white/15 text-zinc-200 hover:text-white"
                               rightIcon={<ArrowRight size={13} />}
                             >
                               Track Status
@@ -876,18 +853,18 @@ export default function StudentDashboardPage() {
 
                         {!isCancelled && !isRejected && (
                           (reg as any).attendance_status === 'checked_in' || (reg as any).attendance_status === 'checked_out' ? (
-                            <span className="text-[11px] text-[var(--color-text-muted)] italic px-2">
+                            <span className="text-[11px] text-zinc-500 italic px-2">
                               Admitted at Gate
                             </span>
                           ) : hasStarted ? (
-                            <span className="text-[11px] text-[var(--color-text-muted)] italic px-2">
+                            <span className="text-[11px] text-zinc-500 italic px-2">
                               Concluded
                             </span>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setCancellingReg(reg)}
-                              className="text-[11px] text-rose-400 hover:text-rose-300 font-medium ml-1 transition-colors px-2 py-1 rounded-lg hover:bg-rose-500/10"
+                              className="text-[11px] text-rose-400 hover:text-rose-300 font-medium ml-1 transition-colors px-2 py-1 rounded-lg hover:bg-rose-500/10 cursor-pointer"
                             >
                               Cancel Pass
                             </button>
@@ -895,7 +872,7 @@ export default function StudentDashboardPage() {
                         )}
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 )
               })}
             </div>

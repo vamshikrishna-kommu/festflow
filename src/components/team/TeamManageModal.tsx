@@ -223,24 +223,24 @@ export function TeamManageModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-xl rounded-3xl glass border border-[oklch(100%_0_0_/_0.15)] shadow-2xl bg-gradient-to-b from-[var(--color-surface-1)] to-[var(--color-surface-0)] text-left relative overflow-hidden my-auto"
+        className="w-full max-w-xl rounded-3xl border border-white/10 shadow-2xl bg-[#0E0E12] text-left relative overflow-hidden my-auto"
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-[var(--color-surface-3)] shrink-0 bg-[var(--color-surface-1)]/80 backdrop-blur-md flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-white/[0.08] shrink-0 bg-[#14141A]/90 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-[var(--color-brand-purple)]/20 to-[var(--color-brand-cyan)]/20 text-[var(--color-brand-purple)]">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/20 text-[#18CFFC]">
               <Users size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-display font-bold text-base text-[var(--color-text-primary)]">
+                <h3 className="font-heading font-bold text-base text-white">
                   {team?.name || 'Squad Roster'}
                 </h3>
                 <Badge variant={isTeamFull ? 'success' : 'purple'}>
                   {acceptedMembers.length}/{maxSize} Confirmed
                 </Badge>
               </div>
-              <p className="text-xs text-[var(--color-text-muted)] truncate max-w-xs">
+              <p className="text-xs text-zinc-400 truncate max-w-xs font-sans">
                 {team?.event?.title || 'Event Team'}
               </p>
             </div>
@@ -249,7 +249,7 @@ export function TeamManageModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-[var(--color-surface-3)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>

@@ -216,7 +216,7 @@ export function QrCameraScanner({
         {isScanning && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
             {/* Darkened mask */}
-            <div className="relative w-64 h-64 border-2 border-[var(--color-brand-cyan)] rounded-2xl shadow-[0_0_20px_var(--color-brand-cyan)]">
+            <div className="relative w-64 h-64 border-2 border-[#18CFFC] rounded-2xl shadow-[0_0_24px_rgba(24,207,252,0.45)]">
               {/* Corner brackets */}
               <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl" />
               <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr" />
@@ -224,7 +224,7 @@ export function QrCameraScanner({
               <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-white rounded-br" />
 
               {/* Animated scanning laser line */}
-              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-[var(--color-brand-cyan)] to-transparent animate-pulse absolute top-1/2 -translate-y-1/2" />
+              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-[#18CFFC] to-transparent animate-pulse absolute top-1/2 -translate-y-1/2" />
             </div>
 
             {/* Low-light hint at bottom of viewport */}
@@ -234,7 +234,7 @@ export function QrCameraScanner({
 
             {isProcessing && (
               <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center gap-2">
-                <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[var(--color-brand-cyan)] animate-spin" />
+                <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#18CFFC] animate-spin" />
                 <span className="text-xs font-semibold text-white tracking-wide">
                   Validating Ticket…
                 </span>
@@ -246,7 +246,7 @@ export function QrCameraScanner({
         {/* Inactive Standby Screen */}
         {!isScanning && (
           <div className="absolute inset-0 bg-[var(--color-surface-1)] p-6 flex flex-col items-center justify-center text-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-center text-[var(--color-brand-cyan)]">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-center text-[#18CFFC]">
               <Camera size={32} />
             </div>
             <div>
@@ -289,7 +289,7 @@ export function QrCameraScanner({
               <button
                 type="button"
                 onClick={onFocusManual}
-                className="text-xs text-[var(--color-brand-cyan)] font-medium hover:underline flex items-center gap-1"
+                className="text-xs text-[#18CFFC] font-medium hover:underline flex items-center gap-1"
               >
                 <Keyboard size={13} /> Switch to manual code lookup
               </button>
@@ -324,7 +324,7 @@ export function QrCameraScanner({
                 await stopScanner()
                 await startScanner(newId)
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)]"
+              className="px-2.5 py-1.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[#18CFFC]"
             >
               {cameras.map((c) => (
                 <option key={c.id} value={c.id}>

@@ -86,10 +86,10 @@ export function Modal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className={`relative w-full ${sizeClasses[size]} max-h-[92dvh] flex flex-col rounded-3xl glass-elevated border border-[oklch(100%_0_0_/_0.12)] shadow-[var(--shadow-modal)] text-left overflow-hidden z-10 ${className}`}
+            className={`relative w-full ${sizeClasses[size]} max-h-[92dvh] flex flex-col rounded-3xl bg-[#0E0E12] border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.85)] text-left overflow-hidden z-10 ${className}`}
           >
             {(title || showCloseButton) && (
-              <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[oklch(100%_0_0_/_0.08)] bg-[var(--color-surface-2)]/60 shrink-0">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/10 bg-[#14141A]/80 shrink-0">
                 <div>
                   {title && (
                     <h2 className="font-display font-bold text-base sm:text-lg text-[var(--color-text-primary)]">
@@ -107,7 +107,7 @@ export function Modal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="p-1.5 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors"
+                    className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
                     aria-label="Close dialog"
                   >
                     <X size={18} />
@@ -147,7 +147,7 @@ export function ModalFooter({
 }) {
   return (
     <div
-      className={`px-4 sm:px-6 py-3 sm:py-4 border-t border-[oklch(100%_0_0_/_0.08)] bg-[var(--color-surface-2)]/40 flex flex-wrap items-center justify-end gap-2 sm:gap-3 shrink-0 ${className}`}
+      className={`px-4 sm:px-6 py-3 sm:py-4 border-t border-white/10 bg-[#14141A]/50 flex flex-wrap items-center justify-end gap-2 sm:gap-3 shrink-0 ${className}`}
     >
       {children}
     </div>

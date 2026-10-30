@@ -50,10 +50,10 @@ export function EventCard({ event, animated = false }: EventCardProps) {
       <motion.article
         whileHover={reduced ? undefined : { y: -5, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
         whileTap={reduced ? undefined : { scale: 0.985 }}
-        className="relative flex flex-col h-full rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.07)] bg-[var(--color-surface-1)] overflow-hidden transition-all duration-300 group-hover:border-[oklch(100%_0_0_/_0.18)] group-hover:shadow-[0_16px_48px_oklch(0%_0_0_/_0.55)] cursor-pointer"
+        className="relative flex flex-col h-full rounded-2xl border border-white/[0.07] bg-[#0E0E12] overflow-hidden transition-all duration-300 group-hover:border-white/20 group-hover:bg-[#14141A] group-hover:shadow-[0_20px_48px_rgba(0,0,0,0.7),0_0_24px_rgba(127,26,251,0.20)] cursor-pointer"
       >
         {/* Proportioned Cover Image Banner (16:10 aspect ratio) */}
-        <div className="relative aspect-[16/10] w-full overflow-hidden bg-[var(--color-surface-2)] shrink-0">
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#14141A] shrink-0">
           {!imgError && event.coverImage ? (
             <img
               src={event.coverImage}
@@ -66,26 +66,26 @@ export function EventCard({ event, animated = false }: EventCardProps) {
             <div
               className="w-full h-full flex flex-col items-center justify-center p-6 text-center"
               style={{
-                background: 'linear-gradient(135deg, oklch(18% 0.04 270), oklch(14% 0.03 260))',
+                background: 'linear-gradient(135deg, #181822 0%, #0E0E12 100%)',
               }}
             >
-              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[var(--color-brand-cyan)] mb-2 shadow-inner">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#18CFFC] mb-2 shadow-inner">
                 <Calendar size={22} />
               </div>
-              <span className="text-xs font-semibold text-[var(--color-text-secondary)] line-clamp-1">
+              <span className="text-xs font-semibold text-zinc-400 line-clamp-1">
                 {event.clubName}
               </span>
             </div>
           )}
 
           {/* Vignette Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface-1)] via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E12] via-black/20 to-transparent" />
 
           {/* Top Badges */}
           <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap items-center">
             <CategoryBadge category={event.category} />
             {isTeam && (
-              <Badge variant="pink" className="text-[10px] flex items-center gap-1 shadow-sm">
+              <Badge variant="purple" className="text-[10px] flex items-center gap-1 shadow-sm">
                 <Users size={10} /> Team
               </Badge>
             )}
@@ -99,11 +99,11 @@ export function EventCard({ event, animated = false }: EventCardProps) {
           {/* Price badge */}
           <div className="absolute top-3 right-3">
             {event.isFree ? (
-              <span className="glass rounded-full px-2.5 py-0.5 text-[11px] font-bold text-emerald-400 ring-1 ring-emerald-400/30 shadow-md">
+              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 backdrop-blur-md shadow-md">
                 FREE
               </span>
             ) : (
-              <span className="glass rounded-full px-2.5 py-0.5 text-[11px] font-bold text-[var(--color-text-primary)] ring-1 ring-white/15 shadow-md">
+              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-[#14141A]/90 text-white border border-white/15 backdrop-blur-md shadow-md">
                 ₹{event.price}
               </span>
             )}
@@ -111,7 +111,7 @@ export function EventCard({ event, animated = false }: EventCardProps) {
 
           {/* Arrow hint on hover */}
           <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="w-8 h-8 rounded-full bg-[var(--color-brand-cyan)] text-black flex items-center justify-center shadow-lg font-bold">
+            <span className="w-8 h-8 rounded-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white flex items-center justify-center shadow-lg font-bold">
               <ArrowUpRight size={15} />
             </span>
           </div>
@@ -127,39 +127,39 @@ export function EventCard({ event, animated = false }: EventCardProps) {
               width={20}
               height={20}
               loading="lazy"
-              className="rounded-full shrink-0 ring-1 ring-[oklch(100%_0_0_/_0.1)] object-cover"
+              className="rounded-full shrink-0 ring-1 ring-white/10 object-cover"
             />
-            <span className="text-xs text-[var(--color-text-muted)] truncate font-medium flex items-center gap-1">
+            <span className="text-xs text-zinc-400 truncate font-medium flex items-center gap-1">
               {event.clubName}
               <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
             </span>
           </div>
 
           {/* Event Title */}
-          <h3 className="font-display font-bold text-base leading-snug text-[var(--color-text-primary)] line-clamp-2 group-hover:text-[var(--color-brand-cyan)] transition-colors duration-200">
+          <h3 className="font-display font-bold text-base leading-snug text-white line-clamp-2 group-hover:text-[#18CFFC] transition-colors duration-200">
             {event.title}
           </h3>
 
           {/* Meta Information */}
-          <div className="flex flex-col gap-1.5 text-xs text-[var(--color-text-muted)]">
+          <div className="flex flex-col gap-1.5 text-xs text-zinc-400">
             <div className="flex items-center gap-1.5">
-              <Calendar size={12} aria-hidden="true" className="shrink-0 text-[var(--color-brand-cyan)]" />
+              <Calendar size={12} aria-hidden="true" className="shrink-0 text-[#18CFFC]" />
               <span className="truncate">{formatDate(event.date)}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Clock size={12} aria-hidden="true" className="shrink-0 text-[var(--color-brand-purple)]" />
+              <Clock size={12} aria-hidden="true" className="shrink-0 text-[#ED47FC]" />
               <span className="truncate">{event.time}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <MapPin size={12} aria-hidden="true" className="shrink-0 text-[var(--color-brand-pink)]" />
+              <MapPin size={12} aria-hidden="true" className="shrink-0 text-zinc-500" />
               <span className="truncate">{event.venue || event.location}</span>
             </div>
           </div>
 
           {/* Capacity and Availability Bar (backed by genuine DB data) */}
-          <div className="mt-auto pt-2 border-t border-[oklch(100%_0_0_/_0.06)]">
+          <div className="mt-auto pt-2 border-t border-white/[0.06]">
             <div className="flex items-center justify-between mb-1.5 text-[11px]">
-              <div className="flex items-center gap-1 text-[var(--color-text-muted)]">
+              <div className="flex items-center gap-1 text-zinc-400">
                 <Users size={11} aria-hidden="true" />
                 {registered > 0 ? (
                   <span>
@@ -173,7 +173,7 @@ export function EventCard({ event, animated = false }: EventCardProps) {
               {isFull ? (
                 <span className="font-semibold text-rose-400">Sold out</span>
               ) : isNearFull && spots !== null ? (
-                <span className="font-semibold text-[var(--color-brand-amber)]">{spots} left</span>
+                <span className="font-semibold text-amber-400">{spots} left</span>
               ) : (
                 <span className="text-emerald-400 font-medium">Open</span>
               )}
@@ -181,7 +181,7 @@ export function EventCard({ event, animated = false }: EventCardProps) {
 
             {hasCapacity && (
               <div
-                className="h-1 rounded-full overflow-hidden bg-[var(--color-surface-3)]"
+                className="h-1 rounded-full overflow-hidden bg-white/10"
                 role="progressbar"
                 aria-valuenow={registered}
                 aria-valuemax={event.capacity}
@@ -192,10 +192,10 @@ export function EventCard({ event, animated = false }: EventCardProps) {
                   style={{
                     width: registered > 0 ? `${Math.max(fillPct, 4)}%` : '0%',
                     background: isFull
-                      ? 'oklch(55% 0.22 25)'
+                      ? '#f43f5e'
                       : isNearFull
-                      ? 'oklch(76% 0.17 68)'
-                      : 'linear-gradient(90deg, var(--color-brand-cyan), var(--color-brand-violet))',
+                      ? '#f59e0b'
+                      : 'linear-gradient(90deg, #18CFFC, #07A4FC, #7F1AFB)',
                   }}
                 />
               </div>

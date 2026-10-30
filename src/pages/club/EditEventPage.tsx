@@ -74,7 +74,7 @@ export default function EditEventPage() {
   if (loading) {
     return (
       <div className="min-h-screen pt-32 flex flex-col items-center justify-center bg-[var(--color-surface-0)]">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
         <span className="text-xs text-[var(--color-text-muted)]">Loading event data…</span>
       </div>
     )

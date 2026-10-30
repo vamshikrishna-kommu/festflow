@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { EventCard } from '@/components/sections/EventCard'
-import { Button, Badge, EmptyState } from '@/components/ui'
+import { Button, EmptyState } from '@/components/ui'
 import { staggerContainer, fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { EVENT_CATEGORIES, type CategoryFilter } from '@/lib/mock-data'
@@ -102,17 +102,17 @@ export default function DiscoverPage() {
   return (
     <PageShell>
       {/* ── Page Hero Header ─────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden border-b border-[oklch(100%_0_0_/_0.06)] pb-8 sm:pb-12 text-left">
+      <div className="relative overflow-hidden border-b border-white/[0.06] pb-8 sm:pb-12 text-left bg-gradient-to-b from-[#0E0E12] to-[#08080A]">
         {/* Subtle background glow */}
         <div
           aria-hidden="true"
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 80% 100% at 50% 0%, oklch(58% 0.26 285 / 0.08) 0%, oklch(72% 0.16 200 / 0.04) 50%, transparent 80%)',
+              'radial-gradient(ellipse 70% 90% at 50% -10%, rgba(255, 87, 34, 0.12) 0%, rgba(255, 122, 26, 0.04) 45%, transparent 75%)',
           }}
         />
-        <div aria-hidden="true" className="absolute inset-0 grid-pattern opacity-20 pointer-events-none" />
+        <div aria-hidden="true" className="absolute inset-0 grid-pattern opacity-15 pointer-events-none" />
 
         <motion.div
           variants={staggerContainer}
@@ -124,21 +124,21 @@ export default function DiscoverPage() {
             variants={reduced ? undefined : fadeUp}
             className="flex items-center gap-2 mb-2"
           >
-            <Badge variant="cyan" className="flex items-center gap-1.5 text-xs">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC]">
               <Sparkles size={12} aria-hidden="true" /> Campus Directory
-            </Badge>
+            </div>
           </motion.div>
 
           <motion.h1
             variants={reduced ? undefined : fadeUp}
-            className="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl text-[var(--color-text-primary)] mb-3 tracking-tight"
+            className="font-heading font-extrabold text-3xl sm:text-4xl md:text-5xl text-white mb-3 tracking-tight"
           >
             Discover Events
           </motion.h1>
 
           <motion.p
             variants={reduced ? undefined : fadeUp}
-            className="max-w-xl text-sm sm:text-base text-[var(--color-text-secondary)] leading-relaxed"
+            className="max-w-xl text-sm sm:text-base text-zinc-400 leading-relaxed font-sans"
           >
             Explore upcoming hackathons, cultural fests, workshops, esports tournaments, and academic symposiums published by campus clubs.
           </motion.p>
@@ -148,8 +148,8 @@ export default function DiscoverPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 w-full text-left">
         {/* ── Search & Controls Bar ──────────────────────────────────── */}
         <div
-          className="sticky top-16 z-30 py-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-6 border-b border-[oklch(100%_0_0_/_0.06)]"
-          style={{ background: 'oklch(6% 0.018 265 / 0.94)', backdropFilter: 'blur(16px)' }}
+          className="sticky top-16 z-30 py-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-6 border-b border-white/[0.08]"
+          style={{ background: 'rgba(8, 8, 10, 0.92)', backdropFilter: 'blur(20px)' }}
         >
           <div className="flex flex-col gap-3 max-w-7xl mx-auto">
             {/* Search Input Row */}
@@ -158,7 +158,7 @@ export default function DiscoverPage() {
                 <Search
                   size={16}
                   aria-hidden="true"
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
                 />
                 <input
                   id="event-search"
@@ -167,13 +167,13 @@ export default function DiscoverPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   aria-label="Search campus events"
-                  className="w-full h-11 pl-10 pr-10 rounded-[var(--radius-button)] bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.09)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-cyan)] focus:ring-2 focus:ring-[oklch(72%_0.16_200_/_0.2)] transition-all shadow-sm"
+                  className="w-full h-11 pl-10 pr-10 rounded-xl bg-[#14141A] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] focus:ring-2 focus:ring-[#18CFFC]/20 transition-all shadow-inner"
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch('')}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                     aria-label="Clear search"
                   >
                     <X size={15} />
@@ -184,17 +184,17 @@ export default function DiscoverPage() {
               {/* Sub-Filters: Participation & Pricing */}
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0 py-0.5">
                 {/* Participation filter */}
-                <div className="flex items-center rounded-xl bg-[var(--color-surface-2)] p-1 border border-[oklch(100%_0_0_/_0.06)] text-xs">
+                <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs">
                   {(['all', 'individual', 'team'] as const).map((mode) => (
                     <motion.button
                       key={mode}
                       type="button"
                       whileTap={{ scale: 0.94 }}
                       onClick={() => setParticipationFilter(mode)}
-                      className={`px-2.5 py-1 rounded-lg font-medium transition-all capitalize cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg font-medium transition-all capitalize cursor-pointer text-xs ${
                         participationFilter === mode
-                          ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow-sm'
-                          : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                          ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10'
+                          : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       {mode === 'all' ? 'All Formats' : mode === 'team' ? 'Team' : 'Solo'}
@@ -203,17 +203,17 @@ export default function DiscoverPage() {
                 </div>
 
                 {/* Pricing filter */}
-                <div className="flex items-center rounded-xl bg-[var(--color-surface-2)] p-1 border border-[oklch(100%_0_0_/_0.06)] text-xs">
+                <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs">
                   {(['all', 'free', 'paid'] as const).map((price) => (
                     <motion.button
                       key={price}
                       type="button"
                       whileTap={{ scale: 0.94 }}
                       onClick={() => setPricingFilter(price)}
-                      className={`px-2.5 py-1 rounded-lg font-medium transition-all capitalize cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg font-medium transition-all capitalize cursor-pointer text-xs ${
                         pricingFilter === price
-                          ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow-sm'
-                          : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                          ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10'
+                          : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       {price === 'all' ? 'Any Price' : price === 'free' ? 'Free Pass' : 'Ticketed'}
@@ -236,14 +236,14 @@ export default function DiscoverPage() {
                     key={value}
                     type="button"
                     id={`cat-filter-${value}`}
-                    whileHover={{ scale: 1.03 }}
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setCategory(value)}
                     aria-pressed={isSelected}
-                    className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-xl text-xs font-medium border transition-all duration-200 capitalize flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-xl text-xs font-semibold border transition-all duration-200 capitalize flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-black border-transparent font-bold shadow-md shadow-[var(--color-brand-cyan)]/20'
-                        : 'bg-[var(--color-surface-1)] border-[oklch(100%_0_0_/_0.08)] text-[var(--color-text-secondary)] hover:border-[var(--color-brand-cyan)] hover:text-[var(--color-text-primary)]'
+                        ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white border-[#18CFFC]/50 shadow-md shadow-[#18CFFC]/25'
+                        : 'bg-[#0E0E12] border-white/[0.08] text-zinc-400 hover:border-white/20 hover:text-white'
                     }`}
                   >
                     <span>{label}</span>
@@ -253,16 +253,16 @@ export default function DiscoverPage() {
             </div>
 
             {/* Results Count & Active Filters Indicator */}
-            <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] pt-1">
+            <div className="flex items-center justify-between text-xs text-zinc-500 pt-1 font-mono">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal size={13} aria-hidden="true" />
+                <SlidersHorizontal size={13} aria-hidden="true" className="text-[#18CFFC]" />
                 <span>
                   {loading
                     ? 'Loading verified campus events…'
                     : `${displayedEvents.length} event${displayedEvents.length !== 1 ? 's' : ''} available`}
                 </span>
                 {totalCount > displayedEvents.length && (
-                  <span className="text-[10px] text-[var(--color-text-muted)]">
+                  <span className="text-[10px] text-zinc-500">
                     (filtered from {totalCount} total)
                   </span>
                 )}
@@ -272,7 +272,7 @@ export default function DiscoverPage() {
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="text-xs text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 font-medium"
+                  className="text-xs text-[#18CFFC] hover:underline flex items-center gap-1 font-sans font-medium"
                 >
                   <X size={12} /> Clear all filters
                 </button>
@@ -295,7 +295,7 @@ export default function DiscoverPage() {
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="h-80 rounded-[var(--radius-card)] bg-[var(--color-surface-2)]/40 animate-pulse border border-[var(--color-surface-2)]"
+                className="h-80 rounded-2xl bg-[#0E0E12] animate-pulse border border-white/[0.06]"
               />
             ))}
           </div>

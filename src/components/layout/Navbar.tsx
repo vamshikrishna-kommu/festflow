@@ -150,7 +150,7 @@ export function Navbar() {
         style={{
           scaleX: progress,
           transformOrigin: '0%',
-          background: 'linear-gradient(90deg, var(--color-brand-violet), var(--color-brand-fuchsia))',
+          background: 'linear-gradient(90deg, #18CFFC, #07A4FC, #7F1AFB, #ED47FC)',
         }}
       />
 
@@ -160,8 +160,8 @@ export function Navbar() {
         animate="visible"
         className={`sticky top-0 z-50 w-full transition-all duration-300 border-b ${
           scrolled
-            ? 'glass border-[oklch(100%_0_0_/_0.08)] shadow-[0_4px_30px_oklch(0%_0_0_/_0.4)]'
-            : 'bg-[var(--color-surface-0)]/90 backdrop-blur-md border-[oklch(100%_0_0_/_0.06)]'
+            ? 'glass border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]'
+            : 'bg-[#08080A]/90 backdrop-blur-md border-white/[0.06]'
         }`}
       >
         {isProduction && !isSupabaseConfigured && (
@@ -329,10 +329,10 @@ export function Navbar() {
                                     setUserMenuOpen(false)
                                     switchWorkspace('club', navigate)
                                   }}
-                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-purple-300 hover:bg-purple-500/10 transition-colors cursor-pointer text-left"
+                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-violet-300 hover:bg-violet-500/10 transition-colors cursor-pointer text-left"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <Building2 size={14} className="text-[var(--color-brand-purple)]" />
+                                    <Building2 size={14} className="text-[#7F1AFB]" />
                                     <span>Switch to Club Space</span>
                                   </div>
                                   <ChevronRight size={12} className="opacity-60" />
@@ -490,8 +490,8 @@ export function Navbar() {
                             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors"
                           >
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ background: 'oklch(58% 0.26 285 / 0.18)' }}>
-                              <Building2 size={14} className="text-[var(--color-brand-violet)]" />
+                              style={{ background: 'rgba(127, 26, 251, 0.15)' }}>
+                              <Building2 size={14} className="text-[#7F1AFB]" />
                             </div>
                             <div>
                               <span className="font-semibold text-sm block">Club Organizer</span>
@@ -563,7 +563,7 @@ export function Navbar() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-[60] md:hidden flex flex-col"
-            style={{ background: 'oklch(6% 0.018 265 / 0.98)' }}
+            style={{ background: 'rgba(8, 8, 10, 0.98)' }}
           >
             {/* Backdrop blur */}
             <div className="absolute inset-0 backdrop-blur-xl" />

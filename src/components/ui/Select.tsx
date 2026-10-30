@@ -63,11 +63,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
           disabled={disabled}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : helperText ? helperId : undefined}
-          className={`w-full appearance-none rounded-[var(--radius-input)] bg-[var(--color-surface-2)] border text-xs sm:text-sm text-[var(--color-text-primary)] transition-all duration-200 outline-none h-11 pl-3.5 pr-10 cursor-pointer ${
+          className={`w-full appearance-none rounded-[var(--radius-input)] bg-[#14141A] border text-xs sm:text-sm text-[var(--color-text-primary)] transition-all duration-200 outline-none h-11 pl-3.5 pr-10 cursor-pointer ${
             error
               ? 'border-rose-500/70 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20'
-              : 'border-[oklch(100%_0_0_/_0.09)] focus:border-[var(--color-brand-violet)] focus:ring-2 focus:ring-[oklch(58%_0.26_285_/_0.20)]'
-          } ${disabled ? 'opacity-50 cursor-not-allowed bg-[var(--color-surface-3)]/40' : 'hover:border-[oklch(100%_0_0_/_0.15)]'} ${className}`}
+              : 'border-white/10 focus:border-[#18CFFC] focus:ring-2 focus:ring-[#18CFFC]/20'
+          } ${disabled ? 'opacity-50 cursor-not-allowed bg-white/5' : 'hover:border-white/20'} ${className}`}
           {...props}
         >
           {options

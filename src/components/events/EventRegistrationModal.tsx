@@ -470,20 +470,20 @@ export function EventRegistrationModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-xl max-h-[94dvh] sm:max-h-[88vh] flex flex-col rounded-3xl glass border border-[oklch(100%_0_0_/_0.15)] shadow-2xl bg-gradient-to-b from-[var(--color-surface-1)] to-[var(--color-surface-0)] text-left relative overflow-hidden"
+        className="w-full max-w-xl max-h-[94dvh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-white/[0.1] shadow-2xl bg-[#0E0E12] text-left relative overflow-hidden"
       >
         {/* ── Sticky Modal Header ─────────────────────────────────────────── */}
-        <div className="p-4 sm:p-5 border-b border-[var(--color-surface-3)] shrink-0 bg-[var(--color-surface-1)]/80 backdrop-blur-md flex flex-col gap-3">
+        <div className="p-4 sm:p-5 border-b border-white/[0.08] shrink-0 bg-[#14141A]/90 backdrop-blur-md flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-brand-purple)] to-[var(--color-brand-cyan)] flex items-center justify-center text-white shrink-0 shadow-md">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 shadow-md shadow-[#18CFFC]/20">
                 <Ticket size={18} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm sm:text-base font-bold font-display text-[var(--color-text-primary)] truncate">
+                <h3 className="text-sm sm:text-base font-bold font-heading text-white truncate">
                   {step === 6 ? 'Registration Reference' : event.title}
                 </h3>
-                <span className="text-[11px] text-[var(--color-text-muted)] block truncate">
+                <span className="text-[11px] text-zinc-400 block truncate font-sans">
                   {event.is_free ? 'Free Campus Pass' : `Fee: ${event.currency || '₹'}${event.price}`} • {event.venue_name || 'Online'}
                 </span>
               </div>
@@ -493,7 +493,7 @@ export function EventRegistrationModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="p-1.5 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Close dialog"
             >
               <X size={18} />
@@ -503,7 +503,7 @@ export function EventRegistrationModal({
           {/* Stepper Progress Bar (Steps 1 to 5) */}
           {step < 6 && (
             <div className="flex flex-col gap-1.5 pt-1">
-              <div className="flex items-center justify-between text-[11px] font-medium text-[var(--color-text-secondary)]">
+              <div className="flex items-center justify-between text-[11px] font-medium text-zinc-300">
                 <span>
                   {step === 1 && '1. Event & Eligibility Review'}
                   {step === 2 && '2. Attendee Profile Details'}
@@ -511,13 +511,13 @@ export function EventRegistrationModal({
                   {step === 4 && '4. Organizer Questionnaire'}
                   {step === 5 && '5. Review & Final Agreement'}
                 </span>
-                <span className="text-[var(--color-text-muted)] font-mono text-[10px]">
+                <span className="text-zinc-500 font-mono text-[10px]">
                   Step {step < 5 ? step : totalFlowSteps} of {totalFlowSteps}
                 </span>
               </div>
-              <div className="w-full h-1.5 rounded-full bg-[var(--color-surface-3)] overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-purple)] transition-all duration-300 rounded-full"
+                  className="h-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] transition-all duration-300 rounded-full"
                   style={{ width: `${currentStepProgress}%` }}
                 />
               </div>

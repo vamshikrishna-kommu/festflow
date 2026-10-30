@@ -544,7 +544,7 @@ export default function StudentPaymentPage() {
                       <span className="text-xs uppercase tracking-wider font-semibold text-[var(--color-text-muted)] mb-1">
                         Amount Due
                       </span>
-                      <div className="text-3xl sm:text-4xl font-extrabold font-display text-[var(--color-text-primary)] mb-4">
+                      <div className="text-3xl sm:text-4xl font-extrabold font-heading text-white mb-4">
                         {effectiveCurrency} {effectiveAmount.toLocaleString()}
                       </div>
 
@@ -552,14 +552,14 @@ export default function StudentPaymentPage() {
                         <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2 text-center w-full my-4">
                           <AlertTriangle size={28} className="mx-auto text-amber-400" />
                           <h4 className="font-bold text-sm text-amber-200">UPI Not Configured</h4>
-                          <p className="text-xs text-amber-300/80 leading-relaxed">
+                          <p className="text-xs text-amber-300/80 leading-relaxed font-sans">
                             The host club has not configured their UPI ID yet. Please contact the event organizer.
                           </p>
                         </div>
                       ) : (
                         <>
                           {/* QR Code Container */}
-                          <div className="p-4 bg-white rounded-2xl shadow-lg border border-[var(--color-surface-3)] mb-4 max-w-[220px] w-full flex items-center justify-center">
+                          <div className="p-4 bg-white rounded-2xl shadow-xl border border-white/20 mb-4 max-w-[220px] w-full flex items-center justify-center">
                             {clubSettings?.qr_image_url ? (
                               <img
                                 src={clubSettings.qr_image_url}
@@ -576,25 +576,25 @@ export default function StudentPaymentPage() {
                               />
                             )}
                           </div>
-                          <span className="text-[11px] text-[var(--color-text-muted)] mb-3">
+                          <span className="text-[11px] text-zinc-400 mb-3 font-sans">
                             Scan with Google Pay, PhonePe, Paytm, or BHIM
                           </span>
 
                           {/* Mobile Intent Button */}
                           <a
                             href={upiIntentUri}
-                            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all mb-4"
+                            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all mb-4 cursor-pointer"
                           >
                             <Smartphone size={15} /> Pay using UPI App
                           </a>
 
                           {/* UPI ID Pill with Copy */}
-                          <div className="w-full p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-between gap-2 text-left">
+                          <div className="w-full p-3 rounded-xl bg-[#14141A] border border-white/[0.08] flex items-center justify-between gap-2 text-left">
                             <div className="truncate">
-                              <span className="text-[10px] uppercase font-semibold text-[var(--color-text-muted)] block">
+                              <span className="text-[10px] uppercase font-semibold text-zinc-500 block">
                                 Organizer UPI ID
                               </span>
-                              <span className="text-xs sm:text-sm font-mono font-bold text-[var(--color-text-primary)] truncate block">
+                              <span className="text-xs sm:text-sm font-mono font-bold text-white truncate block">
                                 {effectiveUpi}
                               </span>
                             </div>
@@ -616,22 +616,22 @@ export default function StudentPaymentPage() {
                         </>
                       )}
 
-                      <div className="w-full mt-4 text-left text-xs text-[var(--color-text-secondary)] space-y-1.5 pt-3 border-t border-[var(--color-surface-3)]">
+                      <div className="w-full mt-4 text-left text-xs text-zinc-400 space-y-1.5 pt-3 border-t border-white/[0.08]">
                         <div className="flex justify-between">
-                          <span className="text-[var(--color-text-muted)]">Payee Display Name:</span>
-                          <span className="text-[var(--color-text-primary)] font-medium">
+                          <span className="text-zinc-500">Payee Display Name:</span>
+                          <span className="text-white font-medium">
                             {effectiveName}
                           </span>
                         </div>
                         {clubSettings?.payment_instructions && (
-                          <div className="p-2.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-surface-2)] text-[11px] text-[var(--color-text-muted)] italic mt-2">
+                          <div className="p-2.5 rounded-lg bg-[#14141A] border border-white/[0.06] text-[11px] text-zinc-400 italic mt-2">
                             "{clubSettings.payment_instructions}"
                           </div>
                         )}
                       </div>
 
-                      <div className="w-full mt-3 p-3 rounded-xl bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] text-left flex items-start gap-2 text-[11px] text-[var(--color-text-muted)]">
-                        <Info size={14} className="text-cyan-400 shrink-0 mt-0.5" />
+                      <div className="w-full mt-3 p-3 rounded-xl bg-[#14141A] border border-white/[0.08] text-left flex items-start gap-2 text-[11px] text-zinc-400">
+                        <Info size={14} className="text-[#18CFFC] shrink-0 mt-0.5" />
                         <span>
                           Opening a UPI app or scanning the QR initiates payment with your bank. You must submit your 12-digit UTR below for organizer verification.
                         </span>

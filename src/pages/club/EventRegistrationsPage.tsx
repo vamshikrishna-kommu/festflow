@@ -438,13 +438,18 @@ export default function EventRegistrationsPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="glass p-5 sm:p-7 md:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xl relative overflow-hidden"
+          className="p-5 sm:p-7 md:p-8 rounded-3xl border border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#0E0E12] to-[#08080A]"
         >
-          <div className="min-w-0">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(255, 87, 34, 0.12) 0%, transparent 65%)' }}
+          />
+          <div className="min-w-0 relative">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge variant="purple" className="capitalize text-[10px]">
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-300">
                 {event.category}
-              </Badge>
+              </span>
               <Badge
                 variant={event.status === 'published' ? 'success' : 'amber'}
                 className="capitalize text-[10px]"
@@ -456,30 +461,30 @@ export default function EventRegistrationsPage() {
                   Team Event
                 </Badge>
               )}
-              <span className="text-xs text-[var(--color-text-muted)] font-mono truncate max-w-[200px]">
+              <span className="text-xs text-zinc-500 font-mono truncate max-w-[200px]">
                 /{event.slug}
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white">
               {event.title}
             </h1>
-            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-1 flex items-center gap-2 flex-wrap">
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1 flex items-center gap-2 flex-wrap font-sans">
               <span className="flex items-center gap-1">
-                <MapPin size={13} /> {event.venue_name || 'Campus Venue'}
+                <MapPin size={13} className="text-[#18CFFC]" /> {event.venue_name || 'Campus Venue'}
               </span>
-              <span>•</span>
-              <span className="font-semibold text-[var(--color-text-primary)]">
+              <span className="text-zinc-600">•</span>
+              <span className="font-semibold text-white font-mono">
                 {event.is_free ? 'Free Admission' : `₹${event.price} Pass`}
               </span>
-              <span>•</span>
-              <span className="text-[var(--color-brand-cyan)] font-medium">
+              <span className="text-zinc-600">•</span>
+              <span className="text-[#18CFFC] font-medium font-mono">
                 {insideCount} admitted inside ({checkedOutCount} exited)
               </span>
             </p>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)]">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-white/[0.08] relative">
             {/* Primary Excel Export Button */}
             <Button
               variant="outline"
@@ -497,7 +502,7 @@ export default function EventRegistrationsPage() {
                   variant="primary"
                   size="sm"
                   leftIcon={<QrCode size={13} />}
-                  className="w-full justify-center bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black border-none font-semibold shadow-sm"
+                  className="w-full justify-center shadow-sm"
                 >
                   Gate Check-In
                 </Button>

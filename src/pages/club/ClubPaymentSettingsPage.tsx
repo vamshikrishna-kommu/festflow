@@ -354,17 +354,17 @@ export default function ClubPaymentSettingsPage() {
         />
 
         {/* Section Navigation Tabs */}
-        <div className="flex items-center gap-2 p-1.5 bg-[var(--color-surface-2)] rounded-2xl border border-[oklch(100%_0_0_/_0.06)] text-xs">
+        <div className="flex items-center gap-2 p-1.5 bg-[#0E0E12] rounded-2xl border border-white/10 text-xs">
           <button
             type="button"
             onClick={() => handleTabChange('profile')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
               activeTab === 'profile'
-                ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow-sm'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
+                : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
             }`}
           >
-            <Building2 size={16} className={activeTab === 'profile' ? 'text-[var(--color-brand-purple)]' : ''} />
+            <Building2 size={16} />
             <span>Club Organization Profile</span>
           </button>
 
@@ -373,11 +373,11 @@ export default function ClubPaymentSettingsPage() {
             onClick={() => handleTabChange('payments')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
               activeTab === 'payments'
-                ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] font-semibold shadow-sm'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
+                : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
             }`}
           >
-            <CreditCard size={16} className={activeTab === 'payments' ? 'text-[var(--color-brand-cyan)]' : ''} />
+            <CreditCard size={16} />
             <span>UPI & Payment Gateway</span>
           </button>
         </div>
@@ -402,7 +402,7 @@ export default function ClubPaymentSettingsPage() {
                     Visible to campus students across event badges, tickets, and college directory feeds.
                   </p>
                 </div>
-                <span className="p-2 rounded-xl bg-[var(--color-brand-purple)]/15 text-[var(--color-brand-purple)]">
+                <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/20">
                   <Building2 size={18} />
                 </span>
               </div>
@@ -422,7 +422,7 @@ export default function ClubPaymentSettingsPage() {
                   placeholder="e.g. ACM Student Chapter, Robotics Club, IEEE Society"
                   value={clubNameInput}
                   onChange={(e) => setClubNameInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                 />
               </div>
 
@@ -443,7 +443,7 @@ export default function ClubPaymentSettingsPage() {
                     placeholder="e.g. Alex Chen"
                     value={repNameInput}
                     onChange={(e) => setRepNameInput(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                   />
                 </div>
                 <span className="text-[11px] text-[var(--color-text-muted)] mt-1.5 block">
@@ -467,7 +467,7 @@ export default function ClubPaymentSettingsPage() {
                     placeholder="https://robotics-festflow.edu"
                     value={websiteInput}
                     onChange={(e) => setWebsiteInput(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                   />
                 </div>
               </div>
@@ -486,7 +486,7 @@ export default function ClubPaymentSettingsPage() {
                   placeholder="Briefly describe your club, regular activities, and what students can expect when attending your events."
                   value={descriptionInput}
                   onChange={(e) => setDescriptionInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                 />
               </div>
 
@@ -522,7 +522,7 @@ export default function ClubPaymentSettingsPage() {
 
               {loading ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin" />
+                  <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin" />
                   <span className="text-xs text-[var(--color-text-muted)]">Loading payment configuration…</span>
                 </div>
               ) : (
@@ -543,7 +543,7 @@ export default function ClubPaymentSettingsPage() {
                         placeholder="e.g. acm.chapter@okaxis or robotics.fest@icici"
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors font-mono"
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors font-mono"
                       />
                     </div>
                     <span className="text-[11px] text-[var(--color-text-muted)] mt-1.5 block">
@@ -566,7 +566,7 @@ export default function ClubPaymentSettingsPage() {
                       placeholder="e.g. Campus Robotics Club or ACM Student Chapter"
                       value={accountName}
                       onChange={(e) => setAccountName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                     />
                     <span className="text-[11px] text-[var(--color-text-muted)] mt-1.5 block">
                       This payee name will be shown to students on the payment checkout page so they can verify before confirming the transfer in their UPI app.
@@ -587,7 +587,7 @@ export default function ClubPaymentSettingsPage() {
                       placeholder="e.g. Please put your registration number in the payment note. Verification takes up to 2 hours."
                       value={paymentInstructions}
                       onChange={(e) => setPaymentInstructions(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
                     />
                   </div>
 

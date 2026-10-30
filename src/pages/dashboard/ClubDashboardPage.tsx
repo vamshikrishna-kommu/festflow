@@ -16,7 +16,7 @@ import {
   TrendingUp,
   GraduationCap,
 } from 'lucide-react'
-import { Button, Badge, Card, Logo, EmptyState } from '@/components/ui'
+import { Button, Badge, Logo, EmptyState } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { Link, useNavigate } from 'react-router'
@@ -187,26 +187,24 @@ export default function ClubDashboardPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="relative rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] overflow-hidden p-5 sm:p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_12px_40px_oklch(0%_0_0_/_0.4)]"
-          style={{ background: 'linear-gradient(135deg, oklch(10% 0.025 265), oklch(12% 0.03 275))' }}
+          className="relative rounded-3xl border border-white/[0.08] overflow-hidden p-5 sm:p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl bg-gradient-to-b from-[#0E0E12] to-[#08080A]"
         >
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at 15% 40%, oklch(58% 0.26 285 / 0.12) 0%, transparent 65%)' }}
+            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(255, 87, 34, 0.12) 0%, transparent 65%)' }}
           />
 
           <div className="relative flex items-center gap-4 sm:gap-5">
             <div
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 border border-white/10"
-              style={{ background: 'linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-pink))' }}
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-[#18CFFC]/20 shrink-0 border border-white/10 bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB]"
             >
               <Building2 size={32} className="sm:w-9 sm:h-9" />
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)] truncate">
+                <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white truncate">
                   {clubName}
                 </h1>
                 <Badge variant="purple" className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs">
@@ -214,12 +212,12 @@ export default function ClubDashboardPage() {
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] flex-wrap">
-                <span>Lead: <strong className="text-[var(--color-text-primary)]">{repName}</strong></span>
+              <div className="flex items-center gap-2 text-xs text-zinc-400 flex-wrap font-sans">
+                <span>Lead: <strong className="text-white">{repName}</strong></span>
                 {profile?.email && (
                   <>
-                    <span>•</span>
-                    <span className="text-[var(--color-text-muted)] truncate max-w-[220px]">
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-500 truncate max-w-[220px]">
                       {profile.email}
                     </span>
                   </>
@@ -228,7 +226,7 @@ export default function ClubDashboardPage() {
             </div>
           </div>
 
-          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-[oklch(100%_0_0_/_0.06)] shrink-0">
+          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.08] shrink-0">
             {(!activeClubRole || hasPermission(activeClubRole, 'review_payments')) && (
               <Link to="/club/payments">
                 <Button
@@ -280,7 +278,7 @@ export default function ClubDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => switchWorkspace('student', navigate)}
-                className="text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/10"
+                className="text-zinc-300 hover:text-white"
                 leftIcon={<GraduationCap size={15} />}
               >
                 Student Space
@@ -303,21 +301,7 @@ export default function ClubDashboardPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="relative rounded-2xl overflow-hidden p-5 sm:p-6 border transition-all shadow-md"
-          style={{
-            background:
-              organizerNextAction.type === 'pending_payment'
-                ? 'linear-gradient(135deg, oklch(76% 0.17 68 / 0.12), oklch(62% 0.22 45 / 0.08))'
-                : organizerNextAction.type === 'event_active'
-                ? 'linear-gradient(135deg, oklch(72% 0.16 200 / 0.12), oklch(58% 0.26 285 / 0.08))'
-                : 'linear-gradient(135deg, oklch(14% 0.03 270), oklch(12% 0.02 265))',
-            borderColor:
-              organizerNextAction.type === 'pending_payment'
-                ? 'oklch(76% 0.17 68 / 0.3)'
-                : organizerNextAction.type === 'event_active'
-                ? 'oklch(72% 0.16 200 / 0.3)'
-                : 'oklch(100% 0 0 / 0.08)',
-          }}
+          className="relative rounded-2xl overflow-hidden p-5 sm:p-6 border transition-all shadow-md bg-[#0E0E12] border-white/[0.08]"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3.5">
@@ -326,8 +310,8 @@ export default function ClubDashboardPage() {
                   organizerNextAction.type === 'pending_payment'
                     ? 'bg-amber-500/20 text-amber-300'
                     : organizerNextAction.type === 'event_active'
-                    ? 'bg-cyan-500/20 text-cyan-300'
-                    : 'bg-[var(--color-surface-2)] text-[var(--color-brand-purple)]'
+                    ? 'bg-[#18CFFC]/20 text-[#18CFFC]'
+                    : 'bg-[#14141A] text-[#18CFFC]'
                 }`}
               >
                 {organizerNextAction.type === 'pending_payment' ? (
@@ -345,10 +329,10 @@ export default function ClubDashboardPage() {
                     {organizerNextAction.badge}
                   </Badge>
                 </div>
-                <h2 className="text-base sm:text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-base sm:text-lg font-bold font-heading text-white">
                   {organizerNextAction.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-0.5 max-w-2xl leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 max-w-2xl leading-relaxed font-sans">
                   {organizerNextAction.description}
                 </p>
               </div>
@@ -394,8 +378,8 @@ export default function ClubDashboardPage() {
               value: loading ? '…' : publishedCount.toString(),
               subtitle: 'Active campus listings',
               icon: Calendar,
-              color: 'text-purple-400',
-              badgeStyle: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
+              color: 'text-[#18CFFC]',
+              badgeStyle: 'bg-[#18CFFC]/10 border-[#18CFFC]/20 text-[#18CFFC]',
               link: '/club/events',
             },
             {
@@ -412,23 +396,23 @@ export default function ClubDashboardPage() {
               value: loading ? '…' : `${totalCapacity.toLocaleString()} seats`,
               subtitle: `${events.length} total event listings`,
               icon: Users,
-              color: 'text-cyan-400',
-              badgeStyle: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
+              color: 'text-zinc-300',
+              badgeStyle: 'bg-white/10 border-white/15 text-zinc-300',
             },
           ].map((stat, i) => {
             const Icon = stat.icon
             const content = (
               <motion.div variants={metricItem} className="h-full">
-                <Card
+                <div
                   key={i}
-                  className={`p-4 sm:p-5 flex flex-col justify-between gap-3 h-full transition-all duration-200 ${
+                  className={`p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border flex flex-col justify-between gap-3 h-full transition-all duration-200 ${
                     stat.highlight
-                      ? 'border-amber-500/40 bg-amber-500/[0.04] shadow-[0_0_20px_oklch(76%_0.17_68_/_0.15)]'
-                      : 'hover:border-[oklch(100%_0_0_/_0.15)]'
+                      ? 'border-amber-500/40 bg-amber-500/[0.04] shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                      : 'border-white/[0.08] hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--color-text-muted)] font-medium">
+                    <span className="text-xs text-zinc-400 font-medium font-sans">
                       {stat.label}
                     </span>
                     <div className={`p-2 rounded-xl border ${stat.badgeStyle}`}>
@@ -438,17 +422,17 @@ export default function ClubDashboardPage() {
 
                   <div>
                     <span
-                      className={`text-2xl sm:text-3xl font-bold font-display ${
-                        stat.highlight ? 'text-amber-400' : 'text-[var(--color-text-primary)]'
+                      className={`text-2xl sm:text-3xl font-extrabold font-heading font-mono ${
+                        stat.highlight ? 'text-amber-400' : 'text-white'
                       }`}
                     >
                       {stat.value}
                     </span>
-                    <span className="text-[11px] text-[var(--color-text-muted)] block mt-0.5 truncate">
+                    <span className="text-[11px] text-zinc-500 block mt-0.5 truncate font-sans">
                       {stat.subtitle}
                     </span>
                   </div>
-                </Card>
+                </div>
               </motion.div>
             )
             return stat.link ? (
@@ -519,7 +503,7 @@ export default function ClubDashboardPage() {
                   : 'Date TBA'
 
                 return (
-                  <Card key={event.id} className="p-5 flex flex-col justify-between gap-4 border border-[oklch(100%_0_0_/_0.08)] hover:border-[oklch(100%_0_0_/_0.16)] transition-all shadow-sm">
+                  <div key={event.id} className="p-5 rounded-2xl bg-[#0E0E12] flex flex-col justify-between gap-4 border border-white/[0.08] hover:border-white/20 transition-all shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -535,9 +519,9 @@ export default function ClubDashboardPage() {
                           >
                             {event.status}
                           </Badge>
-                          <Badge variant="purple" className="capitalize text-[10px]">
+                          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-300">
                             {event.category}
-                          </Badge>
+                          </span>
                           {event.participation_type === 'team' && (
                             <Badge variant="pink" className="text-[10px]">
                               Team
@@ -545,18 +529,18 @@ export default function ClubDashboardPage() {
                           )}
                         </div>
 
-                        <h3 className="font-bold text-[var(--color-text-primary)] text-base line-clamp-1">
-                          <Link to={`/events/${event.slug}`} className="hover:text-[var(--color-brand-purple)] transition-colors">
+                        <h3 className="font-bold text-white text-base line-clamp-1 font-heading">
+                          <Link to={`/events/${event.slug}`} className="hover:text-[#18CFFC] transition-colors">
                             {event.title}
                           </Link>
                         </h3>
 
-                        <div className="text-xs text-[var(--color-text-muted)] mt-1.5 flex flex-col gap-1">
+                        <div className="text-xs text-zinc-400 mt-1.5 flex flex-col gap-1 font-sans">
                           <span className="flex items-center gap-1.5">
-                            <Clock size={12} className="text-[var(--color-brand-cyan)]" /> {formattedDate}
+                            <Clock size={12} className="text-[#18CFFC]" /> {formattedDate}
                           </span>
                           <span className="flex items-center gap-1.5 truncate">
-                            <MapPin size={12} className="text-[var(--color-brand-pink)]" /> {event.venue_name || 'Campus Venue'}
+                            <MapPin size={12} className="text-[#18CFFC]" /> {event.venue_name || 'Campus Venue'}
                           </span>
                         </div>
                       </div>
@@ -565,50 +549,50 @@ export default function ClubDashboardPage() {
                         <img
                           src={event.poster_url}
                           alt={event.title}
-                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0 border border-[var(--color-surface-3)] shadow-sm"
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0 border border-white/10 shadow-sm"
                         />
                       ) : (
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#14141A] border border-white/10 flex items-center justify-center text-zinc-500 shrink-0">
                           <Calendar size={24} />
                         </div>
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[var(--color-surface-3)] text-xs">
-                      <span className="text-[var(--color-text-secondary)] font-medium">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/[0.08] text-xs">
+                      <span className="text-zinc-300 font-medium font-mono">
                         {event.is_free ? 'Free Admission' : `₹${event.price}`} • {event.capacity} seats
                       </span>
 
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-3">
                         {event.status === 'published' && (
                           <Link
                             to={`/club/events/${event.id}/check-in`}
-                            className="flex items-center gap-1 text-[var(--color-brand-cyan)] hover:underline font-semibold"
+                            className="flex items-center gap-1 text-[#18CFFC] hover:underline font-semibold"
                           >
                             <QrCode size={13} /> Check In
                           </Link>
                         )}
                         <Link
                           to={`/club/events/${event.id}/registrations`}
-                          className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                          className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
                         >
                           <Users size={13} /> Attendees
                         </Link>
                         <Link
                           to={`/club/events/${event.id}/reports`}
-                          className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                          className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
                         >
                           <FileSpreadsheet size={13} /> Reports
                         </Link>
                         <Link
                           to={`/club/events/${event.id}/edit`}
-                          className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                          className="flex items-center gap-1 text-zinc-400 hover:text-white transition-colors"
                         >
                           <Edit size={13} /> Edit
                         </Link>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 )
               })}
             </div>

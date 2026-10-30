@@ -144,7 +144,7 @@ export function JoinTeamModal({
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-[var(--color-surface-3)] shrink-0 bg-[var(--color-surface-1)]/80 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-[var(--color-brand-purple)]/20 to-[var(--color-brand-cyan)]/20 text-[var(--color-brand-purple)]">
+            <div className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/25">
               <Users size={20} />
             </div>
             <div>
@@ -191,7 +191,7 @@ export function JoinTeamModal({
                   You're in the squad!
                 </h4>
                 <p className="text-xs text-[var(--color-text-secondary)] mt-1 max-w-sm">
-                  Your spot in <strong className="text-[var(--color-brand-purple)]">{joinResult.team_name}</strong> is confirmed.
+                  Your spot in <strong className="text-[#18CFFC]">{joinResult.team_name}</strong> is confirmed.
                 </p>
               </div>
 
@@ -211,14 +211,14 @@ export function JoinTeamModal({
                 {joinResult.ticket_code && (
                   <div className="flex justify-between items-center">
                     <span className="text-[var(--color-text-muted)]">Ticket Code:</span>
-                    <span className="font-mono font-bold text-[var(--color-brand-cyan)]">
+                    <span className="font-mono font-bold text-white">
                       {joinResult.ticket_code}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between items-center">
                   <span className="text-[var(--color-text-muted)]">Confirmed Members:</span>
-                  <Badge variant="purple">{joinResult.member_count} Members</Badge>
+                  <Badge variant="brand">{joinResult.member_count} Members</Badge>
                 </div>
               </div>
 
@@ -259,7 +259,7 @@ export function JoinTeamModal({
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="e.g. TF-8K9N2P"
                     maxLength={15}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.12)] text-[var(--color-text-primary)] font-mono text-sm tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] transition-all"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.12)] text-[var(--color-text-primary)] font-mono text-sm tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-all"
                   />
                   <Button
                     type="submit"
@@ -286,11 +286,11 @@ export function JoinTeamModal({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="p-4 rounded-2xl bg-[var(--color-surface-2)]/90 border border-[var(--color-brand-purple)]/30 flex flex-col gap-3 shadow-md"
+                    className="p-4 rounded-2xl bg-[var(--color-surface-2)]/90 border border-[#18CFFC]/30 flex flex-col gap-3 shadow-md"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-purple)]">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-[#18CFFC]">
                           Verified Team
                         </span>
                         <h4 className="text-base font-bold text-[var(--color-text-primary)] mt-0.5">
@@ -378,7 +378,7 @@ export function JoinTeamModal({
                           value={studentName}
                           onChange={(e) => setStudentName(e.target.value)}
                           placeholder="Your official student name"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)]"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]"
                         />
                       </div>
 
@@ -392,7 +392,7 @@ export function JoinTeamModal({
                             value={collegeName}
                             onChange={(e) => setCollegeName(e.target.value)}
                             placeholder="College name"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)]"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]"
                           />
                         </div>
 
@@ -405,7 +405,7 @@ export function JoinTeamModal({
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="Phone number"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)]"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]"
                           />
                         </div>
                       </div>
@@ -419,7 +419,7 @@ export function JoinTeamModal({
                           value={idCardNumber}
                           onChange={(e) => setIdCardNumber(e.target.value)}
                           placeholder="Campus ID / Roll number"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)]"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]"
                         />
                       </div>
 

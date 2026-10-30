@@ -79,7 +79,7 @@ export function NotificationBell() {
       case 'payment_submitted':
         return <Clock size={16} className="text-amber-400" />
       default:
-        return <Sparkles size={16} className="text-[var(--color-brand-purple)]" />
+        return <Sparkles size={16} className="text-[#18CFFC]" />
     }
   }
 
@@ -95,9 +95,9 @@ export function NotificationBell() {
         className="relative p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer"
         aria-label="Notifications"
       >
-        <Bell size={18} className={unreadCount > 0 ? 'text-[var(--color-brand-cyan)]' : ''} />
+        <Bell size={18} className={unreadCount > 0 ? 'text-[#18CFFC]' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-gradient-to-r from-[var(--color-brand-purple)] to-[var(--color-brand-pink)] text-[10px] font-bold text-white flex items-center justify-center animate-pulse shadow-[0_0_8px_var(--color-brand-pink)]">
+          <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-[10px] font-bold text-white flex items-center justify-center animate-pulse shadow-[0_0_8px_rgba(24,207,252,0.5)]">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -110,7 +110,7 @@ export function NotificationBell() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl glass border border-[var(--color-surface-3)] shadow-2xl p-4 z-50 text-left overflow-hidden flex flex-col gap-3"
+            className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.12)] shadow-2xl p-4 z-50 text-left overflow-hidden flex flex-col gap-3"
           >
             <div className="flex items-center justify-between border-b border-[var(--color-surface-3)] pb-2">
               <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export function NotificationBell() {
                   Notifications
                 </span>
                 {unreadCount > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--color-brand-purple)]/20 text-[var(--color-brand-purple)]">
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#18CFFC]/15 text-[#18CFFC]">
                     {unreadCount} new
                   </span>
                 )}

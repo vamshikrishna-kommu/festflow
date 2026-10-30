@@ -34,7 +34,7 @@ export function ResourceOwnerGuard({
   if (isLoading || isAuthorized === null) {
     return (
       <div className="py-24 flex flex-col items-center justify-center text-center">
-        <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
+        <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
         <span className="text-xs text-[var(--color-text-muted)] font-medium">
           Verifying resource permissions…
         </span>

@@ -48,7 +48,7 @@ export function HorizontalEventJourney() {
     <section
       id="journey"
       aria-label="Horizontal Event Journey"
-      className="relative bg-[var(--color-surface-0)] border-t border-[oklch(100%_0_0_/_0.06)]"
+      className="relative bg-[#08080A] border-t border-white/[0.06]"
     >
       {/* ─── DESKTOP & TABLET CINEMATIC PINNED SCROLL (md and up) ─────────── */}
       <div
@@ -67,7 +67,7 @@ export function HorizontalEventJourney() {
             className="absolute top-1/2 left-1/3 -translate-y-1/2 w-[700px] h-[450px] pointer-events-none -z-10"
             style={{
               background:
-                'radial-gradient(ellipse 60% 50% at 50% 50%, oklch(58% 0.26 285 / 0.12) 0%, oklch(72% 0.16 200 / 0.08) 60%, transparent 75%)',
+                'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255, 87, 34, 0.12) 0%, rgba(245, 158, 11, 0.05) 60%, transparent 75%)',
             }}
           />
 
@@ -84,7 +84,7 @@ export function HorizontalEventJourney() {
                   { text: 'event horizon.', highlight: 'Live Now.', gradientClass: 'gradient-text' },
                 ]}
               />
-              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-2 max-w-lg leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-lg leading-relaxed">
                 A continuous cinematic journey through upcoming hackathons, symposiums, and cultural fests hosted across colleges.
               </p>
             </div>
@@ -110,17 +110,17 @@ export function HorizontalEventJourney() {
                 {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
-                    className="w-[380px] h-[420px] rounded-3xl bg-[var(--color-surface-2)]/60 animate-pulse border border-[oklch(100%_0_0_/_0.08)] shrink-0"
+                    className="w-[380px] h-[420px] rounded-3xl bg-[#0E0E12] animate-pulse border border-white/10 shrink-0"
                   />
                 ))}
               </div>
             ) : events.length === 0 ? (
-              <div className="p-10 rounded-3xl glass-elevated border border-[oklch(100%_0_0_/_0.1)] text-center max-w-xl mx-auto my-6">
-                <Ticket size={36} className="mx-auto text-[var(--color-brand-cyan)] mb-3" />
-                <h3 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+              <div className="p-10 rounded-3xl bg-[#0E0E12] border border-white/10 text-center max-w-xl mx-auto my-6 shadow-2xl">
+                <Ticket size={36} className="mx-auto text-[#18CFFC] mb-3" />
+                <h3 className="text-lg font-bold font-display text-white">
                   Campus Calendar Forming
                 </h3>
-                <p className="text-xs text-[var(--color-text-secondary)] mt-1.5 mb-5 leading-relaxed">
+                <p className="text-xs text-zinc-400 mt-1.5 mb-5 leading-relaxed">
                   Colleges are currently publishing their semester event rosters. Are you a club leader ready to launch your event?
                 </p>
                 <Link to="/club/signup">
@@ -148,12 +148,12 @@ export function HorizontalEventJourney() {
                   return (
                     <motion.div
                       key={event.id}
-                      className="w-[360px] lg:w-[400px] rounded-3xl glass-elevated border border-[oklch(100%_0_0_/_0.1)] hover:border-[var(--color-brand-violet)]/50 transition-all duration-300 flex flex-col justify-between shrink-0 group overflow-hidden shadow-2xl relative"
+                      className="w-[360px] lg:w-[400px] rounded-3xl bg-[#0E0E12] border border-white/10 hover:border-[#18CFFC]/50 transition-all duration-300 flex flex-col justify-between shrink-0 group overflow-hidden shadow-2xl relative"
                       whileHover={reduced ? undefined : { y: -8, scale: 1.01 }}
                       transition={{ duration: 0.25 }}
                     >
-                      {/* Top Banner Image with Chromatic Overlay */}
-                      <div className="h-44 w-full relative overflow-hidden bg-[var(--color-surface-3)]">
+                      {/* Top Banner Image */}
+                      <div className="h-44 w-full relative overflow-hidden bg-[#14141A]">
                         {event.coverImage ? (
                           <img
                             src={event.coverImage}
@@ -162,11 +162,11 @@ export function HorizontalEventJourney() {
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-full h-full gradient-brand opacity-40 flex items-center justify-center">
-                            <Sparkles size={32} className="text-white/60" />
+                          <div className="w-full h-full bg-gradient-to-tr from-[#18CFFC]/20 to-[#7F1AFB]/10 flex items-center justify-center">
+                            <Sparkles size={32} className="text-white/40" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface-1)] via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E12] via-transparent to-transparent" />
 
                         {/* Top floating pill badges */}
                         <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between">
@@ -174,7 +174,7 @@ export function HorizontalEventJourney() {
                             {event.category || 'Campus Event'}
                           </Badge>
                           <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold shadow-md backdrop-blur-md ${
-                            isFree ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                            isFree ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/30'
                           }`}>
                             {isFree ? 'Free Entry' : `₹${event.price}`}
                           </span>
@@ -184,31 +184,31 @@ export function HorizontalEventJourney() {
                       {/* Card Content */}
                       <div className="p-6 flex-1 flex flex-col justify-between">
                         <div>
-                          <div className="flex items-center gap-2 text-[11px] text-[var(--color-brand-cyan)] font-semibold mb-2">
+                          <div className="flex items-center gap-2 text-[11px] text-[#FFA040] font-semibold mb-2">
                             <Calendar size={13} />
                             <span>{eventDate}</span>
                             {event.venue && (
                               <>
-                                <span className="text-[var(--color-text-muted)]">•</span>
-                                <span className="text-[var(--color-text-muted)] flex items-center gap-1 truncate max-w-[160px]">
+                                <span className="text-zinc-600">•</span>
+                                <span className="text-zinc-400 flex items-center gap-1 truncate max-w-[160px]">
                                   <MapPin size={12} /> {event.venue}
                                 </span>
                               </>
                             )}
                           </div>
 
-                          <h3 className="font-display font-bold text-lg text-[var(--color-text-primary)] group-hover:text-[var(--color-brand-violet)] transition-colors line-clamp-1 mb-2">
+                          <h3 className="font-display font-bold text-lg text-white group-hover:text-[#18CFFC] transition-colors line-clamp-1 mb-2">
                             {event.title}
                           </h3>
 
-                          <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 leading-relaxed mb-4">
+                          <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed mb-4">
                             {event.description || 'Join fellow university students for this official campus club event.'}
                           </p>
                         </div>
 
                         {/* Bottom Actions and Security Stamp */}
-                        <div className="pt-4 border-t border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between">
-                          <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] font-medium">
+                        <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-medium">
                             <ShieldCheck size={13} className="text-emerald-400" />
                             <span>Verified Host</span>
                           </span>
@@ -218,7 +218,7 @@ export function HorizontalEventJourney() {
                               variant="ghost"
                               size="sm"
                               rightIcon={<ChevronRight size={14} />}
-                              className="text-xs font-semibold group-hover:bg-[var(--color-surface-3)]"
+                              className="text-xs font-semibold hover:bg-white/10"
                             >
                               Details
                             </Button>
@@ -233,12 +233,12 @@ export function HorizontalEventJourney() {
           </div>
 
           {/* Bottom Progress Bar Track */}
-          <div className="max-w-7xl mx-auto w-full mt-6 flex items-center justify-between text-xs text-[var(--color-text-muted)] font-mono">
+          <div className="max-w-7xl mx-auto w-full mt-6 flex items-center justify-between text-xs text-zinc-500 font-mono">
             <span>01 / 0{totalCards}</span>
-            <div className="w-48 h-1 rounded-full bg-[var(--color-surface-3)] overflow-hidden">
+            <div className="w-48 h-1 rounded-full bg-white/10 overflow-hidden">
               <motion.div
                 style={{ scaleX: scrollYProgress, transformOrigin: '0%' }}
-                className="h-full gradient-brand"
+                className="h-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB]"
               />
             </div>
             <span>Scroll Journey</span>
@@ -259,7 +259,7 @@ export function HorizontalEventJourney() {
               { text: 'event horizon.', highlight: 'Live Now.', gradientClass: 'gradient-text' },
             ]}
           />
-          <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+          <p className="text-xs text-zinc-400 mt-2">
             Explore active hackathons, cultural festivals, and university symposiums.
           </p>
         </div>
@@ -267,13 +267,13 @@ export function HorizontalEventJourney() {
         {loading ? (
           <div className="flex flex-col gap-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-64 rounded-2xl bg-[var(--color-surface-2)]/60 animate-pulse" />
+              <div key={i} className="h-64 rounded-2xl bg-[#0E0E12] border border-white/10 animate-pulse" />
             ))}
           </div>
         ) : events.length === 0 ? (
-          <div className="p-6 rounded-2xl glass text-center">
-            <Ticket size={28} className="mx-auto text-[var(--color-brand-cyan)] mb-2" />
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Upcoming events launching soon</p>
+          <div className="p-6 rounded-2xl bg-[#0E0E12] border border-white/10 text-center">
+            <Ticket size={28} className="mx-auto text-[#18CFFC] mb-2" />
+            <p className="text-sm font-semibold text-white">Upcoming events launching soon</p>
           </div>
         ) : (
           <div className="flex overflow-x-auto gap-4 snap-x snap-mandatory pb-4 scrollbar-none -mx-4 px-4">
@@ -290,24 +290,24 @@ export function HorizontalEventJourney() {
               return (
                 <div
                   key={event.id}
-                  className="w-[85vw] max-w-[320px] rounded-2xl glass-elevated border border-[oklch(100%_0_0_/_0.1)] shrink-0 snap-center p-4 flex flex-col justify-between"
+                  className="w-[85vw] max-w-[320px] rounded-2xl bg-[#0E0E12] border border-white/10 shrink-0 snap-center p-4 flex flex-col justify-between shadow-xl"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-[var(--color-brand-cyan)] uppercase">
+                      <span className="text-[10px] font-bold text-[#18CFFC] uppercase">
                         {event.category || 'Campus'}
                       </span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                        isFree ? 'bg-emerald-500/20 text-emerald-300' : 'bg-cyan-500/20 text-cyan-300'
+                        isFree ? 'bg-emerald-500/20 text-emerald-300' : 'bg-[#18CFFC]/15 text-[#18CFFC]'
                       }`}>
                         {isFree ? 'Free' : `₹${event.price}`}
                       </span>
                     </div>
 
-                    <h3 className="font-bold text-base text-[var(--color-text-primary)] truncate mb-1">
+                    <h3 className="font-bold text-base text-white truncate mb-1">
                       {event.title}
                     </h3>
-                    <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1 mb-3">
+                    <p className="text-xs text-zinc-400 flex items-center gap-1 mb-3">
                       <Calendar size={12} /> {eventDate}
                     </p>
                   </div>

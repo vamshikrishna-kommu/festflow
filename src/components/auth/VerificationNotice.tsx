@@ -54,7 +54,7 @@ export function VerificationNotice({ email, role, onBackToLogin }: VerificationN
       transition={{ duration: 0.3 }}
       className="text-center flex flex-col items-center py-4"
     >
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-brand-purple)]/20 to-[var(--color-brand-pink)]/20 border border-[var(--color-brand-purple)]/30 flex items-center justify-center mb-5 text-[var(--color-brand-purple)] shadow-lg shadow-[var(--color-brand-purple)]/10">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/20 border border-[#18CFFC]/30 flex items-center justify-center mb-5 text-[#18CFFC] shadow-lg shadow-[#18CFFC]/10">
         <Mail size={32} />
       </div>
 

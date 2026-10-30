@@ -92,10 +92,10 @@ export function EventPreviewModal({
           {/* Header Bar */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-surface-3)] bg-[var(--color-surface-2)] shrink-0">
             <div className="flex items-center gap-2">
-              <span className="p-1 rounded-md bg-[var(--color-brand-purple)]/20 text-[var(--color-brand-purple)]">
+              <span className="p-1 rounded-md bg-[#18CFFC]/20 text-[#18CFFC]">
                 <Sparkles size={16} />
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-brand-purple)]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#18CFFC]">
                 Live Attendee View Preview
               </span>
               <span className="text-xs text-[var(--color-text-muted)] hidden sm:inline">• Read-only simulation</span>
@@ -136,7 +136,7 @@ export function EventPreviewModal({
 
             {/* Title & Host info */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 text-xs text-[var(--color-brand-purple)] font-medium">
+              <div className="flex items-center gap-2 text-xs text-[#18CFFC] font-medium">
                 <Building2 size={14} />
                 <span>Organized by {clubName}</span>
                 <span className="inline-flex items-center gap-1 text-emerald-400">
@@ -154,7 +154,7 @@ export function EventPreviewModal({
             {/* Quick Specs Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-start gap-3">
-                <Calendar size={18} className="text-[var(--color-brand-purple)] shrink-0 mt-0.5" />
+                <Calendar size={18} className="text-[#18CFFC] shrink-0 mt-0.5" />
                 <div>
                   <span className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-wider block">Date</span>
                   <span className="text-xs font-semibold text-[var(--color-text-primary)]">{startDateFormatted}</span>
@@ -162,7 +162,7 @@ export function EventPreviewModal({
               </div>
 
               <div className="p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-start gap-3">
-                <Clock size={18} className="text-[var(--color-brand-purple)] shrink-0 mt-0.5" />
+                <Clock size={18} className="text-[#18CFFC] shrink-0 mt-0.5" />
                 <div>
                   <span className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-wider block">Time</span>
                   <span className="text-xs font-semibold text-[var(--color-text-primary)]">
@@ -173,7 +173,7 @@ export function EventPreviewModal({
               </div>
 
               <div className="p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-start gap-3">
-                <MapPin size={18} className="text-[var(--color-brand-purple)] shrink-0 mt-0.5" />
+                <MapPin size={18} className="text-[#18CFFC] shrink-0 mt-0.5" />
                 <div>
                   <span className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-wider block">Location</span>
                   <span className="text-xs font-semibold text-[var(--color-text-primary)]">
@@ -199,8 +199,8 @@ export function EventPreviewModal({
 
             {/* Virtual Meeting Details if Online / Hybrid */}
             {(eventType === 'online' || eventType === 'hybrid') && data.online_meeting_url && (
-              <div className="p-4 rounded-xl bg-[var(--color-brand-purple)]/10 border border-[var(--color-brand-purple)]/20 flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-brand-purple)]">
+              <div className="p-4 rounded-xl bg-[#18CFFC]/10 border border-[#18CFFC]/20 flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#18CFFC]">
                   <ExternalLink size={14} /> Virtual Platform / Meeting Details
                 </div>
                 <p className="text-xs text-[var(--color-text-primary)] font-mono break-all">
@@ -244,7 +244,7 @@ export function EventPreviewModal({
             {/* Description Body */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-2">
-                <FileText size={16} className="text-[var(--color-brand-purple)]" />
+                <FileText size={16} className="text-[#18CFFC]" />
                 About This Event
               </h3>
               <div className="text-sm text-[var(--color-text-secondary)] whitespace-pre-line leading-relaxed p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
@@ -269,7 +269,7 @@ export function EventPreviewModal({
             {questions.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-2">
-                  <Sparkles size={16} className="text-[var(--color-brand-cyan)]" />
+                  <Sparkles size={16} className="text-[#18CFFC]" />
                   Attendee Form Questions ({questions.length})
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -301,13 +301,13 @@ export function EventPreviewModal({
                 </span>
                 {data.contact_email && (
                   <span className="flex items-center gap-1.5 text-[var(--color-text-primary)]">
-                    <Mail size={14} className="text-[var(--color-brand-purple)]" />
+                    <Mail size={14} className="text-[#18CFFC]" />
                     {data.contact_email}
                   </span>
                 )}
                 {data.contact_phone && (
                   <span className="flex items-center gap-1.5 text-[var(--color-text-primary)]">
-                    <Phone size={14} className="text-[var(--color-brand-purple)]" />
+                    <Phone size={14} className="text-[#18CFFC]" />
                     {data.contact_phone}
                   </span>
                 )}

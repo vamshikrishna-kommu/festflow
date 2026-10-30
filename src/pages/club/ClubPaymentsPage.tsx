@@ -380,7 +380,7 @@ export default function ClubPaymentsPage() {
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
               Gross Revenue
             </span>
-            <div className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-brand-cyan)] mt-2">
+            <div className="text-2xl sm:text-3xl font-bold font-display text-white mt-2">
               {loading ? '…' : `₹${verifiedGrossRevenue.toLocaleString()}`}
             </div>
             <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
@@ -404,7 +404,7 @@ export default function ClubPaymentsPage() {
         {/* Filters and Search Bar */}
         <Card className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar touch-pan-x text-xs">
+          <div className="flex items-center gap-1 bg-[#0E0E12] p-1 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar touch-pan-x text-xs border border-white/5">
             {(
               [
                 { id: 'all', label: `All (${submissions.length})` },
@@ -419,8 +419,8 @@ export default function ClubPaymentsPage() {
                 onClick={() => setStatusFilter(tab.id)}
                 className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap shrink-0 transition-all ${
                   statusFilter === tab.id
-                    ? 'bg-[var(--color-surface-4)] text-[var(--color-text-primary)] shadow'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                    ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
+                    : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
                 }`}
               >
                 {tab.label}
@@ -434,11 +434,11 @@ export default function ClubPaymentsPage() {
               <select
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] w-full sm:w-48"
+                className="px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC] w-full sm:w-48"
               >
-                <option value="all">All Events</option>
+                <option value="all" className="bg-[#14141A]">All Events</option>
                 {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
+                  <option key={ev.id} value={ev.id} className="bg-[#14141A]">
                     {ev.title}
                   </option>
                 ))}
@@ -456,13 +456,13 @@ export default function ClubPaymentsPage() {
                 placeholder="Search UTR, student, event…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors"
+                className="w-full pl-9 pr-8 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] transition-colors"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-white"
                 >
                   <X size={14} />
                 </button>
@@ -474,7 +474,7 @@ export default function ClubPaymentsPage() {
         {/* Submissions List */}
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin" />
+            <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin" />
             <span className="text-xs text-[var(--color-text-muted)]">Loading submissions…</span>
           </div>
         ) : filteredSubmissions.length === 0 ? (
@@ -547,7 +547,7 @@ export default function ClubPaymentsPage() {
                           {sub.event?.title || 'Campus Event'}
                         </span>
                         <span>•</span>
-                        <span className="font-bold text-[var(--color-brand-cyan)]">
+                        <span className="font-bold font-mono text-emerald-400">
                           {sub.currency} {sub.amount}
                         </span>
                         <span>•</span>
@@ -566,7 +566,7 @@ export default function ClubPaymentsPage() {
                         <button
                           type="button"
                           onClick={() => handleCopy(sub.transaction_reference, sub.id)}
-                          className="px-2.5 py-1 rounded-lg bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs font-mono font-bold text-[var(--color-text-primary)] hover:border-[var(--color-brand-purple)] flex items-center gap-1.5 transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-[#14141A] border border-white/10 text-xs font-mono font-bold text-white hover:border-[#18CFFC] flex items-center gap-1.5 transition-colors shadow-sm"
                           title="Click to copy UTR"
                         >
                           {sub.transaction_reference}

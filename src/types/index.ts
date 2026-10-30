@@ -390,7 +390,7 @@ export interface NavLink {
   href: string
 }
 
-export type BadgeVariant = 'default' | 'purple' | 'pink' | 'amber' | 'cyan' | 'success' | 'outline' | 'danger'
+export type BadgeVariant = 'default' | 'orange' | 'purple' | 'pink' | 'amber' | 'cyan' | 'success' | 'outline' | 'danger' | 'neutral' | 'brand' | 'violet' | 'magenta' | 'blue'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger'
 

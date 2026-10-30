@@ -319,7 +319,7 @@ export function EventForm({
         <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-[var(--color-brand-purple)]/15 text-[var(--color-brand-purple)]">
+              <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC]">
                 <Sparkles size={18} />
               </span>
               <div>
@@ -351,7 +351,7 @@ export function EventForm({
               className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                 errors.title
                   ? 'border-rose-500/80 focus:border-rose-500'
-                  : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                  : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
               }`}
             />
             {errors.title && <p className="text-xs text-rose-400">{errors.title}</p>}
@@ -367,7 +367,7 @@ export function EventForm({
                 id="event-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EventCategory)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] transition-all outline-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-all outline-none cursor-pointer"
               >
                 {EVENT_CATEGORIES.map((cat) => (
                   <option key={cat.value} value={cat.value} className="bg-[var(--color-surface-1)]">
@@ -410,7 +410,7 @@ export function EventForm({
               className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                 errors.summary
                   ? 'border-rose-500/80 focus:border-rose-500'
-                  : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                  : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
               }`}
             />
             {errors.summary && <p className="text-xs text-rose-400">{errors.summary}</p>}
@@ -482,7 +482,7 @@ export function EventForm({
                   placeholder="club@campus.edu"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                 />
                 <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
               </div>
@@ -499,7 +499,7 @@ export function EventForm({
                   placeholder="+91 98765 43210"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                 />
                 <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
               </div>
@@ -544,13 +544,13 @@ export function EventForm({
                 }}
                 className={`p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all ${
                   eventType === type
-                    ? 'border-[var(--color-brand-purple)] bg-[var(--color-brand-purple)]/10 shadow-lg'
+                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-lg'
                     : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 hover:bg-[var(--color-surface-2)]'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <Icon size={18} className={eventType === type ? 'text-[var(--color-brand-purple)]' : 'text-[var(--color-text-muted)]'} />
-                  {eventType === type && <CheckCircle2 size={16} className="text-[var(--color-brand-purple)]" />}
+                  <Icon size={18} className={eventType === type ? 'text-[#18CFFC]' : 'text-[var(--color-text-muted)]'} />
+                  {eventType === type && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[var(--color-text-primary)]">{label}</h4>
@@ -579,7 +579,7 @@ export function EventForm({
                   className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                     errors.venue_name
                       ? 'border-rose-500/80 focus:border-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                      : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                   }`}
                 />
                 {errors.venue_name && <p className="text-xs text-rose-400">{errors.venue_name}</p>}
@@ -595,7 +595,7 @@ export function EventForm({
                   placeholder="e.g. South Campus Gate, Main University Road"
                   value={venueAddress}
                   onChange={(e) => setVenueAddress(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                 />
               </div>
             </div>
@@ -620,7 +620,7 @@ export function EventForm({
                   className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                     errors.online_meeting_url
                       ? 'border-rose-500/80 focus:border-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                      : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                   }`}
                 />
                 <ExternalLink size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
@@ -671,7 +671,7 @@ export function EventForm({
                 className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                   errors.start_date
                     ? 'border-rose-500/80 focus:border-rose-500'
-                    : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                    : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                 }`}
               />
               {errors.start_date && <p className="text-xs text-rose-400">{errors.start_date}</p>}
@@ -693,7 +693,7 @@ export function EventForm({
                 className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                   errors.end_date
                     ? 'border-rose-500/80 focus:border-rose-500'
-                    : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                    : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                 }`}
               />
               {errors.end_date && <p className="text-xs text-rose-400">{errors.end_date}</p>}
@@ -710,7 +710,7 @@ export function EventForm({
                 id="timezone-select"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
               >
                 {COMMON_TIMEZONES.map((tz) => (
                   <option key={tz.value} value={tz.value} className="bg-[var(--color-surface-1)]">
@@ -738,7 +738,7 @@ export function EventForm({
                 className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                   errors.registration_closes_at
                     ? 'border-rose-500/80 focus:border-rose-500'
-                    : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                    : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                 }`}
               />
               {errors.registration_closes_at && (
@@ -779,7 +779,7 @@ export function EventForm({
               }}
               className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all ${
                 participationType === 'individual'
-                  ? 'border-[var(--color-brand-purple)] bg-[var(--color-brand-purple)]/10 shadow-lg'
+                  ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-lg'
                   : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 hover:bg-[var(--color-surface-2)]'
               }`}
             >
@@ -789,7 +789,7 @@ export function EventForm({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-[var(--color-text-primary)]">Solo / Individual</h4>
-                  {participationType === 'individual' && <CheckCircle2 size={16} className="text-[var(--color-brand-purple)]" />}
+                  {participationType === 'individual' && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
                 </div>
                 <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
                   Each participant registers individually and receives a dedicated digital QR entry pass.
@@ -955,7 +955,7 @@ export function EventForm({
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_college: e.target.checked }))
                   }
-                  className="rounded text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
+                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
                 />
                 <span className="text-[var(--color-text-primary)]">College Name</span>
               </label>
@@ -967,7 +967,7 @@ export function EventForm({
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_phone: e.target.checked }))
                   }
-                  className="rounded text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
+                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
                 />
                 <span className="text-[var(--color-text-primary)]">Phone Number</span>
               </label>
@@ -979,7 +979,7 @@ export function EventForm({
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_grad_year: e.target.checked }))
                   }
-                  className="rounded text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
+                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
                 />
                 <span className="text-[var(--color-text-primary)]">Graduation Year</span>
               </label>
@@ -991,7 +991,7 @@ export function EventForm({
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_id_card: e.target.checked }))
                   }
-                  className="rounded text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
+                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
                 />
                 <span className="text-[var(--color-text-primary)]">Student ID Number</span>
               </label>
@@ -1039,7 +1039,7 @@ export function EventForm({
                   className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                     errors.capacity
                       ? 'border-rose-500/80 focus:border-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                      : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                   }`}
                 />
                 <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
@@ -1056,7 +1056,7 @@ export function EventForm({
                 id="approval-type"
                 value={approvalType}
                 onChange={(e) => setApprovalType(e.target.value as ApprovalType)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none cursor-pointer"
               >
                 <option value="automatic" className="bg-[var(--color-surface-1)]">
                   Automatic (Instant ticket upon submit/payment)
@@ -1094,7 +1094,7 @@ export function EventForm({
                 onClick={() => setIsFree(false)}
                 className={`py-3 px-4 rounded-xl text-xs font-bold border transition-all ${
                   !isFree
-                    ? 'border-[var(--color-brand-purple)] bg-[var(--color-brand-purple)]/10 text-[var(--color-brand-purple)] shadow-sm'
+                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 text-[#18CFFC] shadow-sm'
                     : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                 }`}
               >
@@ -1122,7 +1122,7 @@ export function EventForm({
                     className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
                       errors.price
                         ? 'border-rose-500/80 focus:border-rose-500'
-                        : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                        : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                     }`}
                   />
                   <IndianRupee size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
@@ -1145,7 +1145,7 @@ export function EventForm({
                 id="event-status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as EventStatus)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
               >
                 <option value="draft">Draft (Hidden from discover)</option>
                 <option value="published">Published (Discoverable & open for registration)</option>
@@ -1223,7 +1223,7 @@ export function EventForm({
                         placeholder="e.g. GitHub Profile URL or Dietary Preference"
                         value={q.label}
                         onChange={(e) => handleUpdateQuestion(q.id, { label: e.target.value })}
-                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                       />
                     </div>
 
@@ -1237,7 +1237,7 @@ export function EventForm({
                             options: e.target.value === 'select' || e.target.value === 'radio' ? ['Option 1', 'Option 2'] : undefined,
                           })
                         }
-                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                       >
                         <option value="text">Short Text</option>
                         <option value="textarea">Paragraph Text</option>
@@ -1263,7 +1263,7 @@ export function EventForm({
                             options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean),
                           })
                         }
-                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                       />
                     </div>
                   )}
@@ -1274,7 +1274,7 @@ export function EventForm({
                       type="checkbox"
                       checked={q.required}
                       onChange={(e) => handleUpdateQuestion(q.id, { required: e.target.checked })}
-                      className="rounded text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
+                      className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
                     />
                     <span>Required for registration submission</span>
                   </label>
@@ -1325,7 +1325,7 @@ export function EventForm({
               className={`w-full p-4 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none font-sans leading-relaxed ${
                 errors.description
                   ? 'border-rose-500/80 focus:border-rose-500'
-                  : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
+                  : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
               }`}
             />
             {errors.description && <p className="text-xs text-rose-400">{errors.description}</p>}
@@ -1342,7 +1342,7 @@ export function EventForm({
               placeholder="e.g. 1. Teams must check in 15 minutes before the hackathon kickoff.&#10;2. Plagiarism or pre-built code is strictly prohibited.&#10;3. Hardware kits must be returned intact."
               value={rules}
               onChange={(e) => setRules(e.target.value)}
-              className="w-full p-3.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+              className="w-full p-3.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
             />
           </div>
 
@@ -1358,7 +1358,7 @@ export function EventForm({
                 placeholder="e.g. Open to all UG & PG college students across India"
                 value={eligibility}
                 onChange={(e) => setEligibility(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
               />
             </div>
 
@@ -1372,7 +1372,7 @@ export function EventForm({
                 placeholder="e.g. Computer Science, IT, Electronics"
                 value={departmentsInput}
                 onChange={(e) => setDepartmentsInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
               />
             </div>
           </div>
@@ -1390,7 +1390,7 @@ export function EventForm({
                   onClick={() => toggleYear(year)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                     selectedYears.includes(year)
-                      ? 'border-[var(--color-brand-purple)] bg-[var(--color-brand-purple)] text-white'
+                      ? 'border-[#18CFFC] bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white shadow-sm'
                       : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                   }`}
                 >
@@ -1455,7 +1455,7 @@ export function EventForm({
               disabled={isSubmitting}
               isLoading={isSubmitting}
               leftIcon={<CheckCircle2 size={16} />}
-              className="bg-[var(--color-brand-purple)] hover:opacity-90 w-full sm:w-auto min-h-[44px] justify-center"
+              className="bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)] w-full sm:w-auto min-h-[44px] justify-center"
             >
               {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
             </Button>

@@ -89,7 +89,7 @@ export function WorkspaceSwitcher({
         <div className="flex items-center justify-between px-3.5 py-2.5 mb-3 rounded-xl bg-[var(--color-surface-2)]/70 border border-[oklch(100%_0_0_/_0.06)]">
           <div className="flex items-center gap-2.5 min-w-0">
             {activeWorkspace === 'club' ? (
-              <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-[var(--color-brand-purple)] flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-[#18CFFC]/15 text-[#18CFFC] flex items-center justify-center shrink-0">
                 <Building2 size={15} />
               </div>
             ) : (
@@ -147,7 +147,7 @@ export function WorkspaceSwitcher({
             onClick={() => handleSelectWorkspace('club')}
             className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeWorkspace === 'club'
-                ? 'bg-purple-500/20 text-[var(--color-brand-purple)] border border-purple-500/30 shadow-sm'
+                ? 'bg-[#7F1AFB]/20 text-[#C084FC] border border-[#7F1AFB]/35 shadow-sm'
                 : 'text-[var(--color-text-secondary)] hover:text-white'
             }`}
           >
@@ -227,14 +227,14 @@ export function WorkspaceSwitcher({
         aria-expanded={isOpen}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-sm ${
           activeWorkspace === 'club'
-            ? 'bg-purple-500/10 hover:bg-purple-500/15 text-purple-200 border-purple-500/25 hover:border-purple-500/40'
+            ? 'bg-[#7F1AFB]/10 hover:bg-[#7F1AFB]/15 text-violet-200 border-[#7F1AFB]/25 hover:border-[#7F1AFB]/40'
             : 'bg-cyan-500/10 hover:bg-cyan-500/15 text-cyan-200 border-cyan-500/25 hover:border-cyan-500/40'
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           {activeWorkspace === 'club' ? (
             <>
-              <Building2 size={13} className="text-[var(--color-brand-purple)] shrink-0" />
+              <Building2 size={13} className="text-[#7F1AFB] shrink-0" />
               <span className="max-w-[110px] truncate">{activeClubName}</span>
               <Badge variant="purple" className="text-[9px] py-0 px-1.5 shrink-0">
                 {activeClubRole ? ROLE_LABELS[activeClubRole] : 'Club'}
@@ -314,7 +314,7 @@ export function WorkspaceSwitcher({
                 onClick={() => handleSelectWorkspace('club')}
                 className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer text-left ${
                   activeWorkspace === 'club'
-                    ? 'bg-purple-500/10 border border-purple-500/30 text-white'
+                    ? 'bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-white'
                     : 'hover:bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-white'
                 }`}
               >
@@ -322,7 +322,7 @@ export function WorkspaceSwitcher({
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       activeWorkspace === 'club'
-                        ? 'bg-purple-500/20 text-[var(--color-brand-purple)]'
+                        ? 'bg-[#18CFFC]/20 text-[#18CFFC]'
                         : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
                     }`}
                   >
@@ -336,7 +336,7 @@ export function WorkspaceSwitcher({
                   </div>
                 </div>
                 {activeWorkspace === 'club' && (
-                  <Check size={14} className="text-[var(--color-brand-purple)] shrink-0 ml-1" />
+                  <Check size={14} className="text-[#18CFFC] shrink-0 ml-1" />
                 )}
               </button>
             </div>
@@ -359,19 +359,19 @@ export function WorkspaceSwitcher({
                         onClick={() => handleSelectClub(club.id)}
                         className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
                           isSelected
-                            ? 'bg-[var(--color-surface-3)] text-white font-semibold border border-purple-500/30'
+                            ? 'bg-[var(--color-surface-3)] text-white font-semibold border border-[#18CFFC]/30'
                             : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)]/60'
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Building2 size={12} className={isSelected ? 'text-[var(--color-brand-purple)]' : 'text-[var(--color-text-muted)]'} />
+                          <Building2 size={12} className={isSelected ? 'text-[#18CFFC]' : 'text-[var(--color-text-muted)]'} />
                           <span className="truncate max-w-[130px]">{club.name}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <Badge variant="purple" className="text-[9px] py-0 px-1.5 font-medium">
                             {ROLE_LABELS[club.role]}
                           </Badge>
-                          {isSelected && <Check size={12} className="text-[var(--color-brand-purple)]" />}
+                          {isSelected && <Check size={12} className="text-[#18CFFC]" />}
                         </div>
                       </button>
                     )

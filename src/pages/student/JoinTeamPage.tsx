@@ -392,13 +392,13 @@ export default function JoinTeamPage() {
 
         {/* ── State 4: Normal Invitation / Verification Form ─────────────── */}
         {!tokenLoading && !tokenError && !joinResult && (
-          <Card className="p-5 sm:p-6 bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.12)] shadow-xl rounded-3xl flex flex-col gap-5">
+          <div className="p-5 sm:p-6 bg-[#0E0E12] border border-white/[0.1] shadow-2xl rounded-3xl flex flex-col gap-5">
             {/* If NO token provided, allow code input */}
             {!token && (
               <form onSubmit={handleVerifySubmit} className="flex flex-col gap-2">
-                <label className="text-xs font-semibold text-[var(--color-text-primary)] flex items-center justify-between">
+                <label className="text-xs font-semibold text-white flex items-center justify-between">
                   <span>Invitation Code</span>
-                  <span className="text-[11px] text-[var(--color-text-muted)] font-normal">
+                  <span className="text-[11px] text-zinc-500 font-normal">
                     Format: TF-XXXXXX
                   </span>
                 </label>
@@ -410,7 +410,7 @@ export default function JoinTeamPage() {
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="e.g. TF-8K9N2P"
                     maxLength={15}
-                    className="flex-1 px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.12)] text-[var(--color-text-primary)] font-mono text-base tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] transition-all"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[#14141A] border border-white/10 text-white font-mono text-base tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] transition-all"
                   />
                   <Button
                     type="submit"
@@ -438,18 +438,18 @@ export default function JoinTeamPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-4 rounded-2xl bg-[var(--color-surface-2)]/90 border border-[var(--color-brand-purple)]/30 flex flex-col gap-3 shadow-md"
+                  className="p-4 rounded-2xl bg-[#14141A] border border-[#18CFFC]/30 flex flex-col gap-3 shadow-md"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-purple)]">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-[#18CFFC]">
                         Verified Squad
                       </span>
-                      <h3 className="text-base font-bold text-[var(--color-text-primary)] mt-0.5">
+                      <h3 className="text-base font-bold text-white font-heading mt-0.5">
                         {activePreview.team_name}
                       </h3>
-                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                        Led by <strong className="text-[var(--color-text-secondary)]">{activePreview.leader_name}</strong>
+                      <p className="text-xs text-zinc-400 mt-0.5 font-sans">
+                        Led by <strong className="text-zinc-200">{activePreview.leader_name}</strong>
                       </p>
                     </div>
 
@@ -458,21 +458,21 @@ export default function JoinTeamPage() {
                     </Badge>
                   </div>
 
-                  <div className="pt-2 border-t border-[var(--color-surface-3)] grid grid-cols-2 gap-2 text-xs">
+                  <div className="pt-2 border-t border-white/[0.08] grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-[var(--color-text-muted)] flex items-center gap-1 mb-0.5">
-                        <Ticket size={12} /> Event
+                      <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
+                        <Ticket size={12} className="text-[#18CFFC]" /> Event
                       </span>
-                      <span className="font-medium text-[var(--color-text-primary)] truncate block">
+                      <span className="font-medium text-white truncate block">
                         {activePreview.event_title}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-[var(--color-text-muted)] flex items-center gap-1 mb-0.5">
-                        <Calendar size={12} /> Status
+                      <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
+                        <Calendar size={12} className="text-[#18CFFC]" /> Status
                       </span>
-                      <span className="font-medium text-[var(--color-text-primary)]">
+                      <span className="font-medium text-white">
                         {activePreview.is_free ? 'Free Entry' : `₹${activePreview.price} Pass`}
                       </span>
                     </div>
@@ -668,7 +668,7 @@ export default function JoinTeamPage() {
                 )}
               </div>
             )}
-          </Card>
+          </div>
         )}
       </div>
     </PageShell>

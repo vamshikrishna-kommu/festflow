@@ -175,7 +175,7 @@ export default function AuthCallbackPage() {
 
         {status === 'processing' && (
           <div className="space-y-4">
-            <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-cyan)] animate-spin mx-auto" />
+            <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mx-auto" />
             <h1 className="text-xl font-bold font-display text-[var(--color-text-primary)]">
               Verifying Your Account
             </h1>

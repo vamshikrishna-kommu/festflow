@@ -1,208 +1,110 @@
 import { Component, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { Ticket, Sparkles, ShieldCheck } from 'lucide-react'
+import { Ticket, Sparkles, Users, Calendar } from 'lucide-react'
 
 /**
- * Procedural canvas texture generator for the FestFlow Holographic VIP Pass.
- * Generates an ultra-crisp vector texture with metallic foil accents, micro-circuits,
- * and holographic security badges without external assets.
+ * Procedural texture for the floating VIP Festival Pass
+ * styled with the exact extracted FestFlow cyan-to-violet-to-magenta logo colors.
  */
-function createHolographicPassTexture(): THREE.CanvasTexture {
+function createFestivalPassTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
-  canvas.width = 1024
-  canvas.height = 1536
+  canvas.width = 512
+  canvas.height = 768
   const ctx = canvas.getContext('2d')
   if (!ctx) return new THREE.CanvasTexture(canvas)
 
-  // 1. Rich dark obsidian base with luminous chromatic gradient
-  const bgGrad = ctx.createLinearGradient(0, 0, 1024, 1536)
-  bgGrad.addColorStop(0, '#211648')
-  bgGrad.addColorStop(0.35, '#15112e')
-  bgGrad.addColorStop(0.75, '#0e0c1f')
-  bgGrad.addColorStop(1, '#090815')
-  ctx.fillStyle = bgGrad
-  ctx.fillRect(0, 0, 1024, 1536)
+  // 1. Deep obsidian glass background
+  const bg = ctx.createLinearGradient(0, 0, 512, 768)
+  bg.addColorStop(0, '#0E0E14')
+  bg.addColorStop(0.5, '#14141E')
+  bg.addColorStop(1, '#08080C')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, 512, 768)
 
-  // 2. Subtle geometric grid matrix
-  ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)'
-  ctx.lineWidth = 1.5
-  const gridSize = 48
-  for (let x = gridSize; x < 1024; x += gridSize) {
-    ctx.beginPath()
-    ctx.moveTo(x, 0)
-    ctx.lineTo(x, 1536)
-    ctx.stroke()
-  }
-  for (let y = gridSize; y < 1536; y += gridSize) {
-    ctx.beginPath()
-    ctx.moveTo(0, y)
-    ctx.lineTo(1024, y)
-    ctx.stroke()
-  }
+  // 2. Neon FestFlow header band
+  const band = ctx.createLinearGradient(0, 0, 512, 0)
+  band.addColorStop(0, '#18CFFC')
+  band.addColorStop(0.35, '#07A4FC')
+  band.addColorStop(0.7, '#7F1AFB')
+  band.addColorStop(1, '#ED47FC')
+  ctx.fillStyle = band
+  ctx.fillRect(0, 0, 512, 120)
 
-  // 3. Top Security Header
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
-  ctx.font = 'bold 36px "Space Grotesk", system-ui, sans-serif'
-  ctx.fillText('FESTFLOW', 80, 110)
+  // Text inside header
+  ctx.fillStyle = '#08080C'
+  ctx.font = 'bold 36px "Syne", "Inter", sans-serif'
+  ctx.fillText('FESTFLOW', 36, 75)
 
-  ctx.fillStyle = 'rgba(6, 182, 212, 0.9)'
-  ctx.font = '600 22px system-ui, sans-serif'
-  ctx.fillText('// OFFICIAL CAMPUS PASS', 80, 145)
-
-  // Top-right status pill: "VERIFIED"
-  ctx.fillStyle = 'rgba(16, 185, 129, 0.15)'
-  ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)'
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.roundRect(760, 80, 184, 52, 26)
-  ctx.fill()
-  ctx.stroke()
-
-  ctx.fillStyle = '#34d399'
-  ctx.font = 'bold 18px system-ui, sans-serif'
-  ctx.textAlign = 'center'
-  ctx.fillText('● VERIFIED', 852, 113)
+  ctx.fillStyle = '#FFFFFF'
+  ctx.font = '600 16px "JetBrains Mono", monospace'
+  ctx.textAlign = 'right'
+  ctx.fillText('VIP PASS // 2026', 476, 72)
   ctx.textAlign = 'left'
 
-  // 4. Central Holographic Foil Band
-  const foilGrad = ctx.createLinearGradient(80, 240, 944, 480)
-  foilGrad.addColorStop(0, 'rgba(192, 132, 252, 0.25)')
-  foilGrad.addColorStop(0.3, 'rgba(6, 182, 212, 0.35)')
-  foilGrad.addColorStop(0.7, 'rgba(217, 70, 239, 0.25)')
-  foilGrad.addColorStop(1, 'rgba(192, 132, 252, 0.3)')
-
-  ctx.fillStyle = foilGrad
+  // 3. Central Hologram Emblem
+  const centerGrad = ctx.createRadialGradient(256, 360, 20, 256, 360, 160)
+  centerGrad.addColorStop(0, 'rgba(127, 26, 251, 0.4)')
+  centerGrad.addColorStop(0.6, 'rgba(24, 207, 252, 0.15)')
+  centerGrad.addColorStop(1, 'transparent')
+  ctx.fillStyle = centerGrad
   ctx.beginPath()
-  ctx.roundRect(80, 220, 864, 420, 32)
+  ctx.arc(256, 360, 160, 0, Math.PI * 2)
   ctx.fill()
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
+
+  // Emblem border rings
+  ctx.strokeStyle = '#18CFFC'
   ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(256, 360, 110, 0, Math.PI * 2)
   ctx.stroke()
 
-  // Central Emblem Circles inside Foil
-  ctx.save()
-  ctx.translate(512, 430)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'
-  ctx.lineWidth = 2.5
+  ctx.strokeStyle = '#ED47FC'
+  ctx.lineWidth = 1.5
+  ctx.setLineDash([8, 8])
   ctx.beginPath()
-  ctx.arc(0, 0, 120, 0, Math.PI * 2)
-  ctx.stroke()
-
-  ctx.strokeStyle = 'rgba(6, 182, 212, 0.7)'
-  ctx.setLineDash([8, 12])
-  ctx.beginPath()
-  ctx.arc(0, 0, 96, 0, Math.PI * 2)
+  ctx.arc(256, 360, 92, 0, Math.PI * 2)
   ctx.stroke()
   ctx.setLineDash([])
 
-  // Star symbol
-  ctx.fillStyle = '#ffffff'
-  ctx.beginPath()
-  for (let i = 0; i < 8; i++) {
-    const angle = (i * Math.PI) / 4
-    const r = i % 2 === 0 ? 56 : 24
-    const x = Math.cos(angle) * r
-    const y = Math.sin(angle) * r
-    if (i === 0) ctx.moveTo(x, y)
-    else ctx.lineTo(x, y)
-  }
-  ctx.closePath()
-  ctx.fill()
-  ctx.restore()
+  // Pass title text
+  ctx.fillStyle = '#FFFFFF'
+  ctx.font = 'bold 26px "Syne", "Inter", sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('ANNUAL TECH SYMPOSIUM', 256, 350)
 
-  // 5. Pass Details Section
-  ctx.fillStyle = 'rgba(161, 161, 170, 0.9)'
-  ctx.font = '600 20px system-ui, sans-serif'
-  ctx.fillText('ACCESS TIER', 80, 740)
-  ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 36px "Space Grotesk", system-ui, sans-serif'
-  ctx.fillText('ALL-ACCESS CAMPUS PASS', 80, 785)
+  ctx.fillStyle = '#18CFFC'
+  ctx.font = '600 15px "Inter", sans-serif'
+  ctx.fillText('ALL-ACCESS CAMPUS ENTRY', 256, 385)
 
-  ctx.fillStyle = 'rgba(161, 161, 170, 0.9)'
-  ctx.font = '600 20px system-ui, sans-serif'
-  ctx.fillText('SECURITY PROTOCOL', 80, 870)
-  ctx.fillStyle = '#c084fc'
-  ctx.font = 'bold 28px monospace'
-  ctx.fillText('DIRECT UPI VERIFIED PASS', 80, 910)
+  // 4. Barcode / QR Simulation area
+  ctx.fillStyle = '#181824'
+  ctx.fillRect(40, 560, 432, 140)
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'
+  ctx.strokeRect(40, 560, 432, 140)
 
-  ctx.fillStyle = 'rgba(161, 161, 170, 0.9)'
-  ctx.font = '600 20px system-ui, sans-serif'
-  ctx.fillText('ISSUING GATE', 600, 870)
-  ctx.fillStyle = '#38bdf8'
-  ctx.font = 'bold 28px monospace'
-  ctx.fillText('MAIN GATE / KIOSK #04', 600, 910)
-
-  // 6. Horizontal Dashed Separation Line (Ticket Tear Line)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
-  ctx.lineWidth = 3
-  ctx.setLineDash([16, 12])
-  ctx.beginPath()
-  ctx.moveTo(80, 1020)
-  ctx.lineTo(944, 1020)
-  ctx.stroke()
-  ctx.setLineDash([])
-
-  // 7. Simulated Digital Barcode & QR Stamp
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(80, 1090, 864, 4)
-
-  // Barcode lines
-  const barcodeX = 80
-  const barcodeY = 1130
-  const barcodeH = 140
-  let curX = barcodeX
-  const pattern = [4, 8, 3, 12, 6, 4, 16, 2, 8, 10, 4, 14, 8, 6, 18, 4, 10, 8, 4, 14, 6, 8, 12, 4, 6, 16, 8, 4, 12, 10, 6, 8, 14, 4, 8, 12, 6, 4, 16, 8, 4, 10, 12, 4, 8]
-  for (let i = 0; i < pattern.length; i++) {
-    const w = pattern[i]
-    if (i % 2 === 0) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
-      ctx.fillRect(curX, barcodeY, w, barcodeH)
+  // Draw simulated QR matrix squares
+  ctx.fillStyle = '#18CFFC'
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      if ((r + c) % 2 === 0 || (r === 0 && c === 4) || (r === 4 && c === 0)) {
+        ctx.fillRect(65 + c * 20, 585 + r * 20, 16, 16)
+      }
     }
-    curX += w + 8
-    if (curX > 720) break
   }
 
-  // QR Mini Matrix Frame
-  ctx.strokeStyle = 'rgba(6, 182, 212, 0.8)'
-  ctx.lineWidth = 3
-  ctx.strokeRect(780, 1130, 140, 140)
-  ctx.fillStyle = 'rgba(6, 182, 212, 0.3)'
-  ctx.fillRect(790, 1140, 40, 40)
-  ctx.fillRect(870, 1140, 40, 40)
-  ctx.fillRect(790, 1220, 40, 40)
-  ctx.fillRect(850, 1200, 30, 30)
+  // Barcode telemetry lines
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  for (let i = 0; i < 28; i++) {
+    const x = 200 + i * 9
+    const w = i % 3 === 0 ? 4 : i % 2 === 0 ? 2 : 1
+    ctx.fillRect(x, 585, w, 60)
+  }
 
-  // 8. Serial & Footer
-  ctx.fillStyle = 'rgba(161, 161, 170, 0.8)'
-  ctx.font = '600 22px monospace'
-  ctx.fillText('HASH: 8F2A-E49C-FF26-NEXUS', 80, 1340)
-  ctx.fillText('VALIDATED AT CAMPUS GATE NETWORK', 80, 1380)
-
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.needsUpdate = true
-  return texture
-}
-
-/**
- * Procedural circular particle glow texture to eliminate harsh square points.
- */
-function createParticleGlowTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas')
-  canvas.width = 64
-  canvas.height = 64
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return new THREE.CanvasTexture(canvas)
-
-  const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)')
-  gradient.addColorStop(0.25, 'rgba(192, 132, 252, 0.85)')
-  gradient.addColorStop(0.6, 'rgba(6, 182, 212, 0.35)')
-  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, 64, 64)
+  ctx.fillStyle = '#FE7EE8'
+  ctx.font = '600 13px "JetBrains Mono", monospace'
+  ctx.textAlign = 'left'
+  ctx.fillText('TKT# FF-9821-X99', 200, 675)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.needsUpdate = true
@@ -210,55 +112,46 @@ function createParticleGlowTexture(): THREE.CanvasTexture {
 }
 
 /**
- * High-Fidelity CSS / SVG Glassmorphism Fallback Component.
+ * 2D High-Fidelity Fallback Component for devices without WebGL
  */
-export function HolographicTicketFallback() {
+function CharacterDuoFallback() {
   return (
-    <div className="relative w-full h-[380px] sm:h-[480px] flex items-center justify-center pointer-events-none select-none">
-      {/* Luminous Orbital Rings */}
+    <div className="relative w-full h-[480px] flex items-center justify-center select-none">
+      {/* Background ambient glow */}
       <div
-        className="absolute w-72 h-72 sm:w-80 sm:h-80 rounded-full border border-purple-500/35 animate-[spin_24s_linear_infinite]"
-        style={{ boxShadow: '0 0 50px oklch(58% 0.26 285 / 0.25)' }}
+        className="absolute w-80 h-80 rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(127,26,251,0.25) 0%, rgba(24,207,252,0.12) 50%, transparent 70%)',
+          filter: 'blur(45px)',
+        }}
       />
-      <div
-        className="absolute w-80 h-80 sm:w-96 sm:h-96 rounded-full border border-cyan-500/25 animate-[spin_32s_linear_infinite_reverse]"
-        style={{ transform: 'rotate(45deg)' }}
-      />
 
-      {/* Orbiting Satellite Chips */}
-      <div className="absolute w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_15px_#38bdf8] top-12 left-16 animate-pulse" />
-      <div className="absolute w-3 h-3 rounded-full bg-purple-400 shadow-[0_0_15px_#c084fc] bottom-14 right-16 animate-pulse" />
-
-      {/* Holographic Ticket Pass Card */}
-      <div className="relative w-64 sm:w-72 h-96 rounded-3xl p-6 glass-elevated border border-purple-500/40 shadow-[0_24px_70px_oklch(0%_0_0_/_0.75)] flex flex-col justify-between overflow-hidden">
-        {/* Subtle iridescent sweep */}
-        <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/5 to-transparent rotate-45 pointer-events-none" />
-
-        {/* Top Pass Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4 relative z-10">
-          <span className="text-[11px] uppercase font-bold tracking-widest text-purple-300 flex items-center gap-1.5">
-            <Sparkles size={13} className="text-cyan-400" /> FestFlow Pass
+      {/* Floating 2D visual card */}
+      <div className="relative w-72 sm:w-80 rounded-3xl p-6 bg-[#0E0E12] border border-[#18CFFC]/30 shadow-[0_24px_70px_rgba(0,0,0,0.85),0_0_30px_rgba(127,26,251,0.25)] flex flex-col justify-between overflow-hidden">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <span className="text-[11px] uppercase font-bold tracking-widest text-[#18CFFC] flex items-center gap-1.5">
+            <Sparkles size={13} className="text-[#ED47FC]" /> 3D Experience Ready
           </span>
-          <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
+          <span className="px-2 py-0.5 rounded-full bg-[#18CFFC]/15 border border-[#18CFFC]/40 text-[10px] font-bold text-[#18CFFC]">
             ● VERIFIED
           </span>
         </div>
 
-        {/* Center Hologram Emblem */}
-        <div className="my-auto text-center space-y-2 relative z-10">
-          <div className="w-14 h-14 rounded-2xl gradient-brand mx-auto flex items-center justify-center text-white shadow-xl shadow-purple-500/30">
-            <Ticket size={28} />
+        <div className="my-auto py-8 text-center space-y-3">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] mx-auto flex items-center justify-center text-white shadow-xl shadow-cyan-500/25">
+            <Users size={32} />
           </div>
-          <h4 className="font-display font-bold text-base text-white">Campus Digital Pass</h4>
-          <p className="text-xs text-zinc-400 flex items-center justify-center gap-1">
-            <ShieldCheck size={13} className="text-cyan-400" /> Authorized Entry Credential
+          <h4 className="font-display font-bold text-lg text-white">FestFlow Campus Duo</h4>
+          <p className="text-xs text-zinc-400 max-w-[220px] mx-auto leading-relaxed">
+            Organizers and students collaborating on the next generation of campus festivals.
           </p>
         </div>
 
-        {/* Bottom Barcode / Gate Identifier */}
-        <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-400 relative z-10">
-          <span className="font-mono text-cyan-300">#FF-2026-NEXUS</span>
-          <span className="text-zinc-500">GATE #01</span>
+        <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-400">
+          <span className="font-mono text-[#18CFFC]">#FF-CHARACTERS</span>
+          <span className="text-zinc-500 flex items-center gap-1">
+            <Calendar size={12} /> FEST-2026
+          </span>
         </div>
       </div>
     </div>
@@ -274,17 +167,15 @@ function HeroScene3DInner() {
     const container = containerRef.current
     if (!container) return
 
-    // Track disposables for cleanup
     const disposables: Array<{ dispose: () => void }> = []
     let animationFrameId: number | null = null
     let renderer: THREE.WebGLRenderer | null = null
     let resizeObserver: ResizeObserver | null = null
     let intersectionObserver: IntersectionObserver | null = null
     let handleMouseMove: ((e: MouseEvent) => void) | null = null
-    let handleScroll: (() => void) | null = null
 
     try {
-      // ─── 1. WebGL Verification ─────────────────────────────────────────────
+      // 1. WebGL Verification
       const testCanvas = document.createElement('canvas')
       const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
       if (!gl) {
@@ -293,18 +184,17 @@ function HeroScene3DInner() {
       }
       setWebGlSupported(true)
 
-      // ─── 2. Responsive Device Checks ───────────────────────────────────────
+      // 2. Responsive Device Checks
       const isMobile = window.innerWidth < 768
       const maxDpr = isMobile ? 1.5 : Math.min(window.devicePixelRatio, 2)
-      const particleCount = isMobile ? 28 : 56
 
-      // ─── 3. Scene, Camera & Renderer ───────────────────────────────────────
+      // 3. Scene, Camera & Renderer
       const scene = new THREE.Scene()
 
-      const width = container.clientWidth || 480
-      const height = container.clientHeight || 480
-      const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100)
-      camera.position.set(0, 0, 7.4)
+      const width = container.clientWidth || 540
+      const height = container.clientHeight || 540
+      const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100)
+      camera.position.set(0, 0.6, 7.8)
 
       renderer = new THREE.WebGLRenderer({
         alpha: true,
@@ -315,387 +205,710 @@ function HeroScene3DInner() {
       renderer.setPixelRatio(maxDpr)
       renderer.outputColorSpace = THREE.SRGBColorSpace
       renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = 1.05
+      renderer.toneMappingExposure = 1.1
       container.appendChild(renderer.domElement)
 
-      // ─── 4. Chromatic Stage Lighting ───────────────────────────────────────
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.2)
+      // 4. Exact FestFlow Logo Color Materials
+      // Cyan: #18CFFC, Blue: #07A4FC, Violet: #7F1AFB, Magenta: #ED47FC, Obsidian: #14141A
+      const skinMaterial = new THREE.MeshStandardMaterial({
+        color: 0xE8B490,
+        roughness: 0.45,
+        metalness: 0.05,
+      })
+      disposables.push(skinMaterial)
+
+      const skinMaterial2 = new THREE.MeshStandardMaterial({
+        color: 0xD89C76,
+        roughness: 0.45,
+        metalness: 0.05,
+      })
+      disposables.push(skinMaterial2)
+
+      const obsidianHoodieMat = new THREE.MeshStandardMaterial({
+        color: 0x14141C,
+        roughness: 0.7,
+        metalness: 0.2,
+      })
+      disposables.push(obsidianHoodieMat)
+
+      const cyanAccentMat = new THREE.MeshStandardMaterial({
+        color: 0x18CFFC,
+        emissive: 0x18CFFC,
+        emissiveIntensity: 0.9,
+        roughness: 0.2,
+        metalness: 0.8,
+      })
+      disposables.push(cyanAccentMat)
+
+      const electricBlueMat = new THREE.MeshStandardMaterial({
+        color: 0x07A4FC,
+        roughness: 0.35,
+        metalness: 0.4,
+      })
+      disposables.push(electricBlueMat)
+
+      const violetMat = new THREE.MeshStandardMaterial({
+        color: 0x7F1AFB,
+        emissive: 0x7F1AFB,
+        emissiveIntensity: 0.4,
+        roughness: 0.35,
+        metalness: 0.5,
+      })
+      disposables.push(violetMat)
+
+      const magentaJacketMat = new THREE.MeshStandardMaterial({
+        color: 0xED47FC,
+        emissive: 0xED47FC,
+        emissiveIntensity: 0.3,
+        roughness: 0.3,
+        metalness: 0.3,
+      })
+      disposables.push(magentaJacketMat)
+
+      const chromeMat = new THREE.MeshStandardMaterial({
+        color: 0xE0E4EC,
+        roughness: 0.1,
+        metalness: 0.95,
+      })
+      disposables.push(chromeMat)
+
+      const visorMat = new THREE.MeshPhysicalMaterial({
+        color: 0x0A0A10,
+        roughness: 0.1,
+        metalness: 0.9,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        transparent: true,
+        opacity: 0.92,
+      })
+      disposables.push(visorMat)
+
+      const glowingSoleMat = new THREE.MeshStandardMaterial({
+        color: 0x18CFFC,
+        emissive: 0x18CFFC,
+        emissiveIntensity: 1.2,
+        roughness: 0.2,
+      })
+      disposables.push(glowingSoleMat)
+
+      // 5. Cinematic Lighting Rig matching logo emissions
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.4)
       scene.add(ambientLight)
 
-      const frontKey = new THREE.DirectionalLight(0xffffff, 2.5)
-      frontKey.position.set(0, 1.5, 6.5)
-      scene.add(frontKey)
+      const frontKeyLight = new THREE.DirectionalLight(0xffffff, 2.5)
+      frontKeyLight.position.set(1.5, 4.0, 5.5)
+      scene.add(frontKeyLight)
 
-      const violetKey = new THREE.PointLight(0xa855f7, 36, 25)
-      violetKey.position.set(3.8, 3.2, 3.2)
-      scene.add(violetKey)
+      // Cyan rim light on the left
+      const cyanRimLight = new THREE.PointLight(0x18CFFC, 36, 20)
+      cyanRimLight.position.set(-4.5, 2.5, 2.5)
+      scene.add(cyanRimLight)
 
-      const cyanRim = new THREE.PointLight(0x06b6d4, 30, 22)
-      cyanRim.position.set(-3.6, -2.8, 2.5)
-      scene.add(cyanRim)
+      // Magenta/Violet rim light on the right
+      const magentaRimLight = new THREE.PointLight(0xED47FC, 38, 20)
+      magentaRimLight.position.set(4.5, 2.8, 1.5)
+      scene.add(magentaRimLight)
 
-      const fuchsiaBack = new THREE.PointLight(0xd946ef, 24, 18)
-      fuchsiaBack.position.set(0, 2.4, -2.8)
-      scene.add(fuchsiaBack)
+      // Under-pedestal glow
+      const floorBounce = new THREE.PointLight(0x7F1AFB, 22, 15)
+      floorBounce.position.set(0, -2.5, 1.5)
+      scene.add(floorBounce)
 
-      // ─── 5. Main Root Sculpture ───────────────────────────────────────────
-      const rootGroup = new THREE.Group()
-      scene.add(rootGroup)
+      // 6. Master Scene Group
+      const masterGroup = new THREE.Group()
+      scene.add(masterGroup)
 
-      // Holographic Pass Texture
-      const passTexture = createHolographicPassTexture()
+      // ─────────────────────────────────────────────────────────────────────────
+      // 7. FLOATING OBSIDIAN STAGE PEDESTAL
+      // ─────────────────────────────────────────────────────────────────────────
+      const pedestalGroup = new THREE.Group()
+      pedestalGroup.position.set(0, -2.0, 0)
+      masterGroup.add(pedestalGroup)
+
+      // Base cylinder
+      const pedestalGeo = new THREE.CylinderGeometry(2.8, 3.1, 0.45, isMobile ? 32 : 64)
+      disposables.push(pedestalGeo)
+      const pedestalMat = new THREE.MeshStandardMaterial({
+        color: 0x0E0E14,
+        roughness: 0.4,
+        metalness: 0.85,
+      })
+      disposables.push(pedestalMat)
+      const pedestalMesh = new THREE.Mesh(pedestalGeo, pedestalMat)
+      pedestalGroup.add(pedestalMesh)
+
+      // Outer Cyan Glowing Bezel Ring
+      const ringCyanGeo = new THREE.TorusGeometry(2.82, 0.035, 16, isMobile ? 48 : 80)
+      disposables.push(ringCyanGeo)
+      const ringCyanMesh = new THREE.Mesh(ringCyanGeo, cyanAccentMat)
+      ringCyanMesh.rotation.x = Math.PI / 2
+      ringCyanMesh.position.y = 0.22
+      pedestalGroup.add(ringCyanMesh)
+
+      // Inner Magenta Glowing Ring
+      const ringMagentaGeo = new THREE.TorusGeometry(2.35, 0.025, 16, isMobile ? 48 : 80)
+      disposables.push(ringMagentaGeo)
+      const ringMagentaMat = new THREE.MeshStandardMaterial({
+        color: 0xED47FC,
+        emissive: 0xED47FC,
+        emissiveIntensity: 0.9,
+        roughness: 0.2,
+      })
+      disposables.push(ringMagentaMat)
+      const ringMagentaMesh = new THREE.Mesh(ringMagentaGeo, ringMagentaMat)
+      ringMagentaMesh.rotation.x = Math.PI / 2
+      ringMagentaMesh.position.y = 0.225
+      pedestalGroup.add(ringMagentaMesh)
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 8. CHARACTER 1: "The Campus Organizer / Club Lead" (Left)
+      // ─────────────────────────────────────────────────────────────────────────
+      const char1Group = new THREE.Group()
+      char1Group.position.set(-1.15, -1.8, 0.1)
+      char1Group.rotation.y = 0.28
+      masterGroup.add(char1Group)
+
+      // Torso / Hoodie
+      const char1TorsoGeo = new THREE.CylinderGeometry(0.48, 0.42, 1.35, isMobile ? 18 : 28)
+      disposables.push(char1TorsoGeo)
+      const char1Torso = new THREE.Mesh(char1TorsoGeo, obsidianHoodieMat)
+      char1Torso.position.y = 1.65
+      char1Group.add(char1Torso)
+
+      // Hoodie Chest Crest (FestFlow Cyan Band)
+      const chestBandGeo = new THREE.CylinderGeometry(0.485, 0.482, 0.14, isMobile ? 18 : 28)
+      disposables.push(chestBandGeo)
+      const chestBand = new THREE.Mesh(chestBandGeo, cyanAccentMat)
+      chestBand.position.y = 1.95
+      char1Group.add(chestBand)
+
+      // Head Group (for pointer tracking)
+      const char1HeadGroup = new THREE.Group()
+      char1HeadGroup.position.set(0, 2.58, 0)
+      char1Group.add(char1HeadGroup)
+
+      // Head Base
+      const headGeo = new THREE.SphereGeometry(0.38, isMobile ? 20 : 32, isMobile ? 18 : 28)
+      disposables.push(headGeo)
+      const char1Head = new THREE.Mesh(headGeo, skinMaterial)
+      char1HeadGroup.add(char1Head)
+
+      // Futuristic Cyber Visor Glasses
+      const visorGeo = new THREE.CylinderGeometry(0.40, 0.40, 0.14, isMobile ? 16 : 24, 1, false, -Math.PI / 2.6, Math.PI / 1.3)
+      disposables.push(visorGeo)
+      const char1Visor = new THREE.Mesh(visorGeo, visorMat)
+      char1Visor.position.set(0, 0.05, 0.05)
+      char1HeadGroup.add(char1Visor)
+
+      // Visor Cyan Edge Glow
+      const visorGlowGeo = new THREE.BoxGeometry(0.55, 0.03, 0.12)
+      disposables.push(visorGlowGeo)
+      const char1VisorGlow = new THREE.Mesh(visorGlowGeo, cyanAccentMat)
+      char1VisorGlow.position.set(0, 0.05, 0.38)
+      char1HeadGroup.add(char1VisorGlow)
+
+      // Studio Over-Ear Headphones Headband
+      const headbandGeo = new THREE.TorusGeometry(0.41, 0.04, 12, 32, Math.PI)
+      disposables.push(headbandGeo)
+      const headband = new THREE.Mesh(headbandGeo, chromeMat)
+      headband.position.set(0, 0.12, 0)
+      char1HeadGroup.add(headband)
+
+      // Headphone Ear Cups with Glowing Cyan Rings
+      const earCupGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.10, 18)
+      disposables.push(earCupGeo)
+      const leftEarCup = new THREE.Mesh(earCupGeo, obsidianHoodieMat)
+      leftEarCup.rotation.z = Math.PI / 2
+      leftEarCup.position.set(-0.41, 0.05, 0)
+      char1HeadGroup.add(leftEarCup)
+
+      const leftEarRing = new THREE.Mesh(earCupGeo, cyanAccentMat)
+      leftEarRing.scale.set(0.9, 0.2, 0.9)
+      leftEarRing.rotation.z = Math.PI / 2
+      leftEarRing.position.set(-0.45, 0.05, 0)
+      char1HeadGroup.add(leftEarRing)
+
+      const rightEarCup = new THREE.Mesh(earCupGeo, obsidianHoodieMat)
+      rightEarCup.rotation.z = Math.PI / 2
+      rightEarCup.position.set(0.41, 0.05, 0)
+      char1HeadGroup.add(rightEarCup)
+
+      const rightEarRing = new THREE.Mesh(earCupGeo, cyanAccentMat)
+      rightEarRing.scale.set(0.9, 0.2, 0.9)
+      rightEarRing.rotation.z = Math.PI / 2
+      rightEarRing.position.set(0.45, 0.05, 0)
+      char1HeadGroup.add(rightEarRing)
+
+      // Arms: Left arm resting, Right arm holding Holographic Event Tablet
+      const armGeo = new THREE.CapsuleGeometry(0.12, 0.55, 10, 16)
+      disposables.push(armGeo)
+
+      // Left Arm
+      const char1LeftArm = new THREE.Mesh(armGeo, obsidianHoodieMat)
+      char1LeftArm.position.set(-0.62, 1.6, 0.05)
+      char1LeftArm.rotation.z = 0.25
+      char1Group.add(char1LeftArm)
+
+      // Right Arm (Forward holding tablet)
+      const char1RightArm = new THREE.Mesh(armGeo, obsidianHoodieMat)
+      char1RightArm.position.set(0.58, 1.55, 0.35)
+      char1RightArm.rotation.x = -Math.PI / 4
+      char1RightArm.rotation.z = -0.3
+      char1Group.add(char1RightArm)
+
+      // Holographic Event Tablet
+      const tabletGeo = new THREE.BoxGeometry(0.55, 0.75, 0.035)
+      disposables.push(tabletGeo)
+      const tabletMat = new THREE.MeshStandardMaterial({
+        color: 0x141422,
+        roughness: 0.2,
+        metalness: 0.9,
+      })
+      disposables.push(tabletMat)
+      const tablet = new THREE.Mesh(tabletGeo, tabletMat)
+      tablet.position.set(0.58, 1.72, 0.75)
+      tablet.rotation.x = -Math.PI / 5
+      tablet.rotation.y = -0.2
+      char1Group.add(tablet)
+
+      // Glowing Tablet Screen (Cyan/Violet Interface)
+      const screenGeo = new THREE.PlaneGeometry(0.50, 0.68)
+      disposables.push(screenGeo)
+      const screenMat = new THREE.MeshBasicMaterial({
+        color: 0x18CFFC,
+        transparent: true,
+        opacity: 0.85,
+      })
+      disposables.push(screenMat)
+      const tabletScreen = new THREE.Mesh(screenGeo, screenMat)
+      tabletScreen.position.z = 0.02
+      tablet.add(tabletScreen)
+
+      // Legs
+      const legGeo = new THREE.CapsuleGeometry(0.16, 0.9, 10, 16)
+      disposables.push(legGeo)
+      const char1LeftLeg = new THREE.Mesh(legGeo, obsidianHoodieMat)
+      char1LeftLeg.position.set(-0.25, 0.65, 0)
+      char1Group.add(char1LeftLeg)
+
+      const char1RightLeg = new THREE.Mesh(legGeo, obsidianHoodieMat)
+      char1RightLeg.position.set(0.25, 0.65, 0)
+      char1Group.add(char1RightLeg)
+
+      // High-Top Cyber Sneakers with Cyan Soles
+      const sneakerGeo = new THREE.BoxGeometry(0.32, 0.22, 0.55)
+      disposables.push(sneakerGeo)
+      const sneakerMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.4 })
+      disposables.push(sneakerMat)
+
+      const char1LeftShoe = new THREE.Mesh(sneakerGeo, sneakerMat)
+      char1LeftShoe.position.set(-0.25, 0.12, 0.1)
+      char1Group.add(char1LeftShoe)
+
+      const soleGeo = new THREE.BoxGeometry(0.33, 0.05, 0.56)
+      disposables.push(soleGeo)
+      const leftSole = new THREE.Mesh(soleGeo, glowingSoleMat)
+      leftSole.position.set(0, -0.1, 0)
+      char1LeftShoe.add(leftSole)
+
+      const char1RightShoe = new THREE.Mesh(sneakerGeo, sneakerMat)
+      char1RightShoe.position.set(0.25, 0.12, 0.1)
+      char1Group.add(char1RightShoe)
+
+      const rightSole = new THREE.Mesh(soleGeo, glowingSoleMat)
+      rightSole.position.set(0, -0.1, 0)
+      char1RightShoe.add(rightSole)
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 9. CHARACTER 2: "The Student Fest Attendee / Champion" (Right)
+      // ─────────────────────────────────────────────────────────────────────────
+      const char2Group = new THREE.Group()
+      char2Group.position.set(1.15, -1.8, 0.1)
+      char2Group.rotation.y = -0.32
+      masterGroup.add(char2Group)
+
+      // Varsity Bomber Jacket (Blue Body, Magenta Sleeves)
+      const char2TorsoGeo = new THREE.CylinderGeometry(0.46, 0.40, 1.30, isMobile ? 18 : 28)
+      disposables.push(char2TorsoGeo)
+      const char2Torso = new THREE.Mesh(char2TorsoGeo, electricBlueMat)
+      char2Torso.position.y = 1.62
+      char2Group.add(char2Torso)
+
+      // Varsity Chrome Snaps
+      const snapGeo = new THREE.SphereGeometry(0.025, 8, 8)
+      disposables.push(snapGeo)
+      for (let s = 0; s < 4; s++) {
+        const snap = new THREE.Mesh(snapGeo, chromeMat)
+        snap.position.set(0, 1.45 + s * 0.16, 0.45)
+        char2Group.add(snap)
+      }
+
+      // Head Group (for pointer tracking)
+      const char2HeadGroup = new THREE.Group()
+      char2HeadGroup.position.set(0, 2.52, 0)
+      char2Group.add(char2HeadGroup)
+
+      // Head Base
+      const char2Head = new THREE.Mesh(headGeo, skinMaterial2)
+      char2HeadGroup.add(char2Head)
+
+      // Stylish Festival Cap
+      const capGeo = new THREE.SphereGeometry(0.40, 24, 16, 0, Math.PI * 2, 0, Math.PI / 1.9)
+      disposables.push(capGeo)
+      const capMesh = new THREE.Mesh(capGeo, violetMat)
+      capMesh.position.set(0, 0.08, -0.02)
+      char2HeadGroup.add(capMesh)
+
+      // Cap Brim
+      const brimGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.04, 18, 1, false, -Math.PI / 3, Math.PI / 1.5)
+      disposables.push(brimGeo)
+      const brimMesh = new THREE.Mesh(brimGeo, violetMat)
+      brimMesh.position.set(0, 0.06, 0.32)
+      char2HeadGroup.add(brimMesh)
+
+      // FestFlow "F" Emblem on Cap
+      const capEmblemGeo = new THREE.BoxGeometry(0.12, 0.12, 0.02)
+      disposables.push(capEmblemGeo)
+      const capEmblem = new THREE.Mesh(capEmblemGeo, cyanAccentMat)
+      capEmblem.position.set(0, 0.22, 0.38)
+      char2HeadGroup.add(capEmblem)
+
+      // VIP Lanyard with Swinging Festival Pass
+      const lanyardGeo = new THREE.TorusGeometry(0.28, 0.018, 8, 24, Math.PI)
+      disposables.push(lanyardGeo)
+      const lanyardMat = new THREE.MeshStandardMaterial({ color: 0x7F1AFB, roughness: 0.6 })
+      disposables.push(lanyardMat)
+      const lanyard = new THREE.Mesh(lanyardGeo, lanyardMat)
+      lanyard.rotation.x = Math.PI / 2.3
+      lanyard.position.set(0, 2.15, 0.25)
+      char2Group.add(lanyard)
+
+      // Mini VIP Pass hanging from lanyard
+      const miniPassGeo = new THREE.BoxGeometry(0.24, 0.36, 0.015)
+      disposables.push(miniPassGeo)
+      const miniPassMat = new THREE.MeshStandardMaterial({
+        color: 0xFFFFFF,
+        emissive: 0xED47FC,
+        emissiveIntensity: 0.6,
+      })
+      disposables.push(miniPassMat)
+      const miniPass = new THREE.Mesh(miniPassGeo, miniPassMat)
+      miniPass.position.set(0, 1.82, 0.48)
+      char2Group.add(miniPass)
+
+      // Arms: Left arm resting casually, Right arm enthusiastically raised in celebratory gesture
+      const char2LeftArm = new THREE.Mesh(armGeo, magentaJacketMat)
+      char2LeftArm.position.set(-0.58, 1.55, 0.1)
+      char2LeftArm.rotation.z = 0.2
+      char2Group.add(char2LeftArm)
+
+      // Celebratory Raised Right Arm
+      const char2RightArm = new THREE.Mesh(armGeo, magentaJacketMat)
+      char2RightArm.position.set(0.62, 1.95, 0.15)
+      char2RightArm.rotation.z = -Math.PI / 2.6
+      char2RightArm.rotation.x = 0.3
+      char2Group.add(char2RightArm)
+
+      // Cyan Glowing Event Wristband on raised wrist
+      const wristbandGeo = new THREE.TorusGeometry(0.13, 0.03, 12, 24)
+      disposables.push(wristbandGeo)
+      const wristband = new THREE.Mesh(wristbandGeo, cyanAccentMat)
+      wristband.position.set(0.92, 2.32, 0.22)
+      wristband.rotation.y = Math.PI / 3
+      char2Group.add(wristband)
+
+      // Hand gesture
+      const handGeo = new THREE.SphereGeometry(0.11, 12, 12)
+      disposables.push(handGeo)
+      const handMesh = new THREE.Mesh(handGeo, skinMaterial2)
+      handMesh.position.set(1.05, 2.45, 0.25)
+      char2Group.add(handMesh)
+
+      // Legs
+      const char2LeftLeg = new THREE.Mesh(legGeo, obsidianHoodieMat)
+      char2LeftLeg.position.set(-0.24, 0.65, 0)
+      char2Group.add(char2LeftLeg)
+
+      const char2RightLeg = new THREE.Mesh(legGeo, obsidianHoodieMat)
+      char2RightLeg.position.set(0.24, 0.65, 0)
+      char2Group.add(char2RightLeg)
+
+      // Chunky Runners with Magenta Accent
+      const char2ShoeMat = new THREE.MeshStandardMaterial({
+        color: 0x1A1A26,
+        roughness: 0.35,
+      })
+      disposables.push(char2ShoeMat)
+      const magentaSoleMat = new THREE.MeshStandardMaterial({
+        color: 0xED47FC,
+        emissive: 0xED47FC,
+        emissiveIntensity: 1.1,
+      })
+      disposables.push(magentaSoleMat)
+
+      const char2LeftShoe = new THREE.Mesh(sneakerGeo, char2ShoeMat)
+      char2LeftShoe.position.set(-0.24, 0.12, 0.1)
+      char2Group.add(char2LeftShoe)
+      const char2LeftSole = new THREE.Mesh(soleGeo, magentaSoleMat)
+      char2LeftSole.position.set(0, -0.1, 0)
+      char2LeftShoe.add(char2LeftSole)
+
+      const char2RightShoe = new THREE.Mesh(sneakerGeo, char2ShoeMat)
+      char2RightShoe.position.set(0.24, 0.12, 0.1)
+      char2Group.add(char2RightShoe)
+      const char2RightSole = new THREE.Mesh(soleGeo, magentaSoleMat)
+      char2RightSole.position.set(0, -0.1, 0)
+      char2RightShoe.add(char2RightSole)
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 10. CENTRAL FLOATING HOLOGRAPHIC FESTIVAL PASS
+      // ─────────────────────────────────────────────────────────────────────────
+      const passTexture = createFestivalPassTexture()
       disposables.push(passTexture)
 
-      // Ticket Geometry (Precision proportions: 2.35 x 3.45 x 0.08)
-      const ticketGeo = new THREE.BoxGeometry(2.35, 3.45, 0.08)
-      disposables.push(ticketGeo)
+      const floatingPassGeo = new THREE.BoxGeometry(1.35, 2.0, 0.04)
+      disposables.push(floatingPassGeo)
 
-      const edgeMaterial = new THREE.MeshStandardMaterial({
-        color: 0x6d28d9,
-        metalness: 0.8,
-        roughness: 0.25,
-        emissive: 0x3b0764,
-        emissiveIntensity: 0.45,
-      })
-      disposables.push(edgeMaterial)
-
-      const passMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
+      const passFrontMat = new THREE.MeshStandardMaterial({
         map: passTexture,
-        metalness: 0.15,
         roughness: 0.2,
-        emissive: 0x1e1b4b,
-        emissiveIntensity: 0.28,
+        metalness: 0.1,
+        emissive: 0x18CFFC,
+        emissiveIntensity: 0.2,
       })
-      disposables.push(passMaterial)
+      disposables.push(passFrontMat)
 
-      const ticketMaterials = [
-        edgeMaterial,
-        edgeMaterial,
-        edgeMaterial,
-        edgeMaterial,
-        passMaterial,
-        passMaterial,
+      const passBackMat = new THREE.MeshStandardMaterial({
+        color: 0x0E0E18,
+        roughness: 0.3,
+        metalness: 0.8,
+        emissive: 0x7F1AFB,
+        emissiveIntensity: 0.25,
+      })
+      disposables.push(passBackMat)
+
+      const passEdgeMat = new THREE.MeshStandardMaterial({
+        color: 0x18CFFC,
+        emissive: 0x18CFFC,
+        emissiveIntensity: 0.8,
+      })
+      disposables.push(passEdgeMat)
+
+      const floatingPass = new THREE.Mesh(floatingPassGeo, [
+        passEdgeMat,
+        passEdgeMat,
+        passEdgeMat,
+        passEdgeMat,
+        passFrontMat,
+        passBackMat,
+      ])
+      floatingPass.position.set(0, 0.35, 1.25)
+      masterGroup.add(floatingPass)
+
+      // Glowing Hologram Halo Ring around floating pass
+      const haloGeo = new THREE.TorusGeometry(1.4, 0.015, 12, 48)
+      disposables.push(haloGeo)
+      const haloMat = new THREE.MeshStandardMaterial({
+        color: 0x18CFFC,
+        emissive: 0x18CFFC,
+        emissiveIntensity: 1.2,
+      })
+      disposables.push(haloMat)
+      const haloMesh = new THREE.Mesh(haloGeo, haloMat)
+      haloMesh.rotation.x = Math.PI / 2.8
+      floatingPass.add(haloMesh)
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 11. ORBITING CELEBRATION EMBERS & GLYPHS
+      // ─────────────────────────────────────────────────────────────────────────
+      const sparkGeo = new THREE.OctahedronGeometry(0.08, 0)
+      disposables.push(sparkGeo)
+      const sparkMats = [
+        new THREE.MeshStandardMaterial({ color: 0x18CFFC, emissive: 0x18CFFC, emissiveIntensity: 1.4 }),
+        new THREE.MeshStandardMaterial({ color: 0xED47FC, emissive: 0xED47FC, emissiveIntensity: 1.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x7F1AFB, emissive: 0x7F1AFB, emissiveIntensity: 1.4 }),
       ]
+      sparkMats.forEach((m) => disposables.push(m))
 
-      const ticketMesh = new THREE.Mesh(ticketGeo, ticketMaterials)
-      rootGroup.add(ticketMesh)
-
-      // Edge outline highlight
-      const edgeGeo = new THREE.EdgesGeometry(ticketGeo)
-      disposables.push(edgeGeo)
-      const edgeMat = new THREE.LineBasicMaterial({
-        color: 0xc084fc,
-        transparent: true,
-        opacity: 0.7,
-      })
-      disposables.push(edgeMat)
-      const ticketEdges = new THREE.LineSegments(edgeGeo, edgeMat)
-      ticketMesh.add(ticketEdges)
-
-      // Physical side notch cutouts
-      const notchMat = new THREE.MeshBasicMaterial({ color: 0x06050d })
-      disposables.push(notchMat)
-      const notchGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.12, isMobile ? 16 : 24)
-      disposables.push(notchGeo)
-      notchGeo.rotateX(Math.PI / 2)
-
-      const leftNotch = new THREE.Mesh(notchGeo, notchMat)
-      leftNotch.position.set(-1.18, 0, 0)
-      ticketMesh.add(leftNotch)
-
-      const rightNotch = new THREE.Mesh(notchGeo, notchMat)
-      rightNotch.position.set(1.18, 0, 0)
-      ticketMesh.add(rightNotch)
-
-      // ─── 6. Interconnected Gyro Portal Rings ───────────────────────────────
-      const ring1Geo = new THREE.TorusGeometry(2.4, 0.024, isMobile ? 12 : 16, isMobile ? 64 : 96)
-      disposables.push(ring1Geo)
-      const ring1Mat = new THREE.MeshStandardMaterial({
-        color: 0xa855f7,
-        emissive: 0x9333ea,
-        emissiveIntensity: 0.95,
-        metalness: 0.9,
-        roughness: 0.15,
-      })
-      disposables.push(ring1Mat)
-      const ring1 = new THREE.Mesh(ring1Geo, ring1Mat)
-      ring1.rotation.x = Math.PI / 3.2
-      ring1.rotation.y = Math.PI / 5.5
-      rootGroup.add(ring1)
-
-      const ring2Geo = new THREE.TorusGeometry(2.7, 0.018, isMobile ? 12 : 16, isMobile ? 64 : 96)
-      disposables.push(ring2Geo)
-      const ring2Mat = new THREE.MeshStandardMaterial({
-        color: 0x06b6d4,
-        emissive: 0x0891b2,
-        emissiveIntensity: 0.85,
-        metalness: 0.9,
-        roughness: 0.15,
-      })
-      disposables.push(ring2Mat)
-      const ring2 = new THREE.Mesh(ring2Geo, ring2Mat)
-      ring2.rotation.x = -Math.PI / 3.8
-      ring2.rotation.z = Math.PI / 4.2
-      rootGroup.add(ring2)
-
-      // ─── 7. Orbiting Prismatic Satellite Chips ─────────────────────────────
-      const satelliteGroup = new THREE.Group()
-      rootGroup.add(satelliteGroup)
-
-      const satelliteGeo = new THREE.OctahedronGeometry(0.11, 0)
-      disposables.push(satelliteGeo)
-
-      const satelliteMaterials = [
-        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.2, metalness: 0.8 }),
-        new THREE.MeshStandardMaterial({ color: 0xc084fc, emissive: 0x9333ea, emissiveIntensity: 1.2, metalness: 0.8 }),
-        new THREE.MeshStandardMaterial({ color: 0xf472b6, emissive: 0xdb2777, emissiveIntensity: 1.2, metalness: 0.8 }),
-        new THREE.MeshStandardMaterial({ color: 0x34d399, emissive: 0x059669, emissiveIntensity: 1.2, metalness: 0.8 }),
-      ]
-      satelliteMaterials.forEach((m) => disposables.push(m))
-
-      const satellites: THREE.Mesh[] = []
-      const satelliteOffsets = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5]
-
-      for (let i = 0; i < 4; i++) {
-        const mesh = new THREE.Mesh(satelliteGeo, satelliteMaterials[i])
-        satelliteGroup.add(mesh)
-        satellites.push(mesh)
+      const sparks: Array<{ mesh: THREE.Mesh; speed: number; radius: number; phase: number; yBase: number }> = []
+      const sparkCount = isMobile ? 8 : 16
+      for (let i = 0; i < sparkCount; i++) {
+        const mat = sparkMats[i % sparkMats.length]
+        const spark = new THREE.Mesh(sparkGeo, mat)
+        const radius = 1.8 + (i % 4) * 0.45
+        const phase = (i / sparkCount) * Math.PI * 2
+        const yBase = -0.5 + (i % 5) * 0.6
+        spark.position.set(Math.cos(phase) * radius, yBase, Math.sin(phase) * radius)
+        masterGroup.add(spark)
+        sparks.push({ mesh: spark, speed: 0.6 + (i % 3) * 0.25, radius, phase, yBase })
       }
 
-      // ─── 8. Soft Atmospheric Ambient Stardust Particles ───────────────────
-      const particleGeo = new THREE.BufferGeometry()
-      disposables.push(particleGeo)
-      const positions = new Float32Array(particleCount * 3)
-      const scales = new Float32Array(particleCount)
-
-      for (let i = 0; i < particleCount; i++) {
-        const i3 = i * 3
-        const radius = 2.2 + Math.random() * 2.8
-        const theta = Math.random() * Math.PI * 2
-        const phi = (Math.random() - 0.5) * Math.PI * 0.8
-        positions[i3] = radius * Math.cos(phi) * Math.cos(theta)
-        positions[i3 + 1] = radius * Math.sin(phi) + (Math.random() - 0.5) * 1.0
-        positions[i3 + 2] = radius * Math.cos(phi) * Math.sin(theta)
-        scales[i] = Math.random() * 0.6 + 0.4
-      }
-
-      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      particleGeo.setAttribute('scale', new THREE.BufferAttribute(scales, 1))
-
-      const particleGlowTexture = createParticleGlowTexture()
-      disposables.push(particleGlowTexture)
-
-      const particleMat = new THREE.PointsMaterial({
-        color: 0xe0e7ff,
-        size: isMobile ? 0.08 : 0.12,
-        map: particleGlowTexture,
-        transparent: true,
-        opacity: 0.65,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      })
-      disposables.push(particleMat)
-
-      const particlePoints = new THREE.Points(particleGeo, particleMat)
-      scene.add(particlePoints)
-
-      // ─── 9. Interactive Mouse Parallax & Scroll Reactivity ───────────────
-      const targetMouse = { x: 0, y: 0 }
-      const currentMouse = { x: 0, y: 0 }
-      let targetScrollY = 0
-      let currentScrollY = 0
+      // ─────────────────────────────────────────────────────────────────────────
+      // 12. INTERACTIVE POINTER TRACKING & ANIMATION LOOP
+      // ─────────────────────────────────────────────────────────────────────────
+      let mouseX = 0
+      let mouseY = 0
+      let targetRotY = 0
+      let targetRotX = 0
 
       handleMouseMove = (e: MouseEvent) => {
-        const nx = (e.clientX / window.innerWidth) * 2 - 1
-        const ny = -(e.clientY / window.innerHeight) * 2 + 1
-        targetMouse.x = nx * 0.45
-        targetMouse.y = ny * 0.35
+        const rect = container.getBoundingClientRect()
+        mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        mouseY = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
       }
+      window.addEventListener('mousemove', handleMouseMove, { passive: true })
 
-      handleScroll = () => {
-        targetScrollY = window.scrollY
-      }
-
-      if (!reducedMotion) {
-        window.addEventListener('mousemove', handleMouseMove, { passive: true })
-        window.addEventListener('scroll', handleScroll, { passive: true })
-      }
-
-      // ─── 10. Viewport Intersection Pausing ────────────────────────────────
-      let isVisibleInViewport = true
-      intersectionObserver = new IntersectionObserver(
-        (entries) => {
-          isVisibleInViewport = entries[0].isIntersecting
-        },
-        { threshold: 0.1 }
-      )
+      let isVisible = true
+      intersectionObserver = new IntersectionObserver(([entry]) => {
+        isVisible = entry.isIntersecting
+      }, { threshold: 0.1 })
       intersectionObserver.observe(container)
 
-      // ─── 11. Container Resize Handling ────────────────────────────────────
-      resizeObserver = new ResizeObserver((entries) => {
-        if (!entries[0] || !renderer) return
-        const cr = entries[0].contentRect
-        if (cr.width > 0 && cr.height > 0) {
-          camera.aspect = cr.width / cr.height
-          camera.updateProjectionMatrix()
-          renderer.setSize(cr.width, cr.height)
-        }
-      })
-      resizeObserver.observe(container)
-
-      // ─── 12. 60 FPS Render Loop ───────────────────────────────────────────
       const clock = new THREE.Clock()
 
       const animate = () => {
         animationFrameId = requestAnimationFrame(animate)
 
-        if (!isVisibleInViewport) return
+        if (!isVisible || !renderer) return
 
-        const elapsed = clock.getElapsedTime()
+        const elapsedTime = clock.getElapsedTime()
 
+        // Natural Idle Breathing Motion
         if (!reducedMotion) {
-          // Smooth spring damping for mouse tilt & scroll progress
-          currentMouse.x += (targetMouse.x - currentMouse.x) * 0.04
-          currentMouse.y += (targetMouse.y - currentMouse.y) * 0.04
-          currentScrollY += (targetScrollY - currentScrollY) * 0.06
+          // Character 1 breathing and head micro-tilt
+          char1Torso.scale.y = 1 + Math.sin(elapsedTime * 2.2) * 0.015
+          char1Group.position.y = -1.8 + Math.sin(elapsedTime * 1.5) * 0.035
 
-          const scrollProgress = Math.min(Math.max(currentScrollY / (window.innerHeight * 0.85), 0), 1)
+          // Character 2 breathing and celebratory arm bobbing
+          char2Torso.scale.y = 1 + Math.sin(elapsedTime * 2.4 + 0.5) * 0.015
+          char2Group.position.y = -1.8 + Math.sin(elapsedTime * 1.5 + 0.8) * 0.035
+          char2RightArm.rotation.z = -Math.PI / 2.6 + Math.sin(elapsedTime * 3) * 0.06
 
-          // Floating ticket respiration motion combined with scroll reaction
-          const floatY = Math.sin(elapsed * 1.25) * 0.12
-          const floatRotZ = Math.sin(elapsed * 0.9) * 0.04
-          const gentleYaw = Math.sin(elapsed * 0.6) * 0.18
+          // Floating VIP pass gentle tumble and hover
+          floatingPass.position.y = 0.35 + Math.sin(elapsedTime * 1.8) * 0.12
+          floatingPass.rotation.y = Math.sin(elapsedTime * 0.8) * 0.25
+          floatingPass.rotation.x = Math.cos(elapsedTime * 1.2) * 0.08
 
-          // Position smoothly descends and recedes in depth as user scrolls
-          ticketMesh.position.y = floatY - scrollProgress * 1.4
-          ticketMesh.position.z = -scrollProgress * 2.2
-          ticketMesh.rotation.x = 0.12 + -currentMouse.y * 0.45 + Math.cos(elapsed * 0.8) * 0.03 + scrollProgress * 0.42
-          ticketMesh.rotation.y = -0.25 + gentleYaw + currentMouse.x * 0.55 - scrollProgress * 0.35
-          ticketMesh.rotation.z = floatRotZ + scrollProgress * 0.08
-          
-          const targetScale = Math.max(1 - scrollProgress * 0.22, 0.78)
-          ticketMesh.scale.setScalar(targetScale)
+          // Floating pedestal hover
+          pedestalGroup.position.y = -2.0 + Math.sin(elapsedTime * 1.2) * 0.03
 
-          // Gyroscope Torus Rings Rotation (responds with slight velocity boost during scroll)
-          const ringSpeed = 1 + scrollProgress * 0.6
-          ring1.rotation.x = Math.PI / 3.2 + elapsed * 0.22 * ringSpeed
-          ring1.rotation.y = Math.PI / 5.5 + elapsed * 0.15 * ringSpeed
-          ring1.rotation.z = Math.sin(elapsed * 0.5) * 0.2
+          // Orbiting sparks
+          sparks.forEach((sp, idx) => {
+            const angle = sp.phase + elapsedTime * sp.speed * 0.4
+            sp.mesh.position.x = Math.cos(angle) * sp.radius
+            sp.mesh.position.z = Math.sin(angle) * sp.radius
+            sp.mesh.position.y = sp.yBase + Math.sin(elapsedTime * 2 + idx) * 0.18
+            sp.mesh.rotation.x += 0.02
+            sp.mesh.rotation.y += 0.03
+          })
 
-          ring2.rotation.x = -Math.PI / 3.8 - elapsed * 0.18 * ringSpeed
-          ring2.rotation.y = elapsed * 0.25 * ringSpeed
-          ring2.rotation.z = Math.PI / 4.2 + Math.cos(elapsed * 0.4) * 0.15
+          // Smooth Pointer Lerp for characters looking at user cursor
+          targetRotY = mouseX * 0.28
+          targetRotX = mouseY * 0.16
 
-          // Satellite chips orbit
-          for (let i = 0; i < satellites.length; i++) {
-            const s = satellites[i]
-            const angle = elapsed * 0.75 * ringSpeed + satelliteOffsets[i]
-            const radius = 2.1 + Math.sin(elapsed * 1.5 + i) * 0.2
-            s.position.x = Math.cos(angle) * radius
-            s.position.y = Math.sin(angle * 0.8) * 0.65
-            s.position.z = Math.sin(angle) * radius * 0.7
-            s.rotation.x = elapsed * 2 + i
-            s.rotation.y = elapsed * 2.5 + i
-          }
+          char1HeadGroup.rotation.y += (targetRotY * 1.2 - char1HeadGroup.rotation.y) * 0.06
+          char1HeadGroup.rotation.x += (-targetRotX * 0.8 - char1HeadGroup.rotation.x) * 0.06
 
-          // Ambient particle cosmic rotation
-          particlePoints.rotation.y = elapsed * 0.035
-          particlePoints.rotation.x = Math.sin(elapsed * 0.02) * 0.05
-        } else {
-          // Reduced motion: static beauty isometric composition
-          ticketMesh.rotation.x = 0.14
-          ticketMesh.rotation.y = -0.22
-          ticketMesh.position.y = 0
-          ticketMesh.position.z = 0
-          ticketMesh.scale.setScalar(1)
-          ring1.rotation.z = 0.4
-          ring2.rotation.z = -0.3
-          for (let i = 0; i < satellites.length; i++) {
-            const s = satellites[i]
-            const angle = satelliteOffsets[i]
-            s.position.set(Math.cos(angle) * 2.0, Math.sin(angle) * 0.5, Math.sin(angle) * 1.2)
-          }
+          char2HeadGroup.rotation.y += (targetRotY * 1.2 - char2HeadGroup.rotation.y) * 0.06
+          char2HeadGroup.rotation.x += (-targetRotX * 0.8 - char2HeadGroup.rotation.x) * 0.06
+
+          masterGroup.rotation.y += (targetRotY * 0.35 - masterGroup.rotation.y) * 0.04
         }
 
-        renderer?.render(scene, camera)
+        renderer.render(scene, camera)
       }
 
       animate()
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 13. RESPONSIVE RESIZE OBSERVER
+      // ─────────────────────────────────────────────────────────────────────────
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const newWidth = entry.contentRect.width
+          const newHeight = entry.contentRect.height
+          if (newWidth > 0 && newHeight > 0 && renderer) {
+            camera.aspect = newWidth / newHeight
+            // Responsive mobile camera distance
+            if (newWidth < 640) {
+              camera.position.set(0, 0.4, 9.2)
+            } else if (newWidth < 1024) {
+              camera.position.set(0, 0.5, 8.4)
+            } else {
+              camera.position.set(0, 0.6, 7.8)
+            }
+            camera.updateProjectionMatrix()
+            renderer.setSize(newWidth, newHeight)
+          }
+        }
+      })
+      resizeObserver.observe(container)
+
     } catch (err) {
-      console.warn('WebGL HeroScene3D initialization failed. Falling back to CSS presentation:', err)
+      console.warn('[FestFlow 3D] Failed to initialize character scene:', err)
       setWebGlSupported(false)
-      return
     }
 
-    // ─── 13. Resource Cleanup on Unmount ────────────────────────────────────
+    // Cleanup on unmount
     return () => {
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId)
-      }
-      if (handleMouseMove) {
-        window.removeEventListener('mousemove', handleMouseMove)
-      }
-      if (handleScroll) {
-        window.removeEventListener('scroll', handleScroll)
-      }
-      intersectionObserver?.disconnect()
-      resizeObserver?.disconnect()
+      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId)
+      if (handleMouseMove) window.removeEventListener('mousemove', handleMouseMove)
+      if (resizeObserver) resizeObserver.disconnect()
+      if (intersectionObserver) intersectionObserver.disconnect()
 
-      // Safely dispose all tracked resources
-      for (const item of disposables) {
+      disposables.forEach((item) => {
         try {
-          item?.dispose()
-        } catch {
-          // ignore already disposed
-        }
-      }
-
-      // WebGL Renderer disposal
-      if (renderer) {
-        try {
-          renderer.dispose()
-          if (renderer.domElement.parentNode === container) {
-            container.removeChild(renderer.domElement)
-          }
+          item.dispose()
         } catch {
           // ignore
         }
+      })
+
+      if (renderer && renderer.domElement && renderer.domElement.parentElement) {
+        renderer.domElement.parentElement.removeChild(renderer.domElement)
+        renderer.dispose()
       }
     }
   }, [reducedMotion])
 
-  // ─── 14. Fallback rendering ───────────────────────────────────────────────
   if (webGlSupported === false) {
-    return <HolographicTicketFallback />
+    return <CharacterDuoFallback />
   }
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[380px] sm:h-[480px] lg:h-[540px] flex items-center justify-center overflow-visible"
-      aria-label="Interactive 3D digital campus event pass and connected orbital stage"
+      className="relative w-full h-[460px] sm:h-[520px] lg:h-[580px] flex items-center justify-center select-none"
+      aria-label="Interactive 3D FestFlow Campus Characters"
     />
   )
 }
 
-/**
- * Isolated Error Boundary to ensure HeroScene3D never crashes the host page.
- */
-class HeroScene3DErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  public state = { hasError: false }
+interface ErrorBoundaryProps {
+  children: ReactNode
+}
 
-  public static getDerivedStateFromError(): { hasError: boolean } {
+interface ErrorBoundaryState {
+  hasError: boolean
+}
+
+class HeroScene3DErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
     return { hasError: true }
   }
 
-  public componentDidCatch(error: Error, info: ErrorInfo) {
-    console.warn('[HeroScene3D ErrorBoundary] Caught WebGL render exception:', error, info)
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn('[FestFlow 3D ErrorBoundary] Caught error:', error, errorInfo)
   }
 
-  public render() {
+  render() {
     if (this.state.hasError) {
-      return <HolographicTicketFallback />
+      return <CharacterDuoFallback />
     }
     return this.props.children
   }

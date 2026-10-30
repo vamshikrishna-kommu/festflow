@@ -63,7 +63,7 @@ function PageLoader() {
       <div className="flex flex-col items-center gap-4 animate-pulse">
         <Logo variant="navbar" />
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-brand-purple)] border-t-transparent animate-spin" />
+          <div className="w-3.5 h-3.5 rounded-full border-2 border-[#18CFFC] border-t-transparent animate-spin" />
           <span>Loading FestFlow…</span>
         </div>
       </div>

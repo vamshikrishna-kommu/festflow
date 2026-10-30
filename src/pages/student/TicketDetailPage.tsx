@@ -99,31 +99,31 @@ export default function TicketDetailPage() {
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24 text-left">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 py-4 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] mb-8 flex-wrap">
+        <div className="flex items-center gap-2 py-4 text-xs text-zinc-400 border-b border-white/[0.08] mb-8 flex-wrap">
           <Link
             to="/student/dashboard"
-            className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+            className="hover:text-white flex items-center gap-1 transition-colors"
           >
             <ArrowLeft size={14} /> Back to My Passes
           </Link>
-          <span>/</span>
-          <span className="text-[var(--color-text-primary)] font-medium">Digital Pass</span>
+          <span className="text-zinc-600">/</span>
+          <span className="text-white font-medium">Digital Pass</span>
         </div>
 
         {loading ? (
           <div className="py-24 flex flex-col items-center justify-center">
-            <div className="w-10 h-10 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-cyan)] animate-spin mb-4" />
-            <span className="text-xs text-[var(--color-text-muted)]">
+            <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-[#18CFFC] animate-spin mb-4" />
+            <span className="text-xs text-zinc-400 font-mono">
               Decrypting and verifying digital ticket…
             </span>
           </div>
         ) : error || !registration ? (
-          <div className="max-w-md mx-auto py-16 text-center flex flex-col items-center glass p-8 rounded-2xl border border-[var(--color-surface-3)]">
+          <div className="max-w-md mx-auto py-16 text-center flex flex-col items-center p-8 rounded-3xl bg-[#0E0E12] border border-white/[0.08] shadow-2xl">
             <AlertCircle size={36} className="text-rose-400 mb-3" />
-            <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)] mb-2">
+            <h2 className="text-xl font-bold font-heading text-white mb-2">
               Pass Unavailable
             </h2>
-            <p className="text-xs text-[var(--color-text-secondary)] mb-6">
+            <p className="text-xs text-zinc-400 mb-6 font-sans">
               {error || 'Unable to load digital ticket.'}
             </p>
             <Link to="/student/dashboard">
@@ -143,14 +143,14 @@ export default function TicketDetailPage() {
               </div>
             )}
             {registration.team_name && (
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)]/90 border border-[oklch(100%_0_0_/_0.08)] text-xs mb-3 flex-wrap gap-2">
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] text-xs mb-3 flex-wrap gap-2 w-full max-w-lg">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-[var(--color-brand-purple)]/20 text-[var(--color-brand-purple)]">
+                  <div className="p-1.5 rounded-lg bg-[#18CFFC]/15 text-[#18CFFC]">
                     <Users size={16} />
                   </div>
                   <div>
-                    <span className="font-bold text-[var(--color-text-primary)]">{registration.team_name}</span>
-                    <span className="text-[11px] text-[var(--color-text-muted)] ml-2">
+                    <span className="font-bold text-white font-heading">{registration.team_name}</span>
+                    <span className="text-[11px] text-zinc-400 ml-2">
                       {registration.team_role === 'leader' ? 'Team Leader' : 'Team Member'}
                     </span>
                   </div>
@@ -162,7 +162,7 @@ export default function TicketDetailPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowTeamModal(true)}
-                    leftIcon={<Users size={14} />}
+                    leftIcon={<Users size={14} className="text-[#18CFFC]" />}
                   >
                     Manage Squad Roster
                   </Button>

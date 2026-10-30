@@ -7,21 +7,21 @@ export default function PrivacyPolicyPage() {
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="flex items-center gap-3 mb-3">
-          <Badge variant="cyan">Platform Governance</Badge>
+          <Badge variant="brand">Platform Governance</Badge>
           <span className="text-xs text-[var(--color-text-muted)]">Effective: October 2026</span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-[var(--color-text-primary)] mb-4">
+        <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white mb-4">
           Privacy Policy
         </h1>
         <p className="text-sm text-[var(--color-text-secondary)] mb-8 max-w-2xl">
           Learn how FestFlow collects, uses, and safeguards attendee and club organizer data across campus events.
         </p>
 
-        <Card className="p-6 sm:p-8 space-y-6 text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        <Card className="p-6 sm:p-8 space-y-6 text-sm text-[var(--color-text-secondary)] leading-relaxed border-white/10 bg-[#0E0E12]/80 backdrop-blur-md">
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-              <ShieldCheck className="text-[var(--color-brand-cyan)]" size={18} />
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <ShieldCheck className="text-[#18CFFC]" size={18} />
               1. Information We Collect
             </h2>
             <p>
@@ -59,7 +59,7 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>
               For privacy inquiries, data deletion requests, or institutional compliance audits, please contact the FestFlow team at{' '}
-              <a href="mailto:privacy@festflow.com" className="text-[var(--color-brand-cyan)] underline">
+              <a href="mailto:privacy@festflow.com" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
                 privacy@festflow.com
               </a>.
             </p>

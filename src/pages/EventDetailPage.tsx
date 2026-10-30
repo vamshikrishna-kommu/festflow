@@ -25,7 +25,7 @@ import {
   HelpCircle,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
-import { Button, Badge, CategoryBadge, Card, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
+import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
 import { getEventBySlug, CATEGORY_POSTERS } from '@/lib/events'
 import { checkStudentRegistrationForEvent, cancelRegistration } from '@/lib/registrations'
 import { subscribeToStatusChanges } from '@/lib/sync'
@@ -290,15 +290,15 @@ export default function EventDetailPage() {
     <PageShell>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-24 text-left">
         {/* ── Breadcrumb & Utility Bar ──────────────────────────────────────── */}
-        <div className="flex items-center justify-between py-4 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] mb-6 flex-wrap gap-2">
+        <div className="flex items-center justify-between py-4 text-xs text-zinc-400 border-b border-white/[0.08] mb-6 flex-wrap gap-2">
           <div className="flex items-center gap-2 truncate">
-            <Link to="/discover" className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors">
+            <Link to="/discover" className="hover:text-white flex items-center gap-1 transition-colors">
               <ArrowLeft size={14} /> Discover
             </Link>
-            <span>/</span>
+            <span className="text-zinc-600">/</span>
             <span className="capitalize">{event.category}</span>
-            <span>/</span>
-            <span className="text-[var(--color-text-primary)] font-medium truncate max-w-[200px] sm:max-w-xs">
+            <span className="text-zinc-600">/</span>
+            <span className="text-white font-medium truncate max-w-[200px] sm:max-w-xs">
               {event.title}
             </span>
           </div>
@@ -306,9 +306,9 @@ export default function EventDetailPage() {
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all text-xs border border-[oklch(100%_0_0_/_0.06)]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14141A] hover:bg-[#1E1E26] text-zinc-300 hover:text-white transition-all text-xs border border-white/[0.08] cursor-pointer"
           >
-            {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Share2 size={14} />}
+            {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Share2 size={14} className="text-[#18CFFC]" />}
             <span>{copied ? 'Link Copied!' : 'Share Event'}</span>
           </button>
         </div>
@@ -440,19 +440,19 @@ export default function EventDetailPage() {
           {/* Left 2 Cols: Editorial Details */}
           <div className="lg:col-span-2 flex flex-col gap-8">
             {/* Organizer Card */}
-            <div className="p-4 sm:p-5 rounded-2xl glass border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-center justify-between gap-4 shadow-sm">
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] flex items-center justify-center text-white shrink-0 shadow-md">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 shadow-md shadow-[#18CFFC]/20">
                   <Building2 size={24} />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm sm:text-base text-[var(--color-text-primary)]">
+                    <span className="font-bold text-sm sm:text-base text-white">
                       {clubName}
                     </span>
                     <ShieldCheck size={16} className="text-emerald-400" />
                   </div>
-                  <span className="text-xs text-[var(--color-text-muted)]">
+                  <span className="text-xs text-zinc-400">
                     Official Student Organization Host
                   </span>
                 </div>
@@ -476,67 +476,67 @@ export default function EventDetailPage() {
 
             {/* Quick Timing & Venue Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Card className="p-4 flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-brand-cyan)] shrink-0">
+              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3.5 shadow-sm">
+                <div className="p-2.5 rounded-xl bg-[#14141A] text-[#18CFFC] shrink-0 border border-white/[0.06]">
                   <Calendar size={20} />
                 </div>
                 <div className="text-xs min-w-0">
-                  <span className="text-[var(--color-text-muted)] block mb-0.5">Date & Time</span>
-                  <strong className="text-[var(--color-text-primary)] font-semibold block truncate">
+                  <span className="text-zinc-500 block mb-0.5 font-medium">Date & Time</span>
+                  <strong className="text-white font-semibold block truncate">
                     {formattedDate}
                   </strong>
-                  <span className="text-[var(--color-text-secondary)]">
+                  <span className="text-zinc-400">
                     {formattedStartTime} – {formattedEndTime} ({event.timezone || 'IST'})
                   </span>
                 </div>
-              </Card>
+              </div>
 
-              <Card className="p-4 flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-brand-pink)] shrink-0">
+              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3.5 shadow-sm">
+                <div className="p-2.5 rounded-xl bg-[#14141A] text-[#18CFFC] shrink-0 border border-white/[0.06]">
                   {event.event_type === 'online' ? <Globe size={20} /> : <MapPin size={20} />}
                 </div>
                 <div className="text-xs min-w-0">
-                  <span className="text-[var(--color-text-muted)] block mb-0.5">
+                  <span className="text-zinc-500 block mb-0.5 font-medium">
                     {event.event_type === 'online' ? 'Session Format' : 'Venue Location'}
                   </span>
-                  <strong className="text-[var(--color-text-primary)] font-semibold block truncate">
+                  <strong className="text-white font-semibold block truncate">
                     {event.venue_name || (event.event_type === 'online' ? 'Virtual Meeting' : 'Campus Venue')}
                   </strong>
-                  <span className="text-[var(--color-text-secondary)] truncate block">
+                  <span className="text-zinc-400 truncate block">
                     {event.event_type === 'online'
                       ? (existingReg ? (event.online_meeting_url || 'Meeting link issued on digital pass') : 'Link unlocked upon confirmed registration')
                       : (event.venue_address || 'Campus Campus')}
                   </span>
                 </div>
-              </Card>
+              </div>
             </div>
 
             {/* Team Rules Callout (if team event) */}
             {event.participation_type === 'team' && (
-              <div className="p-5 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-3 shadow-sm">
-                <div className="flex items-center gap-2 text-[var(--color-brand-pink)]">
+              <div className="p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col gap-3 shadow-sm">
+                <div className="flex items-center gap-2 text-[#18CFFC]">
                   <Users size={18} />
-                  <h3 className="font-bold text-sm font-display text-[var(--color-text-primary)]">
+                  <h3 className="font-bold text-sm font-heading text-white">
                     Team Participation Rules
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-[var(--color-text-secondary)]">
-                  <div className="p-3 rounded-xl bg-[var(--color-surface-2)]">
-                    <span className="text-[var(--color-text-muted)] block mb-0.5">Required Team Size</span>
-                    <strong className="text-[var(--color-text-primary)]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-zinc-300">
+                  <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
+                    <span className="text-zinc-500 block mb-0.5">Required Team Size</span>
+                    <strong className="text-white font-mono">
                       {event.min_team_size} to {event.max_team_size} members
                     </strong>
                   </div>
-                  <div className="p-3 rounded-xl bg-[var(--color-surface-2)]">
-                    <span className="text-[var(--color-text-muted)] block mb-0.5">Leader Inclusion</span>
-                    <strong className="text-[var(--color-text-primary)]">
+                  <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
+                    <span className="text-zinc-500 block mb-0.5">Leader Inclusion</span>
+                    <strong className="text-white">
                       {event.leader_counts_towards_size ? 'Leader is counted in size' : 'Excludes team leader'}
                     </strong>
                   </div>
-                  <div className="p-3 rounded-xl bg-[var(--color-surface-2)]">
-                    <span className="text-[var(--color-text-muted)] block mb-0.5">Registration Mode</span>
-                    <strong className="text-[var(--color-text-primary)]">
+                  <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
+                    <span className="text-zinc-500 block mb-0.5">Registration Mode</span>
+                    <strong className="text-white">
                       {event.team_registration_mode === 'leader_adds_members' ? 'Leader registers team' : 'Members join via code'}
                     </strong>
                   </div>
@@ -546,13 +546,13 @@ export default function EventDetailPage() {
 
             {/* Custom Questions Notice (if configured by organizer) */}
             {event.custom_questions && event.custom_questions.length > 0 && (
-              <div className="p-4 rounded-2xl bg-[var(--color-surface-2)]/60 border border-[oklch(100%_0_0_/_0.06)] flex items-start gap-3 text-xs">
-                <HelpCircle size={18} className="text-[var(--color-brand-cyan)] shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3 text-xs">
+                <HelpCircle size={18} className="text-[#18CFFC] shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-[var(--color-text-primary)] font-semibold block mb-0.5">
+                  <strong className="text-white font-semibold block mb-0.5">
                     Organizer Questionnaire Included
                   </strong>
-                  <span className="text-[var(--color-text-secondary)]">
+                  <span className="text-zinc-400">
                     The host requires {event.custom_questions.length} custom question{event.custom_questions.length > 1 ? 's' : ''} to be answered during checkout for attendee preparation.
                   </span>
                 </div>
@@ -561,10 +561,10 @@ export default function EventDetailPage() {
 
             {/* Event Description */}
             <div className="flex flex-col gap-3">
-              <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+              <h2 className="text-lg font-bold font-heading text-white">
                 About this Event
               </h2>
-              <div className="text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line bg-[var(--color-surface-1)] p-6 rounded-2xl border border-[oklch(100%_0_0_/_0.08)] shadow-sm">
+              <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line bg-[#0E0E12] p-6 rounded-2xl border border-white/[0.08] shadow-sm font-sans">
                 {event.description}
               </div>
             </div>
@@ -621,13 +621,13 @@ export default function EventDetailPage() {
 
           {/* Right 1 Col: Registration & Ticket Card */}
           <div className="flex flex-col gap-6">
-            <div className="glass p-5 sm:p-6 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] shadow-2xl flex flex-col gap-5 lg:sticky lg:top-28">
-              <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+            <div className="p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.1] shadow-2xl flex flex-col gap-5 lg:sticky lg:top-28">
+              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                 <div>
-                  <span className="text-xs text-[var(--color-text-muted)] font-medium block">
+                  <span className="text-xs text-zinc-500 font-medium block">
                     Admission Fee
                   </span>
-                  <span className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-text-primary)]">
+                  <span className="text-2xl sm:text-3xl font-extrabold font-heading text-white">
                     {event.is_free ? (
                       <span className="text-emerald-400">Free Entry</span>
                     ) : (
@@ -641,27 +641,27 @@ export default function EventDetailPage() {
               </div>
 
               {/* Specifications */}
-              <div className="flex flex-col gap-2.5 text-xs text-[var(--color-text-secondary)]">
-                <div className="flex items-center justify-between py-1 border-b border-[var(--color-surface-2)]">
-                  <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
-                    <Users size={14} /> Total Capacity
+              <div className="flex flex-col gap-2.5 text-xs text-zinc-300">
+                <div className="flex items-center justify-between py-1 border-b border-white/[0.06]">
+                  <span className="flex items-center gap-1.5 text-zinc-500">
+                    <Users size={14} className="text-[#18CFFC]" /> Total Capacity
                   </span>
-                  <span className="font-semibold text-[var(--color-text-primary)]">
+                  <span className="font-semibold text-white font-mono">
                     {event.capacity} seats
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 border-b border-[var(--color-surface-2)]">
-                  <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
-                    <UserCheck size={14} /> Participation
+                <div className="flex items-center justify-between py-1 border-b border-white/[0.06]">
+                  <span className="flex items-center gap-1.5 text-zinc-500">
+                    <UserCheck size={14} className="text-[#18CFFC]" /> Participation
                   </span>
-                  <span className="font-medium text-[var(--color-text-primary)] capitalize">
+                  <span className="font-medium text-white capitalize">
                     {event.participation_type} {event.participation_type === 'team' ? `(${event.min_team_size}–${event.max_team_size})` : ''}
                   </span>
                 </div>
 
                 {regOpensFormatted && !isRegOpenYet && (
-                  <div className="flex items-center justify-between py-1 border-b border-[var(--color-surface-2)]">
+                  <div className="flex items-center justify-between py-1 border-b border-white/[0.06]">
                     <span className="flex items-center gap-1.5 text-amber-400">
                       <Clock size={14} /> Registration Opens
                     </span>
@@ -672,21 +672,21 @@ export default function EventDetailPage() {
                 )}
 
                 {regClosesFormatted && (
-                  <div className="flex items-center justify-between py-1 border-b border-[var(--color-surface-2)]">
-                    <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+                  <div className="flex items-center justify-between py-1 border-b border-white/[0.06]">
+                    <span className="flex items-center gap-1.5 text-zinc-500">
                       <Clock size={14} /> Registration Closes
                     </span>
-                    <span className="font-medium text-[var(--color-text-primary)]">
+                    <span className="font-medium text-white">
                       {regClosesFormatted}
                     </span>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between py-1">
-                  <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
-                    <Ticket size={14} /> Gate Credential
+                  <span className="flex items-center gap-1.5 text-zinc-500">
+                    <Ticket size={14} className="text-[#18CFFC]" /> Gate Credential
                   </span>
-                  <span className="font-medium text-[var(--color-text-primary)]">
+                  <span className="font-medium text-zinc-200">
                     Encrypted QR Pass
                   </span>
                 </div>
@@ -709,7 +709,7 @@ export default function EventDetailPage() {
                         : 'Registration Pending'}
                     </span>
                   </div>
-                  <span className="font-mono text-[11px] font-bold">
+                  <span className="font-mono text-[11px] font-bold text-white bg-black/40 px-2 py-0.5 rounded">
                     {existingReg.ticket_code}
                   </span>
                 </div>
@@ -744,7 +744,7 @@ export default function EventDetailPage() {
                         {existingReg.team_id ? 'Leave Event / Cancel Pass' : 'Cancel Registration'}
                       </Button>
                     ) : (
-                      <div className="text-[11px] text-center text-[var(--color-text-muted)] bg-[var(--color-surface-2)] p-2.5 rounded-xl border border-[oklch(100%_0_0_/_0.06)] leading-relaxed">
+                      <div className="text-[11px] text-center text-zinc-500 bg-[#14141A] p-2.5 rounded-xl border border-white/[0.06] leading-relaxed">
                         {isCheckedIn ? (
                           <span>Gate check-in recorded • Ticket cannot be cancelled after physical entry</span>
                         ) : isStarted ? (
@@ -797,15 +797,15 @@ export default function EventDetailPage() {
                   type="button"
                   variant="outline"
                   size="md"
-                  className="w-full mt-2 border-[var(--color-brand-purple)]/40 hover:border-[var(--color-brand-purple)] text-[var(--color-brand-purple)] hover:bg-[var(--color-brand-purple)]/10 min-h-[42px]"
+                  className="w-full mt-2 border-white/15 hover:border-[#18CFFC] text-zinc-300 hover:text-white min-h-[42px]"
                   onClick={() => setShowJoinModal(true)}
-                  leftIcon={<Users size={16} />}
+                  leftIcon={<Users size={16} className="text-[#18CFFC]" />}
                 >
                   Join an Existing Squad
                 </Button>
               )}
 
-              <p className="text-[11px] text-[var(--color-text-muted)] text-center leading-relaxed">
+              <p className="text-[11px] text-zinc-500 text-center leading-relaxed">
                 Tickets are issued instantly as digital QR passes with real-time gate authentication.
               </p>
             </div>
@@ -999,18 +999,18 @@ export default function EventDetailPage() {
         )}
 
         {/* ── Persistent Mobile Registration Dock (Phones & Small Tablets) ────── */}
-        <div className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 px-3.5 py-2.5 glass-elevated border-t border-[oklch(100%_0_0_/_0.12)] bg-[oklch(10%_0.025_260_/_0.96)] backdrop-blur-xl shadow-[0_-6px_24px_oklch(0%_0_0_/_0.5)]">
+        <div className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 px-3.5 py-2.5 border-t border-white/[0.1] bg-[#08080A]/95 backdrop-blur-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.8)]">
           <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
             <div className="min-w-0">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-muted)] block">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 block">
                 {event.is_free ? 'Gate Admission' : 'Entry Ticket'}
               </span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-bold font-display text-[var(--color-brand-cyan)]">
-                  {event.is_free ? 'Free Pass' : `₹${event.price}`}
+                <span className="text-lg font-extrabold font-heading text-white">
+                  {event.is_free ? <span className="text-emerald-400">Free Pass</span> : `₹${event.price}`}
                 </span>
                 {event.participation_type === 'team' && (
-                  <span className="text-[10px] text-[var(--color-text-muted)]">
+                  <span className="text-[10px] text-zinc-500">
                     / Squad ({event.min_team_size}–{event.max_team_size})
                   </span>
                 )}
@@ -1035,7 +1035,7 @@ export default function EventDetailPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="min-h-[44px] text-xs px-2.5 border-[var(--color-brand-purple)]/50 text-[var(--color-brand-purple)]"
+                    className="min-h-[44px] text-xs px-2.5 border-white/15 text-zinc-300 hover:text-white"
                     onClick={() => setShowJoinModal(true)}
                   >
                     Join Squad
@@ -1048,7 +1048,7 @@ export default function EventDetailPage() {
                   disabled={!canRegister || checkingReg}
                   onClick={handleCtaClick}
                   leftIcon={<Ticket size={16} />}
-                  className="min-h-[44px] font-semibold shadow-md bg-[var(--color-brand-purple)] hover:opacity-90"
+                  className="min-h-[44px] font-semibold shadow-lg shadow-[#18CFFC]/25"
                 >
                   {isCancelled
                     ? 'Cancelled'

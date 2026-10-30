@@ -70,7 +70,7 @@ export function EventGrid({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search events"
-              className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-button)] bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] focus:ring-1 focus:ring-[var(--color-brand-purple)] transition-colors"
+              className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-button)] bg-[#14141A] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
             />
           </div>
 
@@ -87,10 +87,10 @@ export function EventGrid({
                 id={`cat-filter-${value}`}
                 onClick={() => setCategory(value)}
                 aria-pressed={category === value}
-                className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-[var(--radius-pill)] text-xs sm:text-sm font-medium border transition-all duration-200 ${
+                className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-[var(--radius-pill)] text-xs sm:text-sm font-medium border transition-all duration-200 cursor-pointer ${
                   category === value
-                    ? 'bg-[var(--color-brand-purple)] border-[var(--color-brand-purple)] text-white'
-                    : 'bg-transparent border-[oklch(100%_0_0_/_0.1)] text-[var(--color-text-secondary)] hover:border-[var(--color-brand-purple)] hover:text-[var(--color-text-primary)]'
+                    ? 'bg-[#18CFFC] border-[#18CFFC] text-white shadow-md shadow-[#18CFFC]/20 font-semibold'
+                    : 'bg-[#0E0E12] border-white/10 text-zinc-400 hover:border-[#18CFFC]/40 hover:text-white'
                 }`}
               >
                 {label}

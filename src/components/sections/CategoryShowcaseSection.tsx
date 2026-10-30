@@ -20,8 +20,8 @@ const CATEGORIES = [
     title: 'Technical & Hackathons',
     description: 'Code sprints, robotics expos, AI symposiums, and 36-hour buildathons.',
     icon: Code,
-    gradient: 'from-violet-600/20 via-purple-600/10 to-transparent',
-    accentColor: '#a855f7',
+    gradient: 'from-[#18CFFC]/20 via-[#07A4FC]/10 to-transparent',
+    accentColor: '#18CFFC',
     tag: 'Tech Chapters',
   },
   {
@@ -29,8 +29,8 @@ const CATEGORIES = [
     title: 'Cultural & Arts',
     description: 'Dance battles, live music nights, fashion showcases, and theater fests.',
     icon: Music,
-    gradient: 'from-fuchsia-600/20 via-pink-600/10 to-transparent',
-    accentColor: '#d946ef',
+    gradient: 'from-[#ED47FC]/20 via-[#7F1AFB]/10 to-transparent',
+    accentColor: '#ED47FC',
     tag: 'Arts Societies',
   },
   {
@@ -38,8 +38,8 @@ const CATEGORIES = [
     title: 'Sports & Tournaments',
     description: 'Inter-college cricket, football leagues, basketball face-offs, and track meets.',
     icon: Trophy,
-    gradient: 'from-amber-500/20 via-yellow-600/10 to-transparent',
-    accentColor: '#f59e0b',
+    gradient: 'from-[#7F1AFB]/20 via-[#18CFFC]/10 to-transparent',
+    accentColor: '#7F1AFB',
     tag: 'Sports Councils',
   },
   {
@@ -47,8 +47,8 @@ const CATEGORIES = [
     title: 'Workshops & Bootcamps',
     description: 'Hands-on developer workshops, design masterclasses, and career panels.',
     icon: BookOpen,
-    gradient: 'from-cyan-500/20 via-teal-600/10 to-transparent',
-    accentColor: '#06b6d4',
+    gradient: 'from-[#07A4FC]/20 via-cyan-600/10 to-transparent',
+    accentColor: '#07A4FC',
     tag: 'Academic Forums',
   },
   {
@@ -56,8 +56,8 @@ const CATEGORIES = [
     title: 'Gaming & Esports',
     description: 'LAN tournaments, Valorant showdowns, console championships, and game jams.',
     icon: Gamepad2,
-    gradient: 'from-emerald-500/20 via-green-600/10 to-transparent',
-    accentColor: '#10b981',
+    gradient: 'from-emerald-500/20 via-teal-600/10 to-transparent',
+    accentColor: '#10B981',
     tag: 'Esports Clubs',
   },
   {
@@ -65,8 +65,8 @@ const CATEGORIES = [
     title: 'Literary & Debates',
     description: 'Parliamentary debates, MUNs, quiz bowls, creative writing, and poetry slams.',
     icon: Mic,
-    gradient: 'from-indigo-500/20 via-blue-600/10 to-transparent',
-    accentColor: '#6366f1',
+    gradient: 'from-[#FE7EE8]/20 via-[#ED47FC]/10 to-transparent',
+    accentColor: '#FE7EE8',
     tag: 'Literary Clubs',
   },
 ]
@@ -96,14 +96,14 @@ export function CategoryShowcaseSection() {
               { text: 'Explore by passion.', highlight: 'All fields.', gradientClass: 'gradient-text' },
             ]}
           />
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-2 leading-relaxed max-w-xl">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed max-w-xl">
             From high-stakes hackathons to open-mic poetry, filter and discover what is happening across your campus.
           </p>
         </div>
 
         <Link
           to="/discover"
-          className="hidden sm:inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[var(--color-brand-violet)] hover:underline shrink-0"
+          className="hidden sm:inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#18CFFC] hover:underline shrink-0"
         >
           <span>View all categories</span>
           <ArrowRight size={15} />
@@ -122,35 +122,39 @@ export function CategoryShowcaseSection() {
           >
             <Link to={`/discover?category=${id}`} className="group block h-full">
               <Card
-                className="relative p-6 h-full flex flex-col justify-between border border-[oklch(100%_0_0_/_0.065)] bg-[var(--color-surface-1)] group-hover:border-[oklch(100%_0_0_/_0.18)] group-hover:bg-[var(--color-surface-2)] transition-all duration-300 overflow-hidden shadow-md group-hover:shadow-xl"
+                className="relative p-6 h-full flex flex-col justify-between border border-white/[0.07] bg-[#0E0E12] group-hover:border-white/20 group-hover:bg-[#14141A] transition-all duration-300 overflow-hidden shadow-xl group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.7),0_0_20px_rgba(255,87,34,0.12)]"
               >
                 {/* Subtle gradient wash in corner */}
                 <div
-                  className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-40 group-hover:opacity-85 transition-opacity duration-300 pointer-events-none`}
+                  className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-25 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none`}
                 />
 
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform duration-300 group-hover:scale-110"
-                      style={{ background: `${accentColor}25` }}
+                      style={{
+                        background: `${accentColor}18`,
+                        color: accentColor,
+                        border: `1px solid ${accentColor}30`,
+                      }}
                     >
-                      <Icon size={20} style={{ color: accentColor }} />
+                      <Icon size={20} />
                     </div>
-                    <span className="text-[10px] font-semibold text-[var(--color-text-muted)] group-hover:text-white transition-colors">
+                    <span className="text-[10px] font-semibold tracking-wider uppercase text-zinc-500 group-hover:text-zinc-300 transition-colors">
                       {tag}
                     </span>
                   </div>
 
-                  <h3 className="font-display font-bold text-base text-[var(--color-text-primary)] mb-1.5 group-hover:text-white transition-colors">
+                  <h3 className="font-display font-bold text-base text-white mb-1.5 transition-colors">
                     {title}
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     {description}
                   </p>
                 </div>
 
-                <div className="relative z-10 pt-4 mt-5 border-t border-[oklch(100%_0_0_/_0.06)] flex items-center justify-between text-xs font-semibold text-[var(--color-brand-violet)] group-hover:text-white transition-colors">
+                <div className="relative z-10 pt-4 mt-5 border-t border-white/[0.06] flex items-center justify-between text-xs font-semibold text-[#18CFFC] group-hover:text-white transition-colors">
                   <span>Browse {title}</span>
                   <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-1" />
                 </div>
@@ -163,7 +167,7 @@ export function CategoryShowcaseSection() {
       <div className="mt-8 text-center sm:hidden">
         <Link
           to="/discover"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-brand-violet)] hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#18CFFC] hover:underline"
         >
           <span>View all event categories</span>
           <ArrowRight size={14} />
@@ -172,4 +176,3 @@ export function CategoryShowcaseSection() {
     </section>
   )
 }
-

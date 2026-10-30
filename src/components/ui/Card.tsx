@@ -13,15 +13,15 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onAnima
 
 const variantClasses: Record<CardVariant, string> = {
   default:
-    'bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.065)] shadow-[var(--shadow-card)]',
+    'bg-[#0E0E12] border border-white/[0.07] shadow-[var(--shadow-card)]',
   glass:
     'glass shadow-[var(--shadow-card)]',
   subtle:
     'glass-subtle shadow-sm',
   elevated:
-    'glass-elevated shadow-[0_16px_48px_oklch(0%_0_0_/_0.55)]',
+    'glass-elevated shadow-[0_20px_50px_rgba(0,0,0,0.7)]',
   interactive:
-    'bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.065)] hover:border-[oklch(100%_0_0_/_0.15)] hover:bg-[var(--color-surface-2)] hover:shadow-[0_12px_40px_oklch(0%_0_0_/_0.5)] cursor-pointer',
+    'bg-[#0E0E12] border border-white/[0.07] hover:border-white/20 hover:bg-[#14141A] hover:shadow-[0_16px_48px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,87,34,0.15)] cursor-pointer',
 }
 
 export function Card({

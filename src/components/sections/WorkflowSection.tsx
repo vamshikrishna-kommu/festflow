@@ -25,7 +25,7 @@ const STUDENT_STEPS = [
     icon: Compass,
     title: 'Discover Events',
     description:
-      'Browse verified hackathons, cultural festivals, tech symposiums, and sports tournaments hosted by registered clubs.',
+      'Browse verified hackathons, cultural festivals, tech symposiums, and sports tournaments hosted by registered campus clubs.',
     tag: 'No login required to explore',
     status: 'Instant Access',
   },
@@ -98,11 +98,11 @@ const CLUB_STEPS = [
   {
     step: '04',
     icon: ScanLine,
-    title: 'Gate Camera Scanner',
+    title: 'Camera Gate Check-in',
     description:
-      'Deploy volunteers with mobile phone cameras to scan passes in real time. High-speed verification prevents pass sharing and double entries.',
-    tag: 'High-speed camera scanner',
-    status: 'Real-time Gate App',
+      'Point any smartphone camera at attendee passes to validate entries in real time with high-contrast screen scanning.',
+    tag: 'Offline scan protection',
+    status: 'Turnstile Scanning',
   },
 ]
 
@@ -121,13 +121,13 @@ export function WorkflowSection() {
       aria-labelledby="workflow-heading"
       className="relative py-20 sm:py-28 lg:py-36 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full overflow-hidden"
     >
-      {/* Background radial atmosphere */}
+      {/* Background radial warmth atmosphere */}
       <div
         aria-hidden="true"
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[500px] pointer-events-none -z-10"
         style={{
           background:
-            'radial-gradient(ellipse 60% 45% at 50% 50%, oklch(58% 0.26 285 / 0.1) 0%, oklch(72% 0.16 200 / 0.06) 50%, transparent 75%)',
+            'radial-gradient(ellipse 60% 45% at 50% 50%, rgba(127, 26, 251, 0.14) 0%, rgba(24, 207, 252, 0.06) 50%, transparent 75%)',
         }}
       />
 
@@ -143,24 +143,24 @@ export function WorkflowSection() {
             { text: 'Optimized for organizers.', highlight: 'Step by step.', gradientClass: 'gradient-text' },
           ]}
         />
-        <p className="text-xs sm:text-sm md:text-base text-[var(--color-text-secondary)] mt-3 leading-relaxed">
+        <p className="text-xs sm:text-sm md:text-base text-zinc-400 mt-3 leading-relaxed">
           FestFlow streamlines every step of campus event operations, replacing messy Google Forms, manual screenshot chasing, and spreadsheet check-ins with an intentional motion-led pipeline.
         </p>
       </div>
 
       {/* Role Selector Tabs */}
       <div className="flex justify-center mb-12 sm:mb-16">
-        <div className="p-1 rounded-2xl glass-elevated border border-[oklch(100%_0_0_/_0.08)] flex items-center gap-1.5 shadow-lg">
+        <div className="p-1.5 rounded-2xl bg-[#0E0E12] border border-white/10 flex items-center gap-1.5 shadow-xl">
           <button
             type="button"
             onClick={() => setActiveTab('student')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
               isStudent
-                ? 'bg-[var(--color-surface-3)] text-white shadow-md'
-                : 'text-[var(--color-text-secondary)] hover:text-white'
+                ? 'bg-[#1C1C24] text-white shadow-md border border-white/10'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <GraduationCap size={16} className={isStudent ? 'text-[var(--color-brand-cyan)]' : ''} />
+            <GraduationCap size={16} className={isStudent ? 'text-[#18CFFC]' : ''} />
             <span>The Student Experience (5 Steps)</span>
           </button>
           <button
@@ -168,19 +168,11 @@ export function WorkflowSection() {
             onClick={() => setActiveTab('club')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
               !isStudent
-                ? 'text-white shadow-md'
-                : 'text-[var(--color-text-secondary)] hover:text-white'
+                ? 'bg-[#7F1AFB]/20 text-white shadow-md border border-[#7F1AFB]/40'
+                : 'text-zinc-400 hover:text-white'
             }`}
-            style={
-              !isStudent
-                ? {
-                    background: 'oklch(58% 0.26 285 / 0.25)',
-                    border: '1px solid oklch(58% 0.26 285 / 0.4)',
-                  }
-                : {}
-            }
           >
-            <Building2 size={16} className={!isStudent ? 'text-[var(--color-brand-violet)]' : ''} />
+            <Building2 size={16} className={!isStudent ? 'text-[#18CFFC]' : ''} />
             <span>For Club Leaders & Hosts</span>
           </button>
         </div>
@@ -193,13 +185,13 @@ export function WorkflowSection() {
           aria-hidden="true"
           className="hidden lg:block absolute top-14 left-8 right-8 h-0.5 pointer-events-none -z-0"
         >
-          <div className="w-full h-full bg-[oklch(100%_0_0_/_0.08)] rounded-full relative overflow-hidden">
+          <div className="w-full h-full bg-white/[0.08] rounded-full relative overflow-hidden">
             <motion.div
               initial={reduced ? undefined : { scaleX: 0 }}
               animate={inView || reduced ? { scaleX: 1 } : { scaleX: 0 }}
               transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
               style={{ transformOrigin: '0%' }}
-              className="w-full h-full gradient-brand shadow-[0_0_12px_var(--color-brand-violet)]"
+              className="w-full h-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] shadow-[0_0_16px_rgba(24,207,252,0.5)]"
             />
           </div>
         </div>
@@ -215,12 +207,12 @@ export function WorkflowSection() {
               className="h-full"
             >
               <Card
-                className="p-5 sm:p-6 h-full flex flex-col justify-between border border-[oklch(100%_0_0_/_0.08)] bg-[var(--color-surface-1)] hover:border-[var(--color-brand-violet)]/40 hover:bg-[var(--color-surface-2)] transition-all duration-300 relative group overflow-hidden shadow-lg"
+                className="p-5 sm:p-6 h-full flex flex-col justify-between border border-white/[0.08] bg-[#0E0E12] hover:border-[#18CFFC]/40 hover:bg-[#14141A] transition-all duration-300 relative group overflow-hidden shadow-xl"
               >
                 {/* Top ambient hover accent */}
                 <div
                   aria-hidden="true"
-                  className="absolute top-0 left-0 right-0 h-1 bg-transparent group-hover:gradient-brand transition-all duration-300"
+                  className="absolute top-0 left-0 right-0 h-1 bg-transparent group-hover:bg-gradient-to-r group-hover:from-[#18CFFC] group-hover:via-[#07A4FC] group-hover:to-[#7F1AFB] transition-all duration-300"
                 />
 
                 <div>
@@ -229,33 +221,36 @@ export function WorkflowSection() {
                       className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform duration-300"
                       style={{
                         background: isStudent
-                          ? 'oklch(72% 0.16 200 / 0.16)'
-                          : 'oklch(58% 0.26 285 / 0.18)',
+                          ? 'rgba(24, 207, 252, 0.15)'
+                          : 'rgba(127, 26, 251, 0.15)',
+                        border: isStudent
+                          ? '1px solid rgba(24, 207, 252, 0.35)'
+                          : '1px solid rgba(127, 26, 251, 0.35)',
                       }}
                     >
                       <Icon
                         size={20}
-                        className={isStudent ? 'text-[var(--color-brand-cyan)]' : 'text-[var(--color-brand-violet)]'}
+                        className={isStudent ? 'text-[#18CFFC]' : 'text-[#ED47FC]'}
                       />
                     </div>
-                    <span className="font-mono text-xs font-extrabold text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] transition-colors">
+                    <span className="font-mono text-xs font-extrabold text-zinc-500 group-hover:text-white transition-colors">
                       {step}
                     </span>
                   </div>
 
-                  <span className="text-[10px] font-bold text-[var(--color-brand-cyan)] uppercase tracking-wider block mb-1">
+                  <span className="text-[10px] font-bold text-[#18CFFC] uppercase tracking-wider block mb-1">
                     {status}
                   </span>
 
-                  <h3 className="font-display font-bold text-base text-[var(--color-text-primary)] mb-2 group-hover:text-[var(--color-brand-violet)] transition-colors">
+                  <h3 className="font-display font-bold text-base text-white mb-2 transition-colors">
                     {title}
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
                     {description}
                   </p>
                 </div>
 
-                <div className="pt-4 mt-5 border-t border-[oklch(100%_0_0_/_0.06)] flex items-center justify-between">
+                <div className="pt-4 mt-5 border-t border-white/[0.06] flex items-center justify-between">
                   <Badge variant={isStudent ? 'cyan' : 'purple'} className="text-[10px] py-0.5">
                     {tag}
                   </Badge>
@@ -273,7 +268,7 @@ export function WorkflowSection() {
             variant={isStudent ? 'outline' : 'primary'}
             size="md"
             rightIcon={<ArrowRight size={15} />}
-            className="shine-on-hover"
+            className="shine-on-hover px-6"
           >
             {isStudent ? 'Explore Campus Events Near You' : 'Start Your Club Onboarding Free'}
           </Button>
@@ -282,4 +277,3 @@ export function WorkflowSection() {
     </section>
   )
 }
-
