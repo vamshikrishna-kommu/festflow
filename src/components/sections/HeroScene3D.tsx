@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { Ticket, Sparkles, Users, Calendar } from 'lucide-react'
+import { Sparkles, Users, Calendar } from 'lucide-react'
 
 /**
  * Procedural texture for the floating VIP Festival Pass
