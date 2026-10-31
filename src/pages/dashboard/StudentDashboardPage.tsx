@@ -65,9 +65,9 @@ export default function StudentDashboardPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [showTeamModal, setShowTeamModal] = useState(false)
 
-  const displayName = profile?.display_name || 'Campus Student'
-  const college = studentProfile?.college_name || 'Campus Student'
-  const gradYear = studentProfile?.graduation_year
+  const displayName = profile?.display_name || (user?.user_metadata?.display_name as string) || 'Campus Student'
+  const college = studentProfile?.college_name || (user?.user_metadata?.college as string) || 'Campus Student'
+  const gradYear = studentProfile?.graduation_year || (user?.user_metadata?.graduation_year as number) || null
 
   const [searchParams] = useSearchParams()
 

@@ -77,7 +77,13 @@ export function StudentSettingsModal({
     if (isOpen) {
       setDisplayName(profile?.display_name || user?.user_metadata?.display_name || '')
       setCollegeName(studentProfile?.college_name || user?.user_metadata?.college || '')
-      setGradYear(studentProfile?.graduation_year ? String(studentProfile.graduation_year) : '')
+      setGradYear(
+        studentProfile?.graduation_year
+          ? String(studentProfile.graduation_year)
+          : user?.user_metadata?.graduation_year
+          ? String(user.user_metadata.graduation_year)
+          : ''
+      )
       setPhone(user?.user_metadata?.phone || '')
       if (user?.user_metadata?.preferences) {
         if (user.user_metadata.preferences.emailAlerts !== undefined) setEmailAlerts(Boolean(user.user_metadata.preferences.emailAlerts))

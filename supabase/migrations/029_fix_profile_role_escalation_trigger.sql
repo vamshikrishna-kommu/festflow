@@ -1,13 +1,18 @@
 -- ══════════════════════════════════════════════════════════════════════════════
--- FESTFLOW DATABASE MIGRATION 029: FIX PROFILE ROLE ESCALATION TRIGGER
+-- FESTFLOW DATABASE MIGRATION 029: FIX PROFILE ROLE ESCALATION TRIGGER & RLS
 -- ══════════════════════════════════════════════════════════════════════════════
--- Resolves PostgreSQL error: record "old" has no field "is_verified"
+-- Resolves:
+-- 1. PostgreSQL error: record "old" has no field "is_verified" on public.profiles
+-- 2. PostgreSQL error: new row violates row-level security policy for table "student_profiles"
 --
--- Root Cause:
--- Migration 015 created trigger trg_prevent_profile_role_escalation on public.profiles
--- that checked `OLD.is_verified`. However, `is_verified` only exists on
--- public.club_profiles, NOT on public.profiles. Whenever a student or organizer
--- updated their display name in public.profiles, PostgreSQL threw this error.
+-- Root Causes:
+-- 1. Migration 015 created trigger trg_prevent_profile_role_escalation on public.profiles
+--    that checked `OLD.is_verified`. However, `is_verified` only exists on
+--    public.club_profiles, NOT on public.profiles. Whenever any student or organizer
+--    updated their profile, PostgreSQL threw this error.
+-- 2. Migration 001 created SELECT and UPDATE policies on public.student_profiles,
+--    but omitted an INSERT policy for authenticated users, causing any insert or
+--    upsert by students to fail with an RLS violation.
 -- ══════════════════════════════════════════════════════════════════════════════
 
 -- 1. Fix trigger function for public.profiles (only checks role)
@@ -62,3 +67,17 @@ CREATE TRIGGER trg_prevent_club_verification_escalation
 BEFORE UPDATE ON public.club_profiles
 FOR EACH ROW
 EXECUTE FUNCTION public.prevent_club_verification_escalation();
+
+-- 4. Add missing INSERT policy on public.student_profiles for authenticated users
+DROP POLICY IF EXISTS "students can insert own student profile" ON public.student_profiles;
+CREATE POLICY "students can insert own student profile"
+  ON public.student_profiles FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = profile_id);
+
+-- 5. Add missing INSERT policy on public.club_profiles for authenticated users
+DROP POLICY IF EXISTS "club organizers can insert own club profile" ON public.club_profiles;
+CREATE POLICY "club organizers can insert own club profile"
+  ON public.club_profiles FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = profile_id);
