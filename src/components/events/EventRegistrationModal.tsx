@@ -629,8 +629,8 @@ export function EventRegistrationModal({
 
               {/* Team Participation Mode Rules */}
               {hasTeam && (
-                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 space-y-2">
-                  <div className="flex items-center gap-2 text-purple-300">
+                <div className="p-3.5 rounded-2xl bg-[#7F1AFB]/10 border border-[#7F1AFB]/25 space-y-2">
+                  <div className="flex items-center gap-2 text-[#C084FC]">
                     <Users size={16} />
                     <span className="text-xs font-bold">Team Participation Requirements</span>
                   </div>
@@ -1387,7 +1387,7 @@ export function EventRegistrationModal({
                         <button
                           type="button"
                           onClick={() => handleShareInvite(submissionResult.invite_code!)}
-                          className="px-2.5 py-1 rounded-lg bg-[var(--color-brand-purple)] hover:bg-[var(--color-brand-purple-hover)] text-white text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-[#7F1AFB] hover:bg-[#6814D0] text-white text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           <Share2 size={13} />
                           <span>Share</span>
@@ -1414,7 +1414,7 @@ export function EventRegistrationModal({
                       <Button
                         variant="primary"
                         size="lg"
-                        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black border-none font-bold min-h-[44px]"
+                        className="w-full bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-bold min-h-[44px]"
                         rightIcon={<QrCode size={18} />}
                       >
                         Pay via UPI ({event.currency || '₹'}{event.price})

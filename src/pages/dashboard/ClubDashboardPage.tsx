@@ -233,15 +233,10 @@ export default function ClubDashboardPage() {
                   variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
                   size="sm"
                   leftIcon={<CreditCard size={15} />}
-                  className={
-                    pendingPaymentsCount > 0
-                      ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-md'
-                      : ''
-                  }
                 >
                   Payments
                   {pendingPaymentsCount > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-black text-amber-300 text-[10px] font-bold">
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-black text-[10px] font-bold">
                       {pendingPaymentsCount}
                     </span>
                   )}
@@ -340,14 +335,9 @@ export default function ClubDashboardPage() {
 
             <Link to={organizerNextAction.ctaLink} className="self-start sm:self-center shrink-0">
               <Button
-                variant={organizerNextAction.type === 'pending_payment' ? 'primary' : 'outline'}
+                variant="primary"
                 size="md"
                 rightIcon={<ArrowRight size={15} />}
-                className={
-                  organizerNextAction.type === 'pending_payment'
-                    ? 'bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-md'
-                    : ''
-                }
               >
                 {organizerNextAction.ctaLabel}
               </Button>

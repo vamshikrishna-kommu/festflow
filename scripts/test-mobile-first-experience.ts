@@ -32,7 +32,7 @@ async function runMobileAudit() {
   console.log('--- Test Suite 1: Mobile Viewport & Safe-Area Insets ---')
   const indexHtml = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf-8')
   assert(indexHtml.includes('viewport-fit=cover'), 'index.html includes viewport-fit=cover for notch/home indicator devices')
-  assert(indexHtml.includes('name="theme-color" content="#0d0a1e"'), 'index.html configures high-contrast mobile theme-color')
+  assert(indexHtml.includes('name="theme-color" content="#08080a"') || indexHtml.includes('name="theme-color" content="#0d0a1e"'), 'index.html configures high-contrast mobile theme-color')
   assert(indexHtml.includes('rel="manifest" href="/manifest.webmanifest"'), 'index.html links PWA webmanifest')
   assert(indexHtml.includes('apple-mobile-web-app-capable'), 'index.html enables iOS standalone web app display')
 

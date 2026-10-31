@@ -752,7 +752,7 @@ export function EventForm({
         <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-pink-500/15 text-pink-400">
+              <span className="p-2 rounded-xl bg-[#ED47FC]/15 text-[#ED47FC]">
                 <Users size={18} />
               </span>
               <div>
@@ -764,7 +764,7 @@ export function EventForm({
                 </p>
               </div>
             </div>
-            <Badge variant="pink">Step 4</Badge>
+            <Badge variant="magenta">Step 4</Badge>
           </div>
 
           {/* Mode Switcher */}
@@ -802,17 +802,17 @@ export function EventForm({
               onClick={() => setParticipationType('team')}
               className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all ${
                 participationType === 'team'
-                  ? 'border-pink-500 bg-pink-500/10 shadow-lg'
+                  ? 'border-[#ED47FC] bg-[#ED47FC]/10 shadow-lg'
                   : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 hover:bg-[var(--color-surface-2)]'
               }`}
             >
               <div className="p-2 rounded-xl bg-[var(--color-surface-3)] shrink-0">
-                <Users size={18} className="text-pink-400" />
+                <Users size={18} className="text-[#ED47FC]" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-[var(--color-text-primary)]">Team / Group</h4>
-                  {participationType === 'team' && <CheckCircle2 size={16} className="text-pink-400" />}
+                  {participationType === 'team' && <CheckCircle2 size={16} className="text-[#ED47FC]" />}
                 </div>
                 <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
                   Hackathons, sports, quizzes, or group challenges requiring multiple participants per unit.
@@ -826,9 +826,9 @@ export function EventForm({
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="p-5 rounded-2xl bg-pink-500/[0.04] border border-pink-500/20 flex flex-col gap-5"
+              className="p-5 rounded-2xl bg-[#ED47FC]/[0.04] border border-[#ED47FC]/20 flex flex-col gap-5"
             >
-              <div className="flex items-center gap-2 text-xs font-bold text-pink-400 uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#ED47FC] uppercase tracking-wider">
                 <Sliders size={14} /> Team Roster & Size Limits
               </div>
 
@@ -849,7 +849,7 @@ export function EventForm({
                         setErrors((prev) => ({ ...prev, min_team_size: '', max_team_size: '' }))
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-pink-500 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#ED47FC] outline-none"
                   />
                   {errors.min_team_size && <p className="text-xs text-rose-400">{errors.min_team_size}</p>}
                 </div>
@@ -868,7 +868,7 @@ export function EventForm({
                       setMaxTeamSize(Number(e.target.value))
                       if (errors.max_team_size) setErrors((prev) => ({ ...prev, max_team_size: '' }))
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-pink-500 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#ED47FC] outline-none"
                   />
                   {errors.max_team_size && <p className="text-xs text-rose-400">{errors.max_team_size}</p>}
                 </div>
@@ -890,7 +890,7 @@ export function EventForm({
                   type="checkbox"
                   checked={leaderCountsTowardsSize}
                   onChange={(e) => setLeaderCountsTowardsSize(e.target.checked)}
-                  className="w-4 h-4 rounded text-pink-500 focus:ring-pink-500 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#ED47FC] focus:ring-[#ED47FC] cursor-pointer"
                 />
               </div>
 
@@ -902,7 +902,7 @@ export function EventForm({
                     name="team_reg_mode"
                     checked={teamRegistrationMode === 'leader_adds_members'}
                     onChange={() => setTeamRegistrationMode('leader_adds_members')}
-                    className="mt-0.5 text-pink-500 focus:ring-pink-500"
+                    className="mt-0.5 text-[#ED47FC] focus:ring-[#ED47FC]"
                   />
                   <div className="text-xs">
                     <strong className="text-[var(--color-text-primary)] block">Leader adds members</strong>
@@ -918,7 +918,7 @@ export function EventForm({
                     name="team_reg_mode"
                     checked={teamRegistrationMode === 'members_join_with_code'}
                     onChange={() => setTeamRegistrationMode('members_join_with_code')}
-                    className="mt-0.5 text-pink-500 focus:ring-pink-500"
+                    className="mt-0.5 text-[#ED47FC] focus:ring-[#ED47FC]"
                   />
                   <div className="text-xs">
                     <strong className="text-[var(--color-text-primary)] block">Members join with team code</strong>
@@ -935,7 +935,7 @@ export function EventForm({
                   type="checkbox"
                   checked={requireTeamName}
                   onChange={(e) => setRequireTeamName(e.target.checked)}
-                  className="w-4 h-4 rounded text-pink-500 focus:ring-pink-500 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#ED47FC] focus:ring-[#ED47FC] cursor-pointer"
                 />
                 <span>Mandatory Team Name (e.g. "ByteKnights", "RoboTech Alpha")</span>
               </label>
@@ -1161,7 +1161,7 @@ export function EventForm({
         <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-purple-500/15 text-purple-400">
+              <span className="p-2 rounded-xl bg-[#7F1AFB]/15 text-[#C084FC]">
                 <ListPlus size={18} />
               </span>
               <div>
@@ -1288,7 +1288,7 @@ export function EventForm({
         <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-purple-500/15 text-purple-400">
+              <span className="p-2 rounded-xl bg-[#7F1AFB]/15 text-[#C084FC]">
                 <FileText size={18} />
               </span>
               <div>

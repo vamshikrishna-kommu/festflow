@@ -435,7 +435,7 @@ export default function EventReportsPage() {
                   disabled={!event || payments.length === 0 || Boolean(exportingType)}
                   isLoading={exportingType === 'payment_xlsx'}
                   leftIcon={<Download size={14} />}
-                  className="w-full bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+                  className="w-full font-semibold"
                 >
                   Download Excel (.xlsx)
                 </Button>
@@ -453,9 +453,9 @@ export default function EventReportsPage() {
 
             {/* Export 4: Confirmed Attendees or Team Roster */}
             {event?.participation_type === 'team' ? (
-              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-pink-500/50 transition-colors">
+              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[#ED47FC]/50 transition-colors">
                 <div className="space-y-1.5">
-                  <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-400 w-fit">
+                  <div className="p-2.5 rounded-xl bg-[#ED47FC]/10 text-[#FE7EE8] w-fit">
                     <Users size={20} />
                   </div>
                   <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
@@ -485,7 +485,7 @@ export default function EventReportsPage() {
                     disabled={!event || registrations.length === 0 || Boolean(exportingType)}
                     isLoading={exportingType === 'team_xlsx'}
                     leftIcon={<Download size={14} />}
-                    className="w-full bg-pink-600 hover:bg-pink-500 text-white font-medium"
+                    className="w-full font-medium"
                   >
                     Download Excel (.xlsx)
                   </Button>

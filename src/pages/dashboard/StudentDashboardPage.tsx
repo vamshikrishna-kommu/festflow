@@ -831,7 +831,7 @@ export default function StudentDashboardPage() {
                             <Button
                               variant="primary"
                               size="sm"
-                              className="bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold"
+                              className="bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-semibold shadow-md"
                               rightIcon={<ArrowRight size={13} />}
                             >
                               Pay via UPI

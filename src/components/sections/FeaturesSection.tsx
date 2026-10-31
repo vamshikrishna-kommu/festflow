@@ -18,54 +18,54 @@ const FEATURES = [
     title: 'Smart Ticketing',
     description:
       'Free or paid tickets, customizable capacity, and digital passes with unique QR codes — issued automatically upon confirmation.',
-    accentVar: '--color-brand-orange',
+    accentVar: '--color-brand-cyan',
     glowAlpha: '0.22',
-    hue: '24',
+    hue: '192',
   },
   {
     icon: QrCode,
     title: 'QR Gate Check-in',
     description:
       'Organizers scan passes at the entrance for real-time validation. Duplicate-admission prevention built in.',
-    accentVar: '--color-brand-orange-light',
+    accentVar: '--color-brand-violet',
     glowAlpha: '0.20',
-    hue: '30',
+    hue: '271',
   },
   {
     icon: BarChart3,
     title: 'Live Analytics',
     description:
       'Registration counts, check-in rates and attendance breakdowns update in real time on your organizer dashboard.',
-    accentVar: '--color-brand-orange',
+    accentVar: '--color-brand-blue',
     glowAlpha: '0.18',
-    hue: '24',
+    hue: '202',
   },
   {
     icon: Bell,
     title: 'In-App Notifications',
     description:
       'Students receive in-app notifications the moment a registration status changes or an event is updated.',
-    accentVar: '--color-brand-orange-light',
+    accentVar: '--color-brand-magenta',
     glowAlpha: '0.20',
-    hue: '30',
+    hue: '295',
   },
   {
     icon: ShieldCheck,
     title: 'Registered Clubs',
     description:
       'Every club verifies their email before publishing. Students always know exactly who is hosting an event.',
-    accentVar: '--color-brand-orange',
+    accentVar: '--color-brand-cyan',
     glowAlpha: '0.22',
-    hue: '24',
+    hue: '192',
   },
   {
     icon: Zap,
     title: '100% Free — Always',
     description:
       'No subscriptions. No platform commission. Zero hidden fees. Clubs collect 100% of proceeds directly via UPI.',
-    accentVar: '--color-brand-orange-light',
+    accentVar: '--color-brand-violet',
     glowAlpha: '0.20',
-    hue: '30',
+    hue: '271',
   },
 ]
 

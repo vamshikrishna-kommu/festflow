@@ -515,7 +515,7 @@ export default function EventRegistrationsPage() {
                   variant="primary"
                   size="sm"
                   leftIcon={<CreditCard size={13} />}
-                  className="w-full justify-center bg-amber-500 hover:bg-amber-400 text-black border-none font-semibold shadow-sm"
+                  className="w-full justify-center bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-semibold shadow-sm"
                 >
                   Payments
                 </Button>
@@ -573,7 +573,7 @@ export default function EventRegistrationsPage() {
               Under Host Review
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-purple-400">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-[#C084FC]">
                 {pendingApprovalCount}
               </span>
               <span className="text-xs text-[var(--color-text-muted)]">
@@ -897,7 +897,7 @@ export default function EventRegistrationsPage() {
                           }}
                           className={`flex-1 justify-center text-xs min-h-[40px] ${
                             isPendingApproval
-                              ? 'bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium'
+                              ? 'bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium'
                               : ''
                           }`}
                         >
@@ -1031,7 +1031,7 @@ export default function EventRegistrationsPage() {
                                       setReviewDecision('approved')
                                       setRejectionReason('')
                                     }}
-                                    className="bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium text-[11px] py-1 px-2.5 h-auto"
+                                    className="bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium text-[11px] py-1 px-2.5 h-auto"
                                   >
                                     Review
                                   </Button>
@@ -1617,7 +1617,7 @@ export default function EventRegistrationsPage() {
                       disabled={Boolean(exportingType) || registrations.length === 0}
                       isLoading={exportingType === 'teams'}
                       leftIcon={<Download size={14} />}
-                      className="shrink-0 bg-[var(--color-brand-purple)] hover:bg-purple-600 text-white font-medium"
+                      className="shrink-0 bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium"
                     >
                       Download
                     </Button>
@@ -1642,7 +1642,7 @@ export default function EventRegistrationsPage() {
                       disabled={Boolean(exportingType) || payments.length === 0}
                       isLoading={exportingType === 'payments'}
                       leftIcon={<Download size={14} />}
-                      className="shrink-0 bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+                      className="shrink-0 font-semibold"
                     >
                       Download
                     </Button>

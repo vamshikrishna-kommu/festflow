@@ -403,19 +403,20 @@ export default function JoinTeamPage() {
                   </span>
                 </label>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2.5">
                   <input
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="e.g. TF-8K9N2P"
                     maxLength={15}
-                    className="flex-1 px-4 py-3 rounded-xl bg-[#14141A] border border-white/10 text-white font-mono text-base tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] transition-all"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[#14141A] border border-white/10 text-white font-mono text-base tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] transition-all min-h-[44px]"
                   />
                   <Button
                     type="submit"
                     variant="primary"
                     size="md"
+                    className="w-full sm:w-auto shrink-0 min-h-[44px]"
                     isLoading={loadingCodePreview}
                     disabled={!code.trim() || loadingCodePreview}
                   >

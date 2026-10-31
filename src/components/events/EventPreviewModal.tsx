@@ -214,8 +214,8 @@ export function EventPreviewModal({
 
             {/* Team Participation Specifications if Team Event */}
             {isTeam && (
-              <div className="p-5 rounded-2xl bg-pink-500/5 border border-pink-500/20 flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-sm font-bold text-pink-400">
+              <div className="p-5 rounded-2xl bg-[#ED47FC]/5 border border-[#ED47FC]/20 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#FE7EE8]">
                   <Users size={16} /> Team Registration Guidelines
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">

@@ -329,7 +329,7 @@ export function Navbar() {
                                     setUserMenuOpen(false)
                                     switchWorkspace('club', navigate)
                                   }}
-                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-violet-300 hover:bg-violet-500/10 transition-colors cursor-pointer text-left"
+                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[#C084FC] hover:bg-[#7F1AFB]/10 transition-colors cursor-pointer text-left"
                                 >
                                   <div className="flex items-center gap-2">
                                     <Building2 size={14} className="text-[#7F1AFB]" />

@@ -227,8 +227,8 @@ export function WorkspaceSwitcher({
         aria-expanded={isOpen}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-sm ${
           activeWorkspace === 'club'
-            ? 'bg-[#7F1AFB]/10 hover:bg-[#7F1AFB]/15 text-violet-200 border-[#7F1AFB]/25 hover:border-[#7F1AFB]/40'
-            : 'bg-cyan-500/10 hover:bg-cyan-500/15 text-cyan-200 border-cyan-500/25 hover:border-cyan-500/40'
+            ? 'bg-[#7F1AFB]/10 hover:bg-[#7F1AFB]/15 text-[#C084FC] border-[#7F1AFB]/25 hover:border-[#7F1AFB]/40'
+            : 'bg-[#18CFFC]/10 hover:bg-[#18CFFC]/15 text-[#18CFFC] border-[#18CFFC]/25 hover:border-[#18CFFC]/40'
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
