@@ -1123,39 +1123,170 @@ export async function inviteTeamMember(params: {
 
   if (isSupabaseConfigured) {
     try {
+      let inviteData: { invitation_id: string; token: string; invite_code: string } | null = null
+      let teamRecForEmail: any = null
+
       const { data, error } = await (supabase.rpc as any)('invite_team_member', {
         p_team_id: params.teamId,
         p_email: cleanEmail,
         p_name: params.name || null,
       })
-      if (error) {
-        return { success: false, message: error.message }
-      }
-      if (!data?.success) {
-        return { success: false, message: data?.message || 'Failed to send invitation.' }
+
+      if (!error && data?.success) {
+        inviteData = {
+          invitation_id: data.invitation_id,
+          token: data.token,
+          invite_code: data.invite_code,
+        }
+      } else {
+        console.warn(
+          '[FestFlow Teams] RPC invite_team_member returned error, attempting direct table fallback:',
+          error?.message || data?.message
+        )
+
+        // 1. Fetch team, event and verify leader
+        const { data: teamRec, error: teamErr } = await (supabase.from('teams') as any)
+          .select('id, name, invite_code, event_id, leader_id, events(title, slug, club_id, max_team_size, status)')
+          .eq('id', params.teamId)
+          .single()
+
+        if (teamErr || !teamRec) {
+          return { success: false, message: error?.message || teamErr?.message || 'Team could not be found.' }
+        }
+        teamRecForEmail = teamRec
+
+        // 2. Check team capacity
+        const { count: acceptedCount } = await (supabase.from('team_members') as any)
+          .select('id', { count: 'exact', head: true })
+          .eq('team_id', params.teamId)
+          .eq('status', 'accepted')
+
+        const maxSize = teamRec.events?.max_team_size || 5
+        if ((acceptedCount ?? 0) >= maxSize) {
+          return { success: false, message: 'This team has already reached maximum capacity.' }
+        }
+
+        // 3. Check if already a confirmed member
+        const { data: existingMember } = await (supabase.from('team_members') as any)
+          .select('id')
+          .eq('team_id', params.teamId)
+          .ilike('email', cleanEmail)
+          .eq('status', 'accepted')
+          .maybeSingle()
+
+        if (existingMember) {
+          return { success: false, message: 'This student is already a confirmed member of your team.' }
+        }
+
+        // 4. Generate secure token
+        const fallbackToken = generateToken()
+
+        // 5. Upsert team_invitations
+        const { data: existingInvite } = await (supabase.from('team_invitations') as any)
+          .select('id')
+          .eq('team_id', params.teamId)
+          .ilike('email', cleanEmail)
+          .eq('status', 'pending')
+          .maybeSingle()
+
+        let invitationId: string
+
+        if (existingInvite?.id) {
+          invitationId = existingInvite.id
+          const { error: updateErr } = await (supabase.from('team_invitations') as any)
+            .update({
+              token: fallbackToken,
+              last_sent_at: new Date().toISOString(),
+              expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', invitationId)
+
+          if (updateErr) {
+            return { success: false, message: updateErr.message }
+          }
+        } else {
+          const { data: insertedInvite, error: insertErr } = await (supabase.from('team_invitations') as any)
+            .insert({
+              team_id: params.teamId,
+              event_id: teamRec.event_id,
+              inviter_id: params.leaderId || teamRec.leader_id,
+              email: cleanEmail,
+              token: fallbackToken,
+              expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+            })
+            .select('id')
+            .single()
+
+          if (insertErr || !insertedInvite) {
+            return { success: false, message: insertErr?.message || 'Failed to create invitation record.' }
+          }
+          invitationId = insertedInvite.id
+        }
+
+        // 6. Ensure pending slot exists in team_members
+        const { data: existingMemberRow } = await (supabase.from('team_members') as any)
+          .select('id')
+          .eq('team_id', params.teamId)
+          .ilike('email', cleanEmail)
+          .maybeSingle()
+
+        if (existingMemberRow?.id) {
+          await (supabase.from('team_members') as any)
+            .update({
+              invitation_id: invitationId,
+              name: params.name || cleanEmail.split('@')[0],
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingMemberRow.id)
+        } else {
+          await (supabase.from('team_members') as any)
+            .insert({
+              team_id: params.teamId,
+              event_id: teamRec.event_id,
+              name: params.name || cleanEmail.split('@')[0],
+              email: cleanEmail,
+              role: 'member',
+              status: 'pending',
+              invitation_id: invitationId,
+            })
+        }
+
+        inviteData = {
+          invitation_id: invitationId,
+          token: fallbackToken,
+          invite_code: teamRec.invite_code,
+        }
       }
 
-      // Fetch team & event info for email
-      const { data: teamRec } = await (supabase.from('teams') as any)
-        .select('name, invite_code, event_id, events(title, slug, club_id)')
-        .eq('id', params.teamId)
-        .single()
+      if (!inviteData) {
+        return { success: false, message: 'Failed to create team invitation.' }
+      }
+
+      // Fetch team & event info for email if not already fetched
+      if (!teamRecForEmail) {
+        const { data: teamRec } = await (supabase.from('teams') as any)
+          .select('name, invite_code, event_id, events(title, slug, club_id)')
+          .eq('id', params.teamId)
+          .single()
+        teamRecForEmail = teamRec
+      }
 
       let emailSent = false
       let emailError: string | undefined
 
-      if (teamRec) {
+      if (teamRecForEmail) {
         const emailRes = await sendTeamInvitationEmail({
           recipientEmail: cleanEmail,
           recipientName: params.name,
-          teamName: teamRec.name,
-          eventTitle: teamRec.events?.title || 'FestFlow Event',
-          eventSlug: teamRec.events?.slug || '',
+          teamName: teamRecForEmail.name,
+          eventTitle: teamRecForEmail.events?.title || 'FestFlow Event',
+          eventSlug: teamRecForEmail.events?.slug || '',
           leaderName: 'Team Leader',
-          inviteCode: data.invite_code || teamRec.invite_code,
-          inviteToken: data.token,
+          inviteCode: inviteData.invite_code || teamRecForEmail.invite_code,
+          inviteToken: inviteData.token,
           expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
-          eventId: teamRec.event_id,
+          eventId: teamRecForEmail.event_id,
           teamId: params.teamId,
         })
         emailSent = emailRes.success
@@ -1168,9 +1299,9 @@ export async function inviteTeamMember(params: {
           invitation_created_email_failed: true,
           email_dispatch_error: emailError || 'Email provider could not deliver message.',
           message: `Invitation saved for ${cleanEmail}, but email dispatch failed: ${emailError || 'Provider unreachable'}. You can share the link or invite code directly.`,
-          invitation_id: data.invitation_id,
-          token: data.token,
-          invite_code: data.invite_code,
+          invitation_id: inviteData.invitation_id,
+          token: inviteData.token,
+          invite_code: inviteData.invite_code,
           email: cleanEmail,
         }
       }
@@ -1178,9 +1309,9 @@ export async function inviteTeamMember(params: {
       return {
         success: true,
         message: `Invitation sent to ${cleanEmail}`,
-        invitation_id: data.invitation_id,
-        token: data.token,
-        invite_code: data.invite_code,
+        invitation_id: inviteData.invitation_id,
+        token: inviteData.token,
+        invite_code: inviteData.invite_code,
         email: cleanEmail,
       }
     } catch (err: any) {
