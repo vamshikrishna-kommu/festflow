@@ -526,18 +526,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 updated_at: new Date().toISOString(),
               })
               .eq('id', user.id)
-            if (pErr) return { error: pErr.message }
+
+            if (pErr) {
+              // If error is caused by legacy trigger referencing non-existent is_verified column on profiles,
+              // continue saving via student_profiles and auth.updateUser metadata.
+              if (pErr.message && pErr.message.includes('is_verified')) {
+                console.warn('[FestFlow Auth] Profiles trigger bug detected, falling back to auth user metadata:', pErr.message)
+              } else {
+                return { error: pErr.message }
+              }
+            }
           }
 
           // 2. Update student_profiles table if student fields provided
           if (params.collegeName !== undefined || params.gradYear !== undefined) {
-            const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() }
+            const updatePayload: Record<string, any> = {
+              profile_id: user.id,
+              updated_at: new Date().toISOString(),
+            }
             if (params.collegeName !== undefined) updatePayload.college_name = params.collegeName?.trim() || null
             if (params.gradYear !== undefined) updatePayload.graduation_year = params.gradYear
 
             const { error: sErr } = await (supabase.from('student_profiles') as any)
-              .update(updatePayload)
-              .eq('profile_id', user.id)
+              .upsert(updatePayload, { onConflict: 'profile_id' })
             if (sErr) return { error: sErr.message }
           }
 
