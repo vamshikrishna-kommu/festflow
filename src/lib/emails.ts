@@ -149,13 +149,18 @@ export async function triggerTransactionalEmail(
         club_id: (payload as any)?.club_id || (template === 'club_member_invitation' ? userId : undefined),
       }
 
-      // Route A: Vercel Native /api/send-email (Zero CORS, auto-deployed with git push)
+      // Route A: Vercel Native /api/send-email (Zero CORS, auto-deployed with git push, 4s timeout)
       try {
+        const vercelController = new AbortController()
+        const vercelTimer = setTimeout(() => vercelController.abort(), 4000)
+
         const vercelRes = await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(emailPayload),
+          signal: vercelController.signal,
         })
+        clearTimeout(vercelTimer)
 
         if (vercelRes.ok) {
           const resJson = await vercelRes.json().catch(() => null)
@@ -172,13 +177,31 @@ export async function triggerTransactionalEmail(
         // Fallback to Supabase Edge Function below
       }
 
-      // Route B: If Vercel API didn't handle it, try Supabase Edge Function
+      // Route B: If Vercel API didn't handle it, try Supabase Edge Function with 4s timeout
       if (!dispatchData) {
-        const { data, error } = await supabase.functions.invoke('send-email', {
-          body: emailPayload,
-        })
-        dispatchData = data
-        dispatchError = error
+        try {
+          const invokePromise = supabase.functions.invoke('send-email', {
+            body: emailPayload,
+          })
+          const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  data: null,
+                  error: {
+                    name: 'FunctionsFetchError',
+                    message: 'send-email Edge Function timed out after 4 seconds',
+                  },
+                }),
+              4000
+            )
+          )
+          const result = await Promise.race([invokePromise, timeoutPromise])
+          dispatchData = result.data
+          dispatchError = result.error
+        } catch (invErr: any) {
+          dispatchError = invErr
+        }
       }
 
       if (dispatchError) {
@@ -402,9 +425,12 @@ export async function triggerTransactionalEmailWithRetry(
       return lastResult
     }
 
+    if (lastResult.configured === false) {
+      break
+    }
+
     const cat = lastResult.failureCategory
     const isTransient =
-      cat === 'EDGE_FUNCTION_UNREACHABLE' ||
       cat === 'GATEWAY_RELAY_ERROR' ||
       cat === 'RATE_LIMITED' ||
       (cat === 'FUNCTION_RUNTIME_ERROR' && (lastResult.httpStatus ? lastResult.httpStatus >= 500 : true))

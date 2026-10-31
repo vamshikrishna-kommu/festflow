@@ -1156,25 +1156,50 @@ export async function inviteTeamMember(params: {
         teamRecForEmail = teamRec
 
         // 2. Check team capacity
-        const { count: acceptedCount } = await (supabase.from('team_members') as any)
+        let acceptedCount = 0
+        const { count, error: countErr } = await (supabase.from('team_members') as any)
           .select('id', { count: 'exact', head: true })
           .eq('team_id', params.teamId)
           .eq('status', 'accepted')
 
+        if (!countErr && typeof count === 'number') {
+          acceptedCount = count
+        } else {
+          const { count: regCount } = await (supabase.from('registrations') as any)
+            .select('id', { count: 'exact', head: true })
+            .eq('team_id', params.teamId)
+          acceptedCount = regCount ?? 1
+        }
+
         const maxSize = teamRec.events?.max_team_size || 5
-        if ((acceptedCount ?? 0) >= maxSize) {
+        if (acceptedCount >= maxSize) {
           return { success: false, message: 'This team has already reached maximum capacity.' }
         }
 
         // 3. Check if already a confirmed member
-        const { data: existingMember } = await (supabase.from('team_members') as any)
-          .select('id')
-          .eq('team_id', params.teamId)
-          .ilike('email', cleanEmail)
-          .eq('status', 'accepted')
-          .maybeSingle()
+        let isAlreadyMember = false
+        try {
+          const { data: existingMember } = await (supabase.from('team_members') as any)
+            .select('id')
+            .eq('team_id', params.teamId)
+            .ilike('email', cleanEmail)
+            .eq('status', 'accepted')
+            .maybeSingle()
+          if (existingMember) isAlreadyMember = true
+        } catch {
+          // ignore
+        }
 
-        if (existingMember) {
+        if (!isAlreadyMember) {
+          const { data: regMember } = await (supabase.from('registrations') as any)
+            .select('id')
+            .eq('team_id', params.teamId)
+            .ilike('student_email', cleanEmail)
+            .maybeSingle()
+          if (regMember) isAlreadyMember = true
+        }
+
+        if (isAlreadyMember) {
           return { success: false, message: 'This student is already a confirmed member of your team.' }
         }
 
@@ -1224,32 +1249,36 @@ export async function inviteTeamMember(params: {
           invitationId = insertedInvite.id
         }
 
-        // 6. Ensure pending slot exists in team_members
-        const { data: existingMemberRow } = await (supabase.from('team_members') as any)
-          .select('id')
-          .eq('team_id', params.teamId)
-          .ilike('email', cleanEmail)
-          .maybeSingle()
+        // 6. Ensure pending slot exists in team_members (non-blocking)
+        try {
+          const { data: existingMemberRow } = await (supabase.from('team_members') as any)
+            .select('id')
+            .eq('team_id', params.teamId)
+            .ilike('email', cleanEmail)
+            .maybeSingle()
 
-        if (existingMemberRow?.id) {
-          await (supabase.from('team_members') as any)
-            .update({
-              invitation_id: invitationId,
-              name: params.name || cleanEmail.split('@')[0],
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingMemberRow.id)
-        } else {
-          await (supabase.from('team_members') as any)
-            .insert({
-              team_id: params.teamId,
-              event_id: teamRec.event_id,
-              name: params.name || cleanEmail.split('@')[0],
-              email: cleanEmail,
-              role: 'member',
-              status: 'pending',
-              invitation_id: invitationId,
-            })
+          if (existingMemberRow?.id) {
+            await (supabase.from('team_members') as any)
+              .update({
+                invitation_id: invitationId,
+                name: params.name || cleanEmail.split('@')[0],
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingMemberRow.id)
+          } else {
+            await (supabase.from('team_members') as any)
+              .insert({
+                team_id: params.teamId,
+                event_id: teamRec.event_id,
+                name: params.name || cleanEmail.split('@')[0],
+                email: cleanEmail,
+                role: 'member',
+                status: 'pending',
+                invitation_id: invitationId,
+              })
+          }
+        } catch {
+          // non-blocking
         }
 
         inviteData = {
@@ -1610,16 +1639,119 @@ export async function getTeamDetails(
         return { success: false, message: tErr?.message || 'Team not found.' }
       }
 
-      const { data: memberList } = await (supabase.from('team_members') as any)
-        .select('*')
-        .eq('team_id', teamId)
-        .order('role', { ascending: true }) // leader first
-        .order('joined_at', { ascending: true })
+      // 1. Try querying team_members table
+      let memberList: any[] = []
+      try {
+        const { data: directMembers, error: memErr } = await (supabase.from('team_members') as any)
+          .select('*')
+          .eq('team_id', teamId)
+          .order('role', { ascending: true }) // leader first
+          .order('joined_at', { ascending: true })
 
-      const { data: inviteList } = await (supabase.from('team_invitations') as any)
-        .select('*')
-        .eq('team_id', teamId)
-        .order('created_at', { ascending: false })
+        if (!memErr && directMembers && directMembers.length > 0) {
+          memberList = directMembers
+        }
+      } catch {
+        // Fallback to registrations reconstruction below
+      }
+
+      // If team_members is empty or errored (e.g. 500 RLS recursion),
+      // recover squad roster from registrations & profiles!
+      if (memberList.length === 0) {
+        try {
+          const { data: regList } = await (supabase.from('registrations') as any)
+            .select('id, user_id, student_name, student_email, student_college, student_phone, student_id_card, team_role, team_members, created_at')
+            .eq('team_id', teamId)
+
+          const leaderReg = regList?.find((r: any) => r.team_role === 'leader' || r.user_id === teamRec.leader_id)
+
+          let leaderName = leaderReg?.student_name
+          let leaderEmail = leaderReg?.student_email
+          let leaderCollege = leaderReg?.student_college
+
+          if (!leaderName && teamRec.leader_id) {
+            const { data: leaderProfile } = await (supabase.from('profiles') as any)
+              .select('display_name, email, college')
+              .eq('id', teamRec.leader_id)
+              .maybeSingle()
+            leaderName = leaderProfile?.display_name || 'Team Leader'
+            leaderEmail = leaderProfile?.email || ''
+            leaderCollege = leaderProfile?.college || ''
+          }
+
+          // Always add the confirmed team leader
+          memberList.push({
+            id: leaderReg?.id || `leader_${teamRec.id}`,
+            team_id: teamId,
+            event_id: teamRec.event_id,
+            user_id: teamRec.leader_id,
+            name: leaderName || 'Team Leader',
+            email: leaderEmail || '',
+            role: 'leader',
+            status: 'accepted',
+            college: leaderCollege || '',
+            joined_at: teamRec.created_at || new Date().toISOString(),
+            created_at: teamRec.created_at || new Date().toISOString(),
+          })
+
+          // Add any member registrations
+          if (regList) {
+            for (const reg of regList) {
+              if (reg.user_id !== teamRec.leader_id && reg.team_role !== 'leader') {
+                memberList.push({
+                  id: reg.id,
+                  team_id: teamId,
+                  event_id: teamRec.event_id,
+                  user_id: reg.user_id,
+                  name: reg.student_name,
+                  email: reg.student_email,
+                  role: 'member',
+                  status: 'accepted',
+                  college: reg.student_college,
+                  joined_at: reg.created_at,
+                  created_at: reg.created_at,
+                })
+              }
+            }
+          }
+
+          // Add any team_members array items from leader's registration JSON
+          if (leaderReg?.team_members && Array.isArray(leaderReg.team_members)) {
+            for (const m of leaderReg.team_members) {
+              if (m.email && !memberList.some((existing) => existing.email?.toLowerCase() === m.email?.toLowerCase())) {
+                memberList.push({
+                  id: `json_${m.email}`,
+                  team_id: teamId,
+                  event_id: teamRec.event_id,
+                  user_id: m.user_id || null,
+                  name: m.name || m.email.split('@')[0],
+                  email: m.email,
+                  role: 'member',
+                  status: m.status || 'accepted',
+                  college: m.college || '',
+                  joined_at: m.joined_at || new Date().toISOString(),
+                  created_at: new Date().toISOString(),
+                })
+              }
+            }
+          }
+        } catch (recoverErr) {
+          console.warn('[FestFlow Teams] Roster recovery fallback failed:', recoverErr)
+        }
+      }
+
+      let inviteList: any[] = []
+      try {
+        const { data: directInvites } = await (supabase.from('team_invitations') as any)
+          .select('*')
+          .eq('team_id', teamId)
+          .order('created_at', { ascending: false })
+        if (directInvites) {
+          inviteList = directInvites
+        }
+      } catch {
+        // ignore
+      }
 
       const isLeader = teamRec.leader_id === userId
       const userRole = isLeader ? 'leader' : 'member'
@@ -1627,8 +1759,8 @@ export async function getTeamDetails(
       const details: TeamDetails = {
         ...teamRec,
         event: teamRec.events || null,
-        members: memberList || [],
-        invitations: isLeader ? inviteList || [] : [], // Only leader sees unaccepted invitation list
+        members: memberList,
+        invitations: isLeader ? inviteList : [], // Only leader sees unaccepted invitation list
         userRole,
       }
 

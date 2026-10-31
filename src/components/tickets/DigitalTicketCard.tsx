@@ -122,34 +122,42 @@ export function DigitalTicketCard({
     setResending(true)
     setResendNotice(null)
 
-    const res = await resendPassEmail(
-      registration,
-      registration.participant_details?.email,
-      registration.participant_details?.student_name
-    )
-    setResending(false)
+    try {
+      const res = await resendPassEmail(
+        registration,
+        registration.participant_details?.email,
+        registration.participant_details?.student_name
+      )
 
-    if (res.success) {
-      setResendNotice({ message: res.message || 'Pass delivered to your email!', isError: false })
-      setResendCooldown(30)
-      const interval = setInterval(() => {
-        setResendCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    } else {
-      if (res.configured === false) {
-        setResendNotice({
-          message: 'Automated email service is not yet configured. You can Download or Print your pass immediately using the buttons below.',
-          isError: false,
-        })
+      if (res.success) {
+        setResendNotice({ message: res.message || 'Pass delivered to your email!', isError: false })
+        setResendCooldown(30)
+        const interval = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
       } else {
-        setResendNotice({ message: res.message || 'Failed to email pass.', isError: true })
+        if (res.configured === false) {
+          setResendNotice({
+            message: 'Automated email service is not yet configured. You can Download or Print your pass immediately using the buttons below.',
+            isError: false,
+          })
+        } else {
+          setResendNotice({ message: res.message || 'Failed to email pass.', isError: true })
+        }
       }
+    } catch (err: any) {
+      setResendNotice({
+        message: err?.message || 'Failed to email pass. Please try again or download your pass.',
+        isError: true,
+      })
+    } finally {
+      setResending(false)
     }
   }
 

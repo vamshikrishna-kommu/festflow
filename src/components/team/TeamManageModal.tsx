@@ -148,29 +148,33 @@ export function TeamManageModal({
     setErrorNotice(null)
     setSuccessNotice(null)
 
-    const res = await inviteTeamMember({
-      teamId: team.id,
-      email: inviteEmail.trim(),
-      name: inviteName.trim() || undefined,
-      leaderId: user.id,
-    })
+    try {
+      const res = await inviteTeamMember({
+        teamId: team.id,
+        email: inviteEmail.trim(),
+        name: inviteName.trim() || undefined,
+        leaderId: user.id,
+      })
 
-    setIsInviting(false)
-
-    if (res.success) {
-      if (res.invitation_created_email_failed) {
-        setSuccessNotice(
-          `Invitation created in roster for ${inviteEmail.trim()}! Share squad code ${team.invite_code} or copy the invite link below to send directly.`
-        )
+      if (res.success) {
+        if (res.invitation_created_email_failed) {
+          setSuccessNotice(
+            `Invitation created in roster for ${inviteEmail.trim()}! Share squad code ${team.invite_code} or copy the invite link below to send directly.`
+          )
+        } else {
+          setSuccessNotice(`Invitation email successfully dispatched to ${inviteEmail.trim()}`)
+        }
+        setInviteEmail('')
+        setInviteName('')
+        loadTeam()
+        if (onTeamUpdated) onTeamUpdated()
       } else {
-        setSuccessNotice(`Invitation email successfully dispatched to ${inviteEmail.trim()}`)
+        setErrorNotice(res.message)
       }
-      setInviteEmail('')
-      setInviteName('')
-      loadTeam()
-      if (onTeamUpdated) onTeamUpdated()
-    } else {
-      setErrorNotice(res.message)
+    } catch (err: any) {
+      setErrorNotice(err?.message || 'Failed to dispatch squad invitation.')
+    } finally {
+      setIsInviting(false)
     }
   }
 
@@ -180,18 +184,22 @@ export function TeamManageModal({
     setErrorNotice(null)
     setSuccessNotice(null)
 
-    const res = await resendTeamInvitation({
-      invitationId,
-      leaderId: user.id,
-    })
+    try {
+      const res = await resendTeamInvitation({
+        invitationId,
+        leaderId: user.id,
+      })
 
-    setResendingId(null)
-
-    if (res.success) {
-      setSuccessNotice('Invitation email resent successfully.')
-      loadTeam()
-    } else {
-      setErrorNotice(res.message)
+      if (res.success) {
+        setSuccessNotice('Invitation email resent successfully.')
+        loadTeam()
+      } else {
+        setErrorNotice(res.message)
+      }
+    } catch (err: any) {
+      setErrorNotice(err?.message || 'Failed to resend invitation.')
+    } finally {
+      setResendingId(null)
     }
   }
 
@@ -201,19 +209,23 @@ export function TeamManageModal({
     setErrorNotice(null)
     setSuccessNotice(null)
 
-    const res = await revokeTeamInvitation({
-      invitationId,
-      leaderId: user.id,
-    })
+    try {
+      const res = await revokeTeamInvitation({
+        invitationId,
+        leaderId: user.id,
+      })
 
-    setRevokingId(null)
-
-    if (res.success) {
-      setSuccessNotice('Invitation revoked.')
-      loadTeam()
-      if (onTeamUpdated) onTeamUpdated()
-    } else {
-      setErrorNotice(res.message)
+      if (res.success) {
+        setSuccessNotice('Invitation revoked.')
+        loadTeam()
+        if (onTeamUpdated) onTeamUpdated()
+      } else {
+        setErrorNotice(res.message)
+      }
+    } catch (err: any) {
+      setErrorNotice(err?.message || 'Failed to revoke invitation.')
+    } finally {
+      setRevokingId(null)
     }
   }
 

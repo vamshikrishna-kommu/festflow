@@ -1,13 +1,18 @@
 /**
  * api/send-email.ts
  *
- * Vercel Serverless Function for transactional email delivery:
- * - Native serverless execution on Vercel (same-origin, zero CORS issues)
- * - Directly dispatches emails via Resend API (https://api.resend.com/emails)
+ * Vercel Serverless & Edge Function for transactional email delivery:
+ * - Edge runtime enabled for sub-millisecond execution and zero cold-start delay
+ * - Universal runtime adapter: seamlessly handles both Web Request/Response and Node (req, res)
+ * - Directly dispatches emails via Resend API (https://api.resend.com/emails) with 4s timeout
  * - Graceful provider configuration check (reports configured: false when RESEND_API_KEY is unset)
  * - Auto-fallback to onboarding@resend.dev if custom domain is pending DNS verification
  * - Generates responsive HTML templates with FestFlow 2.0 branding
  */
+
+export const config = {
+  runtime: 'edge',
+}
 
 interface EmailPayload {
   template: string
@@ -99,108 +104,73 @@ function generateEmailContent(
       break
     }
 
+    case 'registration_confirmed':
+    case 'ticket_issued': {
+      const safeTicketUrl = sanitizeSafeUrl(payload.ticket_url || payload.ticketUrl, 'https://festflow.online/student/dashboard')
+      subject = `Entry Pass Confirmed: ${eventTitle} [${ticketCode || 'FestFlow'}]`
+      textFallback = `Hello ${recipient},\n\nYour entry pass for ${eventTitle} has been confirmed!\n\nPass Code: ${ticketCode}\nVenue: ${venueName}\n\nView and download your digital pass:\n${safeTicketUrl}\n\nFestFlow Team`
+      bodyContent = `
+        <h2 style="color: ${brandCyan}; margin-top: 0;">🎟️ Your Campus Event Pass is Confirmed!</h2>
+        <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
+          Hi <strong>${recipient}</strong>, your spot for <strong>${eventTitle}</strong> is locked in.
+        </p>
+        <div style="background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
+          <p style="color: ${textMuted}; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px 0;">Gate Admission Code</p>
+          <p style="font-family: monospace; font-size: 26px; font-weight: bold; letter-spacing: 3px; color: ${brandCyan}; margin: 0;">${ticketCode}</p>
+          <p style="color: ${textMuted}; font-size: 13px; margin: 12px 0 0 0;">📍 ${venueName}</p>
+        </div>
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Open Digital Entry Pass</a>
+        </p>
+      `
+      break
+    }
+
     case 'team_invitation_accepted': {
-      const safeDashboardUrl = sanitizeSafeUrl(payload.dashboard_url, 'https://festflow.online/student/dashboard')
-      const memberName = sanitizeText(payload.member_name || payload.memberName || 'A member')
+      const memberName = sanitizeText(payload.member_name || payload.memberName || 'A student')
+      const currentSize = sanitizeText(payload.current_size || payload.currentSize || '2')
       subject = `Squad Update: ${memberName} joined "${teamName}"`
-      textFallback = `Hello ${recipient},\n\nGreat news! ${memberName} has accepted your invitation and joined "${teamName}" for ${eventTitle}.\n\nView squad roster:\n${safeDashboardUrl}`
+      textFallback = `Hello ${recipient},\n\n${memberName} has accepted your invitation and joined "${teamName}" for ${eventTitle}.\nCurrent Squad Size: ${currentSize}.\n\nFestFlow Team`
       bodyContent = `
-        <h2 style="color: #34d399; margin-top: 0;">🤝 New Teammate Joined!</h2>
+        <h2 style="color: ${brandCyan}; margin-top: 0;">⚔️ Squad Member Joined!</h2>
         <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
-          Hi <strong>${recipient}</strong>, <strong>${memberName}</strong> has accepted your invitation to join <strong>"${teamName}"</strong> for <strong>${eventTitle}</strong>.
+          Hi <strong>${recipient}</strong>, <strong>${memberName}</strong> just accepted your invitation and joined squad <strong>"${teamName}"</strong>!
         </p>
-        <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 16px; padding: 18px; margin: 20px 0;">
-          <p style="margin: 4px 0; color: ${textWhite};">👥 <strong>Member:</strong> ${memberName}</p>
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 18px; margin: 20px 0;">
           <p style="margin: 4px 0; color: ${textWhite};">🛡️ <strong>Squad:</strong> ${teamName}</p>
+          <p style="margin: 4px 0; color: ${textWhite};">👥 <strong>Confirmed Members:</strong> ${currentSize}</p>
         </div>
-        <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeDashboardUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Squad in Dashboard</a>
-        </p>
-      `
-      break
-    }
-
-    case 'ticket_issued':
-    case 'registration_confirmed': {
-      const safeTicketUrl = sanitizeSafeUrl(payload.ticket_url || payload.ticketUrl, 'https://festflow.online/student/dashboard')
-      subject = payload.is_resend
-        ? `[Pass Resend] Digital Entry Ticket: ${eventTitle}`
-        : `Your Digital Pass: ${eventTitle}`
-      textFallback = `Hello ${recipient},\n\nYour spot for ${eventTitle} is ready!\nDate: ${sanitizeText(payload.start_date || 'Check pass')}\nVenue: ${venueName}\nTicket Code: ${ticketCode}\n\nAccess your digital pass and QR code:\n${safeTicketUrl}`
-      bodyContent = `
-        <h2 style="color: ${brandCyan}; margin-top: 0;">🎟️ Your Digital Entry Pass is Ready!</h2>
-        <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
-          Hi <strong>${recipient}</strong>, your entry ticket for <strong>${eventTitle}</strong> has been issued.
-        </p>
-        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 20px; margin: 20px 0;">
-          <p style="margin: 4px 0; color: ${textWhite};">📅 <strong>Date:</strong> ${sanitizeText(payload.start_date || 'Check pass')}</p>
-          <p style="margin: 4px 0; color: ${textWhite};">📍 <strong>Venue:</strong> ${venueName}</p>
-          <p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Ticket Code:</strong> <span style="font-family: monospace; font-size: 18px; font-weight: bold; color: ${brandCyan};">${ticketCode}</span></p>
-          ${teamName ? `<p style="margin: 4px 0; color: #a78bfa;">🛡️ <strong>Squad:</strong> ${teamName}</p>` : ''}
-        </div>
-        <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; display: inline-block;">View Digital Pass & QR Code</a>
-        </p>
-      `
-      break
-    }
-
-    case 'payment_approved': {
-      const safeTicketUrl = sanitizeSafeUrl(payload.ticket_url || payload.ticketUrl, 'https://festflow.online/student/dashboard')
-      subject = `Payment Verified: ${eventTitle}`
-      textFallback = `Hello ${recipient},\n\nYour payment for ${eventTitle} has been verified and approved by the organizer!\nTicket Code: ${ticketCode}\n\nAccess your digital pass:\n${safeTicketUrl}`
-      bodyContent = `
-        <h2 style="color: #34d399; margin-top: 0;">✅ Payment Verified & Pass Issued!</h2>
-        <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
-          Hi <strong>${recipient}</strong>, your payment for <strong>${eventTitle}</strong> has been verified by the organizers.
-        </p>
-        <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 16px; padding: 18px; margin: 20px 0;">
-          <p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Ticket Code:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: #34d399;">${ticketCode}</span></p>
-          <p style="margin: 4px 0; color: ${textWhite};">📍 <strong>Venue:</strong> ${venueName}</p>
-        </div>
-        <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeTicketUrl}" style="background: #34d399; color: #000; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Confirmed Gate Pass</a>
-        </p>
       `
       break
     }
 
     case 'club_member_invitation': {
-      const clubName = sanitizeText(payload.club_name || 'Campus Club')
-      const inviterName = sanitizeText(payload.inviter_name || 'Club Organizer')
+      const clubName = sanitizeText(payload.club_name || payload.clubName || 'FestFlow Club')
       const role = sanitizeText(payload.role || 'Member')
-      const safeInvitationUrl = sanitizeSafeUrl(payload.invitation_url, 'https://festflow.online')
-
-      subject = `Staff Invitation: Join ${clubName} on FestFlow`
-      textFallback = `Hello ${recipient},\n\n${inviterName} has invited you to join ${clubName} as ${role} on FestFlow.\n\nAccept your staff invitation:\n${safeInvitationUrl}`
+      const safeAcceptUrl = sanitizeSafeUrl(payload.accept_url || payload.acceptUrl, 'https://festflow.online/club')
+      subject = `Invitation: Join ${clubName} Team on FestFlow`
+      textFallback = `Hello ${recipient},\n\nYou have been invited to join ${clubName} as ${role}.\n\nAccept your role:\n${safeAcceptUrl}\n\nFestFlow Team`
       bodyContent = `
-        <h2 style="color: ${brandCyan}; margin-top: 0;">🏛️ Club Staff Invitation</h2>
+        <h2 style="color: ${brandCyan}; margin-top: 0;">🏛️ You're Invited to Join an Organizer Team</h2>
         <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
-          Hi <strong>${recipient}</strong>, you have been invited by <strong>${inviterName}</strong> to join the organizing team of <strong>${clubName}</strong> on FestFlow.
+          Hi <strong>${recipient}</strong>, you have been invited to join <strong>${clubName}</strong> as a <strong>${role}</strong>.
         </p>
-        <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 16px; padding: 18px; margin: 20px 0;">
-          <p style="margin: 4px 0; color: ${textWhite};">🏛️ <strong>Club:</strong> ${clubName}</p>
-          <p style="margin: 4px 0; color: ${textWhite};">🛡️ <strong>Role:</strong> ${role}</p>
-        </div>
         <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeInvitationUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Accept Staff Invitation</a>
+          <a href="${safeAcceptUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Accept Organizer Invitation</a>
         </p>
       `
       break
     }
 
     default: {
-      subject = `FestFlow Notification: ${eventTitle}`
-      textFallback = `Hello ${recipient},\n\nYou have an update regarding ${eventTitle}.\nVisit: https://festflow.online/student/dashboard`
+      subject = sanitizeText(payload.subject || 'FestFlow Campus Notification')
       bodyContent = `
-        <h2 style="color: ${brandCyan}; margin-top: 0;">FestFlow Event Update</h2>
+        <h2 style="color: ${brandCyan}; margin-top: 0;">FestFlow Campus Notification</h2>
         <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
-          Hi <strong>${recipient}</strong>, you have an update regarding <strong>${eventTitle}</strong>.
-        </p>
-        <p style="text-align: center; margin: 25px 0;">
-          <a href="https://festflow.online/student/dashboard" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Open FestFlow Dashboard</a>
+          Hi <strong>${recipient}</strong>, you have a new update regarding <strong>${eventTitle}</strong>.
         </p>
       `
+      textFallback = `Hello ${recipient},\n\nYou have an update regarding ${eventTitle}.\n\nFestFlow Team`
     }
   }
 
@@ -212,32 +182,33 @@ function generateEmailContent(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${subject}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #08080a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #08080a; padding: 30px 15px;">
+<body style="margin: 0; padding: 20px; background-color: #0B0B0F; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #121218; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
     <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 580px; background-color: #0e0e12; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
-          <!-- Header -->
+      <td style="padding: 28px 32px; background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(6, 182, 212, 0.25)); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
           <tr>
-            <td style="padding: 24px 30px; background: linear-gradient(135deg, rgba(24, 207, 252, 0.15), rgba(127, 26, 251, 0.1)); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
-              <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">FestFlow</span>
+            <td>
+              <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">⚡ Fest<span style="color: ${brandCyan};">Flow</span></span>
             </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding: 30px;">
-              ${bodyContent}
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 20px 30px; background-color: #08080a; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center;">
-              <p style="margin: 0; color: #71717a; font-size: 12px;">
-                FestFlow • Intelligent Campus Event Experience • <a href="https://festflow.online" style="color: ${brandCyan}; text-decoration: none;">festflow.online</a>
-              </p>
+            <td align="right">
+              <span style="font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 1px;">Official Campus Pass</span>
             </td>
           </tr>
         </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 32px;">
+        ${bodyContent}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px 32px; background-color: #0e0e13; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+        <p style="margin: 0; font-size: 12px; color: ${textMuted};">
+          FestFlow Campus OS • Automated Transactional Gateway<br>
+          <a href="https://festflow.online" style="color: ${brandCyan}; text-decoration: none;">festflow.online</a>
+        </p>
       </td>
     </tr>
   </table>
@@ -248,33 +219,67 @@ function generateEmailContent(
   return { subject, html: fullHtml, text: textFallback }
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: any, res?: any): Promise<Response | void> {
+  const isNode = res && typeof res.status === 'function'
+
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   }
 
+  const sendResponse = (status: number, data: any) => {
+    if (isNode) {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type')
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+      res.setHeader('Content-Type', 'application/json')
+      return res.status(status).json(data)
+    }
+    return new Response(JSON.stringify(data), {
+      status,
+      headers: corsHeaders,
+    })
+  }
+
   if (req.method === 'OPTIONS') {
+    if (isNode) {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type')
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+      return res.status(200).send('ok')
+    }
     return new Response('ok', { headers: corsHeaders })
   }
 
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Method not allowed' }),
-      { status: 405, headers: corsHeaders }
-    )
+    return sendResponse(405, { success: false, error: 'Method not allowed' })
   }
 
   try {
-    const body: EmailPayload = await req.json()
+    let body: EmailPayload
+    if (typeof req.json === 'function') {
+      body = await req.json().catch(() => ({}))
+    } else if (req.body && typeof req.body === 'object') {
+      body = req.body
+    } else if (typeof req.body === 'string') {
+      try {
+        body = JSON.parse(req.body)
+      } catch {
+        body = {} as any
+      }
+    } else {
+      body = {} as any
+    }
+
     const { template, to, name, payload } = body || {}
 
     if (!template || !to || typeof to !== 'string') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing required parameters: template and to.' }),
-        { status: 400, headers: corsHeaders }
-      )
+      return sendResponse(400, {
+        success: false,
+        error: 'Missing required parameters: template and to.',
+      })
     }
 
     const cleanTo = to.trim().toLowerCase()
@@ -285,88 +290,101 @@ export default async function handler(req: Request): Promise<Response> {
 
     // If no Resend API key is provided, report configured: false gracefully
     if (!resendApiKey || resendApiKey === 'your-resend-api-key-here') {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          configured: false,
-          message: 'Transactional email delivery is not configured. RESEND_API_KEY environment variable is required.',
-        }),
-        { status: 200, headers: corsHeaders }
-      )
+      return sendResponse(200, {
+        success: false,
+        configured: false,
+        message: 'Transactional email delivery is not configured. RESEND_API_KEY environment variable is required on Vercel.',
+      })
     }
 
     const { subject, html, text } = generateEmailContent(template, name || '', payload || {})
 
-    // Attempt 1: Send via configured sender address
-    let resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey.trim()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: `${fromName} <${fromEmail}>`,
-        to: [cleanTo],
-        subject,
-        html,
-        text,
-        reply_to: replyToEmail || undefined,
-      }),
-    })
+    // Attempt 1: Send via configured sender address with 4000ms strict timeout
+    const fetchWithTimeout = async (url: string, options: any, timeoutMs = 4000) => {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal })
+        clearTimeout(timer)
+        return response
+      } catch (err) {
+        clearTimeout(timer)
+        throw err
+      }
+    }
 
-    let resendData = await resendRes.json().catch(() => ({}))
-
-    // Fallback attempt: If custom domain is not yet verified on Resend, retry with onboarding@resend.dev
-    if (!resendRes.ok && resendData?.message?.includes('not verified')) {
-      console.warn('[FestFlow Email] Custom domain unverified, retrying with onboarding@resend.dev sandbox...')
-      resendRes = await fetch('https://api.resend.com/emails', {
+    let resendRes: any = null
+    try {
+      resendRes = await fetchWithTimeout('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resendApiKey.trim()}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `FestFlow <onboarding@resend.dev>`,
+          from: `${fromName} <${fromEmail}>`,
           to: [cleanTo],
-          subject: `[Sandbox] ${subject}`,
+          subject,
           html,
           text,
           reply_to: replyToEmail || undefined,
         }),
-      })
-      resendData = await resendRes.json().catch(() => ({}))
+      }, 4000)
+    } catch (e: any) {
+      console.warn('[FestFlow Email API] Primary dispatch fetch error:', e?.message)
     }
 
-    if (!resendRes.ok) {
-      console.warn('[FestFlow Email API] Resend rejection:', resendData)
-      return new Response(
-        JSON.stringify({
-          success: false,
-          configured: true,
-          error: resendData?.message || 'Email delivery provider rejected request.',
-          message: resendData?.message || 'Email delivery provider rejected request.',
-        }),
-        { status: 200, headers: corsHeaders }
-      )
+    let resendData = resendRes ? await resendRes.json().catch(() => ({})) : {}
+
+    // Fallback attempt: If custom domain is not yet verified on Resend, retry with onboarding@resend.dev
+    if ((!resendRes || !resendRes.ok) && resendData?.message?.includes('not verified')) {
+      console.warn('[FestFlow Email] Custom domain unverified, retrying with onboarding@resend.dev sandbox...')
+      try {
+        resendRes = await fetchWithTimeout('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey.trim()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `FestFlow <onboarding@resend.dev>`,
+            to: [cleanTo],
+            subject: `[Sandbox] ${subject}`,
+            html,
+            text,
+            reply_to: replyToEmail || undefined,
+          }),
+        }, 4000)
+        resendData = resendRes ? await resendRes.json().catch(() => ({})) : {}
+      } catch {
+        // Fall through
+      }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+    if (!resendRes || !resendRes.ok) {
+      const errDetail = resendData?.message || 'Email delivery provider rejected request or timed out.'
+      console.warn('[FestFlow Email API] Resend rejection:', errDetail)
+      return sendResponse(200, {
+        success: false,
         configured: true,
-        id: resendData?.id,
-        message: 'Email dispatched successfully via Resend.',
-      }),
-      { status: 200, headers: corsHeaders }
-    )
+        error: errDetail,
+        message: errDetail,
+      })
+    }
+
+    return sendResponse(200, {
+      success: true,
+      configured: true,
+      id: resendData?.id,
+      message: 'Email dispatched successfully via Resend.',
+    })
   } catch (err: any) {
     console.error('[FestFlow Email API] Exception:', err)
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: err?.message || 'Internal error processing transactional email.',
-      }),
-      { status: 500, headers: corsHeaders }
-    )
+    return sendResponse(200, {
+      success: false,
+      configured: false,
+      error: err?.message || 'Internal error processing transactional email.',
+      message: err?.message || 'Internal error processing transactional email.',
+    })
   }
 }
