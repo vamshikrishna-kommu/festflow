@@ -142,7 +142,14 @@ export function DigitalTicketCard({
         })
       }, 1000)
     } else {
-      setResendNotice({ message: res.message || 'Failed to resend pass.', isError: true })
+      if (res.configured === false) {
+        setResendNotice({
+          message: 'Automated email service is not yet configured. You can Download or Print your pass immediately using the buttons below.',
+          isError: false,
+        })
+      } else {
+        setResendNotice({ message: res.message || 'Failed to email pass.', isError: true })
+      }
     }
   }
 
@@ -604,19 +611,7 @@ export function DigitalTicketCard({
             </div>
           )}
 
-          {/* Resend Notice Feedback */}
-          {resendNotice && (
-            <div
-              className={`w-full p-2.5 rounded-xl text-xs flex items-center gap-2 ${
-                resendNotice.isError
-                  ? 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
-                  : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
-              }`}
-            >
-              {resendNotice.isError ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
-              <span>{resendNotice.message}</span>
-            </div>
-          )}
+
 
           {/* Ticket ID & Security Footer */}
           <div className="w-full pt-3 border-t border-[var(--color-surface-3)] flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">

@@ -1298,7 +1298,7 @@ export async function inviteTeamMember(params: {
           success: true,
           invitation_created_email_failed: true,
           email_dispatch_error: emailError || 'Email provider could not deliver message.',
-          message: `Invitation saved for ${cleanEmail}, but email dispatch failed: ${emailError || 'Provider unreachable'}. You can share the link or invite code directly.`,
+          message: `Invitation saved for ${cleanEmail}! Share squad code ${inviteData.invite_code} or copy the invite link directly.`,
           invitation_id: inviteData.invitation_id,
           token: inviteData.token,
           invite_code: inviteData.invite_code,

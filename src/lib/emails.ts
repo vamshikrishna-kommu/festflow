@@ -133,43 +133,76 @@ export async function triggerTransactionalEmail(
         outboxId = queueRes?.outbox_id
       }
 
-      // 2. Invoke Edge Function
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          template,
-          to,
-          name,
-          payload,
-          outbox_id: outboxId,
-          event_id: eventId,
-          registration_id: registrationId,
-          user_id: userId,
-          club_id: (payload as any)?.club_id || (template === 'club_member_invitation' ? userId : undefined),
-        },
-      })
+      // 2. Invoke Delivery Engine: Try Vercel Serverless Function first, fallback to Supabase Edge Function
+      let dispatchData: any = null
+      let dispatchError: any = null
 
-      if (error) {
+      const emailPayload = {
+        template,
+        to,
+        name,
+        payload,
+        outbox_id: outboxId,
+        event_id: eventId,
+        registration_id: registrationId,
+        user_id: userId,
+        club_id: (payload as any)?.club_id || (template === 'club_member_invitation' ? userId : undefined),
+      }
+
+      // Route A: Vercel Native /api/send-email (Zero CORS, auto-deployed with git push)
+      try {
+        const vercelRes = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(emailPayload),
+        })
+
+        if (vercelRes.ok) {
+          const resJson = await vercelRes.json().catch(() => null)
+          if (resJson && typeof resJson === 'object') {
+            dispatchData = resJson
+          }
+        } else if (vercelRes.status !== 404) {
+          const errJson = await vercelRes.json().catch(() => null)
+          if (errJson && typeof errJson === 'object') {
+            dispatchData = errJson
+          }
+        }
+      } catch {
+        // Fallback to Supabase Edge Function below
+      }
+
+      // Route B: If Vercel API didn't handle it, try Supabase Edge Function
+      if (!dispatchData) {
+        const { data, error } = await supabase.functions.invoke('send-email', {
+          body: emailPayload,
+        })
+        dispatchData = data
+        dispatchError = error
+      }
+
+      if (dispatchError) {
         let failureCategory: EmailFailureCategory = 'FUNCTION_RUNTIME_ERROR'
-        let failureMessage = `Email function error: ${error.message}`
+        let failureMessage = `Email function error: ${dispatchError.message}`
         let httpStatus: number | undefined
 
         // Detect FunctionsFetchError (Pre-execution: CORS preflight failure, function not deployed, or network/DNS failure)
         if (
-          error.name === 'FunctionsFetchError' ||
-          error.message?.includes('Failed to send a request to the Edge Function')
+          dispatchError.name === 'FunctionsFetchError' ||
+          dispatchError.message?.includes('Failed to send a request to the Edge Function')
         ) {
           failureCategory = 'EDGE_FUNCTION_UNREACHABLE'
           failureMessage =
-            'send-email Edge Function is unreachable (network error, CORS preflight failure, or function not deployed on Supabase).'
+            'Email delivery service is currently not configured or unreachable.'
         } else if (
-          error.name === 'FunctionsRelayError' ||
-          error.message?.includes('relay')
+          dispatchError.name === 'FunctionsRelayError' ||
+          dispatchError.message?.includes('relay')
         ) {
           failureCategory = 'GATEWAY_RELAY_ERROR'
           failureMessage = 'Supabase gateway relay error while reaching Edge Function.'
-        } else if (error.name === 'FunctionsHttpError') {
+        } else if (dispatchError.name === 'FunctionsHttpError') {
           // FunctionsHttpError exposes the Response object in error.context
-          const resp = (error as any).context as Response | undefined
+          const resp = (dispatchError as any).context as Response | undefined
           httpStatus = resp?.status
 
           let parsedBody: any = null
@@ -190,7 +223,7 @@ export async function triggerTransactionalEmail(
           }
 
           const serverErrorText =
-            parsedBody?.error || parsedBody?.message || error.message
+            parsedBody?.error || parsedBody?.message || dispatchError.message
 
           if (httpStatus === 401) {
             failureCategory = 'GATEWAY_AUTH_REJECTED'
@@ -222,7 +255,7 @@ export async function triggerTransactionalEmail(
           category: failureCategory,
           template,
           httpStatus: httpStatus ?? 'N/A',
-          errorType: error?.name ?? 'UnknownError',
+          errorType: dispatchError?.name ?? 'UnknownError',
           hasOutboxId: Boolean(outboxId),
         })
 
@@ -237,13 +270,13 @@ export async function triggerTransactionalEmail(
         }
       }
 
-      if (data && data.configured === false) {
+      if (dispatchData && dispatchData.configured === false) {
         console.warn('[FestFlow Email] Provider unconfigured:', {
           category: 'PROVIDER_UNCONFIGURED',
           template,
           hasOutboxId: Boolean(outboxId),
         })
-        const msg = data.message || 'Email delivery is not configured. RESEND_API_KEY secret is required on Supabase.'
+        const msg = dispatchData.message || 'Email delivery is not configured. RESEND_API_KEY environment variable is required.'
         return {
           success: false,
           configured: false,
@@ -254,16 +287,16 @@ export async function triggerTransactionalEmail(
         }
       }
 
-      if (data && data.success === false) {
+      if (dispatchData && dispatchData.success === false) {
         console.warn('[FestFlow Email] Provider rejected dispatch:', {
           category: 'PROVIDER_REJECTED',
           template,
           hasOutboxId: Boolean(outboxId),
         })
-        const msg = data.message || data.error || 'Email rejected by delivery provider (Resend).'
+        const msg = dispatchData.message || dispatchData.error || 'Email rejected by delivery provider (Resend).'
         return {
           success: false,
-          configured: Boolean(data.configured),
+          configured: Boolean(dispatchData.configured),
           failureCategory: 'PROVIDER_REJECTED',
           message: msg,
           error: msg,
@@ -272,11 +305,11 @@ export async function triggerTransactionalEmail(
       }
 
       return {
-        success: Boolean(data?.success),
-        configured: Boolean(data?.configured),
-        emailId: data?.id,
+        success: Boolean(dispatchData?.success),
+        configured: Boolean(dispatchData?.configured),
+        emailId: dispatchData?.id,
         outboxId,
-        message: data?.message || 'Email accepted by delivery provider (Resend).',
+        message: dispatchData?.message || 'Email accepted by delivery provider (Resend).',
       }
     } catch (err) {
       console.warn('[FestFlow Email] Exception invoking email delivery:', {
@@ -898,7 +931,7 @@ export async function resendPassEmail(
   regOrId: any,
   recipientEmail?: string,
   recipientName?: string
-): Promise<{ success: boolean; message: string; emailId?: string }> {
+): Promise<{ success: boolean; message: string; emailId?: string; configured?: boolean }> {
   let reg = regOrId
   if (typeof regOrId === 'string') {
     const { getRegistrationById } = await import('@/lib/registrations')
@@ -946,6 +979,7 @@ export async function resendPassEmail(
 
   return {
     success: res.success,
+    configured: res.configured,
     message: res.message || 'Pass delivery queued.',
     emailId: res.emailId,
   }

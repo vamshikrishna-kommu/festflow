@@ -159,8 +159,8 @@ export function TeamManageModal({
 
     if (res.success) {
       if (res.invitation_created_email_failed) {
-        setErrorNotice(
-          `Invitation created in roster for ${inviteEmail.trim()}, but email delivery failed (${res.email_dispatch_error || 'provider error'}). You can share your squad invite code ${team.invite_code} or the invite link with them directly.`
+        setSuccessNotice(
+          `Invitation created in roster for ${inviteEmail.trim()}! Share squad code ${team.invite_code} or copy the invite link below to send directly.`
         )
       } else {
         setSuccessNotice(`Invitation email successfully dispatched to ${inviteEmail.trim()}`)
