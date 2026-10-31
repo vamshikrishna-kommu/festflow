@@ -6,6 +6,7 @@ import { shakeError } from '@/lib/animations'
 import { Button } from '@/components/ui'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { PasswordInput } from '@/components/auth/PasswordInput'
+import { GoogleAuthButton, AuthDivider } from '@/components/auth/GoogleAuthButton'
 import { useAuth } from '@/context/AuthContext'
 
 import { getSafeReturnUrl } from '@/lib/safeNavigation'
@@ -77,6 +78,16 @@ export default function ClubLoginPage() {
       role="club_member"
       mode="login"
     >
+      <div className="w-full min-w-0 mb-1">
+        <GoogleAuthButton
+          role="club_member"
+          mode="login"
+          redirectTo={searchParams.get('redirect') || searchParams.get('next') || undefined}
+          onError={(err) => setServerError(err)}
+        />
+        <AuthDivider text="or sign in with email" />
+      </div>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full min-w-0" noValidate>
         <AnimatePresence>
           {serverError && (

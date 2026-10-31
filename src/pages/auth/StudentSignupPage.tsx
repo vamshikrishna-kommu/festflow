@@ -6,6 +6,7 @@ import { Button } from '@/components/ui'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { PasswordInput } from '@/components/auth/PasswordInput'
 import { VerificationNotice } from '@/components/auth/VerificationNotice'
+import { GoogleAuthButton, AuthDivider } from '@/components/auth/GoogleAuthButton'
 import { useAuth } from '@/context/AuthContext'
 import { getSafeReturnUrl } from '@/lib/safeNavigation'
 
@@ -115,6 +116,16 @@ export default function StudentSignupPage() {
       role="student"
       mode="signup"
     >
+      <div className="w-full min-w-0 mb-1">
+        <GoogleAuthButton
+          role="student"
+          mode="signup"
+          redirectTo={searchParams.get('redirect') || searchParams.get('next') || undefined}
+          onError={(err) => setServerError(err)}
+        />
+        <AuthDivider text="or register with email" />
+      </div>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {serverError && (
           <motion.div

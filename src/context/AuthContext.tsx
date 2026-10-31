@@ -60,6 +60,7 @@ export interface AuthContextType {
   switchWorkspace: (target: WorkspaceType, navigate?: (path: string) => void) => void
   switchActiveClub: (clubId: string) => Promise<boolean>
   signIn: (email: string, password: string) => Promise<{ error: string | null; role?: UserRole }>
+  signInWithGoogle: (options?: { redirectTo?: string; role?: UserRole }) => Promise<{ error: string | null }>
   signUpClub: (params: SignUpClubParams) => Promise<{ error: string | null; requiresVerification: boolean }>
   signUpStudent: (params: SignUpStudentParams) => Promise<{ error: string | null; requiresVerification: boolean }>
   signOut: () => Promise<void>
@@ -141,7 +142,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        const profileData = data as unknown as Profile | null
+        let profileData = data as unknown as Profile | null
+
+        // If user is authenticated in Supabase but their profiles row does not exist yet
+        // (e.g. brand-new OAuth user whose trigger didn't fire or had a race condition),
+        // safely initialize their default student profile.
+        // SECURITY INVARIANT: ALWAYS assign 'student' - NEVER grant club privileges automatically.
+        if (!profileData && userId) {
+          try {
+            const defaultName =
+              (userMeta?.full_name as string) ||
+              (userMeta?.name as string) ||
+              (userMeta?.display_name as string) ||
+              (userMeta?.email ? (userMeta.email as string).split('@')[0] : 'FestFlow Member')
+
+            const { data: createdProfile, error: pCreateErr } = await (supabase.from('profiles') as any)
+              .insert({
+                id: userId,
+                role: 'student',
+                display_name: defaultName,
+                email: (userMeta?.email as string) || '',
+              })
+              .select('*')
+              .maybeSingle()
+
+            if (!pCreateErr && createdProfile) {
+              profileData = createdProfile as Profile
+              await (supabase.from('student_profiles') as any)
+                .insert({ profile_id: userId })
+                .catch(() => {})
+            }
+          } catch (initErr) {
+            console.warn('[FestFlow Auth] Initial OAuth profile creation fallback warning:', initErr)
+          }
+        }
+
         if (profileData) {
           profileRef.current = profileData
           setProfile(profileData)
@@ -742,6 +777,114 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fetchProfile]
   )
 
+  // ── Sign In With Google (OAuth 2.0 PKCE) ─────────────────────────────────
+  const signInWithGoogle = useCallback(
+    async (options?: { redirectTo?: string; role?: UserRole }): Promise<{ error: string | null }> => {
+      setIsLoading(true)
+      try {
+        const nextTarget = options?.redirectTo || ''
+        if (nextTarget && typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem('festflow_oauth_next', nextTarget)
+          } catch {
+            // ignore storage failure
+          }
+        }
+        if (options?.role && typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem('festflow_oauth_role', options.role)
+          } catch {
+            // ignore storage failure
+          }
+        }
+
+        if (isSupabaseConfigured) {
+          const callbackUrl = nextTarget
+            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextTarget)}`
+            : `${window.location.origin}/auth/callback`
+
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: callbackUrl,
+            },
+          })
+
+          if (error) {
+            setIsLoading(false)
+            return { error: error.message }
+          }
+          return { error: null }
+        } else {
+          // Block simulated OAuth if in production
+          if (isProduction) {
+            setIsLoading(false)
+            return {
+              error: 'Production Configuration Error: Supabase backend is not configured. Live credentials (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY) must be provided in deployment environment settings.',
+            }
+          }
+
+          // Offline / Simulation Mode (Development only)
+          await new Promise((r) => setTimeout(r, 600))
+          const demoRole: UserRole = 'student' // New Google users default to student
+          const demoId = 'google-demo-user-' + Date.now()
+          const demoEmail = 'student.google@campus.edu'
+          const demoName = 'Google Student'
+
+          const mockData: SimulatedAuthData = {
+            user: {
+              id: demoId,
+              email: demoEmail,
+              user_metadata: {
+                role: demoRole,
+                display_name: demoName,
+              },
+              email_confirmed_at: new Date().toISOString(),
+            },
+            profile: {
+              id: demoId,
+              role: demoRole,
+              display_name: demoName,
+              email: demoEmail,
+              avatar_url: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            clubProfile: null,
+            studentProfile: {
+              id: `sp_${demoId}`,
+              profile_id: demoId,
+              college_name: 'National Institute of Technology',
+              graduation_year: 2026,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          }
+
+          localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(mockData))
+          setUser(mockData.user as unknown as User)
+          setSession({
+            access_token: 'mock_google_token',
+            token_type: 'bearer',
+            expires_in: 3600,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            refresh_token: 'mock_google_refresh',
+            user: mockData.user as unknown as User,
+          })
+          setProfile(mockData.profile)
+          setClubProfile(null)
+          setStudentProfile(mockData.studentProfile ?? null)
+          setIsLoading(false)
+          return { error: null }
+        }
+      } catch (err: any) {
+        setIsLoading(false)
+        return { error: err instanceof Error ? err.message : 'Google authentication could not be initiated.' }
+      }
+    },
+    []
+  )
+
   // ── Sign Up Club ──────────────────────────────────────────────────────────
   const signUpClub = useCallback(
     async ({
@@ -1254,6 +1397,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     switchWorkspace,
     switchActiveClub,
     signIn,
+    signInWithGoogle,
     signUpClub,
     signUpStudent,
     signOut,

@@ -1,15 +1,17 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { motion } from 'motion/react'
 import { Building2, User, Mail, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { PasswordInput } from '@/components/auth/PasswordInput'
 import { VerificationNotice } from '@/components/auth/VerificationNotice'
+import { GoogleAuthButton, AuthDivider } from '@/components/auth/GoogleAuthButton'
 import { useAuth } from '@/context/AuthContext'
 
 export default function ClubSignupPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { signUpClub, isLoading } = useAuth()
 
   // Form fields
@@ -105,6 +107,16 @@ export default function ClubSignupPage() {
       role="club_member"
       mode="signup"
     >
+      <div className="w-full min-w-0 mb-1">
+        <GoogleAuthButton
+          role="club_member"
+          mode="signup"
+          redirectTo={searchParams.get('redirect') || searchParams.get('next') || undefined}
+          onError={(err) => setServerError(err)}
+        />
+        <AuthDivider text="or register with email" />
+      </div>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {serverError && (
           <motion.div

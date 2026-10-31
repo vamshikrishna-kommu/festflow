@@ -79,8 +79,29 @@ export default function AuthCallbackPage() {
               return
             }
 
-            const rawCandidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
-            const userRole = (data.session.user.user_metadata?.role as string) || role || 'student'
+            const storedNext = sessionStorage.getItem('festflow_oauth_next')
+            if (storedNext) sessionStorage.removeItem('festflow_oauth_next')
+
+            const rawCandidate =
+              searchParams.get('next') ||
+              searchParams.get('redirect') ||
+              hashParams.get('next') ||
+              hashParams.get('redirect') ||
+              storedNext
+
+            // Look up database profile role to ensure club organizers are accurately routed
+            let userRole = role || (data.session.user.user_metadata?.role as string)
+            try {
+              const { data: pRec } = await (supabase.from('profiles') as any)
+                .select('role')
+                .eq('id', data.session.user.id)
+                .maybeSingle()
+              if (pRec?.role) userRole = pRec.role as string
+            } catch {
+              // fallback
+            }
+            if (!userRole) userRole = 'student'
+
             const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
             const target = getTargetWithPendingTeam(rawCandidate, defaultTarget)
             setTimeout(() => {
@@ -110,9 +131,28 @@ export default function AuthCallbackPage() {
             return
           }
 
-          // Role-based redirect
-          const rawCandidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
-          const userRole = (session.user.user_metadata?.role as string) || role || 'student'
+          const storedNext = sessionStorage.getItem('festflow_oauth_next')
+          if (storedNext) sessionStorage.removeItem('festflow_oauth_next')
+
+          const rawCandidate =
+            searchParams.get('next') ||
+            searchParams.get('redirect') ||
+            hashParams.get('next') ||
+            hashParams.get('redirect') ||
+            storedNext
+
+          let userRole = role || (session.user.user_metadata?.role as string)
+          try {
+            const { data: pRec } = await (supabase.from('profiles') as any)
+              .select('role')
+              .eq('id', session.user.id)
+              .maybeSingle()
+            if (pRec?.role) userRole = pRec.role as string
+          } catch {
+            // fallback
+          }
+          if (!userRole) userRole = 'student'
+
           const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
           const target = getTargetWithPendingTeam(rawCandidate, defaultTarget)
           
