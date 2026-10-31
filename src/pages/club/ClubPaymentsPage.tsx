@@ -97,17 +97,17 @@ export default function ClubPaymentsPage() {
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     if (!clubId || !canReviewPayments) {
-      setLoading(false)
+      if (!silent) setLoading(false)
       return
     }
-    setLoading(true)
+    if (!silent) setLoading(true)
     const [subsRes, eventsRes] = await Promise.all([
       getClubPaymentSubmissions(clubId),
       listClubEvents(clubId),
     ])
-    setLoading(false)
+    if (!silent) setLoading(false)
     if (subsRes.submissions) setSubmissions(subsRes.submissions)
     if (eventsRes.events) setEvents(eventsRes.events)
   }
@@ -118,10 +118,10 @@ export default function ClubPaymentsPage() {
     }
 
     const unsubscribe = subscribeToStatusChanges(
-      ['payment_submitted', 'payment_reviewed', 'reconnect'],
+      ['payment_submitted', 'payment_reviewed'],
       () => {
         if (!roleLoading && canReviewPayments && clubId) {
-          loadData()
+          loadData(true)
         }
       }
     )

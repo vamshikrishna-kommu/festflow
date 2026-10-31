@@ -19,8 +19,8 @@ export function ProtectedRoute({
   const { session, role, isLoading, isRoleLoading, profileError, refreshProfile, signOut, hasClubMembership } = useAuth()
   const location = useLocation()
 
-  // 1. Session Hydration & Role Loading — Never briefly render protected content
-  if (isLoading || session === undefined || (session && isRoleLoading)) {
+  // 1. Session Hydration & Role Loading — Only block during initial evaluation before role is determined
+  if (isLoading || session === undefined || (session && isRoleLoading && !role)) {
     return (
       <div
         className="min-h-screen flex items-center justify-center bg-[var(--color-surface-0)]"

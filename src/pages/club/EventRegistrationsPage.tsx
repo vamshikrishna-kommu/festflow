@@ -88,15 +88,15 @@ export default function EventRegistrationsPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     if (!id) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     const [eventRes, checkInRes, payRes] = await Promise.all([
       getEventById(id),
       getEventRegistrationsWithCheckIn(id),
       getClubPaymentSubmissions(user?.id, id),
     ])
-    setLoading(false)
+    if (!silent) setLoading(false)
 
     if (eventRes.event) {
       const authorized = (user && eventRes.event.club_id === user.id) || role === 'platform_admin'
@@ -116,10 +116,10 @@ export default function EventRegistrationsPage() {
     loadData()
 
     const unsubscribe = subscribeToStatusChanges(
-      ['registration_updated', 'team_updated', 'checkin_recorded', 'payment_reviewed', 'reconnect'],
+      ['registration_updated', 'team_updated', 'checkin_recorded', 'payment_reviewed'],
       (e) => {
         if (!e.eventId || e.eventId === id) {
-          loadData()
+          loadData(true)
         }
       }
     )

@@ -96,12 +96,12 @@ export default function EventDetailPage() {
   }, [slug])
 
   // Check if current logged-in student has already registered
-  const refreshRegistration = () => {
+  const refreshRegistration = (silent = false) => {
     if (!event || !user || role !== 'student') return
-    setCheckingReg(true)
+    if (!silent) setCheckingReg(true)
 
     checkStudentRegistrationForEvent(event.id, user.id).then((res) => {
-      setCheckingReg(false)
+      if (!silent) setCheckingReg(false)
       if (res.registered && res.registration) {
         setExistingReg(res.registration)
       } else {
@@ -114,10 +114,10 @@ export default function EventDetailPage() {
     refreshRegistration()
 
     const unsubscribe = subscribeToStatusChanges(
-      ['registration_updated', 'ticket_updated', 'payment_reviewed', 'reconnect'],
+      ['registration_updated', 'ticket_updated', 'payment_reviewed'],
       (e) => {
         if (!e.eventId || (event && e.eventId === event.id)) {
-          refreshRegistration()
+          refreshRegistration(true)
         }
       }
     )

@@ -5,6 +5,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
@@ -113,11 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isRoleLoading, setIsRoleLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const profileRef = useRef<Profile | null>(null)
 
   // ── Fetch Profile from Supabase (Strict Database Source of Truth) ────────
-  const fetchProfile = useCallback(async (userId: string, userMeta?: Record<string, unknown>) => {
-    setIsRoleLoading(true)
-    setProfileError(null)
+  const fetchProfile = useCallback(
+    async (userId: string, userMeta?: Record<string, unknown>, silent = false) => {
+      if (!silent) setIsRoleLoading(true)
+      setProfileError(null)
     try {
       if (isSupabaseConfigured) {
         const { data, error } = await supabase
@@ -140,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const profileData = data as unknown as Profile | null
         if (profileData) {
+          profileRef.current = profileData
           setProfile(profileData)
           if (profileData.role === 'club_member') {
             const { data: cData } = await supabase
@@ -338,7 +342,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[FestFlow Auth] Error fetching profile:', err)
       setProfileError(err instanceof Error ? err.message : 'Authorization lookup failed')
     } finally {
-      setIsRoleLoading(false)
+      if (!silent) setIsRoleLoading(false)
     }
   }, [])
 
@@ -360,13 +364,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
         if (!mounted) return
         setSession(newSession)
         setUser(newSession?.user ?? null)
         if (newSession?.user) {
-          fetchProfile(newSession.user.id, newSession.user.user_metadata)
+          const isSilent =
+            event === 'TOKEN_REFRESHED' ||
+            Boolean(profileRef.current && profileRef.current.id === newSession.user.id)
+          fetchProfile(newSession.user.id, newSession.user.user_metadata, isSilent)
         } else {
+          profileRef.current = null
           setProfile(null)
           setClubProfile(null)
           setStudentProfile(null)
@@ -429,7 +437,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { user: freshUser } } = await supabase.auth.getUser()
         if (freshUser) {
           setUser(freshUser)
-          await fetchProfile(freshUser.id, freshUser.user_metadata)
+          await fetchProfile(freshUser.id, freshUser.user_metadata, true)
           return
         }
       } catch (err) {

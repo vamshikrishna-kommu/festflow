@@ -23,12 +23,12 @@ export default function TicketDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [isOffline, setIsOffline] = useState(false)
 
-  const loadTicket = async () => {
+  const loadTicket = async (silent = false) => {
     if (!id) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     setError(null)
     const res = await getRegistrationById(id)
-    setLoading(false)
+    if (!silent) setLoading(false)
 
     if (res.error || !res.registration) {
       // Check offline local storage fallback
@@ -70,10 +70,10 @@ export default function TicketDetailPage() {
     loadTicket()
 
     const unsubscribe = subscribeToStatusChanges(
-      ['ticket_updated', 'payment_reviewed', 'team_updated', 'registration_updated', 'reconnect'],
+      ['ticket_updated', 'payment_reviewed', 'team_updated', 'registration_updated'],
       (event) => {
         if (!event.registrationId || event.registrationId === id) {
-          loadTicket()
+          loadTicket(true)
         }
       }
     )

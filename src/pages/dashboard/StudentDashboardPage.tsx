@@ -71,11 +71,12 @@ export default function StudentDashboardPage() {
 
   const [searchParams] = useSearchParams()
 
-  const loadRegistrations = async () => {
+  const loadRegistrations = async (silent?: boolean) => {
+    const isSilent = silent === true
     if (!user) return
-    setLoading(true)
+    if (!isSilent) setLoading(true)
     const res = await getStudentRegistrations(user.id)
-    setLoading(false)
+    if (!isSilent) setLoading(false)
     if (res.registrations) {
       setRegistrations(res.registrations)
     }
@@ -85,9 +86,9 @@ export default function StudentDashboardPage() {
     loadRegistrations()
 
     const unsubscribe = subscribeToStatusChanges(
-      ['registration_updated', 'payment_reviewed', 'team_updated', 'ticket_updated', 'reconnect'],
+      ['registration_updated', 'payment_reviewed', 'team_updated', 'ticket_updated'],
       () => {
-        loadRegistrations()
+        loadRegistrations(true)
       }
     )
     return () => unsubscribe()
@@ -301,7 +302,7 @@ export default function StudentDashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={loadRegistrations}
+              onClick={() => loadRegistrations()}
               disabled={loading}
               className="justify-center"
               leftIcon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}

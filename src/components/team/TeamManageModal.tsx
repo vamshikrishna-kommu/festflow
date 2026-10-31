@@ -57,19 +57,22 @@ export function TeamManageModal({
   const [copiedLink, setCopiedLink] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
 
-  const loadTeam = useCallback(async () => {
-    if (!teamId) return
-    setLoading(true)
-    setErrorNotice(null)
-    const res = await getTeamDetails(teamId, user?.id)
-    setLoading(false)
+  const loadTeam = useCallback(
+    async (silent = false) => {
+      if (!teamId) return
+      if (!silent) setLoading(true)
+      setErrorNotice(null)
+      const res = await getTeamDetails(teamId, user?.id)
+      if (!silent) setLoading(false)
 
-    if (res.success && res.team) {
-      setTeam(res.team)
-    } else {
-      setErrorNotice(res.message || 'Failed to load team roster.')
-    }
-  }, [teamId, user?.id])
+      if (res.success && res.team) {
+        setTeam(res.team)
+      } else {
+        setErrorNotice(res.message || 'Failed to load team roster.')
+      }
+    },
+    [teamId, user?.id]
+  )
 
   useEffect(() => {
     if (isOpen) {
@@ -80,10 +83,10 @@ export function TeamManageModal({
       setInviteName('')
 
       const unsubscribe = subscribeToStatusChanges(
-        ['team_updated', 'invitation_accepted', 'reconnect'],
+        ['team_updated', 'invitation_accepted'],
         (event) => {
           if (!event.teamId || event.teamId === teamId) {
-            loadTeam()
+            loadTeam(true)
           }
         }
       )

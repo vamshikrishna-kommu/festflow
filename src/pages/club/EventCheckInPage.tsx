@@ -131,7 +131,7 @@ export default function EventCheckInPage() {
     loadData()
 
     const unsubscribe = subscribeToStatusChanges(
-      ['checkin_recorded', 'registration_updated', 'reconnect'],
+      ['checkin_recorded', 'registration_updated'],
       (e) => {
         if (!e.eventId || e.eventId === id) {
           loadData(true)

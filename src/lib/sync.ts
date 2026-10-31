@@ -146,8 +146,8 @@ export function subscribeToStatusChanges(
     broadcastChannel.addEventListener('message', handleBroadcastMessage)
   }
 
-  // C. Tab focus and online reconnect recovery
-  const handleReconnect = () => {
+  // C. Network online recovery (strictly on genuine network reconnection, NOT on window focus/screenshots/minimize)
+  const handleOnlineReconnect = () => {
     if (allowed.has('reconnect')) {
       callback({
         type: 'reconnect',
@@ -158,8 +158,8 @@ export function subscribeToStatusChanges(
   }
 
   if (typeof window !== 'undefined') {
-    window.addEventListener('focus', handleReconnect)
-    window.addEventListener('online', handleReconnect)
+    // Only listen to 'online' event — NEVER to 'focus', which causes unwanted reloads on minimize/open/screenshot
+    window.addEventListener('online', handleOnlineReconnect)
   }
 
   // D. Supabase Realtime Postgres Changes Subscription
@@ -234,8 +234,7 @@ export function subscribeToStatusChanges(
     internalListeners.delete(internalSubscriber)
     if (typeof window !== 'undefined') {
       window.removeEventListener(WINDOW_EVENT_NAME, handleWindowEvent)
-      window.removeEventListener('focus', handleReconnect)
-      window.removeEventListener('online', handleReconnect)
+      window.removeEventListener('online', handleOnlineReconnect)
     }
     if (broadcastChannel) {
       broadcastChannel.removeEventListener('message', handleBroadcastMessage)

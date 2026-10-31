@@ -119,7 +119,7 @@ export default function StudentPaymentPage() {
     loadData(initialLoadDone.current)
 
     const unsubscribe = subscribeToStatusChanges(
-      ['payment_reviewed', 'registration_updated', 'reconnect'],
+      ['payment_reviewed', 'registration_updated'],
       (event) => {
         if (!event.registrationId || event.registrationId === registrationId) {
           loadData(true)
