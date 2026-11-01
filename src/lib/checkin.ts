@@ -342,6 +342,7 @@ export async function checkInTicket(
 
     const primaryName =
       reg.student?.display_name ||
+      reg.participant_details?.student_name ||
       (reg.team_name ? `Team ${reg.team_name}` : 'Student Attendee')
 
     // Check status & eligibility
@@ -701,6 +702,7 @@ export async function checkOutTicket(
 
     const primaryName =
       reg.student?.display_name ||
+      reg.participant_details?.student_name ||
       (reg.team_name ? `Team ${reg.team_name}` : 'Student Attendee')
 
     const allCheckins = getLocalCheckIns()

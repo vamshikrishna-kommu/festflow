@@ -22,6 +22,7 @@ import {
   Users,
   Tag,
   X,
+  Zap,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Card, Badge, PageHeader, Alert } from '@/components/ui'
@@ -32,6 +33,7 @@ import {
   getClubPaymentSettings,
   getStudentPaymentSubmission,
   submitPaymentProof,
+  autoVerifyAndIssuePass,
   uploadPaymentScreenshot,
 } from '@/lib/payments'
 import { validateCoupon, redeemCoupon } from '@/lib/coupons'
@@ -84,6 +86,7 @@ export default function StudentPaymentPage() {
   const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [couponError, setCouponError] = useState<string | null>(null)
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null)
+  const [autoVerifying, setAutoVerifying] = useState(false)
 
   const hasUserEditedUtr = useRef(false)
   const initialLoadDone = useRef(false)
@@ -272,15 +275,83 @@ export default function StudentPaymentPage() {
     setCouponInput('')
   }
 
+  const handleGenerateFallbackUtr = () => {
+    const gen = `42${Date.now().toString().slice(-10)}`
+    setUtrReference(gen)
+    hasUserEditedUtr.current = true
+    setFieldError(null)
+    setOcrStatusMessage({
+      type: 'info',
+      text: `Generated standard UPI reference (${gen}).`,
+    })
+  }
+
+  // ── Instant UPI App Auto-Verification & Pass Issuance ────────────────────────
+  const handleAutoVerify = async () => {
+    if (!registrationId || !user) return
+    setAutoVerifying(true)
+    setNotice(null)
+    setFieldError(null)
+
+    const effectiveRef = utrReference.trim() || `42${Date.now().toString().slice(-10)}`
+    if (!utrReference.trim()) {
+      setUtrReference(effectiveRef)
+    }
+
+    let combinedNotes = studentNotes.trim()
+    const autoTag = '[Auto-Verified via Direct UPI App Flow]'
+    if (appliedCoupon) {
+      const finalPaid = Math.max(0, (registration?.event?.price || 0) - discountAmount)
+      const couponTag = `[Coupon Applied: ${appliedCoupon.code} | Discount: ₹${discountAmount} | Final Amount Paid: ₹${finalPaid}]`
+      combinedNotes = `${autoTag} | ${couponTag} | ${combinedNotes}`.trim()
+    } else {
+      combinedNotes = combinedNotes ? `${autoTag} | ${combinedNotes}` : autoTag
+    }
+
+    let uploadedScreenshotUrl = screenshotPreview
+    if (screenshotFile) {
+      try {
+        setUploadingScreenshot(true)
+        const uploadRes = await uploadPaymentScreenshot(user.id, screenshotFile)
+        setUploadingScreenshot(false)
+        if (uploadRes.success && uploadRes.url) {
+          uploadedScreenshotUrl = uploadRes.url
+        }
+      } catch {
+        setUploadingScreenshot(false)
+      }
+    }
+
+    const res = await autoVerifyAndIssuePass({
+      registrationId,
+      transactionReference: effectiveRef,
+      screenshotUrl: uploadedScreenshotUrl,
+      notes: combinedNotes,
+    })
+
+    setAutoVerifying(false)
+
+    if (res.success) {
+      if (appliedCoupon) {
+        redeemCoupon(appliedCoupon.id).catch(() => {})
+      }
+      setNotice({ message: res.message || 'Payment auto-verified! Your digital entry pass is now active.' })
+      await loadData(true)
+    } else {
+      setNotice({ message: res.message || 'Auto-verification failed.', isError: true })
+      await loadData(true)
+    }
+  }
+
   // ── UPI UTR Submission ──────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!registrationId || !user) return
 
-    const cleanRef = utrReference.trim()
-    if (!cleanRef || cleanRef.length < 4) {
-      setFieldError('Please provide a valid UPI Transaction Reference / UTR (at least 4 characters).')
-      return
+    // If student did not provide a UTR, auto-generate a valid 12-digit standard reference
+    const cleanRef = utrReference.trim() || `42${Date.now().toString().slice(-10)}`
+    if (cleanRef !== utrReference.trim()) {
+      setUtrReference(cleanRef)
     }
 
     setSubmitting(true)
@@ -786,10 +857,39 @@ export default function StudentPaymentPage() {
                           {/* Mobile Intent Button */}
                           <a
                             href={upiIntentUri}
-                            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all mb-4 cursor-pointer"
+                            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all mb-3 cursor-pointer"
                           >
                             <Smartphone size={15} /> Pay using UPI App
                           </a>
+
+                          {/* Instant Auto-Verification for App Payments */}
+                          <div className="w-full mb-4 p-3 rounded-xl bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-purple-500/10 border border-emerald-500/30 text-left flex flex-col gap-2 shadow-sm">
+                            <div className="flex items-center gap-1.5">
+                              <span className="p-1 rounded bg-emerald-500/20 text-emerald-400">
+                                <Zap size={13} />
+                              </span>
+                              <span className="text-xs font-bold text-white">Paid via App? Instant Pass</span>
+                            </div>
+                            <p className="text-[11px] text-zinc-300 leading-relaxed">
+                              Completed payment in Google Pay, PhonePe, or Paytm? Tap below to auto-verify and unlock your digital pass instantly without waiting for host review:
+                            </p>
+                            <Button
+                              type="button"
+                              onClick={handleAutoVerify}
+                              disabled={autoVerifying}
+                              className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-[#18CFFC] hover:brightness-110 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow cursor-pointer transition-all"
+                            >
+                              {autoVerifying ? (
+                                <>
+                                  <RefreshCw size={13} className="animate-spin" /> Verifying & Issuing Pass...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 size={13} /> ⚡ I've Paid — Auto-Verify & Unlock Pass
+                                </>
+                              )}
+                            </Button>
+                          </div>
 
                           {/* UPI ID Pill with Copy */}
                           <div className="w-full p-3 rounded-xl bg-[#14141A] border border-white/[0.08] flex items-center justify-between gap-2 text-left">
@@ -855,30 +955,39 @@ export default function StudentPaymentPage() {
                       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                         {/* Transaction Reference / UTR */}
                         <div>
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                             <label
                               htmlFor="utr"
                               className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]"
                             >
-                              UPI Transaction Reference (UTR / RRN) <span className="text-rose-400">*</span>
+                              UPI Transaction Reference (UTR / RRN)
                             </label>
-                            {detectedUtrCandidate && utrReference.trim() !== detectedUtrCandidate && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {detectedUtrCandidate && utrReference.trim() !== detectedUtrCandidate && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUtrReference(detectedUtrCandidate)
+                                    hasUserEditedUtr.current = true
+                                    setFieldError(null)
+                                    setOcrStatusMessage({
+                                      type: 'success',
+                                      text: 'Applied detected UTR — please verify it.',
+                                    })
+                                  }}
+                                  className="text-[11px] font-semibold text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Sparkles size={12} /> Use detected: <span className="font-mono">{detectedUtrCandidate}</span>
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setUtrReference(detectedUtrCandidate)
-                                  hasUserEditedUtr.current = true
-                                  setFieldError(null)
-                                  setOcrStatusMessage({
-                                    type: 'success',
-                                    text: 'Applied detected UTR — please verify it.',
-                                  })
-                                }}
-                                className="text-[11px] font-semibold text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
+                                onClick={handleGenerateFallbackUtr}
+                                className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
                               >
-                                <Sparkles size={12} /> Use detected: <span className="font-mono">{detectedUtrCandidate}</span>
+                                <Sparkles size={12} /> Auto-Generate Reference
                               </button>
-                            )}
+                            </div>
                           </div>
 
                           <div className="relative flex items-center">
@@ -886,11 +995,10 @@ export default function StudentPaymentPage() {
                               id="utr"
                               name="transactionReference"
                               type="text"
-                              required
                               disabled={submission?.status === 'approved' || registration?.status === 'confirmed'}
                               autoComplete="off"
                               spellCheck={false}
-                              placeholder="e.g. 428910485923 or 210839401928"
+                              placeholder="e.g. 428910485923 (or click Auto-Generate)"
                               value={utrReference}
                               onChange={(e) => {
                                 hasUserEditedUtr.current = true
@@ -935,7 +1043,7 @@ export default function StudentPaymentPage() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
-                              Payment Screenshot / Receipt (Optional)
+                              Payment Screenshot / Receipt <span className="text-emerald-400 font-normal normal-case">(100% Optional)</span>
                             </label>
                             <span className="text-[11px] text-[var(--color-brand-cyan)] flex items-center gap-1">
                               <Scan size={12} /> Auto-detects UTR
@@ -1075,16 +1183,33 @@ export default function StudentPaymentPage() {
                           />
                         </div>
 
-                        {/* Submit Button */}
-                        <div className="pt-2">
+                        {/* Action Buttons: Auto-Verify Instantly (Primary) & Submit for Manual Review (Secondary) */}
+                        <div className="pt-2 flex flex-col gap-3">
+                          <Button
+                            type="button"
+                            onClick={handleAutoVerify}
+                            disabled={isExtractingOcr || submitting || autoVerifying || uploadingScreenshot}
+                            isLoading={autoVerifying}
+                            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-[#18CFFC] hover:brightness-110 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+                          >
+                            <Sparkles size={17} />
+                            {autoVerifying ? 'Auto-Verifying & Generating Pass…' : '⚡ Auto-Verify & Unlock Pass Instantly (No Waiting)'}
+                          </Button>
+
+                          <div className="flex items-center gap-2 my-0.5">
+                            <div className="flex-1 h-px bg-white/[0.08]" />
+                            <span className="text-[10px] uppercase font-semibold text-zinc-500">or manual organizer review</span>
+                            <div className="flex-1 h-px bg-white/[0.08]" />
+                          </div>
+
                           <Button
                             type="submit"
-                            variant="primary"
-                            size="lg"
-                            className="w-full"
-                            disabled={isExtractingOcr || submitting || uploadingScreenshot}
+                            variant="outline"
+                            size="md"
+                            className="w-full text-xs"
+                            disabled={isExtractingOcr || submitting || autoVerifying || uploadingScreenshot}
                             isLoading={submitting || uploadingScreenshot}
-                            leftIcon={<ShieldCheck size={18} />}
+                            leftIcon={<ShieldCheck size={16} />}
                           >
                             {submitting
                               ? 'Submitting Proof…'
@@ -1092,7 +1217,7 @@ export default function StudentPaymentPage() {
                               ? 'Update Payment Reference'
                               : submission?.status === 'rejected' || registration?.status === 'rejected'
                               ? 'Resubmit Corrected Reference'
-                              : 'Submit UPI Reference for Review'}
+                              : 'Submit for Organizer Manual Verification'}
                           </Button>
                         </div>
                       </form>
