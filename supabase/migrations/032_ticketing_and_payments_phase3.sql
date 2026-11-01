@@ -230,3 +230,4 @@ CREATE POLICY "Organizers can update refund requests"
         )
     )
   );
+

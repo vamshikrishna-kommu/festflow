@@ -57,6 +57,7 @@ export interface EmailDispatchResult {
 export interface OutboxRecord {
   id: string
   template_type: string
+  template?: string
   recipient_email: string
   recipient_name?: string
   subject: string
@@ -370,6 +371,7 @@ export async function triggerTransactionalEmail(
   const simulatedRecord: OutboxRecord = {
     id: simulatedId,
     template_type: template,
+    template: template,
     recipient_email: to,
     recipient_name: name,
     subject: `FestFlow: ${template.replace(/_/g, ' ')}`,
@@ -969,12 +971,22 @@ export async function resendPassEmail(
     }
   }
 
+  // Only confirmed passes can be delivered
+  if (reg?.status && reg.status !== 'confirmed') {
+    return {
+      success: false,
+      message: `Only confirmed passes can be delivered. Current status: ${reg.status}.`,
+    }
+  }
+
   const to =
     recipientEmail ||
     reg?.participant_details?.email ||
     reg?.user?.email ||
     reg?.student_email ||
-    ''
+    (typeof reg?.student_id === 'string' && reg.student_id.includes('@')
+      ? reg.student_id
+      : 'attendee@campus.edu')
 
   const name =
     recipientName ||

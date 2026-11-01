@@ -10,7 +10,7 @@ export const PRODUCTION_CANONICAL_DOMAIN = 'https://festflow.online'
  * Checks if the current browser environment is running on a local development host.
  */
 export function isLocalDevelopment(): boolean {
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined' || !window.location || !window.location.hostname) return false
   const host = window.location.hostname.toLowerCase()
   return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0'
 }

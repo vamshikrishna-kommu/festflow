@@ -494,11 +494,11 @@ export interface EventCouponRecord {
   code: string
   discount_type: 'percentage' | 'fixed'
   discount_value: number
-  min_purchase_amount: number
+  min_purchase_amount?: number | null
   max_discount_amount?: number | null
-  max_uses: number
+  max_uses?: number | null
   used_count: number
-  valid_from: string
+  valid_from?: string | null
   valid_until?: string | null
   is_active: boolean
   created_at: string
@@ -555,3 +555,288 @@ export interface WaitlistPromotionResult {
   promotedCount: number
   notifiedStudents: string[]
 }
+
+// ── Phase 4 Certificates & Achievements Types ───────────────────────────────
+
+export type CertificateCategory =
+  | 'participation'
+  | 'completion'
+  | 'winner'
+  | 'runner_up'
+  | 'finalist'
+  | 'special_recognition'
+  | 'merit'
+
+export type CertificateStatus = 'issued' | 'revoked' | 'reissued'
+
+export type CertificateTheme =
+  | 'obsidian_gold'
+  | 'cyan_cobalt'
+  | 'royal_violet'
+  | 'radiant_magenta'
+  | 'minimal_ivory'
+
+export type CertificateBorderStyle =
+  | 'modern_double'
+  | 'classic_gold'
+  | 'tech_neon'
+  | 'minimal_sleek'
+
+export interface CertificateTemplateRecord {
+  id: string
+  club_id: string
+  name: string
+  description?: string | null
+  layout: 'landscape' | 'portrait'
+  theme: CertificateTheme
+  title_text: string
+  subtitle_text?: string | null
+  body_template?: string | null
+  signatory_1_name?: string | null
+  signatory_1_role?: string | null
+  signatory_1_signature_url?: string | null
+  signatory_2_name?: string | null
+  signatory_2_role?: string | null
+  signatory_2_signature_url?: string | null
+  club_logo_url?: string | null
+  border_style: CertificateBorderStyle
+  is_default: boolean
+  is_archived: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CertificateTemplateInsert {
+  club_id: string
+  name: string
+  description?: string | null
+  layout?: 'landscape' | 'portrait'
+  theme?: CertificateTheme
+  title_text?: string
+  subtitle_text?: string | null
+  body_template?: string | null
+  signatory_1_name?: string | null
+  signatory_1_role?: string | null
+  signatory_1_signature_url?: string | null
+  signatory_2_name?: string | null
+  signatory_2_role?: string | null
+  signatory_2_signature_url?: string | null
+  club_logo_url?: string | null
+  border_style?: CertificateBorderStyle
+  is_default?: boolean
+  is_archived?: boolean
+}
+
+export interface EventCertificateRecord {
+  id: string
+  certificate_number: string
+  verification_token: string
+  event_id: string
+  club_id: string
+  student_id: string
+  registration_id?: string | null
+  template_id?: string | null
+  category: CertificateCategory
+  title: string
+  recipient_name: string
+  recipient_college?: string | null
+  recipient_email?: string | null
+  event_title: string
+  club_name: string
+  issue_date: string
+  status: CertificateStatus
+  revoked_at?: string | null
+  revoked_by?: string | null
+  revocation_reason?: string | null
+  reissued_certificate_id?: string | null
+  reissued_from_id?: string | null
+  reissued_at?: string | null
+  qr_code_url?: string | null
+  pdf_storage_path?: string | null
+  metadata?: Record<string, any>
+  created_at: string
+  updated_at: string
+  event?: EventRecord | null
+  club?: ClubProfile | null
+  student?: Profile | null
+  template?: CertificateTemplateRecord | null
+}
+
+export interface CertificateIssueParams {
+  eventId: string
+  clubId: string
+  studentId: string
+  registrationId?: string | null
+  templateId?: string | null
+  category: CertificateCategory
+  title?: string
+  recipientName: string
+  recipientCollege?: string | null
+  recipientEmail?: string | null
+  eventTitle: string
+  clubName: string
+  issueDate?: string
+  metadata?: Record<string, any>
+}
+
+export interface CertificateEligibilityCandidate {
+  studentId: string
+  studentName: string
+  studentEmail?: string | null
+  studentCollege?: string | null
+  registrationId: string
+  ticketCode?: string
+  status: string
+  hasAttended: boolean
+  checkedInAt?: string | null
+  isEligible: boolean
+  ineligibilityReason?: string
+  existingCertificate?: EventCertificateRecord | null
+  suggestedCategory: CertificateCategory
+}
+
+export interface StudentBadgeRecord {
+  id: string
+  student_id: string
+  badge_key: string
+  title: string
+  description: string
+  icon_name: string
+  category: 'attendance' | 'awards' | 'participation' | 'mastery'
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
+  earned_at: string
+  is_pinned: boolean
+  is_public: boolean
+  metadata?: Record<string, any>
+  created_at: string
+}
+
+export interface CertificateVerificationResult {
+  isValid: boolean
+  status: 'valid' | 'revoked' | 'invalid' | 'reissued'
+  certificate?: EventCertificateRecord | null
+  message: string
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 5: SOCIAL & CAMPUS COMMUNITY TYPES
+// ══════════════════════════════════════════════════════════════════════════════
+
+export type ProfileVisibility = 'public' | 'campus_only' | 'private'
+export type TeammateAvailability = 'actively_looking' | 'open_to_offers' | 'unavailable'
+export type TeammateRequestStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn'
+export type ReportTargetType = 'profile' | 'comment' | 'message' | 'announcement' | 'teammate_request' | 'user' | 'club'
+export type ReportStatus = 'pending' | 'investigating' | 'resolved' | 'dismissed'
+
+export type ClubFollowerRecord = Database['public']['Tables']['club_followers']['Row'] & {
+  student?: Profile | null
+  club?: ClubProfile | null
+}
+
+export type ClubAnnouncementRecord = Database['public']['Tables']['club_announcements']['Row'] & {
+  club?: ClubProfile | null
+  author?: Profile | null
+}
+
+export type EventDiscussionRecord = Database['public']['Tables']['event_discussions']['Row'] & {
+  author?: Profile | null
+  replies?: EventDiscussionRecord[]
+  is_organizer?: boolean
+}
+
+export type TeammateProfileRecord = Database['public']['Tables']['teammate_profiles']['Row'] & {
+  student?: Profile | null
+  student_profile?: StudentProfile | null
+}
+
+export type TeammateRequestRecord = Database['public']['Tables']['teammate_requests']['Row'] & {
+  sender?: Profile | null
+  receiver?: Profile | null
+  event?: EventRecord | null
+}
+
+export type ConversationRecord = Database['public']['Tables']['conversations']['Row'] & {
+  other_participant?: Profile | null
+  unread_count?: number
+}
+
+export type DirectMessageRecord = Database['public']['Tables']['messages']['Row'] & {
+  sender?: Profile | null
+}
+
+export type UserBlockRecord = Database['public']['Tables']['user_blocks']['Row']
+
+export type CommunityReportRecord = Database['public']['Tables']['community_reports']['Row']
+
+export type CampusFeedItemType = 'announcement' | 'event' | 'achievement' | 'milestone'
+
+export interface CampusFeedItem {
+  id: string
+  type: CampusFeedItemType
+  timestamp: string
+  title: string
+  content?: string | null
+  imageUrl?: string | null
+  linkUrl?: string | null
+  author: {
+    id: string
+    name: string
+    avatarUrl?: string | null
+    isClub: boolean
+    isVerified?: boolean
+    roleBadge?: string | null
+  }
+  meta?: {
+    eventName?: string
+    eventSlug?: string
+    eventCategory?: string
+    eventStartDate?: string
+    badgeTier?: string
+    certificateNumber?: string
+    isPinned?: boolean
+    isMembersOnly?: boolean
+  }
+}
+
+export interface StudentPublicProfile {
+  id: string
+  displayName: string
+  avatarUrl?: string | null
+  bio?: string | null
+  collegeName?: string | null
+  course?: string | null
+  academicYear?: string | null
+  skills: string[]
+  interests: string[]
+  preferredCategories: string[]
+  socialLinks: Record<string, string>
+  visibility: ProfileVisibility
+  hideCertificates: boolean
+  hideEvents: boolean
+  hideSkills: boolean
+  badges: StudentBadgeRecord[]
+  certificates: EventCertificateRecord[]
+  attendedEventsCount: number
+  isTeammateDiscoverable: boolean
+  teammateAvailability?: TeammateAvailability | null
+}
+
+export interface ClubPublicProfile {
+  id: string
+  clubName: string
+  representativeName: string
+  description?: string | null
+  websiteUrl?: string | null
+  isVerified: boolean
+  category: string
+  logoUrl?: string | null
+  coverUrl?: string | null
+  socialLinks: Record<string, string>
+  followersCount: number
+  isFollowing: boolean
+  upcomingEvents: EventRecord[]
+  pastEvents: EventRecord[]
+  announcements: ClubAnnouncementRecord[]
+}
+
+

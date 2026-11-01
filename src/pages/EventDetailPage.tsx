@@ -42,6 +42,7 @@ import { EventCountdown } from '@/components/events/EventCountdown'
 import { isEventSavedSync, toggleWishlist } from '@/lib/wishlist'
 import { recordRecentlyViewed } from '@/lib/recentlyViewed'
 import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/calendar'
+import { EventDiscussionSection } from '@/components/events/EventDiscussionSection'
 import type { EventWithClub, RegistrationRecord } from '@/types'
 
 export default function EventDetailPage() {
@@ -830,6 +831,13 @@ export default function EventDetailPage() {
 
                   return null
                 })}
+
+              {/* Event Community Q&A and Discussions */}
+              <EventDiscussionSection
+                eventId={event.id}
+                clubId={event.club_id}
+                isOrganizer={user?.id === event.club_id || role === 'platform_admin'}
+              />
             </div>
 
           {/* Right 1 Col: Registration & Ticket Card */}

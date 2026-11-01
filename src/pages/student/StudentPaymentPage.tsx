@@ -20,6 +20,8 @@ import {
   Sparkles,
   RefreshCw,
   Users,
+  Tag,
+  X,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Card, Badge, PageHeader, Alert } from '@/components/ui'
@@ -32,12 +34,14 @@ import {
   submitPaymentProof,
   uploadPaymentScreenshot,
 } from '@/lib/payments'
+import { validateCoupon, redeemCoupon } from '@/lib/coupons'
 import { extractUtrFromImageFile } from '@/lib/ocrUtrExtractor'
 import { fadeIn } from '@/lib/animations'
 import type {
   RegistrationWithEvent,
   ClubPaymentSettings,
   PaymentSubmission,
+  EventCouponRecord,
 } from '@/types'
 
 import { ResourceOwnerGuard } from '@/components/auth/ResourceOwnerGuard'
@@ -72,6 +76,14 @@ export default function StudentPaymentPage() {
   } | null>(null)
   const [detectedUtrCandidate, setDetectedUtrCandidate] = useState<string | null>(null)
   const [fieldError, setFieldError] = useState<string | null>(null)
+
+  // Coupon verification and discount states
+  const [couponInput, setCouponInput] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState<EventCouponRecord | null>(null)
+  const [discountAmount, setDiscountAmount] = useState<number>(0)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null)
 
   const hasUserEditedUtr = useRef(false)
   const initialLoadDone = useRef(false)
@@ -218,6 +230,48 @@ export default function StudentPaymentPage() {
     runOcrExtraction(file)
   }
 
+  // ── Coupon Verification & Discount Application ────────────────────────────
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const cleanCode = couponInput.trim().toUpperCase()
+    if (!cleanCode) {
+      setCouponError('Please enter a coupon code.')
+      setCouponSuccess(null)
+      return
+    }
+
+    setCouponLoading(true)
+    setCouponError(null)
+    setCouponSuccess(null)
+
+    const baseFee = registration?.event?.price || 0
+    const res = await validateCoupon(cleanCode, registration?.event?.id || '', baseFee)
+    setCouponLoading(false)
+
+    if (res.valid && res.coupon) {
+      setAppliedCoupon(res.coupon)
+      setDiscountAmount(res.discountAmount)
+      const discountMsg =
+        res.coupon.discount_type === 'percentage'
+          ? `${res.coupon.discount_value}% OFF applied! You save ₹${res.discountAmount}.`
+          : `₹${res.discountAmount} discount applied successfully!`
+      setCouponSuccess(discountMsg)
+      setCouponInput('')
+    } else {
+      setAppliedCoupon(null)
+      setDiscountAmount(0)
+      setCouponError(res.error || 'Invalid or expired coupon code.')
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setDiscountAmount(0)
+    setCouponSuccess(null)
+    setCouponError(null)
+    setCouponInput('')
+  }
+
   // ── UPI UTR Submission ──────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -243,16 +297,26 @@ export default function StudentPaymentPage() {
       }
     }
 
+    let combinedNotes = studentNotes.trim()
+    if (appliedCoupon) {
+      const finalPaid = Math.max(0, (registration?.event?.price || 0) - discountAmount)
+      const couponTag = `[Coupon Applied: ${appliedCoupon.code} | Discount: ₹${discountAmount} | Final Amount Paid: ₹${finalPaid}]`
+      combinedNotes = combinedNotes ? `${couponTag} | ${combinedNotes}` : couponTag
+    }
+
     const res = await submitPaymentProof({
       registrationId,
       transactionReference: cleanRef,
       screenshotUrl: uploadedScreenshotUrl,
-      notes: studentNotes.trim() || null,
+      notes: combinedNotes || null,
     })
 
     setSubmitting(false)
 
     if (res.success) {
+      if (appliedCoupon) {
+        redeemCoupon(appliedCoupon.id).catch(() => {})
+      }
       setNotice({ message: res.message })
       await loadData(true)
     } else {
@@ -263,7 +327,9 @@ export default function StudentPaymentPage() {
   const event = registration?.event
   const effectiveUpi = clubSettings?.upi_id || ''
   const effectiveName = clubSettings?.account_name || 'Campus Event Organizer'
-  const effectiveAmount = event?.price || 0
+  const basePrice = event?.price || 0
+  const finalPrice = Math.max(0, basePrice - discountAmount)
+  const effectiveAmount = appliedCoupon ? finalPrice : basePrice
   const effectiveCurrency = event?.currency || 'INR'
 
   // Dynamic UPI URI for QR and mobile app intent
@@ -540,13 +606,141 @@ export default function StudentPaymentPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                   {/* Left Column: Organizer UPI Details & QR */}
                   <div className="lg:col-span-5 flex flex-col gap-6">
+                    {/* Redeem Promo / Coupon Card */}
+                    <Card className="p-5 border border-white/[0.08] bg-[#0E0E12] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0D56FB] to-[#ED47FC] flex items-center justify-center text-white shrink-0 shadow-md">
+                            <Tag size={15} />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-white font-heading">
+                              Redeem Coupon
+                            </h4>
+                            <span className="text-[10px] text-[var(--color-text-muted)] font-mono">
+                              Apply club promo or partner discount code
+                            </span>
+                          </div>
+                        </div>
+                        {appliedCoupon && (
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
+                            <Sparkles size={11} /> Applied
+                          </span>
+                        )}
+                      </div>
+
+                      {!appliedCoupon ? (
+                        <form onSubmit={handleApplyCoupon} className="flex gap-2 pt-1">
+                          <input
+                            type="text"
+                            value={couponInput}
+                            onChange={(e) => {
+                              setCouponInput(e.target.value.toUpperCase())
+                              if (couponError) setCouponError(null)
+                            }}
+                            placeholder="Enter Code (e.g. FEST20, CAMPUS50)"
+                            className="flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono font-bold text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC] uppercase"
+                            disabled={couponLoading}
+                          />
+                          <Button
+                            type="submit"
+                            variant="primary"
+                            size="sm"
+                            disabled={!couponInput.trim() || couponLoading}
+                            className="px-4 text-xs font-semibold shrink-0"
+                          >
+                            {couponLoading ? 'Verifying…' : 'Apply'}
+                          </Button>
+                        </form>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
+                                <span className="font-mono text-emerald-300 font-extrabold">{appliedCoupon.code}</span>
+                                <span className="text-white/60">applied</span>
+                              </p>
+                              <p className="text-[11px] text-emerald-400 font-medium">
+                                Saved {effectiveCurrency} {discountAmount} (
+                                {appliedCoupon.discount_type === 'percentage'
+                                  ? `${appliedCoupon.discount_value}% OFF`
+                                  : `₹${appliedCoupon.discount_value} OFF`}
+                                )
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCoupon}
+                            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 text-xs font-mono transition-colors shrink-0 cursor-pointer"
+                            title="Remove coupon"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+
+                      {couponError && (
+                        <div className="text-[11px] text-rose-400 flex items-center gap-1.5 pt-0.5 font-medium">
+                          <AlertCircle size={13} className="shrink-0" />
+                          <span>{couponError}</span>
+                        </div>
+                      )}
+                      {couponSuccess && !appliedCoupon && (
+                        <div className="text-[11px] text-emerald-400 flex items-center gap-1.5 pt-0.5 font-medium">
+                          <CheckCircle2 size={13} className="shrink-0" />
+                          <span>{couponSuccess}</span>
+                        </div>
+                      )}
+                    </Card>
+
                     <Card className="p-6 flex flex-col items-center text-center relative overflow-hidden">
                       <span className="text-xs uppercase tracking-wider font-semibold text-[var(--color-text-muted)] mb-1">
-                        Amount Due
+                        {appliedCoupon ? 'Discounted Amount Due' : 'Amount Due'}
                       </span>
-                      <div className="text-3xl sm:text-4xl font-extrabold font-heading text-white mb-4">
-                        {effectiveCurrency} {effectiveAmount.toLocaleString()}
+                      <div className="flex items-baseline justify-center gap-3 mb-2">
+                        <div className="text-3xl sm:text-4xl font-extrabold font-heading text-white">
+                          {effectiveCurrency} {effectiveAmount.toLocaleString()}
+                        </div>
+                        {appliedCoupon && discountAmount > 0 && (
+                          <span className="text-lg line-through text-zinc-500 font-mono">
+                            {effectiveCurrency} {basePrice.toLocaleString()}
+                          </span>
+                        )}
                       </div>
+
+                      {appliedCoupon && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-4">
+                          <Sparkles size={12} />
+                          <span>Coupon {appliedCoupon.code} Saved {effectiveCurrency} {discountAmount}</span>
+                        </div>
+                      )}
+
+                      {effectiveAmount === 0 && appliedCoupon && (
+                        <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-200 text-xs space-y-2 mb-4 text-left">
+                          <div className="flex items-center gap-2 font-bold text-sm text-white">
+                            <Sparkles className="text-emerald-400 w-4 h-4 shrink-0" />
+                            100% Free Pass via Coupon {appliedCoupon.code}!
+                          </div>
+                          <p className="text-[11px] text-emerald-300 leading-relaxed">
+                            Your pass fee is fully waived. Click below to claim your zero-cost pass and proceed to verification.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              setUtrReference(`COUPON-FREE-${appliedCoupon.code}`)
+                              hasUserEditedUtr.current = true
+                              setFieldError(null)
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs"
+                          >
+                            Claim 100% Free Pass
+                          </Button>
+                        </div>
+                      )}
 
                       {!effectiveUpi ? (
                         <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2 text-center w-full my-4">
@@ -579,6 +773,15 @@ export default function StudentPaymentPage() {
                           <span className="text-[11px] text-zinc-400 mb-3 font-sans">
                             Scan with Google Pay, PhonePe, Paytm, or BHIM
                           </span>
+
+                          {appliedCoupon && clubSettings?.qr_image_url && effectiveAmount > 0 && (
+                            <div className="w-full p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] mb-3 text-left flex items-start gap-2">
+                              <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                              <span>
+                                <strong>Coupon Applied:</strong> When scanning this club's static QR code, manually enter the discounted total: <strong>{effectiveCurrency} {effectiveAmount}</strong>.
+                              </span>
+                            </div>
+                          )}
 
                           {/* Mobile Intent Button */}
                           <a
@@ -936,9 +1139,23 @@ export default function StudentPaymentPage() {
                               </span>
                             </div>
                           )}
-                          <div className="flex justify-between pt-1 border-t border-[var(--color-surface-3)] font-semibold">
-                            <span className="text-[var(--color-text-muted)]">Amount Payable:</span>
+                          <div className="flex justify-between pt-1 border-t border-[var(--color-surface-3)]">
+                            <span className="text-[var(--color-text-muted)]">Base Pass Fee:</span>
                             <span className="text-[var(--color-text-primary)]">
+                              {effectiveCurrency} {basePrice}
+                            </span>
+                          </div>
+                          {appliedCoupon && (
+                            <div className="flex justify-between text-emerald-400 font-medium">
+                              <span className="flex items-center gap-1">
+                                <Tag size={11} /> Discount ({appliedCoupon.code}):
+                              </span>
+                              <span>- {effectiveCurrency} {discountAmount}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between pt-1 border-t border-[var(--color-surface-3)] font-semibold">
+                            <span className="text-[var(--color-text-muted)]">Net Amount Payable:</span>
+                            <span className="text-[var(--color-brand-cyan)] font-mono font-bold">
                               {effectiveCurrency} {effectiveAmount}
                             </span>
                           </div>

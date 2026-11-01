@@ -123,6 +123,17 @@ export interface Database {
           profile_id: string
           college_name: string | null
           graduation_year: number | null
+          interests?: string[] | null
+          bio?: string | null
+          course?: string | null
+          academic_year?: string | null
+          skills?: string[] | null
+          preferred_categories?: string[] | null
+          social_links?: Record<string, string> | null
+          visibility?: 'public' | 'campus_only' | 'private'
+          hide_certificates?: boolean
+          hide_events?: boolean
+          hide_skills?: boolean
           created_at: string
           updated_at: string
         }
@@ -131,6 +142,17 @@ export interface Database {
           profile_id: string
           college_name?: string | null
           graduation_year?: number | null
+          interests?: string[] | null
+          bio?: string | null
+          course?: string | null
+          academic_year?: string | null
+          skills?: string[] | null
+          preferred_categories?: string[] | null
+          social_links?: Record<string, string> | null
+          visibility?: 'public' | 'campus_only' | 'private'
+          hide_certificates?: boolean
+          hide_events?: boolean
+          hide_skills?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -574,6 +596,352 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['team_members']['Insert']>
+      }
+      certificate_templates: {
+        Row: {
+          id: string
+          club_id: string
+          name: string
+          description: string | null
+          layout: 'landscape' | 'portrait'
+          theme: string
+          title_text: string
+          subtitle_text: string | null
+          body_template: string | null
+          signatory_1_name: string | null
+          signatory_1_role: string | null
+          signatory_1_signature_url: string | null
+          signatory_2_name: string | null
+          signatory_2_role: string | null
+          signatory_2_signature_url: string | null
+          club_logo_url: string | null
+          border_style: string
+          is_default: boolean
+          is_archived: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          club_id: string
+          name: string
+          description?: string | null
+          layout?: 'landscape' | 'portrait'
+          theme?: string
+          title_text?: string
+          subtitle_text?: string | null
+          body_template?: string | null
+          signatory_1_name?: string | null
+          signatory_1_role?: string | null
+          signatory_1_signature_url?: string | null
+          signatory_2_name?: string | null
+          signatory_2_role?: string | null
+          signatory_2_signature_url?: string | null
+          club_logo_url?: string | null
+          border_style?: string
+          is_default?: boolean
+          is_archived?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['certificate_templates']['Insert']>
+      }
+      event_certificates: {
+        Row: {
+          id: string
+          certificate_number: string
+          verification_token: string
+          event_id: string
+          club_id: string
+          student_id: string
+          registration_id: string | null
+          template_id: string | null
+          category: string
+          title: string
+          recipient_name: string
+          recipient_college: string | null
+          recipient_email: string | null
+          event_title: string
+          club_name: string
+          issue_date: string
+          status: string
+          revoked_at: string | null
+          revoked_by: string | null
+          revocation_reason: string | null
+          reissued_certificate_id: string | null
+          reissued_at: string | null
+          qr_code_url: string | null
+          pdf_storage_path: string | null
+          metadata: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          certificate_number: string
+          verification_token: string
+          event_id: string
+          club_id: string
+          student_id: string
+          registration_id?: string | null
+          template_id?: string | null
+          category: string
+          title: string
+          recipient_name: string
+          recipient_college?: string | null
+          recipient_email?: string | null
+          event_title: string
+          club_name: string
+          issue_date?: string
+          status?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revocation_reason?: string | null
+          reissued_certificate_id?: string | null
+          reissued_at?: string | null
+          qr_code_url?: string | null
+          pdf_storage_path?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['event_certificates']['Insert']>
+      }
+      student_badges: {
+        Row: {
+          id: string
+          student_id: string
+          badge_key: string
+          title: string
+          description: string
+          icon_name: string
+          category: string
+          tier: string
+          earned_at: string
+          is_pinned: boolean
+          is_public: boolean
+          metadata: Record<string, unknown>
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          badge_key: string
+          title: string
+          description: string
+          icon_name: string
+          category: string
+          tier?: string
+          earned_at?: string
+          is_pinned?: boolean
+          is_public?: boolean
+          metadata?: Record<string, unknown>
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['student_badges']['Insert']>
+      }
+      club_followers: {
+        Row: {
+          id: string
+          student_id: string
+          club_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          club_id: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['club_followers']['Insert']>
+      }
+      club_announcements: {
+        Row: {
+          id: string
+          club_id: string
+          author_id: string | null
+          title: string
+          content: string
+          image_url: string | null
+          is_pinned: boolean
+          is_members_only: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          club_id: string
+          author_id?: string | null
+          title: string
+          content: string
+          image_url?: string | null
+          is_pinned?: boolean
+          is_members_only?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['club_announcements']['Insert']>
+      }
+      event_discussions: {
+        Row: {
+          id: string
+          event_id: string
+          user_id: string
+          parent_id: string | null
+          content: string
+          is_organizer_response: boolean
+          is_pinned: boolean
+          is_hidden: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          user_id: string
+          parent_id?: string | null
+          content: string
+          is_organizer_response?: boolean
+          is_pinned?: boolean
+          is_hidden?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['event_discussions']['Insert']>
+      }
+      teammate_profiles: {
+        Row: {
+          id: string
+          student_id: string
+          headline: string | null
+          bio: string | null
+          skills: string[]
+          preferred_categories: string[]
+          looking_for: string | null
+          availability: 'actively_looking' | 'open_to_offers' | 'unavailable'
+          is_opted_in: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          headline?: string | null
+          bio?: string | null
+          skills?: string[]
+          preferred_categories?: string[]
+          looking_for?: string | null
+          availability?: 'actively_looking' | 'open_to_offers' | 'unavailable'
+          is_opted_in?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['teammate_profiles']['Insert']>
+      }
+      teammate_requests: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          event_id: string | null
+          message: string
+          status: 'pending' | 'accepted' | 'declined' | 'withdrawn'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          event_id?: string | null
+          message: string
+          status?: 'pending' | 'accepted' | 'declined' | 'withdrawn'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['teammate_requests']['Insert']>
+      }
+      conversations: {
+        Row: {
+          id: string
+          participant_one: string
+          participant_two: string
+          last_message_at: string
+          last_message_text: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          participant_one: string
+          participant_two: string
+          last_message_at?: string
+          last_message_text?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['conversations']['Insert']>
+      }
+      messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['messages']['Insert']>
+      }
+      user_blocks: {
+        Row: {
+          id: string
+          blocker_id: string
+          blocked_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          blocker_id: string
+          blocked_id: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['user_blocks']['Insert']>
+      }
+      community_reports: {
+        Row: {
+          id: string
+          reporter_id: string
+          target_type: 'profile' | 'comment' | 'message' | 'announcement' | 'teammate_request' | 'user' | 'club'
+          target_id: string
+          reason: string
+          details: string | null
+          status: 'pending' | 'investigating' | 'resolved' | 'dismissed'
+          action_taken: string | null
+          moderator_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          reporter_id: string
+          target_type: 'profile' | 'comment' | 'message' | 'announcement' | 'teammate_request' | 'user' | 'club'
+          target_id: string
+          reason: string
+          details?: string | null
+          status?: 'pending' | 'investigating' | 'resolved' | 'dismissed'
+          action_taken?: string | null
+          moderator_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['community_reports']['Insert']>
       }
     }
     Views: Record<string, never>

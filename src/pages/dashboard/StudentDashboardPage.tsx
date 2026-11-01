@@ -817,7 +817,7 @@ export default function StudentDashboardPage() {
 
             {/* 12. Student Achievements Summary (Part 3 & 11) */}
             <div className="flex flex-col gap-4 p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.08]">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white font-bold">
                     <Award size={18} />
@@ -831,6 +831,12 @@ export default function StudentDashboardPage() {
                     </p>
                   </div>
                 </div>
+
+                <Link to="/student/certificates">
+                  <Button variant="outline" size="sm" rightIcon={<ChevronRight size={14} />}>
+                    Certificates & Vault
+                  </Button>
+                </Link>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
@@ -1078,7 +1084,7 @@ export default function StudentDashboardPage() {
                               leftIcon={<Users size={13} />}
                               className="text-xs"
                             >
-                              Squad Roster
+                              Manage Squad
                             </Button>
                           )}
                         </div>

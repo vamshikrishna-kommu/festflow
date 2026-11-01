@@ -308,3 +308,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.invite_team_member(uuid, text, text) TO authenticated, service_role;
+
