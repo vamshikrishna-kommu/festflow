@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router'
-import { Calendar, MapPin, Users, ArrowUpRight, Clock, ShieldCheck } from 'lucide-react'
+import { Calendar, MapPin, Users, ArrowUpRight, Clock, ShieldCheck, Heart, Sparkles, Flame } from 'lucide-react'
 import { CategoryBadge, Badge } from '@/components/ui'
 import { fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { useAuth } from '@/context/AuthContext'
+import { isEventSavedSync, toggleWishlist } from '@/lib/wishlist'
+import { EventStatusBadge } from '@/components/events/EventStatusBadge'
 import type { Event } from '@/types'
 
 interface EventCardProps {
@@ -28,8 +31,35 @@ function formatDate(iso: string): string {
 }
 
 export function EventCard({ event, animated = false }: EventCardProps) {
+  const { user } = useAuth()
   const reduced = useReducedMotion()
   const [imgError, setImgError] = useState(false)
+  const [isSaved, setIsSaved] = useState(() => (user?.id ? isEventSavedSync(user.id, event.id) : false))
+  const [heartPulsing, setHeartPulsing] = useState(false)
+
+  useEffect(() => {
+    if (user?.id) {
+      setIsSaved(isEventSavedSync(user.id, event.id))
+    }
+    const handler = () => {
+      if (user?.id) {
+        setIsSaved(isEventSavedSync(user.id, event.id))
+      }
+    }
+    window.addEventListener('festflow:wishlist-updated', handler)
+    return () => window.removeEventListener('festflow:wishlist-updated', handler)
+  }, [user, event.id])
+
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!user?.id) return
+
+    setHeartPulsing(true)
+    const res = await toggleWishlist(user.id, event.id)
+    setIsSaved(res.saved)
+    setTimeout(() => setHeartPulsing(false), 400)
+  }
 
   const hasCapacity = typeof event.capacity === 'number' && event.capacity > 0
   const registered = typeof event.registeredCount === 'number' ? event.registeredCount : 0
@@ -40,6 +70,9 @@ export function EventCard({ event, animated = false }: EventCardProps) {
 
   const isTeam = event.participationType === 'team'
   const isOnline = event.eventType === 'online'
+  const trendingRank = (event as any).trendingRank
+  const velocityLabel = (event as any).velocityLabel
+  const recommendationReason = event.recommendationReason
 
   const inner = (
     <Link
@@ -96,8 +129,8 @@ export function EventCard({ event, animated = false }: EventCardProps) {
             )}
           </div>
 
-          {/* Price badge */}
-          <div className="absolute top-3 right-3">
+          {/* Top Right: Price & Wishlist Toggle */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
             {event.isFree ? (
               <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 backdrop-blur-md shadow-md">
                 FREE
@@ -106,6 +139,22 @@ export function EventCard({ event, animated = false }: EventCardProps) {
               <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-[#14141A]/90 text-white border border-white/15 backdrop-blur-md shadow-md">
                 ₹{event.price}
               </span>
+            )}
+
+            {user && (
+              <button
+                type="button"
+                onClick={handleWishlistToggle}
+                className={`p-1.5 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer ${
+                  isSaved
+                    ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.5)] scale-105'
+                    : 'bg-[#14141A]/80 hover:bg-[#14141A] text-zinc-400 hover:text-white border border-white/10'
+                } ${heartPulsing ? 'scale-125' : ''}`}
+                title={isSaved ? 'Remove from Saved Events' : 'Save to Wishlist'}
+                aria-label={isSaved ? 'Saved to Wishlist' : 'Save to Wishlist'}
+              >
+                <Heart size={14} className={isSaved ? 'fill-current text-white' : ''} />
+              </button>
             )}
           </div>
 
@@ -118,21 +167,37 @@ export function EventCard({ event, animated = false }: EventCardProps) {
         </div>
 
         {/* Card Body */}
-        <div className="flex flex-col flex-1 p-4 sm:p-5 gap-3">
-          {/* Organizer row */}
-          <div className="flex items-center gap-2">
-            <img
-              src={event.clubAvatar}
-              alt={event.clubName}
-              width={20}
-              height={20}
-              loading="lazy"
-              className="rounded-full shrink-0 ring-1 ring-white/10 object-cover"
-            />
-            <span className="text-xs text-zinc-400 truncate font-medium flex items-center gap-1">
-              {event.clubName}
-              <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
-            </span>
+        <div className="flex flex-col flex-1 p-4 sm:p-5 gap-2.5">
+          {/* Smart Recommendation or Trending Badge */}
+          {recommendationReason ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC] self-start shadow-sm max-w-full">
+              <Sparkles size={11} className="shrink-0" />
+              <span className="truncate">{recommendationReason}</span>
+            </div>
+          ) : trendingRank ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300 self-start shadow-sm max-w-full">
+              <Flame size={11} className="shrink-0 text-amber-400" />
+              <span className="truncate">Trending #{trendingRank} {velocityLabel ? `• ${velocityLabel}` : ''}</span>
+            </div>
+          ) : null}
+
+          {/* Organizer row & Dynamic Status */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <img
+                src={event.clubAvatar}
+                alt={event.clubName}
+                width={18}
+                height={18}
+                loading="lazy"
+                className="rounded-full shrink-0 ring-1 ring-white/10 object-cover"
+              />
+              <span className="text-xs text-zinc-400 truncate font-medium flex items-center gap-1">
+                {event.clubName}
+                <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
+              </span>
+            </div>
+            <EventStatusBadge event={event} showIcon={false} />
           </div>
 
           {/* Event Title */}

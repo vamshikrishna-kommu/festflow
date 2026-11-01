@@ -23,16 +23,25 @@ import {
   FileText,
   UserCheck,
   HelpCircle,
+  Heart,
+  CalendarPlus,
+  Zap,
+  Download,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
-import { getEventBySlug, CATEGORY_POSTERS } from '@/lib/events'
-import { checkStudentRegistrationForEvent, cancelRegistration } from '@/lib/registrations'
+import { getEventBySlug, CATEGORY_POSTERS, mapRecordToUiEvent } from '@/lib/events'
+import { checkStudentRegistrationForEvent, cancelRegistration, registerForEvent } from '@/lib/registrations'
 import { subscribeToStatusChanges } from '@/lib/sync'
 import { useAuth } from '@/context/AuthContext'
 import { fadeIn } from '@/lib/animations'
 import { EventRegistrationModal } from '@/components/events/EventRegistrationModal'
 import { JoinTeamModal } from '@/components/team/JoinTeamModal'
+import { EventShareModal } from '@/components/events/EventShareModal'
+import { EventCountdown } from '@/components/events/EventCountdown'
+import { isEventSavedSync, toggleWishlist } from '@/lib/wishlist'
+import { recordRecentlyViewed } from '@/lib/recentlyViewed'
+import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/calendar'
 import type { EventWithClub, RegistrationRecord } from '@/types'
 
 export default function EventDetailPage() {
@@ -44,8 +53,14 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventWithClub | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [bannerImgError, setBannerImgError] = useState(false)
+
+  // Phase 1 Experience States
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [isQuickRegistering, setIsQuickRegistering] = useState(false)
+  const [quickRegNotice, setQuickRegNotice] = useState<string | null>(null)
+  const [showCalendarMenu, setShowCalendarMenu] = useState(false)
 
   // Registration flow state
   const [existingReg, setExistingReg] = useState<RegistrationRecord | null>(null)
@@ -124,6 +139,20 @@ export default function EventDetailPage() {
     return () => unsubscribe()
   }, [event, user, role])
 
+  // Phase 1: Record view & check wishlist state
+  useEffect(() => {
+    if (user?.id && event) {
+      setIsSaved(isEventSavedSync(user.id, event.id))
+      recordRecentlyViewed(user.id, mapRecordToUiEvent(event as any))
+    }
+  }, [user, event])
+
+  const handleWishlistToggle = async () => {
+    if (!user?.id || !event) return
+    const res = await toggleWishlist(user.id, event.id)
+    setIsSaved(res.saved)
+  }
+
   const handleCancelRegistration = async () => {
     if (!existingReg) return
     setCancelling(true)
@@ -144,10 +173,50 @@ export default function EventDetailPage() {
   }
 
   const handleShare = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
+    setShowShareModal(true)
+  }
+
+  // One-click quick registration eligibility
+  const canQuickRegister = Boolean(
+    user &&
+    role === 'student' &&
+    !existingReg &&
+    (event?.is_free || event?.price === 0) &&
+    event?.participation_type === 'individual' &&
+    !(event as any)?.requires_approval &&
+    (!event?.custom_questions || event.custom_questions.length === 0)
+  )
+
+  const handleQuickRegister = async () => {
+    if (!user || !event) return
+    setIsQuickRegistering(true)
+    setQuickRegNotice(null)
+
+    try {
+      const studentName = profile?.display_name || (user.user_metadata?.display_name as string) || 'Campus Student'
+      const college = studentProfile?.college_name || (user.user_metadata?.college as string) || 'Campus Student'
+
+      const res = await registerForEvent(event.id, user.id, {
+        participantDetails: {
+          full_name: studentName,
+          college_name: college,
+          phone: (user.user_metadata?.phone as string) || '',
+        },
+      })
+
+      setIsQuickRegistering(false)
+      if (res.success && res.registration_id) {
+        setQuickRegNotice('Pass issued instantly!')
+        refreshRegistration(true)
+        setTimeout(() => {
+          navigate(`/student/tickets/${res.registration_id}`)
+        }, 1000)
+      } else {
+        setQuickRegNotice(res.message || 'Quick registration could not be completed.')
+      }
+    } catch (err: any) {
+      setIsQuickRegistering(false)
+      setQuickRegNotice(err?.message || 'Quick registration failed.')
     }
   }
 
@@ -284,7 +353,12 @@ export default function EventDetailPage() {
   )
 
   const clubName = event.club?.club_profile?.club_name || event.club?.display_name || 'Campus Club'
-  const posterSource = !bannerImgError && event.poster_url ? event.poster_url : (CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech)
+  const posterSource =
+    !bannerImgError && (event as any).cover_url
+      ? (event as any).cover_url
+      : !bannerImgError && event.poster_url
+      ? event.poster_url
+      : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
 
   return (
     <PageShell>
@@ -303,14 +377,32 @@ export default function EventDetailPage() {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14141A] hover:bg-[#1E1E26] text-zinc-300 hover:text-white transition-all text-xs border border-white/[0.08] cursor-pointer"
-          >
-            {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Share2 size={14} className="text-[#18CFFC]" />}
-            <span>{copied ? 'Link Copied!' : 'Share Event'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {user && (
+              <button
+                type="button"
+                onClick={handleWishlistToggle}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs border cursor-pointer ${
+                  isSaved
+                    ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                    : 'bg-[#14141A] hover:bg-[#1E1E26] text-zinc-300 hover:text-white border-white/[0.08]'
+                }`}
+                aria-label={isSaved ? 'Saved in Wishlist' : 'Save to Wishlist'}
+              >
+                <Heart size={14} className={isSaved ? 'fill-current text-rose-400' : 'text-zinc-400'} />
+                <span>{isSaved ? 'Saved' : 'Save Event'}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14141A] hover:bg-[#1E1E26] text-zinc-300 hover:text-white transition-all text-xs border border-white/[0.08] cursor-pointer"
+            >
+              <Share2 size={14} className="text-[#18CFFC]" />
+              <span>Share</span>
+            </button>
+          </div>
         </div>
 
         {/* ── Status Notice Banners ────────────────────────────────────────── */}
@@ -617,7 +709,128 @@ export default function EventDetailPage() {
                 </div>
               </div>
             )}
-          </div>
+
+            {/* ── Dynamic Page Builder Custom Sections (Phase 2) ──────────── */}
+            {Array.isArray((event as any).page_layout) &&
+              (event as any).page_layout
+                .filter((sec: any) => sec.is_visible !== false)
+                .map((sec: any) => {
+                  if (sec.section_type === 'schedule' && Array.isArray(sec.content?.items) && sec.content.items.length > 0) {
+                    return (
+                      <div key={sec.id} className="flex flex-col gap-3">
+                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                          <Clock size={18} className="text-[#18CFFC]" />
+                          {sec.title || 'Event Schedule & Timeline'}
+                        </h2>
+                        <div className="bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08] flex flex-col gap-3">
+                          {sec.content.items.map((item: any, i: number) => (
+                            <div key={i} className="flex items-start gap-4 pb-3 border-b border-white/[0.06] last:border-b-0 last:pb-0">
+                              <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-[#14141A] text-[#18CFFC] border border-white/10 shrink-0">
+                                {item.time}
+                              </span>
+                              <div>
+                                <h4 className="text-sm font-semibold text-white">{item.title}</h4>
+                                {item.description && (
+                                  <p className="text-xs text-zinc-400 mt-0.5">{item.description}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (sec.section_type === 'speakers' && Array.isArray(sec.content?.speakers) && sec.content.speakers.length > 0) {
+                    return (
+                      <div key={sec.id} className="flex flex-col gap-3">
+                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                          <Users size={18} className="text-[#7F1AFB]" />
+                          {sec.title || 'Featured Speakers & Guests'}
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {sec.content.speakers.map((spk: any, i: number) => (
+                            <div key={i} className="p-4 rounded-xl bg-[#0E0E12] border border-white/[0.08] flex items-center gap-3">
+                              {spk.avatar_url ? (
+                                <img src={spk.avatar_url} alt={spk.name} className="w-11 h-11 rounded-full object-cover border border-white/10" />
+                              ) : (
+                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/30 flex items-center justify-center text-white font-bold text-sm">
+                                  {spk.name?.charAt(0) || 'S'}
+                                </div>
+                              )}
+                              <div>
+                                <h4 className="text-sm font-semibold text-white">{spk.name}</h4>
+                                <span className="text-xs text-zinc-400 block">{spk.role}{spk.company ? ` • ${spk.company}` : ''}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (sec.section_type === 'faqs' && Array.isArray(sec.content?.faqs) && sec.content.faqs.length > 0) {
+                    return (
+                      <div key={sec.id} className="flex flex-col gap-3">
+                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                          <HelpCircle size={18} className="text-[#ED47FC]" />
+                          {sec.title || 'Frequently Asked Questions'}
+                        </h2>
+                        <div className="bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08] flex flex-col gap-3">
+                          {sec.content.faqs.map((faq: any, i: number) => (
+                            <div key={i} className="pb-3 border-b border-white/[0.06] last:border-b-0 last:pb-0">
+                              <h4 className="text-sm font-semibold text-white mb-1">{faq.question}</h4>
+                              <p className="text-xs text-zinc-400 leading-relaxed">{faq.answer}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (sec.section_type === 'prizes' && Array.isArray(sec.content?.prizes) && sec.content.prizes.length > 0) {
+                    return (
+                      <div key={sec.id} className="flex flex-col gap-3">
+                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                          <Sparkles size={18} className="text-amber-400" />
+                          {sec.title || 'Prizes & Rewards'}
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {sec.content.prizes.map((prz: any, i: number) => (
+                            <div key={i} className="p-4 rounded-xl bg-gradient-to-b from-[#14141A] to-[#0E0E12] border border-white/[0.08] flex flex-col items-center text-center">
+                              <span className="text-xs font-mono text-amber-400 font-bold mb-1">{prz.rank}</span>
+                              <span className="text-sm font-bold text-white mb-1">{prz.title}</span>
+                              <span className="text-lg font-extrabold text-[#18CFFC]">{prz.amount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (sec.section_type === 'sponsors' && Array.isArray(sec.content?.sponsors) && sec.content.sponsors.length > 0) {
+                    return (
+                      <div key={sec.id} className="flex flex-col gap-3">
+                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                          <Building2 size={18} className="text-[#07A4FC]" />
+                          {sec.title || 'Event Partners & Sponsors'}
+                        </h2>
+                        <div className="flex flex-wrap items-center gap-3 bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08]">
+                          {sec.content.sponsors.map((spn: any, i: number) => (
+                            <div key={i} className="px-4 py-2 rounded-xl bg-[#14141A] border border-white/10 flex items-center gap-2">
+                              {spn.logo_url && <img src={spn.logo_url} alt={spn.name} className="h-5 object-contain" />}
+                              <span className="text-xs font-semibold text-white">{spn.name}</span>
+                              <span className="text-[10px] text-zinc-500 uppercase">{spn.tier}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return null
+                })}
+            </div>
 
           {/* Right 1 Col: Registration & Ticket Card */}
           <div className="flex flex-col gap-6">
@@ -692,6 +905,16 @@ export default function EventDetailPage() {
                 </div>
               </div>
 
+              {/* Event Live Countdown */}
+              {startDate && !isStarted && !isCompleted && !isCancelled && (
+                <div className="p-3.5 rounded-2xl bg-[#0E0E12] border border-white/10 flex flex-col items-center gap-1.5 my-2">
+                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+                    Event Starts In
+                  </span>
+                  <EventCountdown targetDate={event.start_date} endDate={event.end_date} size="sm" />
+                </div>
+              )}
+
               {/* Already Registered Indicator */}
               {existingReg && (
                 <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-center justify-between">
@@ -764,32 +987,58 @@ export default function EventDetailPage() {
                   )}
                 </div>
               ) : (
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full mt-2"
-                  disabled={!canRegister || checkingReg}
-                  onClick={handleCtaClick}
-                  leftIcon={<Ticket size={18} />}
-                >
-                  {isCancelled
-                    ? 'Registration Cancelled'
-                    : isCompleted
-                    ? 'Event Concluded'
-                    : isRegClosedStatus
-                    ? 'Registration Closed'
-                    : !isRegOpenYet
-                    ? `Opens ${regOpensFormatted}`
-                    : isRegDeadlinePassed
-                    ? 'Deadline Passed'
-                    : isStarted
-                    ? 'Event Started'
-                    : !user
-                    ? 'Sign In to Register'
-                    : event.is_free
-                    ? (event.participation_type === 'team' ? 'Register Team (Free)' : 'Claim Free Pass')
-                    : (event.participation_type === 'team' ? 'Register Team Pass' : 'Register for Event')}
-                </Button>
+                <div className="space-y-2 mt-2">
+                  {/* One-Click Fast Registration for eligible free individual events */}
+                  {canQuickRegister && (
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white shadow-[0_0_20px_rgba(24,207,252,0.3)] hover:shadow-[0_0_25px_rgba(24,207,252,0.5)] font-bold min-h-[48px]"
+                      disabled={isQuickRegistering}
+                      onClick={handleQuickRegister}
+                      leftIcon={isQuickRegistering ? <Clock size={18} className="animate-spin" /> : <Zap size={18} className="text-yellow-300 fill-current" />}
+                    >
+                      {isQuickRegistering ? 'Securing your entry pass…' : '⚡ 1-Click Quick Register'}
+                    </Button>
+                  )}
+
+                  {quickRegNotice && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2">
+                      <CheckCircle2 size={16} className="shrink-0" />
+                      <span>{quickRegNotice}</span>
+                    </div>
+                  )}
+
+                  {/* Standard Full Registration Button */}
+                  <Button
+                    variant={canQuickRegister ? 'outline' : 'primary'}
+                    size={canQuickRegister ? 'md' : 'lg'}
+                    className={`w-full ${canQuickRegister ? 'text-xs text-zinc-300 hover:text-white border-white/10' : ''}`}
+                    disabled={!canRegister || checkingReg}
+                    onClick={handleCtaClick}
+                    leftIcon={<Ticket size={canQuickRegister ? 15 : 18} />}
+                  >
+                    {isCancelled
+                      ? 'Registration Cancelled'
+                      : isCompleted
+                      ? 'Event Concluded'
+                      : isRegClosedStatus
+                      ? 'Registration Closed'
+                      : !isRegOpenYet
+                      ? `Opens ${regOpensFormatted}`
+                      : isRegDeadlinePassed
+                      ? 'Deadline Passed'
+                      : isStarted
+                      ? 'Event Started'
+                      : !user
+                      ? 'Sign In to Register'
+                      : canQuickRegister
+                      ? 'Custom Details Registration'
+                      : event.is_free
+                      ? (event.participation_type === 'team' ? 'Register Team (Free)' : 'Claim Free Pass')
+                      : (event.participation_type === 'team' ? 'Register Team Pass' : 'Register for Event')}
+                  </Button>
+                </div>
               )}
 
               {event.participation_type === 'team' && canRegister && !existingReg && (
@@ -804,6 +1053,60 @@ export default function EventDetailPage() {
                   Join an Existing Squad
                 </Button>
               )}
+
+              {/* Add to Calendar Menu */}
+              <div className="relative pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-white/10 text-xs text-zinc-300 hover:text-white justify-center h-8"
+                  onClick={() => setShowCalendarMenu(!showCalendarMenu)}
+                  leftIcon={<CalendarPlus size={13} className="text-[#18CFFC]" />}
+                >
+                  Add to Calendar
+                </Button>
+
+                {showCalendarMenu && (
+                  <div className="absolute bottom-full left-0 right-0 mb-1.5 p-1.5 rounded-xl bg-[#0E0E12] border border-white/15 shadow-2xl flex flex-col gap-1 z-30 backdrop-blur-xl">
+                    <a
+                      href={generateGoogleCalendarUrl({
+                        title: event.title,
+                        description: event.description,
+                        startDate: event.start_date,
+                        endDate: event.end_date,
+                        location: event.venue_name || event.venue_address || 'Campus Venue',
+                        url: typeof window !== 'undefined' ? window.location.href : '',
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-between"
+                      onClick={() => setShowCalendarMenu(false)}
+                    >
+                      <span>Google Calendar</span>
+                      <CalendarPlus size={12} className="text-[#18CFFC]" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        downloadIcsFile({
+                          title: event.title,
+                          description: event.description,
+                          startDate: event.start_date,
+                          endDate: event.end_date,
+                          location: event.venue_name || event.venue_address || 'Campus Venue',
+                          url: typeof window !== 'undefined' ? window.location.href : '',
+                        })
+                        setShowCalendarMenu(false)
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-between text-left cursor-pointer"
+                    >
+                      <span>Download .ICS File</span>
+                      <Download size={12} className="text-zinc-400" />
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <p className="text-[11px] text-zinc-500 text-center leading-relaxed">
                 Tickets are issued instantly as digital QR passes with real-time gate authentication.
@@ -1072,6 +1375,20 @@ export default function EventDetailPage() {
             )}
           </div>
         </div>
+
+        {/* ── Modal: Event Sharing ────────────────────────────────────────── */}
+        <EventShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          event={{
+            title: event.title,
+            clubName,
+            date: formattedDate,
+            venue: event.venue_name || event.venue_address || undefined,
+            slug: event.slug,
+            posterUrl: event.poster_url,
+          }}
+        />
       </div>
     </PageShell>
   )

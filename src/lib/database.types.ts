@@ -5,7 +5,18 @@ export type EventType = 'offline' | 'online' | 'hybrid'
 export type ParticipationType = 'individual' | 'team'
 export type ApprovalType = 'automatic' | 'manual'
 export type TeamRegistrationMode = 'leader_adds_members' | 'members_join_with_code'
-export type CustomQuestionType = 'text' | 'textarea' | 'select' | 'checkbox' | 'radio'
+export type CustomQuestionType =
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'checkbox'
+  | 'radio'
+  | 'email'
+  | 'phone'
+  | 'number'
+  | 'multiselect'
+  | 'date'
+  | 'file'
 
 export interface CustomQuestion {
   id: string

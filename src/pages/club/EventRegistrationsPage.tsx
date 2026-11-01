@@ -19,6 +19,10 @@ import {
   LogOut,
   Copy,
   CheckCheck,
+  Upload,
+  Tag,
+  Star,
+  UserCheck,
 } from 'lucide-react'
 import { Button, Badge, Card, Breadcrumbs, Modal, ModalBody, ModalFooter, EmptyState, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
@@ -26,9 +30,14 @@ import { getEventById } from '@/lib/events'
 import {
   cancelRegistration,
   reviewRegistrationApplication,
+  registerForEvent,
 } from '@/lib/registrations'
-import { getEventRegistrationsWithCheckIn } from '@/lib/checkin'
+import { getEventRegistrationsWithCheckIn, checkInTicket } from '@/lib/checkin'
 import { getClubPaymentSubmissions } from '@/lib/payments'
+import { promoteWaitlistStudent, autoPromoteWaitlist } from '@/lib/waitlist'
+import { ClubCouponsModal } from '@/components/club/ClubCouponsModal'
+import { EventTeamDelegationModal } from '@/components/club/EventTeamDelegationModal'
+import { EventFeedbackDashboardModal } from '@/components/club/EventFeedbackDashboardModal'
 import {
   exportFullAttendeesXlsx,
   exportAttendanceReportXlsx,
@@ -87,6 +96,29 @@ export default function EventRegistrationsPage() {
   const [cancellingAttendee, setCancellingAttendee] = useState<RegistrationWithCheckIn | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
+
+  // Multi-Select Bulk Actions State
+  const [selectedRegIds, setSelectedRegIds] = useState<string[]>([])
+
+  // CSV Import State
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [csvRawText, setCsvRawText] = useState('')
+  const [csvPreviewRows, setCsvPreviewRows] = useState<
+    Array<{
+      name: string
+      email: string
+      phone?: string
+      college?: string
+      isValid: boolean
+      error?: string
+    }>
+  >([])
+  const [isImporting, setIsImporting] = useState(false)
+
+  // Shortcuts Modals State
+  const [couponsModalOpen, setCouponsModalOpen] = useState(false)
+  const [teamModalOpen, setTeamModalOpen] = useState(false)
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
 
   const loadData = async (silent = false) => {
     if (!id) return
@@ -153,6 +185,7 @@ export default function EventRegistrationsPage() {
   const pendingApprovalCount = registrations.filter((r) => r.status === 'pending_approval').length
   const pendingPaymentCount = registrations.filter((r) => r.status === 'pending_payment').length
   const cancelledCount = registrations.filter((r) => r.status === 'cancelled' || r.status === 'rejected').length
+  const waitlistCount = registrations.filter((r) => r.status === 'waitlisted').length
   const insideCount = registrations.filter((r) => r.attendance_status === 'checked_in').length
   const checkedOutCount = registrations.filter((r) => r.attendance_status === 'checked_out').length
 
@@ -163,8 +196,9 @@ export default function EventRegistrationsPage() {
       pending_approval: pendingApprovalCount,
       pending_payment: pendingPaymentCount,
       cancelled: cancelledCount,
+      waitlisted: waitlistCount,
     }
-  }, [registrations, confirmedCount, pendingApprovalCount, pendingPaymentCount, cancelledCount])
+  }, [registrations, confirmedCount, pendingApprovalCount, pendingPaymentCount, cancelledCount, waitlistCount])
 
   // Reset pagination to page 1 whenever filters change
   useEffect(() => {
@@ -387,6 +421,205 @@ export default function EventRegistrationsPage() {
     }
   }
 
+  // ── Multi-Select Checkbox Handlers ──────────────────────────────────────────
+  const toggleSelectAllPage = () => {
+    const pageIds = paginatedRegistrations.map((r) => r.id)
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedRegIds.includes(id))
+    if (allSelected) {
+      setSelectedRegIds((prev) => prev.filter((id) => !pageIds.includes(id)))
+    } else {
+      setSelectedRegIds((prev) => Array.from(new Set([...prev, ...pageIds])))
+    }
+  }
+
+  const toggleSelectRow = (regId: string) => {
+    setSelectedRegIds((prev) =>
+      prev.includes(regId) ? prev.filter((id) => id !== regId) : [...prev, regId]
+    )
+  }
+
+  // ── Bulk Actions ────────────────────────────────────────────────────────────
+  const handleBulkCheckIn = async () => {
+    if (selectedRegIds.length === 0) return
+    setActionLoading(true)
+    let checkedCount = 0
+    for (const regId of selectedRegIds) {
+      const reg = registrations.find((r) => r.id === regId)
+      if (reg?.ticket_code) {
+        await checkInTicket(reg.event_id || id || event?.id || '', reg.ticket_code, 'Bulk admin turnstile check-in')
+        checkedCount++
+      }
+    }
+    setActionLoading(false)
+    setSelectedRegIds([])
+    setNotice({ message: `Successfully recorded turnstile check-in for ${checkedCount} attendees.` })
+    loadData(true)
+  }
+
+  const handleBulkApprove = async () => {
+    if (selectedRegIds.length === 0) return
+    setActionLoading(true)
+    let approvedCount = 0
+    for (const regId of selectedRegIds) {
+      const res = await reviewRegistrationApplication(regId, 'approved')
+      if (res.success) approvedCount++
+    }
+    setActionLoading(false)
+    setSelectedRegIds([])
+    setNotice({ message: `Approved ${approvedCount} attendee applications and released official QR entry passes.` })
+    loadData(true)
+  }
+
+  const handleBulkCancel = async () => {
+    if (selectedRegIds.length === 0) return
+    if (!window.confirm(`Are you sure you want to cancel and void passes for ${selectedRegIds.length} selected attendees?`)) return
+    setActionLoading(true)
+    let cancelledCount = 0
+    for (const regId of selectedRegIds) {
+      const res = await cancelRegistration(regId)
+      if (res.success) cancelledCount++
+    }
+    setActionLoading(false)
+    setSelectedRegIds([])
+    setNotice({ message: `Cancelled and voided ${cancelledCount} registration passes.` })
+    loadData(true)
+  }
+
+  const handleBulkExport = async () => {
+    if (!event || selectedRegIds.length === 0) return
+    const selectedRegistrations = registrations.filter((r) => selectedRegIds.includes(r.id))
+    try {
+      await exportFullAttendeesXlsx({
+        event,
+        registrations: selectedRegistrations,
+        checkIns,
+        payments,
+        isAuthorized: Boolean(isAuthorized),
+      })
+      setNotice({ message: `Exported ${selectedRegistrations.length} selected attendee records to Excel.` })
+    } catch (e: any) {
+      setNotice({ message: e.message || 'Export failed.', isError: true })
+    }
+  }
+
+  // ── CSV Import Handlers ─────────────────────────────────────────────────────
+  const handleCsvFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string
+      if (text) handleParseCsv(text)
+    }
+    reader.readAsText(file)
+  }
+
+  const handleParseCsv = (text: string) => {
+    setCsvRawText(text)
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    if (lines.length < 2) {
+      setCsvPreviewRows([])
+      return
+    }
+
+    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/["']/g, ''))
+    const nameIdx = headers.findIndex((h) => h.includes('name'))
+    const emailIdx = headers.findIndex((h) => h.includes('email') || h.includes('mail'))
+    const phoneIdx = headers.findIndex((h) => h.includes('phone') || h.includes('mobile') || h.includes('contact'))
+    const collegeIdx = headers.findIndex((h) => h.includes('college') || h.includes('institute') || h.includes('dept'))
+
+    const existingEmails = new Set(registrations.map((r) => r.student?.email?.toLowerCase().trim()).filter(Boolean))
+    const seenCsvEmails = new Set<string>()
+
+    const rows: typeof csvPreviewRows = []
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''))
+      const name = nameIdx >= 0 ? parts[nameIdx] || '' : parts[0] || ''
+      const email = emailIdx >= 0 ? parts[emailIdx]?.toLowerCase() || '' : parts[1]?.toLowerCase() || ''
+      const phone = phoneIdx >= 0 ? parts[phoneIdx] : undefined
+      const college = collegeIdx >= 0 ? parts[collegeIdx] : undefined
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!email || !emailRegex.test(email)) {
+        rows.push({ name, email, phone, college, isValid: false, error: 'Invalid email syntax' })
+      } else if (existingEmails.has(email)) {
+        rows.push({ name, email, phone, college, isValid: false, error: 'Already registered for event' })
+      } else if (seenCsvEmails.has(email)) {
+        rows.push({ name, email, phone, college, isValid: false, error: 'Duplicate in CSV file' })
+      } else {
+        seenCsvEmails.add(email)
+        rows.push({ name: name || 'Student Attendee', email, phone, college, isValid: true })
+      }
+    }
+    setCsvPreviewRows(rows)
+  }
+
+  const handleExecuteCsvImport = async () => {
+    if (!event) return
+    const validRows = csvPreviewRows.filter((r) => r.isValid)
+    if (validRows.length === 0) {
+      setNotice({ message: 'No valid rows to import.', isError: true })
+      return
+    }
+
+    setIsImporting(true)
+    let imported = 0
+
+    for (const row of validRows) {
+      try {
+        await registerForEvent(event.id, `sim_imported_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, {
+          participantDetails: {
+            fullName: row.name,
+            email: row.email,
+            phone: row.phone || '',
+            college: row.college || '',
+          },
+        })
+        imported++
+      } catch {
+        // continue
+      }
+    }
+
+    setIsImporting(false)
+    setImportModalOpen(false)
+    setCsvPreviewRows([])
+    setCsvRawText('')
+    setNotice({ message: `Successfully imported ${imported} validated attendees into event roster!` })
+    loadData(true)
+  }
+
+  // ── Waitlist Promotion Handlers ─────────────────────────────────────────────
+  const handlePromoteWaitlisted = async (regId: string) => {
+    if (!event) return
+    setActionLoading(true)
+    const res = await promoteWaitlistStudent(regId, event.is_free, 24)
+    setActionLoading(false)
+    if (res.success) {
+      setNotice({ message: 'Waitlisted attendee successfully promoted to official entry pass!' })
+      loadData(true)
+    } else {
+      setNotice({ message: res.error || 'Failed to promote waitlist attendee.', isError: true })
+    }
+  }
+
+  const handleAutoPromoteAllWaitlisted = async () => {
+    if (!event) return
+    const availableSlots = Math.max(0, event.capacity - confirmedCount)
+    if (availableSlots <= 0) {
+      setNotice({
+        message: 'Event is currently at maximum capacity. Increase capacity to promote waitlisted attendees.',
+        isError: true,
+      })
+      return
+    }
+    setActionLoading(true)
+    const res = await autoPromoteWaitlist(event.id, availableSlots, event.is_free)
+    setActionLoading(false)
+    setNotice({ message: `Auto-promoted ${res.promotedCount} waitlisted students into available seats!` })
+    loadData(true)
+  }
+
   if (loading) {
     return (
       <PageShell>
@@ -443,7 +676,7 @@ export default function EventRegistrationsPage() {
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(255, 87, 34, 0.12) 0%, transparent 65%)' }}
+            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(24, 207, 252, 0.12) 0%, transparent 65%)' }}
           />
           <div className="min-w-0 relative">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -484,25 +717,80 @@ export default function EventRegistrationsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-white/[0.08] relative">
-            {/* Primary Excel Export Button */}
+          <div className="flex items-center gap-2 sm:gap-2 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-white/[0.08] relative">
+            {/* CSV Attendee Import Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportModalOpen(true)}
+              leftIcon={<Upload size={14} className="text-[#18CFFC]" />}
+              className="border-[#18CFFC]/30 hover:border-[#18CFFC] hover:bg-[#18CFFC]/10 text-white font-semibold shadow-sm"
+            >
+              Import CSV
+            </Button>
+
+            {/* Excel Export Button */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setExportModalOpen(true)}
               leftIcon={<Download size={14} className="text-emerald-400" />}
-              className="flex-1 sm:flex-initial justify-center border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-300 font-semibold shadow-sm"
+              className="border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-300 font-semibold shadow-sm"
             >
-              Export Excel (.xlsx)
+              Export Excel
             </Button>
 
+            {/* Coupons Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCouponsModalOpen(true)}
+              leftIcon={<Tag size={13} className="text-amber-400" />}
+            >
+              Coupons
+            </Button>
+
+            {/* Team Roles Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTeamModalOpen(true)}
+              leftIcon={<Users size={13} className="text-purple-400" />}
+            >
+              Staff Roles
+            </Button>
+
+            {/* Feedback Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFeedbackModalOpen(true)}
+              leftIcon={<Star size={13} className="text-amber-400" />}
+            >
+              Feedback
+            </Button>
+
+            {/* Auto-Promote Waitlist if available slots and waitlist count > 0 */}
+            {filterCounts.waitlisted > 0 && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleAutoPromoteAllWaitlisted}
+                disabled={actionLoading}
+                leftIcon={<UserCheck size={13} />}
+                className="bg-gradient-to-r from-[#18CFFC] to-[#0D56FB]"
+              >
+                Promote Waitlist ({filterCounts.waitlisted})
+              </Button>
+            )}
+
             {event.status === 'published' && (
-              <Link to={`/club/events/${event.id}/check-in`} className="flex-1 sm:flex-initial">
+              <Link to={`/club/events/${event.id}/check-in`}>
                 <Button
                   variant="primary"
                   size="sm"
                   leftIcon={<QrCode size={13} />}
-                  className="w-full justify-center shadow-sm"
+                  className="shadow-sm"
                 >
                   Gate Check-In
                 </Button>
@@ -510,20 +798,20 @@ export default function EventRegistrationsPage() {
             )}
 
             {!event.is_free && (
-              <Link to={`/club/payments?eventId=${event.id}`} className="flex-1 sm:flex-initial">
+              <Link to={`/club/payments?eventId=${event.id}`}>
                 <Button
                   variant="primary"
                   size="sm"
                   leftIcon={<CreditCard size={13} />}
-                  className="w-full justify-center bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-semibold shadow-sm"
+                  className="bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-semibold shadow-sm"
                 >
                   Payments
                 </Button>
               </Link>
             )}
 
-            <Link to={`/club/events/${event.id}/reports`} className="flex-1 sm:flex-initial">
-              <Button variant="outline" size="sm" className="w-full justify-center" leftIcon={<FileSpreadsheet size={13} />}>
+            <Link to={`/club/events/${event.id}/reports`}>
+              <Button variant="outline" size="sm" leftIcon={<FileSpreadsheet size={13} />}>
                 Reports
               </Button>
             </Link>
@@ -631,6 +919,7 @@ export default function EventRegistrationsPage() {
                   { id: 'confirmed', label: 'Confirmed', count: filterCounts.confirmed },
                   { id: 'pending_approval', label: 'Under Review', count: filterCounts.pending_approval },
                   { id: 'pending_payment', label: 'Payment Due', count: filterCounts.pending_payment },
+                  ...(filterCounts.waitlisted > 0 ? [{ id: 'waitlisted', label: 'Waitlist', count: filterCounts.waitlisted }] : []),
                   { id: 'cancelled', label: 'Cancelled', count: filterCounts.cancelled },
                 ] as const).map((tab) => (
                   <button
@@ -926,6 +1215,18 @@ export default function EventRegistrationsPage() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 text-[var(--color-text-muted)] uppercase tracking-wider text-[10px]">
+                        <th className="py-3.5 px-3 w-8">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all on this page"
+                            checked={
+                              paginatedRegistrations.length > 0 &&
+                              paginatedRegistrations.every((r) => selectedRegIds.includes(r.id))
+                            }
+                            onChange={toggleSelectAllPage}
+                            className="rounded bg-white/10 border-white/20 text-[#18CFFC] focus:ring-[#18CFFC] cursor-pointer"
+                          />
+                        </th>
                         <th className="py-3.5 px-4 font-semibold">Attendee / Team</th>
                         <th className="py-3.5 px-4 font-semibold">Email</th>
                         <th className="py-3.5 px-4 font-semibold">Ticket Code</th>
@@ -939,6 +1240,7 @@ export default function EventRegistrationsPage() {
                         const isConfirmed = reg.status === 'confirmed'
                         const isPendingApproval = reg.status === 'pending_approval'
                         const isPendingPayment = reg.status === 'pending_payment'
+                        const isWaitlisted = reg.status === 'waitlisted'
                         const isRejected = reg.status === 'rejected'
                         const isInside = reg.attendance_status === 'checked_in'
                         const isCheckedOut = reg.attendance_status === 'checked_out'
@@ -946,8 +1248,19 @@ export default function EventRegistrationsPage() {
                         return (
                           <tr
                             key={reg.id}
-                            className="hover:bg-[var(--color-surface-2)]/40 transition-colors"
+                            className={`hover:bg-[var(--color-surface-2)]/40 transition-colors ${
+                              selectedRegIds.includes(reg.id) ? 'bg-[#18CFFC]/5' : ''
+                            }`}
                           >
+                            <td className="py-3.5 px-3 w-8">
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${reg.student?.display_name || 'attendee'}`}
+                                checked={selectedRegIds.includes(reg.id)}
+                                onChange={() => toggleSelectRow(reg.id)}
+                                className="rounded bg-white/10 border-white/20 text-[#18CFFC] focus:ring-[#18CFFC] cursor-pointer"
+                              />
+                            </td>
                             <td className="py-3.5 px-4 font-medium text-[var(--color-text-primary)]">
                               <div className="flex items-center gap-2.5">
                                 <span className="w-7 h-7 rounded-full bg-[var(--color-surface-3)] text-[10px] font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
@@ -1005,6 +1318,8 @@ export default function EventRegistrationsPage() {
                                     ? 'purple'
                                     : isPendingPayment
                                     ? 'amber'
+                                    : isWaitlisted
+                                    ? 'cyan'
                                     : 'danger'
                                 }
                                 className="capitalize text-[10px]"
@@ -1015,6 +1330,8 @@ export default function EventRegistrationsPage() {
                                   ? 'Review Needed'
                                   : isPendingPayment
                                   ? 'Pending Payment'
+                                  : isWaitlisted
+                                  ? 'Waitlisted'
                                   : isRejected
                                   ? 'Rejected'
                                   : 'Cancelled'}
@@ -1022,6 +1339,18 @@ export default function EventRegistrationsPage() {
                             </td>
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
+                                {isWaitlisted && (
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handlePromoteWaitlisted(reg.id)}
+                                    disabled={actionLoading}
+                                    className="bg-[#18CFFC] hover:bg-[#07A4FC] text-black font-semibold text-[11px] py-1 px-2.5 h-auto"
+                                  >
+                                    Promote
+                                  </Button>
+                                )}
+
                                 {isPendingApproval ? (
                                   <Button
                                     variant="primary"
@@ -1043,7 +1372,7 @@ export default function EventRegistrationsPage() {
                                       setReviewDecision('approved')
                                       setRejectionReason('')
                                     }}
-                                    className="text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors font-medium"
+                                    className="text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors font-medium cursor-pointer"
                                   >
                                     Details
                                   </button>
@@ -1053,7 +1382,7 @@ export default function EventRegistrationsPage() {
                                   <button
                                     type="button"
                                     onClick={() => setCancellingAttendee(reg)}
-                                    className="text-[11px] text-rose-400 hover:text-rose-300 font-medium px-2 py-1 transition-colors hover:bg-rose-500/10 rounded-lg"
+                                    className="text-[11px] text-rose-400 hover:text-rose-300 font-medium px-2 py-1 transition-colors hover:bg-rose-500/10 rounded-lg cursor-pointer"
                                   >
                                     Cancel
                                   </button>
@@ -1067,6 +1396,71 @@ export default function EventRegistrationsPage() {
                   </table>
                 </div>
               </div>
+
+              {/* ── Floating Bulk Actions Bar (Part 9) ────────────────────── */}
+              {selectedRegIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0E0E12]/95 border border-[#18CFFC]/50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 text-xs backdrop-blur-md">
+                  <span className="font-semibold text-white flex items-center gap-1.5 whitespace-nowrap">
+                    <CheckCheck size={16} className="text-[#18CFFC]" />
+                    {selectedRegIds.length} {selectedRegIds.length === 1 ? 'Attendee' : 'Attendees'} Selected
+                  </span>
+
+                  <div className="h-4 w-px bg-white/20 hidden sm:block" />
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={handleBulkCheckIn}
+                      disabled={actionLoading}
+                      leftIcon={<QrCode size={13} />}
+                    >
+                      Bulk Check-In
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkApprove}
+                      disabled={actionLoading}
+                      leftIcon={<Check size={13} />}
+                      className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                    >
+                      Bulk Approve
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkExport}
+                      leftIcon={<Download size={13} />}
+                      className="text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/10"
+                    >
+                      Export Selected
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkCancel}
+                      disabled={actionLoading}
+                      leftIcon={<X size={13} />}
+                      className="text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                    >
+                      Bulk Cancel
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelectedRegIds([])}
+                      className="text-zinc-400 hover:text-white"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* ── Pagination Controls ─────────────────────────────────────── */}
               {totalPages > 1 && (
@@ -1716,6 +2110,133 @@ export default function EventRegistrationsPage() {
             </Button>
           </ModalFooter>
         </Modal>
+
+        {/* ── Modal: Validated CSV Attendee Import (Part 9) ────────────────── */}
+        <Modal
+          isOpen={importModalOpen}
+          onClose={() => {
+            setImportModalOpen(false)
+            setCsvPreviewRows([])
+            setCsvRawText('')
+          }}
+          title="Import Validated Attendees from CSV"
+          size="lg"
+        >
+          <ModalBody>
+            <div className="flex flex-col gap-4 text-left">
+              <p className="text-xs text-zinc-400">
+                Upload or paste a comma-separated roster (.csv) containing attendee details. Required columns: <code className="text-[#18CFFC]">Name</code>, <code className="text-[#18CFFC]">Email</code>. Optional: <code className="text-zinc-300">Phone</code>, <code className="text-zinc-300">College</code>.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleCsvFileInput}
+                  className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#18CFFC]/20 file:text-[#18CFFC] hover:file:bg-[#18CFFC]/30 cursor-pointer"
+                />
+
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">or paste CSV rows directly:</span>
+                <textarea
+                  rows={4}
+                  value={csvRawText}
+                  onChange={(e) => handleParseCsv(e.target.value)}
+                  placeholder={`Name,Email,Phone,College\nRahul Sharma,rahul@college.edu,9876543210,Anurag University\nPriya Patel,priya@institute.edu,9123456789,JNTU`}
+                  className="w-full p-2.5 rounded-xl bg-[#08080A] border border-white/10 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-[#18CFFC] resize-none"
+                />
+              </div>
+
+              {csvPreviewRows.length > 0 && (
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-300 font-semibold">
+                      Parsed {csvPreviewRows.length} Rows:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400 text-[11px] font-mono">
+                        ✓ {csvPreviewRows.filter((r) => r.isValid).length} Valid
+                      </span>
+                      <span className="text-rose-400 text-[11px] font-mono">
+                        ✗ {csvPreviewRows.filter((r) => !r.isValid).length} Duplicates / Errors
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto rounded-xl border border-white/5 divide-y divide-white/5">
+                    {csvPreviewRows.map((row, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-2 flex items-center justify-between gap-2 text-xs ${
+                          row.isValid ? 'bg-white/[0.02]' : 'bg-rose-500/[0.06]'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <span className="font-semibold text-white block truncate">{row.name}</span>
+                          <span className="text-[10px] text-zinc-400 block truncate">{row.email}</span>
+                        </div>
+                        {row.isValid ? (
+                          <Badge variant="success" className="text-[10px]">Valid Attendee</Badge>
+                        ) : (
+                          <Badge variant="danger" className="text-[10px]">{row.error}</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setImportModalOpen(false)
+                setCsvPreviewRows([])
+                setCsvRawText('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={isImporting || csvPreviewRows.filter((r) => r.isValid).length === 0}
+              isLoading={isImporting}
+              onClick={handleExecuteCsvImport}
+              leftIcon={<Upload size={14} />}
+            >
+              Import {csvPreviewRows.filter((r) => r.isValid).length} Valid Attendees
+            </Button>
+          </ModalFooter>
+        </Modal>
+
+        {/* ── Modal: Club Coupons (Part 13) ────────────────────────────────── */}
+        <ClubCouponsModal
+          isOpen={couponsModalOpen}
+          onClose={() => setCouponsModalOpen(false)}
+          clubId={event.club_id}
+          eventId={event.id}
+          eventTitle={event.title}
+        />
+
+        {/* ── Modal: Event Team Staff Delegation (Part 7) ──────────────────── */}
+        <EventTeamDelegationModal
+          isOpen={teamModalOpen}
+          onClose={() => setTeamModalOpen(false)}
+          eventId={event.id}
+          clubId={event.club_id}
+          eventTitle={event.title}
+          currentUserId={user?.id || ''}
+        />
+
+        {/* ── Modal: Attendee Feedback Dashboard (Part 14) ─────────────────── */}
+        <EventFeedbackDashboardModal
+          isOpen={feedbackModalOpen}
+          onClose={() => setFeedbackModalOpen(false)}
+          eventId={event.id}
+          eventTitle={event.title}
+        />
       </div>
     </PageShell>
   )

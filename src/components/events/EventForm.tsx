@@ -25,11 +25,16 @@ import {
   Phone,
   ListPlus,
   Sliders,
+  ArrowUp,
+  ArrowDown,
+  EyeOff,
+  Layout,
 } from 'lucide-react'
 import { Button, Badge } from '@/components/ui'
 import { EVENT_CATEGORIES } from '@/lib/mock-data'
 import { uploadEventPoster, getDefaultPoster, generateSlug, validateEventConfig } from '@/lib/events'
 import { EventPreviewModal } from './EventPreviewModal'
+import { EventPageBuilder } from './EventPageBuilder'
 import { useAuth } from '@/context/AuthContext'
 import type {
   EventRecord,
@@ -43,6 +48,7 @@ import type {
   CustomQuestionType,
   ParticipantFieldsRequirement,
   EventStatus,
+  EventPageSection,
 } from '@/types'
 
 interface EventFormProps {
@@ -109,6 +115,9 @@ export function EventForm({
   // Section 3: Schedule & Timezone
   const [startDate, setStartDate] = useState(toLocalDatetimeInput(initialData?.start_date))
   const [endDate, setEndDate] = useState(toLocalDatetimeInput(initialData?.end_date))
+  const [registrationStart, setRegistrationStart] = useState(
+    toLocalDatetimeInput(initialData?.registration_start_date || initialData?.registration_opens_at)
+  )
   const [registrationClose, setRegistrationClose] = useState(
     toLocalDatetimeInput(initialData?.registration_closes_at)
   )
@@ -148,6 +157,16 @@ export function EventForm({
     initialData?.approval_type || 'automatic'
   )
   const [status, setStatus] = useState<EventStatus>(initialData?.status || 'draft')
+  const [waitlistEnabled, setWaitlistEnabled] = useState<boolean>(
+    initialData?.waitlist_enabled ?? true
+  )
+  const [isUnlisted, setIsUnlisted] = useState<boolean>(
+    initialData?.is_unlisted ?? false
+  )
+  const [coverUrl, setCoverUrl] = useState<string>(initialData?.cover_url || '')
+  const [pageLayout, setPageLayout] = useState<EventPageSection[]>(
+    initialData?.page_layout || []
+  )
 
   // Section 6: Custom Questions Builder
   const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>(
@@ -216,6 +235,18 @@ export function EventForm({
     )
   }
 
+  const handleMoveQuestion = (index: number, direction: 'up' | 'down') => {
+    setCustomQuestions((prev) => {
+      const next = [...prev]
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      if (targetIndex < 0 || targetIndex >= next.length) return prev
+      const temp = next[index]
+      next[index] = next[targetIndex]
+      next[targetIndex] = temp
+      return next
+    })
+  }
+
   // College years toggle
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -229,6 +260,7 @@ export function EventForm({
   ): Omit<EventInsert, 'id' | 'created_at' | 'updated_at'> => {
     const startIso = fromLocalDatetimeInput(startDate)
     const endIso = fromLocalDatetimeInput(endDate)
+    const regStartIso = registrationStart ? fromLocalDatetimeInput(registrationStart) : null
     const regCloseIso = registrationClose ? fromLocalDatetimeInput(registrationClose) : null
     const finalSlug = initialData?.slug || generateSlug(title)
     const finalPoster = posterUrl || getDefaultPoster(category)
@@ -246,14 +278,16 @@ export function EventForm({
       description: description.trim(),
       category,
       poster_url: finalPoster,
+      cover_url: coverUrl.trim() || null,
       start_date: startIso,
       end_date: endIso,
+      registration_start_date: regStartIso,
       venue_name: venueName.trim(),
       venue_address: venueAddress.trim() || null,
       event_type: eventType,
       online_meeting_url: onlineMeetingUrl.trim() || null,
       timezone,
-      registration_opens_at: new Date().toISOString(),
+      registration_opens_at: regStartIso || new Date().toISOString(),
       registration_closes_at: regCloseIso,
       capacity: Number(capacity) || 1,
       is_free: isFree,
@@ -275,6 +309,9 @@ export function EventForm({
       allowed_years: selectedYears.length > 0 ? selectedYears : null,
       custom_questions: customQuestions,
       participant_fields: participantFields,
+      waitlist_enabled: waitlistEnabled,
+      is_unlisted: isUnlisted,
+      page_layout: pageLayout,
       status: action === 'publish' ? 'published' : mode === 'edit' ? status : 'draft',
     }
   }
@@ -467,6 +504,24 @@ export function EventForm({
                 {posterError && <p className="text-xs text-rose-400">{posterError}</p>}
               </div>
             </div>
+          </div>
+
+          {/* Panoramic Cover Image URL (Phase 2) */}
+          <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-surface-3)]">
+            <div className="flex items-center justify-between">
+              <label htmlFor="cover-url" className="text-xs font-semibold text-[var(--color-text-secondary)]">
+                Panoramic Cover Banner URL <span className="text-[var(--color-text-muted)]">(optional wide backdrop)</span>
+              </label>
+              <span className="text-[11px] text-[var(--color-text-muted)]">21:9 or 16:9 ultra-wide banner</span>
+            </div>
+            <input
+              id="cover-url"
+              type="url"
+              placeholder="https://images.unsplash.com/... or hosted image URL"
+              value={coverUrl}
+              onChange={(e) => setCoverUrl(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+            />
           </div>
 
           {/* Contact Information */}
@@ -700,7 +755,7 @@ export function EventForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Timezone Selector */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="timezone-select" className="text-xs font-semibold text-[var(--color-text-secondary)]">
@@ -718,6 +773,20 @@ export function EventForm({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Registration Opening */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="reg-start" className="text-xs font-semibold text-[var(--color-text-secondary)]">
+                Registration Opens <span className="text-[var(--color-text-muted)]">(optional launch)</span>
+              </label>
+              <input
+                id="reg-start"
+                type="datetime-local"
+                value={registrationStart}
+                onChange={(e) => setRegistrationStart(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+              />
             </div>
 
             {/* Registration Deadline */}
@@ -1135,6 +1204,49 @@ export function EventForm({
             )}
           </div>
 
+          {/* Waitlist Toggle (Phase 2) */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold text-[var(--color-text-primary)]">
+                Automated Waitlist Queue
+              </span>
+              <span className="text-[11px] text-[var(--color-text-muted)]">
+                Allow students to join a waitlist when capacity is reached, with instant auto-promotion on cancellations.
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={waitlistEnabled}
+                onChange={(e) => setWaitlistEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-[var(--color-surface-3)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#18CFFC]"></div>
+            </label>
+          </div>
+
+          {/* Unlisted Visibility Toggle (Phase 2) */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold text-[var(--color-text-primary)] flex items-center gap-1.5">
+                <EyeOff size={14} className="text-[#7F1AFB]" />
+                Unlisted Event (Direct Link Only)
+              </span>
+              <span className="text-[11px] text-[var(--color-text-muted)]">
+                Hide this event from the public Discover directory. Only students with the link can view & register.
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isUnlisted}
+                onChange={(e) => setIsUnlisted(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-[var(--color-surface-3)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#7F1AFB]"></div>
+            </label>
+          </div>
+
           {/* Event Status Selector for Edit Mode */}
           {mode === 'edit' && (
             <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-surface-3)]">
@@ -1205,14 +1317,34 @@ export function EventForm({
                     <span className="text-xs font-bold text-[var(--color-text-primary)]">
                       Question #{idx + 1}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveQuestion(q.id)}
-                      className="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Remove question"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveQuestion(idx, 'up')}
+                        disabled={idx === 0}
+                        className="p-1 rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        title="Move question up"
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveQuestion(idx, 'down')}
+                        disabled={idx === customQuestions.length - 1}
+                        className="p-1 rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        title="Move question down"
+                      >
+                        <ArrowDown size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveQuestion(q.id)}
+                        className="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Remove question"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1231,25 +1363,37 @@ export function EventForm({
                       <label className="text-[11px] text-[var(--color-text-muted)]">Response Type</label>
                       <select
                         value={q.type}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const newType = e.target.value as CustomQuestionType
                           handleUpdateQuestion(q.id, {
-                            type: e.target.value as CustomQuestionType,
-                            options: e.target.value === 'select' || e.target.value === 'radio' ? ['Option 1', 'Option 2'] : undefined,
+                            type: newType,
+                            options:
+                              newType === 'select' || newType === 'radio' || newType === 'multiselect'
+                                ? q.options && q.options.length > 0
+                                  ? q.options
+                                  : ['Option 1', 'Option 2']
+                                : undefined,
                           })
-                        }
+                        }}
                         className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                       >
                         <option value="text">Short Text</option>
                         <option value="textarea">Paragraph Text</option>
+                        <option value="email">Email Address</option>
+                        <option value="phone">Phone Number</option>
+                        <option value="number">Numeric Value</option>
                         <option value="select">Dropdown Select</option>
+                        <option value="radio">Multiple Choice (Radio)</option>
+                        <option value="multiselect">Multi-Select Checkboxes</option>
                         <option value="checkbox">Single Checkbox (Yes/No)</option>
-                        <option value="radio">Multiple Choice</option>
+                        <option value="date">Date Picker</option>
+                        <option value="file">File / Document Link</option>
                       </select>
                     </div>
                   </div>
 
-                  {/* Options editor for Select / Radio */}
-                  {(q.type === 'select' || q.type === 'radio') && (
+                  {/* Options editor for Select / Radio / Multiselect */}
+                  {(q.type === 'select' || q.type === 'radio' || q.type === 'multiselect') && (
                     <div className="flex flex-col gap-1.5 pt-1">
                       <label className="text-[11px] text-[var(--color-text-muted)]">
                         Options (comma-separated, at least 2)
@@ -1263,6 +1407,20 @@ export function EventForm({
                             options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean),
                           })
                         }
+                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Placeholder input for text types */}
+                  {(q.type === 'text' || q.type === 'textarea' || q.type === 'email' || q.type === 'phone' || q.type === 'number' || q.type === 'file') && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] text-[var(--color-text-muted)]">Placeholder Text (optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. https://github.com/username or your answer here"
+                        value={q.placeholder || ''}
+                        onChange={(e) => handleUpdateQuestion(q.id, { placeholder: e.target.value })}
                         className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
                       />
                     </div>
@@ -1408,6 +1566,28 @@ export function EventForm({
               )}
             </div>
           </div>
+        </div>
+
+        {/* ── Section 8: Interactive Event Page Customizer (Drag & Drop) ────── */}
+        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC]">
+                <Layout size={18} />
+              </span>
+              <div>
+                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                  Event Page Layout & Content Customizer
+                </h2>
+                <p className="text-xs text-[var(--color-text-secondary)]">
+                  Reorder, toggle visibility, and customize content blocks for the public event landing page
+                </p>
+              </div>
+            </div>
+            <Badge variant="cyan">Step 8</Badge>
+          </div>
+
+          <EventPageBuilder layout={pageLayout} onChange={setPageLayout} />
         </div>
 
         {/* ── Form Actions Bar (Sticky) ────────────────────────────────────── */}

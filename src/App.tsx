@@ -427,6 +427,16 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/student/wishlist',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'platform_admin']}>
+              <StudentDashboardPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
         path: '/student/tickets/:id',
         element: (
           <Suspense fallback={<PageLoader />}>

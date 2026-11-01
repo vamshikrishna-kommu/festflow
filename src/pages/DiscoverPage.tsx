@@ -7,9 +7,12 @@ import {
   Sparkles,
   X,
   Compass,
+  LayoutGrid,
+  Map,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { EventCard } from '@/components/sections/EventCard'
+import { EventDiscoveryMap } from '@/components/events/EventDiscoveryMap'
 import { Button, EmptyState } from '@/components/ui'
 import { staggerContainer, fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
@@ -28,6 +31,7 @@ export default function DiscoverPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError]           = useState<string | null>(null)
 
+  const [viewMode, setViewMode]           = useState<'grid' | 'map'>('grid')
   const [search, setSearch]               = useState('')
   const [category, setCategory]           = useState<CategoryFilter>('all')
   const [participationFilter, setParticipationFilter] = useState<'all' | 'individual' | 'team'>('all')
@@ -109,7 +113,7 @@ export default function DiscoverPage() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 70% 90% at 50% -10%, rgba(255, 87, 34, 0.12) 0%, rgba(255, 122, 26, 0.04) 45%, transparent 75%)',
+              'radial-gradient(ellipse 70% 90% at 50% -10%, rgba(24, 207, 252, 0.12) 0%, rgba(127, 26, 251, 0.05) 45%, transparent 75%)',
           }}
         />
         <div aria-hidden="true" className="absolute inset-0 grid-pattern opacity-15 pointer-events-none" />
@@ -220,6 +224,34 @@ export default function DiscoverPage() {
                     </motion.button>
                   ))}
                 </div>
+
+                {/* View Mode Toggle: Grid vs Map */}
+                <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer text-xs ${
+                      viewMode === 'grid'
+                        ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <LayoutGrid size={13} />
+                    <span className="hidden sm:inline">Grid</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('map')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer text-xs ${
+                      viewMode === 'map'
+                        ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <Map size={13} />
+                    <span>Radar Map</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -289,8 +321,15 @@ export default function DiscoverPage() {
           </div>
         )}
 
+        {/* ── Campus Radar Map View ──────────────────────────────────────── */}
+        {viewMode === 'map' && (
+          <div className="mb-8">
+            <EventDiscoveryMap events={rawEvents} />
+          </div>
+        )}
+
         {/* ── Content Grid / Skeletons / Empty State ────────────────────────── */}
-        {loading ? (
+        {viewMode === 'grid' && (loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {[...Array(8)].map((_, i) => (
               <div
@@ -347,7 +386,7 @@ export default function DiscoverPage() {
               ) : undefined
             }
           />
-        )}
+        ))}
       </div>
     </PageShell>
   )

@@ -1126,11 +1126,15 @@ export async function inviteTeamMember(params: {
       let inviteData: { invitation_id: string; token: string; invite_code: string } | null = null
       let teamRecForEmail: any = null
 
-      const { data, error } = await (supabase.rpc as any)('invite_team_member', {
+      const rpcPromise = (supabase.rpc as any)('invite_team_member', {
         p_team_id: params.teamId,
         p_email: cleanEmail,
         p_name: params.name || null,
       })
+      const rpcTimeout = new Promise<{ data: null; error: any }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: 'RPC timeout' } }), 3500)
+      )
+      const { data, error } = await Promise.race([rpcPromise, rpcTimeout])
 
       if (!error && data?.success) {
         inviteData = {
@@ -1305,21 +1309,29 @@ export async function inviteTeamMember(params: {
       let emailError: string | undefined
 
       if (teamRecForEmail) {
-        const emailRes = await sendTeamInvitationEmail({
-          recipientEmail: cleanEmail,
-          recipientName: params.name,
-          teamName: teamRecForEmail.name,
-          eventTitle: teamRecForEmail.events?.title || 'FestFlow Event',
-          eventSlug: teamRecForEmail.events?.slug || '',
-          leaderName: 'Team Leader',
-          inviteCode: inviteData.invite_code || teamRecForEmail.invite_code,
-          inviteToken: inviteData.token,
-          expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
-          eventId: teamRecForEmail.event_id,
-          teamId: params.teamId,
-        })
-        emailSent = emailRes.success
-        emailError = emailRes.error
+        try {
+          const emailPromise = sendTeamInvitationEmail({
+            recipientEmail: cleanEmail,
+            recipientName: params.name,
+            teamName: teamRecForEmail.name,
+            eventTitle: teamRecForEmail.events?.title || 'FestFlow Event',
+            eventSlug: teamRecForEmail.events?.slug || '',
+            leaderName: 'Team Leader',
+            inviteCode: inviteData.invite_code || teamRecForEmail.invite_code,
+            inviteToken: inviteData.token,
+            expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+            eventId: teamRecForEmail.event_id,
+            teamId: params.teamId,
+          })
+          const emailTimeout = new Promise<{ success: boolean; error: string }>((resolve) =>
+            setTimeout(() => resolve({ success: false, error: 'Email timed out' }), 3000)
+          )
+          const emailRes = await Promise.race([emailPromise, emailTimeout])
+          emailSent = emailRes.success
+          emailError = (emailRes as any).error
+        } catch {
+          emailSent = false
+        }
       }
 
       if (!emailSent) {
@@ -1639,14 +1651,20 @@ export async function getTeamDetails(
         return { success: false, message: tErr?.message || 'Team not found.' }
       }
 
-      // 1. Try querying team_members table
+      // 1. Try querying team_members table with safety timeout
       let memberList: any[] = []
       try {
-        const { data: directMembers, error: memErr } = await (supabase.from('team_members') as any)
+        const queryPromise = (supabase.from('team_members') as any)
           .select('*')
           .eq('team_id', teamId)
           .order('role', { ascending: true }) // leader first
-          .order('joined_at', { ascending: true })
+          .order('created_at', { ascending: true })
+
+        const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: { message: 'query timeout' } }), 3000)
+        )
+
+        const { data: directMembers, error: memErr } = await Promise.race([queryPromise, timeoutPromise])
 
         if (!memErr && directMembers && directMembers.length > 0) {
           memberList = directMembers

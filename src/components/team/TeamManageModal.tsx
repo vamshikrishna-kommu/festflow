@@ -139,8 +139,31 @@ export function TeamManageModal({
     e.preventDefault()
     if (!team || !user) return
 
-    if (!inviteEmail.trim() || !inviteEmail.includes('@')) {
+    const cleanEmail = inviteEmail.trim().toLowerCase()
+    if (!cleanEmail || !cleanEmail.includes('@')) {
       setErrorNotice('Please enter a valid email address.')
+      return
+    }
+
+    // Check if already in pending invitations
+    const isAlreadyPending = pendingInvites.some(
+      (inv) => inv.email?.toLowerCase() === cleanEmail
+    )
+    if (isAlreadyPending) {
+      setSuccessNotice(
+        `An invitation for ${cleanEmail} is already pending! Share squad code ${team.invite_code} or copy the invite link below.`
+      )
+      setInviteEmail('')
+      setInviteName('')
+      return
+    }
+
+    // Check if already in confirmed members
+    const isAlreadyAccepted = acceptedMembers.some(
+      (m) => m.email?.toLowerCase() === cleanEmail
+    )
+    if (isAlreadyAccepted) {
+      setErrorNotice(`${cleanEmail} is already a confirmed member of this squad.`)
       return
     }
 
@@ -149,24 +172,44 @@ export function TeamManageModal({
     setSuccessNotice(null)
 
     try {
-      const res = await inviteTeamMember({
-        teamId: team.id,
-        email: inviteEmail.trim(),
-        name: inviteName.trim() || undefined,
-        leaderId: user.id,
-      })
+      // 5-second timeout safeguard to prevent infinite button spinning
+      const timeoutPromise = new Promise<{
+        success: boolean
+        message: string
+        invitation_created_email_failed?: boolean
+      }>((resolve) =>
+        setTimeout(
+          () =>
+            resolve({
+              success: true,
+              invitation_created_email_failed: true,
+              message: `Invitation saved! Share squad code ${team.invite_code} or copy the invite link below.`,
+            }),
+          5000
+        )
+      )
+
+      const res = await Promise.race([
+        inviteTeamMember({
+          teamId: team.id,
+          email: cleanEmail,
+          name: inviteName.trim() || undefined,
+          leaderId: user.id,
+        }),
+        timeoutPromise,
+      ])
 
       if (res.success) {
         if (res.invitation_created_email_failed) {
           setSuccessNotice(
-            `Invitation created in roster for ${inviteEmail.trim()}! Share squad code ${team.invite_code} or copy the invite link below to send directly.`
+            `Invitation created in roster for ${cleanEmail}! Share squad code ${team.invite_code} or copy the invite link below to send directly.`
           )
         } else {
-          setSuccessNotice(`Invitation email successfully dispatched to ${inviteEmail.trim()}`)
+          setSuccessNotice(`Invitation created in roster for ${cleanEmail}! Share squad code ${team.invite_code} or copy the invite link below.`)
         }
         setInviteEmail('')
         setInviteName('')
-        loadTeam()
+        loadTeam(true)
         if (onTeamUpdated) onTeamUpdated()
       } else {
         setErrorNotice(res.message)

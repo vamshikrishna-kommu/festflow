@@ -34,15 +34,41 @@ export type {
 }
 
 export type Profile = Database['public']['Tables']['profiles']['Row']
-export type ClubProfile = Database['public']['Tables']['club_profiles']['Row']
-export type StudentProfile = Database['public']['Tables']['student_profiles']['Row']
-export type EventRecord = Database['public']['Tables']['events']['Row']
-export type EventInsert = Database['public']['Tables']['events']['Insert']
-export type EventUpdate = Database['public']['Tables']['events']['Update']
+export type ClubProfile = Database['public']['Tables']['club_profiles']['Row'] & {
+  cover_url?: string | null
+  logo_url?: string | null
+  category?: string | null
+  social_links?: ClubSocialLinks | null
+}
+export type StudentProfile = Database['public']['Tables']['student_profiles']['Row'] & {
+  interests?: string[] | null
+}
+export type EventRecord = Database['public']['Tables']['events']['Row'] & {
+  cover_url?: string | null
+  registration_start_date?: string | null
+  page_layout?: EventPageSection[] | null
+  waitlist_enabled?: boolean
+  is_unlisted?: boolean
+}
+export type EventInsert = Database['public']['Tables']['events']['Insert'] & {
+  cover_url?: string | null
+  registration_start_date?: string | null
+  page_layout?: EventPageSection[] | null
+  waitlist_enabled?: boolean
+  is_unlisted?: boolean
+}
+export type EventUpdate = Partial<EventInsert>
 export type RegistrationRecord = Database['public']['Tables']['registrations']['Row'] & {
   attendance_status?: AttendanceStatus
+  waitlist_offer_expires_at?: string | null
+  coupon_id?: string | null
+  discount_amount?: number
 }
-export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert']
+export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert'] & {
+  waitlist_offer_expires_at?: string | null
+  coupon_id?: string | null
+  discount_amount?: number
+}
 export type ClubPaymentSettings = Database['public']['Tables']['club_payment_settings']['Row']
 export type PaymentSubmission = Database['public']['Tables']['payment_submissions']['Row']
 export type InAppNotification = Database['public']['Tables']['in_app_notifications']['Row']
@@ -374,6 +400,50 @@ export interface Event {
   customQuestions?: CustomQuestion[]
   participantFields?: ParticipantFieldsRequirement
   clubId?: string
+  latitude?: number | null
+  longitude?: number | null
+  recommendationReason?: string
+  trendingScore?: number
+}
+
+// ── Phase 1 Student Experience Types ─────────────────────────────────────────
+export type DynamicEventStatus =
+  | 'open'
+  | 'filling_fast'
+  | 'almost_full'
+  | 'sold_out'
+  | 'registration_closed'
+  | 'upcoming'
+  | 'live'
+  | 'completed'
+  | 'cancelled'
+
+export interface WishlistRecord {
+  id: string
+  user_id: string
+  event_id: string
+  created_at: string
+  event?: EventRecord | null
+}
+
+export interface RecentlyViewedRecord {
+  id: string
+  user_id: string
+  event_id: string
+  viewed_at: string
+  event?: EventRecord | null
+}
+
+export interface StudentAchievement {
+  id: string
+  title: string
+  description: string
+  iconName: string
+  badgeLabel: string
+  progress: number
+  total: number
+  unlocked: boolean
+  unlockedAt?: string
 }
 
 export interface Club {
@@ -395,3 +465,93 @@ export type BadgeVariant = 'default' | 'purple' | 'pink' | 'amber' | 'cyan' | 's
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger'
 
 export type ButtonSize = 'sm' | 'md' | 'lg'
+
+// ── Phase 2 Advanced Club Management Types ──────────────────────────────────
+export type EventPageSectionType =
+  | 'hero'
+  | 'intro'
+  | 'about'
+  | 'highlights'
+  | 'schedule'
+  | 'speakers'
+  | 'gallery'
+  | 'faqs'
+  | 'cta'
+  | 'organizer'
+
+export interface EventPageSection {
+  id: string
+  type: EventPageSectionType
+  title?: string
+  enabled: boolean
+  content?: Record<string, any>
+}
+
+export interface EventCouponRecord {
+  id: string
+  club_id: string
+  event_id?: string | null
+  code: string
+  discount_type: 'percentage' | 'fixed'
+  discount_value: number
+  min_purchase_amount: number
+  max_discount_amount?: number | null
+  max_uses: number
+  used_count: number
+  valid_from: string
+  valid_until?: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface CouponValidationResult {
+  valid: boolean
+  coupon?: EventCouponRecord
+  discountAmount: number
+  finalPrice: number
+  error?: string
+}
+
+export type EventAssignmentRole =
+  | 'event_manager'
+  | 'registration_manager'
+  | 'finance_manager'
+  | 'checkin_staff'
+  | 'content_manager'
+
+export interface EventAssignmentRecord {
+  id: string
+  event_id: string
+  club_id: string
+  user_id: string
+  role: EventAssignmentRole
+  assigned_by?: string | null
+  created_at: string
+  user?: Profile | null
+  event?: EventRecord | null
+}
+
+export interface EventFeedbackRecord {
+  id: string
+  event_id: string
+  user_id: string
+  rating: number
+  comment?: string | null
+  is_anonymous: boolean
+  created_at: string
+  user?: Profile | null
+}
+
+export interface ClubSocialLinks {
+  instagram?: string
+  linkedin?: string
+  twitter?: string
+  discord?: string
+  website?: string
+  youtube?: string
+}
+
+export interface WaitlistPromotionResult {
+  promotedCount: number
+  notifiedStudents: string[]
+}

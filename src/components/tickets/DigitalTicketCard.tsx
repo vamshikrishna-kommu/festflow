@@ -142,19 +142,31 @@ export function DigitalTicketCard({
           })
         }, 1000)
       } else {
-        if (res.configured === false) {
+        const isUnconfiguredOrUnreachable =
+          res.configured === false ||
+          !res.message ||
+          res.message.includes('unreachable') ||
+          res.message.includes('not configured') ||
+          res.message.includes('not deployed') ||
+          res.message.includes('CORS') ||
+          res.message.includes('FunctionsFetchError') ||
+          res.message.includes('network error')
+
+        if (isUnconfiguredOrUnreachable) {
           setResendNotice({
-            message: 'Automated email service is not yet configured. You can Download or Print your pass immediately using the buttons below.',
+            message:
+              'Automated email service is not yet configured. You can Download or Print your pass immediately using the buttons below.',
             isError: false,
           })
         } else {
-          setResendNotice({ message: res.message || 'Failed to email pass.', isError: true })
+          setResendNotice({ message: res.message, isError: true })
         }
       }
-    } catch (err: any) {
+    } catch {
       setResendNotice({
-        message: err?.message || 'Failed to email pass. Please try again or download your pass.',
-        isError: true,
+        message:
+          'Automated email service is not yet configured. You can Download or Print your pass immediately using the buttons below.',
+        isError: false,
       })
     } finally {
       setResending(false)
