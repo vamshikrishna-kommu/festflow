@@ -810,7 +810,7 @@ export async function getRegistrationById(
           *,
           club:club_id (
             display_name,
-            club_profiles (*)
+            club_profiles!profile_id (*)
           )
         )
       `
@@ -833,9 +833,14 @@ export async function getRegistrationById(
         }
       }
 
-      // If relational join encountered infinite recursion, recover via decoupled fetch
-      if (error && error.message.includes('infinite recursion')) {
-        console.warn('[FestFlow] RLS recursion detected in getRegistrationById, performing decoupled fetch')
+      // If relational join encountered recursion or embed ambiguity, recover via decoupled fetch
+      if (
+        error &&
+        (error.message.includes('infinite recursion') ||
+          error.message.includes('relationship') ||
+          error.message.includes('embed'))
+      ) {
+        console.warn('[FestFlow] Relational join issue detected in getRegistrationById, performing decoupled fetch')
         const regRes: any = isUuid
           ? await supabase.from('registrations').select('*, check_ins(*)').eq('id', cleanId).maybeSingle()
           : await supabase.from('registrations').select('*, check_ins(*)').eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
@@ -928,7 +933,7 @@ export async function getStudentRegistrations(
             *,
             club:profiles!events_club_id_fkey (
               display_name,
-              club_profiles (*)
+              club_profiles!profile_id (*)
             )
           )
         `
@@ -949,7 +954,7 @@ export async function getStudentRegistrations(
               *,
               club:club_id (
                 display_name,
-                club_profiles (*)
+                club_profiles!profile_id (*)
               )
             )
           `
@@ -961,10 +966,14 @@ export async function getStudentRegistrations(
           data = resFallback.data
         } else if (
           resExplicit.error.message.includes('infinite recursion') ||
-          resFallback.error?.message.includes('infinite recursion')
+          resFallback.error?.message.includes('infinite recursion') ||
+          resExplicit.error.message.includes('relationship') ||
+          resFallback.error?.message.includes('relationship') ||
+          resExplicit.error.message.includes('embed') ||
+          resFallback.error?.message.includes('embed')
         ) {
           // Fallback: 2-step query to decouple registrations and events
-          console.warn('[FestFlow] RLS recursion detected in registrations query, performing 2-step fetch')
+          console.warn('[FestFlow] Performing decoupled fetch for student registrations')
           const { data: rawRegs, error: regErr } = await supabase
             .from('registrations')
             .select('*')
@@ -982,8 +991,7 @@ export async function getStudentRegistrations(
                   *,
                   club:club_id (
                     display_name,
-                    avatar_url,
-                    club_profiles (*)
+                    avatar_url
                   )
                 `
                 )

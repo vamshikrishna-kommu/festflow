@@ -355,48 +355,80 @@ export async function getEventBySlug(
 ): Promise<{ event: EventWithClub | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const selectClause = `
+      const selectClauseDisambiguated = `
         *,
         club:club_id (
           display_name,
           avatar_url,
-          club_profiles (*)
+          club_profiles!profile_id (*)
         )
       `
-      // Prefer unauthenticated client for public event details to avoid user session RLS recursion
-      let { data, error } = await supabasePublic
+      const selectClauseSimple = `
+        *,
+        club:club_id (
+          display_name,
+          avatar_url
+        )
+      `
+
+      // 1. Try with disambiguated relationship
+      let res = await supabasePublic
         .from('events')
-        .select(selectClause)
+        .select(selectClauseDisambiguated)
         .eq('slug', slug)
         .maybeSingle()
 
-      if (error && !error.message.includes('infinite recursion')) {
+      // 2. If embed failed (e.g. multiple relationships error), fall back to simple select
+      if (res.error && (res.error.message.includes('relationship') || res.error.message.includes('embed'))) {
+        res = await supabasePublic
+          .from('events')
+          .select(selectClauseSimple)
+          .eq('slug', slug)
+          .maybeSingle()
+      }
+
+      // 3. Fallback to authenticated client if needed
+      if (res.error && !res.error.message.includes('infinite recursion')) {
         const retry = await supabase
           .from('events')
-          .select(selectClause)
+          .select(selectClauseSimple)
           .eq('slug', slug)
           .maybeSingle()
         if (!retry.error) {
-          data = retry.data
-          error = null
+          res = retry
         }
       }
 
-      if (error) return { event: null, error: error.message }
-      if (!data) return { event: null, error: 'Event not found' }
+      if (res.error) return { event: null, error: res.error.message }
+      if (!res.data) return { event: null, error: 'Event not found' }
 
-      const raw = data as Record<string, unknown>
+      const raw = res.data as Record<string, unknown>
       const clubObj = raw.club as Record<string, unknown> | null
+      let clubProfileObj = Array.isArray(clubObj?.club_profiles)
+        ? clubObj.club_profiles[0]
+        : ((clubObj?.club_profiles as any) || null)
+
+      // If club_profile was not embedded (via simple clause), fetch it directly
+      if (!clubProfileObj && raw.club_id) {
+        try {
+          const { data: cpData } = await supabasePublic
+            .from('club_profiles')
+            .select('*')
+            .eq('profile_id', raw.club_id)
+            .maybeSingle()
+          if (cpData) clubProfileObj = cpData
+        } catch {
+          // ignore
+        }
+      }
 
       const mapped: EventWithClub = {
-        ...(data as unknown as EventRecord),
+        ...(res.data as unknown as EventRecord),
         club: clubObj
           ? {
               display_name: (clubObj.display_name as string) || 'Campus Club',
               avatar_url: (clubObj.avatar_url as string) || null,
-              club_profile: Array.isArray(clubObj.club_profiles)
-                ? clubObj.club_profiles[0]
-                : (clubObj.club_profiles as EventWithClub['club'] extends { club_profile?: infer P } ? P : null),
+              club_profile: clubProfileObj,
             }
           : undefined,
       }
@@ -464,20 +496,10 @@ export async function listPublishedEvents(params?: {
 }): Promise<{ events: EventWithClub[]; count: number; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const executeQuery = (client: typeof supabase) => {
+      const executeQuery = (client: typeof supabase, selectClause: string) => {
         let q = client
           .from('events')
-          .select(
-            `
-            *,
-            club:club_id (
-              display_name,
-              avatar_url,
-              club_profiles (*)
-            )
-          `,
-            { count: 'exact' }
-          )
+          .select(selectClause, { count: 'exact' })
           .eq('status', 'published')
           .order('start_date', { ascending: true })
 
@@ -498,12 +520,44 @@ export async function listPublishedEvents(params?: {
         return q
       }
 
-      // Try with supabasePublic first to prevent user session RLS recursion loops
-      let { data, count, error } = await executeQuery(supabasePublic)
+      const selectDisambiguated = `
+        *,
+        club:club_id (
+          display_name,
+          avatar_url,
+          club_profiles!profile_id (*)
+        )
+      `
+      const selectSimple = `
+        *,
+        club:club_id (
+          display_name,
+          avatar_url
+        )
+      `
 
-      // Fallback to standard client if public client failed (unless failure was infinite recursion)
+      // 1. Try disambiguated select first with supabasePublic
+      let { data, count, error } = await executeQuery(supabasePublic, selectDisambiguated)
+
+      // 2. If relationship embedding failed (due to multiple foreign keys), retry with simple select
+      if (error) {
+        const isEmbedError =
+          error.message.includes('relationship') ||
+          error.message.includes('embed') ||
+          error.message.includes('Could not embed')
+        if (isEmbedError) {
+          const simpleRes = await executeQuery(supabasePublic, selectSimple)
+          if (!simpleRes.error) {
+            data = simpleRes.data
+            count = simpleRes.count
+            error = null
+          }
+        }
+      }
+
+      // 3. Fallback to standard authenticated client if public client failed
       if (error && !error.message.includes('infinite recursion')) {
-        const fallbackRes = await executeQuery(supabase)
+        const fallbackRes = await executeQuery(supabase, selectSimple)
         if (!fallbackRes.error) {
           data = fallbackRes.data
           count = fallbackRes.count
@@ -513,22 +567,59 @@ export async function listPublishedEvents(params?: {
 
       if (error) {
         if (error.message.includes('infinite recursion')) {
-          console.warn('[FestFlow] RLS recursion detected on events relation, please ensure migration 016 is applied:', error.message)
+          console.warn('[FestFlow] RLS recursion detected on events relation:', error.message)
         }
         return { events: [], count: 0, error: error.message }
       }
 
-      const mapped: EventWithClub[] = ((data as unknown as Record<string, unknown>[]) || []).map((row) => {
+      const rawEvents = (data as unknown as Record<string, unknown>[]) || []
+
+      // If any clubs don't have club_profile populated, batch fetch them directly by profile_id
+      const missingClubIds = Array.from(
+        new Set(
+          rawEvents
+            .filter((row) => {
+              const clubObj = row.club as Record<string, unknown> | null
+              return !clubObj || !clubObj.club_profiles
+            })
+            .map((row) => row.club_id as string)
+            .filter(Boolean)
+        )
+      )
+
+      let fetchedClubProfiles: Record<string, any> = {}
+      if (missingClubIds.length > 0) {
+        try {
+          const { data: cpData } = await (supabasePublic as any)
+            .from('club_profiles')
+            .select('*')
+            .in('profile_id', missingClubIds)
+          if (cpData && Array.isArray(cpData)) {
+            for (const cp of cpData as any[]) {
+              if (cp && cp.profile_id) {
+                fetchedClubProfiles[cp.profile_id] = cp
+              }
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const mapped: EventWithClub[] = rawEvents.map((row) => {
         const clubObj = row.club as Record<string, unknown> | null
+        const clubId = row.club_id as string
+        const embeddedCp = Array.isArray(clubObj?.club_profiles)
+          ? clubObj.club_profiles[0]
+          : (clubObj?.club_profiles as any) || fetchedClubProfiles[clubId] || null
+
         return {
           ...(row as unknown as EventRecord),
           club: clubObj
             ? {
                 display_name: (clubObj.display_name as string) || 'Campus Club',
                 avatar_url: (clubObj.avatar_url as string) || null,
-                club_profile: Array.isArray(clubObj.club_profiles)
-                  ? clubObj.club_profiles[0]
-                  : null,
+                club_profile: embeddedCp,
               }
             : undefined,
         }

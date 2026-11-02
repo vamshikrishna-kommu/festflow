@@ -554,8 +554,11 @@ export async function getAdminEvents(filter?: string, search?: string): Promise<
         .from('events')
         .select(`
           id, title, slug, category, status, moderation_status, moderation_notes,
-          start_date, end_date, venue_name, is_free, price, capacity, created_at,
-          club_profiles (club_name)
+          start_date, end_date, venue_name, is_free, price, capacity, created_at, club_id,
+          club:club_id (
+            display_name,
+            club_profiles!profile_id (club_name)
+          )
         `)
         .order('created_at', { ascending: false })
 
@@ -564,11 +567,57 @@ export async function getAdminEvents(filter?: string, search?: string): Promise<
       if (filter === 'rejected') query = query.eq('moderation_status', 'rejected')
       if (search) query = query.ilike('title', `%${search}%`)
 
-      const { data, error } = await query
+      let { data, error } = await query
+
+      // Fallback if join has relationship embed ambiguity
+      if (error) {
+        let fallbackQuery = db
+          .from('events')
+          .select(`
+            id, title, slug, category, status, moderation_status, moderation_notes,
+            start_date, end_date, venue_name, is_free, price, capacity, created_at, club_id
+          `)
+          .order('created_at', { ascending: false })
+
+        if (filter === 'pending_approval') fallbackQuery = fallbackQuery.eq('moderation_status', 'pending_approval')
+        if (filter === 'approved') fallbackQuery = fallbackQuery.eq('moderation_status', 'approved')
+        if (filter === 'rejected') fallbackQuery = fallbackQuery.eq('moderation_status', 'rejected')
+        if (search) fallbackQuery = fallbackQuery.ilike('title', `%${search}%`)
+
+        const fbRes = await fallbackQuery
+        if (!fbRes.error && fbRes.data) {
+          data = fbRes.data
+          error = null
+        }
+      }
+
       if (!error && data) {
+        const clubIds = Array.from(new Set(data.map((e: any) => e.club_id).filter(Boolean)))
+        let clubMap: Record<string, string> = {}
+        if (clubIds.length > 0) {
+          try {
+            const { data: cData } = await db
+              .from('club_profiles')
+              .select('profile_id, club_name')
+              .in('profile_id', clubIds)
+            if (cData) {
+              for (const c of cData) {
+                clubMap[c.profile_id] = c.club_name
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         return data.map((e: any) => ({
           ...e,
-          club_name: e.club_profiles?.club_name || 'Organizing Club',
+          club_name:
+            clubMap[e.club_id] ||
+            e.club?.club_profiles?.[0]?.club_name ||
+            e.club?.club_profiles?.club_name ||
+            e.club?.display_name ||
+            'Organizing Club',
         }))
       }
     } catch {
@@ -885,7 +934,7 @@ export async function getAdminPaymentSubmissions(filter?: string, search?: strin
         .from('payment_submissions')
         .select(`
           id, registration_id, event_id, utr, amount, status, screenshot_url, created_at, verified_at,
-          events (title, club_profiles (club_name)),
+          events (id, title, club_id),
           registrations (profiles (display_name, email))
         `)
         .order('created_at', { ascending: false })
@@ -896,12 +945,30 @@ export async function getAdminPaymentSubmissions(filter?: string, search?: strin
 
       const { data, error } = await query
       if (!error && data) {
+        const clubIds = Array.from(new Set(data.map((p: any) => p.events?.club_id).filter(Boolean)))
+        let clubMap: Record<string, string> = {}
+        if (clubIds.length > 0) {
+          try {
+            const { data: cData } = await db
+              .from('club_profiles')
+              .select('profile_id, club_name')
+              .in('profile_id', clubIds)
+            if (cData) {
+              for (const c of cData) {
+                clubMap[c.profile_id] = c.club_name
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         return data.map((p: any) => ({
           id: p.id,
           registration_id: p.registration_id,
           event_id: p.event_id,
           event_title: p.events?.title || 'Unknown Event',
-          club_name: p.events?.club_profiles?.club_name || 'Organizing Club',
+          club_name: clubMap[p.events?.club_id] || 'Organizing Club',
           student_name: p.registrations?.profiles?.display_name || 'Student Attendee',
           student_email: p.registrations?.profiles?.email || 'student@campus.edu',
           utr: p.utr,
