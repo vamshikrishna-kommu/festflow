@@ -296,7 +296,11 @@ export default function StudentPaymentPage() {
     setNotice(null)
     setFieldError(null)
 
-    let uploadedScreenshotUrl = screenshotPreview
+    // Store verified storage path rather than large data URIs
+    let uploadedScreenshotUrl =
+      submission?.screenshot_url ||
+      (screenshotPreview && !screenshotPreview.startsWith('data:') ? screenshotPreview : null)
+
     if (screenshotFile) {
       setUploadingScreenshot(true)
       const uploadRes = await uploadPaymentScreenshot(user.id, screenshotFile)
@@ -323,6 +327,7 @@ export default function StudentPaymentPage() {
       transactionReference: cleanRef,
       screenshotUrl: uploadedScreenshotUrl,
       notes: combinedNotes || null,
+      amount: effectiveAmount,
     })
 
     setSubmitting(false)

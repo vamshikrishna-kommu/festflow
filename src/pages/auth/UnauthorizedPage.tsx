@@ -15,9 +15,10 @@ export default function UnauthorizedPage() {
   } | null
 
   const isClub = role === 'club_member'
+  const isAdmin = role === 'platform_admin'
 
-  const dashboardPath = isClub ? '/club/dashboard' : '/student/dashboard'
-  const dashboardLabel = isClub ? 'Club Dashboard' : 'Student Dashboard'
+  const dashboardPath = isAdmin ? '/admin/dashboard' : isClub ? '/club/dashboard' : '/student/dashboard'
+  const dashboardLabel = isAdmin ? 'Super Admin Portal' : isClub ? 'Club Dashboard' : 'Student Dashboard'
 
   return (
     <div className="min-h-screen pt-28 pb-16 px-4 flex flex-col justify-center items-center bg-[var(--color-surface-0)] relative overflow-hidden">

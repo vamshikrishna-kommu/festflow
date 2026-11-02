@@ -51,6 +51,7 @@ export async function registerForEvent(
     teamMembers?: TeamMember[]
     customResponses?: Record<string, any>
     participantDetails?: Record<string, any>
+    ticketTierId?: string
   }
 ): Promise<RegistrationResponse> {
   if (isSupabaseConfigured) {
@@ -61,6 +62,7 @@ export async function registerForEvent(
         p_team_members: options?.teamMembers || [],
         p_custom_responses: options?.customResponses || {},
         p_participant_details: options?.participantDetails || {},
+        p_ticket_tier_id: options?.ticketTierId || null,
       })
 
       if (error) {
@@ -338,7 +340,33 @@ export async function registerForEvent(
 
     const ticketCode = 'FF-' + Math.random().toString(36).substring(2, 10).toUpperCase()
     const qrToken = 'FFQ_' + Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase()
-    const isFree = event.is_free
+    
+    // Resolve ticket tier details if selected
+    let selectedTier: any = null
+    if (options?.ticketTierId) {
+      try {
+        const rawTiers = typeof localStorage !== 'undefined' ? localStorage.getItem('festflow_event_ticket_tiers') : null
+        if (rawTiers) {
+          const tiers = JSON.parse(rawTiers)
+          selectedTier = tiers.find((t: any) => t.id === options.ticketTierId && t.event_id === eventId)
+          if (selectedTier) {
+            if (selectedTier.sold_count >= selectedTier.capacity) {
+              return {
+                success: false,
+                error_code: 'TIER_SOLD_OUT',
+                message: `The "${selectedTier.name}" ticket category is sold out.`,
+              }
+            }
+            selectedTier.sold_count = (selectedTier.sold_count || 0) + 1
+            localStorage.setItem('festflow_event_ticket_tiers', JSON.stringify(tiers))
+          }
+        }
+      } catch {
+        // ignore tier lookup error
+      }
+    }
+
+    const isFree = selectedTier ? selectedTier.price === 0 : event.is_free
     const isManualApproval = event.approval_type === 'manual'
 
     let initialStatus: RegistrationStatus
@@ -382,6 +410,9 @@ export async function registerForEvent(
       participant_details: options?.participantDetails || {},
       approval_status: approvalStatus,
       rejection_reason: null,
+      ticket_tier_id: selectedTier ? selectedTier.id : null,
+      ticket_tier_name: selectedTier ? selectedTier.name : null,
+      unit_price: selectedTier ? selectedTier.price : null,
     }
 
     currentRegs.unshift(newReg)

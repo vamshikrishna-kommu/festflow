@@ -41,6 +41,7 @@ interface EventRegistrationModalProps {
   user: SupabaseUser
   profile: Profile | null
   studentProfile: StudentProfile | null
+  selectedTierId?: string | null
   onSuccess: (res: RegistrationResponse) => void
 }
 
@@ -51,6 +52,7 @@ export function EventRegistrationModal({
   user,
   profile,
   studentProfile,
+  selectedTierId,
   onSuccess,
 }: EventRegistrationModalProps) {
   const hasTeam = event.participation_type === 'team'
@@ -400,6 +402,7 @@ export function EventRegistrationModal({
       teamMembers: hasTeam ? teamMembers : undefined,
       customResponses: customAnswers,
       participantDetails,
+      ticketTierId: selectedTierId || undefined,
     }
 
     const res = await registerForEvent(event.id, user.id, payload)

@@ -19,6 +19,7 @@ import { PlatformCapabilitiesSection } from '@/components/sections/PlatformCapab
 import { CategoryShowcaseSection } from '@/components/sections/CategoryShowcaseSection'
 import { EventGrid } from '@/components/sections/EventGrid'
 import { Button, EmptyState, KineticHeading } from '@/components/ui'
+import { SEOHead } from '@/components/seo/SEOHead'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
 import type { Event as UiEvent } from '@/types'
@@ -340,6 +341,11 @@ export default function LandingPage() {
 
   return (
     <PageShell fullbleed>
+      <SEOHead
+        title="FestFlow — Discover & Manage College Events"
+        description="The premier event platform for college clubs and students. Discover campus hackathons, workshops, cultural fests, UPI payment verification, and encrypted QR entry passes."
+        canonicalPath="/"
+      />
       {/* 1. Hero with Cinematic 3D Centerpiece */}
       <HeroSection />
 

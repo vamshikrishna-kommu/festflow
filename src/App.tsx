@@ -11,6 +11,8 @@ import { AuthProvider } from '@/context/AuthContext'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Logo } from '@/components/ui'
+import { NetworkStatusBanner } from '@/components/common/NetworkStatusBanner'
+import { registerServiceWorker } from '@/lib/pwa'
 
 // Lazy-load pages for code splitting
 const LandingPage          = lazy(() => import('@/pages/LandingPage'))
@@ -61,6 +63,24 @@ const TeammateDiscoveryPage = lazy(() => import('@/pages/community/TeammateDisco
 const StudentProfilePage    = lazy(() => import('@/pages/community/StudentProfilePage'))
 const ClubProfilePage       = lazy(() => import('@/pages/community/ClubProfilePage'))
 const MessagesPage          = lazy(() => import('@/pages/community/MessagesPage'))
+
+// Phase 7: Super Admin & Platform Management
+const AdminDashboardPage     = lazy(() => import('@/pages/admin/AdminDashboardPage'))
+const AdminCollegesPage      = lazy(() => import('@/pages/admin/AdminCollegesPage'))
+const AdminClubsPage         = lazy(() => import('@/pages/admin/AdminClubsPage'))
+const AdminStudentsPage      = lazy(() => import('@/pages/admin/AdminStudentsPage'))
+const AdminEventsPage        = lazy(() => import('@/pages/admin/AdminEventsPage'))
+const AdminReportsPage       = lazy(() => import('@/pages/admin/AdminReportsPage'))
+const AdminAnnouncementsPage = lazy(() => import('@/pages/admin/AdminAnnouncementsPage'))
+const AdminFinancesPage      = lazy(() => import('@/pages/admin/AdminFinancesPage'))
+const AdminSettingsPage      = lazy(() => import('@/pages/admin/AdminSettingsPage'))
+const AdminAuditLogsPage     = lazy(() => import('@/pages/admin/AdminAuditLogsPage'))
+const AdminTeamPage          = lazy(() => import('@/pages/admin/AdminTeamPage'))
+
+// Phase 8: Notifications & Automation
+const NotificationsPage      = lazy(() => import('@/pages/notifications/NotificationsPage'))
+const ClubAutomationPage     = lazy(() => import('@/pages/club/ClubAutomationPage'))
+const AdminAutomationPage    = lazy(() => import('@/pages/admin/AdminAutomationPage'))
 
 // Branded full-page loading fallback
 function PageLoader() {
@@ -133,8 +153,14 @@ function RootLayout() {
     }
   }, [location.pathname, location.hash, navigationType])
 
+  // Initialize PWA service worker in browser environments
+  useEffect(() => {
+    registerServiceWorker()
+  }, [])
+
   return (
     <>
+      <NetworkStatusBanner />
       <ScrollRestoration
         getKey={(loc) => {
           // Returning loc.pathname ensures that changing query parameters (such as filters,
@@ -142,7 +168,9 @@ function RootLayout() {
           return loc.pathname
         }}
       />
-      <Outlet />
+      <main id="main-content">
+        <Outlet />
+      </main>
     </>
   )
 }
@@ -363,6 +391,16 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/club/events/:id/automation',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+              <ClubAutomationPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
         path: '/club/members',
         element: (
           <Suspense fallback={<PageLoader />}>
@@ -549,13 +587,133 @@ const router = createBrowserRouter([
         ),
       },
 
-      // Admin-only route: platform administration
+      // Phase 7: Super Admin & Platform Management Routes
       {
         path: '/admin',
         element: (
           <Suspense fallback={<PageLoader />}>
             <ProtectedRoute allowedRoles={['platform_admin']}>
-              <ClubDashboardPage />
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/dashboard',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/colleges',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminCollegesPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/clubs',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminClubsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/students',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminStudentsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/events',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminEventsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/reports',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminReportsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/announcements',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminAnnouncementsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/finances',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminFinancesPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/settings',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminSettingsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/automation',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminAutomationPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/audit-logs',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminAuditLogsPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/admin/team',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['platform_admin']}>
+              <AdminTeamPage />
             </ProtectedRoute>
           </Suspense>
         ),
@@ -658,6 +816,16 @@ const router = createBrowserRouter([
           <Suspense fallback={<PageLoader />}>
             <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
               <MessagesPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/notifications',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <NotificationsPage />
             </ProtectedRoute>
           </Suspense>
         ),

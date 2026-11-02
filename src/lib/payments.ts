@@ -289,8 +289,9 @@ export async function submitPaymentProof(params: {
   transactionReference: string
   screenshotUrl?: string | null
   notes?: string | null
+  amount?: number | null
 }): Promise<PaymentSubmissionResponse> {
-  const { registrationId, transactionReference, screenshotUrl, notes } = params
+  const { registrationId, transactionReference, screenshotUrl, notes, amount } = params
   const cleanRef = transactionReference.trim()
 
   if (!cleanRef || cleanRef.length < 6 || cleanRef.length > 24) {
@@ -303,22 +304,38 @@ export async function submitPaymentProof(params: {
 
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await (supabase.rpc as any)('submit_payment_submission', {
+      let rpcRes = await (supabase.rpc as any)('submit_payment_submission', {
         p_registration_id: registrationId,
         p_transaction_reference: cleanRef,
         p_screenshot_url: screenshotUrl || null,
         p_notes: notes || null,
+        p_amount: amount !== undefined && amount !== null ? amount : null,
       })
 
-      if (error) {
+      // Gracefully fallback to 4-parameter version if migration 039 is not yet executed in database
+      if (
+        rpcRes.error &&
+        (rpcRes.error.message?.includes('does not exist') ||
+          rpcRes.error.message?.includes('parameter') ||
+          rpcRes.error.message?.includes('schema cache'))
+      ) {
+        rpcRes = await (supabase.rpc as any)('submit_payment_submission', {
+          p_registration_id: registrationId,
+          p_transaction_reference: cleanRef,
+          p_screenshot_url: screenshotUrl || null,
+          p_notes: notes || null,
+        })
+      }
+
+      if (rpcRes.error) {
         return {
           success: false,
           error_code: 'RPC_ERROR',
-          message: error.message,
+          message: rpcRes.error.message,
         }
       }
 
-      const res = data as PaymentSubmissionResponse
+      const res = rpcRes.data as PaymentSubmissionResponse
       if (res.success) {
         // Dispatch payment_received transactional email
         try {
@@ -385,11 +402,12 @@ export async function submitPaymentProof(params: {
   // Local Simulation Mode (Development only)
   const subs = getLocalPaymentSubmissions()
 
-  // Prevent duplicate active/approved submission with identical ref
+  // Prevent duplicate active/approved submission with identical ref on other registrations
   const duplicate = subs.find(
     (s) =>
       s.transaction_reference.toLowerCase() === cleanRef.toLowerCase() &&
-      (s.status === 'pending_review' || s.status === 'approved')
+      (s.status === 'pending_review' || s.status === 'approved') &&
+      s.registration_id !== registrationId
   )
   if (duplicate) {
     return {
@@ -409,28 +427,44 @@ export async function submitPaymentProof(params: {
 
   // Retrieve event to get expected price
   const eventRes = await getEventById(eventId)
-  const amount = eventRes.event?.price || 499
+  const baseAmount = amount !== undefined && amount !== null ? amount : (eventRes.event?.price || 499)
   const currency = eventRes.event?.currency || 'INR'
 
-  const newSub: PaymentSubmission = {
-    id: `sub_${Date.now()}`,
-    registration_id: registrationId,
-    student_id: studentId,
-    event_id: eventId,
-    amount,
-    currency,
-    transaction_reference: cleanRef,
-    screenshot_url: screenshotUrl || null,
-    status: 'pending_review',
-    reviewer_id: null,
-    review_notes: notes || null,
-    submitted_at: new Date().toISOString(),
-    reviewed_at: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+  let submissionId = `sub_${Date.now()}`
+  const existingSubIndex = subs.findIndex((s) => s.registration_id === registrationId)
+  if (existingSubIndex >= 0) {
+    submissionId = subs[existingSubIndex].id
+    subs[existingSubIndex] = {
+      ...subs[existingSubIndex],
+      transaction_reference: cleanRef,
+      screenshot_url: screenshotUrl || subs[existingSubIndex].screenshot_url,
+      review_notes: notes || subs[existingSubIndex].review_notes,
+      amount: baseAmount,
+      status: 'pending_review',
+      reviewer_id: null,
+      reviewed_at: null,
+      updated_at: new Date().toISOString(),
+    }
+  } else {
+    const newSub: PaymentSubmission = {
+      id: submissionId,
+      registration_id: registrationId,
+      student_id: studentId,
+      event_id: eventId,
+      amount: baseAmount,
+      currency,
+      transaction_reference: cleanRef,
+      screenshot_url: screenshotUrl || null,
+      status: 'pending_review',
+      reviewer_id: null,
+      review_notes: notes || null,
+      submitted_at: new Date().toISOString(),
+      reviewed_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    subs.unshift(newSub)
   }
-
-  subs.unshift(newSub)
   saveLocalPaymentSubmissions(subs)
 
   // Update local registration status to pending_payment if previously rejected
@@ -472,7 +506,7 @@ export async function submitPaymentProof(params: {
     name: recipientName,
     eventTitle: eventRes.event?.title || 'Campus Event',
     transactionReference: cleanRef,
-    amount,
+    amount: baseAmount,
     registrationId,
     eventId,
   }).catch(() => {})
@@ -484,13 +518,13 @@ export async function submitPaymentProof(params: {
     eventId,
     studentId,
     clubId: eventRes.event?.club_id,
-    payload: { transactionReference: cleanRef, amount },
+    payload: { transactionReference: cleanRef, amount: baseAmount },
   })
 
   return {
     success: true,
     message: 'Payment reference submitted successfully for organizer verification.',
-    submission_id: newSub.id,
+    submission_id: submissionId,
     status: 'pending_review',
   }
 }

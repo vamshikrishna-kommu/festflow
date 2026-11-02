@@ -80,7 +80,7 @@ export interface AuthContextType {
     preferences?: Record<string, any>
   }) => Promise<{ error: string | null }>
   // Demo simulation helper for testing when Supabase is not yet connected
-  setDemoUser: (role: 'club_member' | 'student') => void
+  setDemoUser: (role: 'club_member' | 'student' | 'platform_admin') => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -1190,15 +1190,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // ── Fast Demo Sign-In Helper (Development Only) ─────────────────────────
-  const setDemoUser = useCallback((targetRole: 'club_member' | 'student') => {
+  const setDemoUser = useCallback((targetRole: 'club_member' | 'student' | 'platform_admin') => {
     if (isProduction) {
       console.error('[FestFlow Security Safeguard] Demo logins are permanently disabled in production builds.')
       return
     }
 
     const isClub = targetRole === 'club_member'
-    const name = isClub ? 'Sarah Chen' : 'Alex Rivera'
-    const email = isClub ? 'organizer@robotics-club.edu' : 'alex.rivera@campus.edu'
+    const isAdmin = targetRole === 'platform_admin'
+    const name = isAdmin ? 'Platform Administrator' : isClub ? 'Sarah Chen' : 'Alex Rivera'
+    const email = isAdmin ? 'admin@festflow.online' : isClub ? 'organizer@robotics-club.edu' : 'alex.rivera@campus.edu'
     const demoId = `demo_${targetRole}_${Date.now()}`
 
     const demoData: SimulatedAuthData = {

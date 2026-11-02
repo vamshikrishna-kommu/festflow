@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs'
+import type ExcelJS from 'exceljs'
 import type {
   EventRecord,
   RegistrationWithStudent,
@@ -7,6 +7,11 @@ import type {
   CheckInRecord,
   CustomQuestion,
 } from '@/types'
+
+async function createWorkbook(): Promise<ExcelJS.Workbook> {
+  const { default: ExcelJSClass } = await import('exceljs')
+  return new ExcelJSClass.Workbook()
+}
 
 /**
  * Escapes cell values to prevent formula injection (CSV/Excel Formula Injection / DDE vulnerability).
@@ -204,7 +209,7 @@ export async function buildFullAttendeesWorkbook(params: {
 }): Promise<ExcelJS.Workbook> {
   const { event, registrations, checkIns = [], payments = [], isAuthorized } = params
 
-  const workbook = new ExcelJS.Workbook()
+  const workbook = await createWorkbook()
   workbook.creator = 'FestFlow Campus Event Management'
   workbook.created = new Date()
 
@@ -394,7 +399,7 @@ export async function buildAttendanceWorkbook(params: {
 }): Promise<ExcelJS.Workbook> {
   const { event, registrations, checkIns = [] } = params
 
-  const workbook = new ExcelJS.Workbook()
+  const workbook = await createWorkbook()
   workbook.creator = 'FestFlow Campus Gate Operations'
   workbook.created = new Date()
 
@@ -505,7 +510,7 @@ export async function buildTeamsWorkbook(params: {
 }): Promise<ExcelJS.Workbook> {
   const { event, registrations } = params
 
-  const workbook = new ExcelJS.Workbook()
+  const workbook = await createWorkbook()
   workbook.creator = 'FestFlow Campus Squad Management'
   workbook.created = new Date()
 
@@ -615,7 +620,7 @@ export async function buildPaymentsWorkbook(params: {
     throw new Error('Unauthorized: Payment reconciliation reports are restricted to authorized club organizers.')
   }
 
-  const workbook = new ExcelJS.Workbook()
+  const workbook = await createWorkbook()
   workbook.creator = 'FestFlow Campus Payment Review'
   workbook.created = new Date()
 

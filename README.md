@@ -36,7 +36,7 @@ supabase secrets set RESEND_FROM_EMAIL="FestFlow <events@yourdomain.com>"
 
 ---
 
-## Database Migrations (001 – 016)
+## Database Migrations (001 – 043 Complete Suite)
 
 Apply the SQL migration scripts in numerical sequence via the **Supabase Dashboard SQL Editor** or using the Supabase CLI (`supabase db push`):
 
@@ -59,6 +59,30 @@ Apply the SQL migration scripts in numerical sequence via the **Supabase Dashboa
 17. **`017_fix_registration_payment_and_checkin_bugs.sql`**: Registration status synchronization and edge case fixes.
 18. **`018_trusted_payment_verification_and_replay_hardening.sql`**: Payment replay protection and least-privilege permissions.
 19. **`019_upi_only_payments.sql`**: Direct UPI only payments, tamper-evident audit logs (`payment_audit_logs`), and decommissioned gateway checkouts.
+20. **`020_team_registration_and_invitations.sql`**: Team formation, invite tokens, squad capacity enforcement, and squad membership.
+21. **`021_email_outbox_and_team_tickets.sql`**: Enhanced email templates, team ticket delivery, and idempotent queue deduplication.
+22. **`022_attendance_lifecycle_checkout_and_cancellation.sql`**: Check-in, check-out turnstile tracking, and student self-cancellation rules.
+23. **`023_club_members_and_permissions.sql`**: Granular role-based club team memberships (`president`, `lead_organizer`, `finance_lead`, `volunteer`).
+24. **`024_club_invitation_preview_and_acceptance.sql`**: Secure invitation tokens for joining club teams.
+25. **`025_team_invitation_preview_and_acceptance.sql`**: Previews and verification for squad invitations.
+26. **`026_team_payment_and_pass_lifecycle.sql`**: Team-wide payment coordination; team leader submits single UTR for entire squad.
+27. **`027_fix_gen_random_bytes.sql`**: PostgreSQL pgcrypto extension compatibility fixes.
+28. **`028_fix_team_members_rls_recursion.sql`**: Resolves circular dependency in team members RLS policy checks.
+29. **`029_fix_profile_role_escalation_trigger.sql`**: Hardens role escalation trigger to block unauthorized privilege elevation.
+30. **`030_student_experience_phase1.sql`**: Phase 1: Student experience enhancements, profile fields, avatar uploads, and interests.
+31. **`031_club_management_phase2.sql`**: Phase 2: Club profile verification requests, club badges, and social links.
+32. **`032_ticketing_and_payments_phase3.sql`**: Phase 3: Coupon codes system (`event_coupons`), redemption counting, and discount calculations.
+33. **`033_fix_profile_triggers_and_team_members_rls.sql`**: Cleanup and stabilization of profile triggers and recursive RLS evaluations.
+34. **`034_certificates_and_achievements_phase4.sql`**: Phase 4: Verifiable certificates (`event_certificates`), public verification hashes, badge unlocks.
+35. **`035_social_and_campus_community_phase5.sql`**: Phase 5: Campus discussion feed (`community_posts`, `community_comments`), teammate discovery opt-in (`teammate_profiles`).
+36. **`036_auto_verify_upi_payment.sql`**: Server-side RPC foundation for payment verification and pass delivery.
+37. **`037_secure_upi_payment_lifecycle.sql`**: Authoritative payment verification enforcement; passes strictly locked until manual approval.
+38. **`038_performance_indexes.sql`**: High-performance composite indexes for Discover events, attendance scanner lookups, and notifications. Guarded with `information_schema` existence checks.
+39. **`039_fix_payment_submission_authorization.sql`**: Authoritative payment submission bug fix. Allows student UTR submissions & resubmissions via `submit_payment_submission` RPC without trigger authorization conflicts, while strictly forbidding client-side self-approvals.
+40. **`040_advanced_event_experience_phase6.sql`**: Phase 6: Multi-tier ticketing (`event_ticket_tiers`), chronological schedules (`event_schedules`), speakers (`event_speakers`), galleries (`event_gallery`), live announcements (`event_announcements`), competition leaderboard (`event_leaderboards`), and merchandise add-ons (`event_merchandise`).
+41. **`041_super_admin_and_platform_management_phase7.sql`**: Phase 7: Super Admin portal (`colleges`, `abuse_reports`, `platform_announcements`, `platform_settings`, `admin_audit_logs`).
+42. **`042_notifications_and_automation_phase8.sql`**: Phase 8: Real-time notification center, preferences (`notification_preferences`), waitlist queues (`event_waitlist`), and club automation rules (`event_automation_rules`).
+43. **`043_production_excellence_and_scalability_phase9.sql`**: Phase 9: Partial composite indexes, atomic `validate_and_check_in_ticket()` turnstile RPC, offline PWA cache support.
 
 ---
 

@@ -21,6 +21,7 @@ import {
   MessageSquare,
   User,
   UserPlus,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button, Badge, Logo } from '@/components/ui'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
@@ -74,6 +75,7 @@ export function Navbar() {
     activeWorkspace,
     isDualEligible,
     activeClubRole,
+    role,
     switchWorkspace,
   } = useAuth()
 
@@ -348,6 +350,20 @@ export function Navbar() {
                                   <ChevronRight size={12} className="opacity-60" />
                                 </button>
                               )}
+                            </div>
+                          )}
+
+                          {/* Super Admin Portal Quick Link */}
+                          {role === 'platform_admin' && (
+                            <div className="mb-2 pb-2 border-b border-[var(--color-surface-3)]">
+                              <Link
+                                to="/admin/dashboard"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#18CFFC] bg-[#18CFFC]/10 border border-[#18CFFC]/30 hover:bg-[#18CFFC]/20 transition-all"
+                              >
+                                <ShieldCheck size={14} className="text-[#18CFFC]" />
+                                <span>Super Admin Control Center</span>
+                              </Link>
                             </div>
                           )}
 

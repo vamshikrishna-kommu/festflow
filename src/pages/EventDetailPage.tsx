@@ -27,6 +27,11 @@ import {
   CalendarPlus,
   Zap,
   Download,
+  ChevronDown,
+  ChevronUp,
+  Video,
+  Sliders,
+  Trophy,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
@@ -38,12 +43,51 @@ import { fadeIn } from '@/lib/animations'
 import { EventRegistrationModal } from '@/components/events/EventRegistrationModal'
 import { JoinTeamModal } from '@/components/team/JoinTeamModal'
 import { EventShareModal } from '@/components/events/EventShareModal'
+import { SEOHead } from '@/components/seo/SEOHead'
 import { EventCountdown } from '@/components/events/EventCountdown'
 import { isEventSavedSync, toggleWishlist } from '@/lib/wishlist'
 import { recordRecentlyViewed } from '@/lib/recentlyViewed'
 import { generateGoogleCalendarUrl, downloadIcsFile } from '@/lib/calendar'
 import { EventDiscussionSection } from '@/components/events/EventDiscussionSection'
-import type { EventWithClub, RegistrationRecord } from '@/types'
+
+// Phase 6 Advanced Event Experience Imports
+import { EventTicketTiersSection } from '@/components/events/EventTicketTiersSection'
+import { EventScheduleSection } from '@/components/events/EventScheduleSection'
+import { EventSpeakersSection } from '@/components/events/EventSpeakersSection'
+import { EventGallerySection } from '@/components/events/EventGallerySection'
+import { EventAnnouncementsSection } from '@/components/events/EventAnnouncementsSection'
+import { EventLeaderboardSection } from '@/components/events/EventLeaderboardSection'
+import { EventVirtualJoinSection } from '@/components/events/EventVirtualJoinSection'
+import { EventAddonsSection } from '@/components/events/EventAddonsSection'
+import { EventOrganizerExperienceModal } from '@/components/events/EventOrganizerExperienceModal'
+import {
+  getEventTicketTiers,
+  getEventSchedules,
+  getEventSpeakers,
+  getEventGallery,
+  getEventAnnouncements,
+  getEventLeaderboard,
+  getEventAddons,
+  getRelatedEvents,
+} from '@/lib/eventExperience'
+import {
+  getEventWaitlistStatus,
+  joinEventWaitlist,
+  leaveEventWaitlist,
+  type EventWaitlistStatus,
+} from '@/lib/notifications'
+import type {
+  EventWithClub,
+  RegistrationRecord,
+  EventTicketTier,
+  EventScheduleItem,
+  EventSpeaker,
+  EventGalleryImage,
+  EventAnnouncement,
+  EventLeaderboardEntry,
+  EventAddon,
+  RelatedEventSummary,
+} from '@/types'
 
 export default function EventDetailPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -78,6 +122,24 @@ export default function EventDetailPage() {
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [cancelSuccess, setCancelSuccess] = useState<string | null>(null)
 
+  // Phase 6 Experience States
+  const [ticketTiers, setTicketTiers] = useState<EventTicketTier[]>([])
+  const [selectedTierId, setSelectedTierId] = useState<string | null>(null)
+  const [schedules, setSchedules] = useState<EventScheduleItem[]>([])
+  const [speakers, setSpeakers] = useState<EventSpeaker[]>([])
+  const [galleryImages, setGalleryImages] = useState<EventGalleryImage[]>([])
+  const [announcements, setAnnouncements] = useState<EventAnnouncement[]>([])
+  const [leaderboardEntries, setLeaderboardEntries] = useState<EventLeaderboardEntry[]>([])
+  const [addons, setAddons] = useState<EventAddon[]>([])
+  const [relatedEvents, setRelatedEvents] = useState<RelatedEventSummary[]>([])
+  const [showOrganizerModal, setShowOrganizerModal] = useState(false)
+  const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null)
+
+  // Phase 8 Waitlist States
+  const [waitlistStatus, setWaitlistStatus] = useState<EventWaitlistStatus | null>(null)
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false)
+  const [waitlistMessage, setWaitlistMessage] = useState<string | null>(null)
+
   // Listen for ?join=1 or ?code=XYZ in URL to auto-open Join Team modal
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -88,6 +150,24 @@ export default function EventDetailPage() {
       setShowJoinModal(true)
     }
   }, [location.search])
+
+  // Load Phase 6 Advanced Experience Data
+  const loadPhase6Data = (eventId: string, category: string) => {
+    getEventTicketTiers(eventId).then((t) => {
+      setTicketTiers(t)
+      if (t.length > 0 && !selectedTierId) {
+        const firstAvailable = t.find((tier) => tier.is_active && tier.sold_count < tier.capacity) || t[0]
+        setSelectedTierId(firstAvailable.id)
+      }
+    })
+    getEventSchedules(eventId).then(setSchedules)
+    getEventSpeakers(eventId).then(setSpeakers)
+    getEventGallery(eventId).then(setGalleryImages)
+    getEventAnnouncements(eventId).then(setAnnouncements)
+    getEventLeaderboard(eventId).then(setLeaderboardEntries)
+    getEventAddons(eventId).then(setAddons)
+    getRelatedEvents(eventId, category).then(setRelatedEvents)
+  }
 
   // Load event by slug
   useEffect(() => {
@@ -103,6 +183,7 @@ export default function EventDetailPage() {
         setError(res.error || 'Event could not be found.')
       } else {
         setEvent(res.event)
+        loadPhase6Data(res.event.id, res.event.category)
       }
     })
 
@@ -134,6 +215,7 @@ export default function EventDetailPage() {
       (e) => {
         if (!e.eventId || (event && e.eventId === event.id)) {
           refreshRegistration(true)
+          if (event) loadPhase6Data(event.id, event.category)
         }
       }
     )
@@ -146,7 +228,32 @@ export default function EventDetailPage() {
       setIsSaved(isEventSavedSync(user.id, event.id))
       recordRecentlyViewed(user.id, mapRecordToUiEvent(event as any))
     }
+    if (event?.id) {
+      getEventWaitlistStatus(event.id, user?.id).then(setWaitlistStatus)
+    }
   }, [user, event])
+
+  const handleJoinWaitlist = async () => {
+    if (!event) return
+    if (!user) {
+      navigate(`/student/login?redirect=${encodeURIComponent(location.pathname)}`)
+      return
+    }
+    setIsJoiningWaitlist(true)
+    const res = await joinEventWaitlist(event.id, user.id)
+    setIsJoiningWaitlist(false)
+    setWaitlistMessage(res.message)
+    if (res.success) {
+      getEventWaitlistStatus(event.id, user.id).then(setWaitlistStatus)
+    }
+  }
+
+  const handleLeaveWaitlist = async () => {
+    if (!waitlistStatus?.userEntry || !user || !event) return
+    await leaveEventWaitlist(waitlistStatus.userEntry.id, user.id)
+    getEventWaitlistStatus(event.id, user.id).then(setWaitlistStatus)
+    setWaitlistMessage('You have left the waitlist.')
+  }
 
   const handleWishlistToggle = async () => {
     if (!user?.id || !event) return
@@ -177,12 +284,17 @@ export default function EventDetailPage() {
     setShowShareModal(true)
   }
 
+  // Selected Tier Details
+  const selectedTier = ticketTiers.find((t) => t.id === selectedTierId)
+  const displayPrice = selectedTier ? selectedTier.price : (event?.price ?? 0)
+  const displayIsFree = selectedTier ? selectedTier.price === 0 : Boolean(event?.is_free)
+
   // One-click quick registration eligibility
   const canQuickRegister = Boolean(
     user &&
     role === 'student' &&
     !existingReg &&
-    (event?.is_free || event?.price === 0) &&
+    displayIsFree &&
     event?.participation_type === 'individual' &&
     !(event as any)?.requires_approval &&
     (!event?.custom_questions || event.custom_questions.length === 0)
@@ -198,6 +310,7 @@ export default function EventDetailPage() {
       const college = studentProfile?.college_name || (user.user_metadata?.college as string) || 'Campus Student'
 
       const res = await registerForEvent(event.id, user.id, {
+        ticketTierId: selectedTierId || undefined,
         participantDetails: {
           full_name: studentName,
           college_name: college,
@@ -224,7 +337,6 @@ export default function EventDetailPage() {
   // CTA Click Handler
   const handleCtaClick = () => {
     if (!user) {
-      // Direct logged-out user to student login with return path preserved
       navigate('/student/login', {
         state: { from: location.pathname },
       })
@@ -250,7 +362,7 @@ export default function EventDetailPage() {
         <div className="max-w-5xl mx-auto px-4 py-28 flex flex-col items-center justify-center">
           <div className="w-10 h-10 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-cyan)] animate-spin mb-4" />
           <span className="text-xs text-[var(--color-text-muted)] font-medium">
-            Loading event details…
+            Loading event experience…
           </span>
         </div>
       </PageShell>
@@ -361,8 +473,24 @@ export default function EventDetailPage() {
       ? event.poster_url
       : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
 
+  // Capacity Calculations & Urgency
+  const totalCapacity = event.capacity || 100
+  const occupiedCount = (event as any).registered_count || (ticketTiers.reduce((acc, t) => acc + (t.sold_count || 0), 0) || 0)
+  const remainingSeats = Math.max(0, totalCapacity - occupiedCount)
+  const capacityPercent = Math.min(100, Math.round((occupiedCount / totalCapacity) * 100))
+
+  // Pinned Announcement
+  const pinnedAnnouncement = announcements.find((a) => a.is_pinned)
+
   return (
     <PageShell>
+      <SEOHead
+        title={event.title}
+        description={event.description ? event.description.slice(0, 160) : `Join ${event.title} organized by ${(event as any).club?.name || 'FestFlow Club'}.`}
+        canonicalPath={`/events/${event.slug || event.id}`}
+        ogImage={posterSource}
+        eventData={event as any}
+      />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-24 text-left">
         {/* ── Breadcrumb & Utility Bar ──────────────────────────────────────── */}
         <div className="flex items-center justify-between py-4 text-xs text-zinc-400 border-b border-white/[0.08] mb-6 flex-wrap gap-2">
@@ -373,12 +501,24 @@ export default function EventDetailPage() {
             <span className="text-zinc-600">/</span>
             <span className="capitalize">{event.category}</span>
             <span className="text-zinc-600">/</span>
-            <span className="text-white font-medium truncate max-w-[200px] sm:max-w-xs">
+            <span className="text-white font-medium truncate max-w-[180px] sm:max-w-xs">
               {event.title}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Organizer Quick Management Pill */}
+            {(isOwner || role === 'platform_admin') && (
+              <button
+                type="button"
+                onClick={() => setShowOrganizerModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#18CFFC]/20 to-[#7F1AFB]/20 border border-[#18CFFC]/40 text-[#18CFFC] hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer"
+              >
+                <Sliders size={13} />
+                <span>Experience Desk</span>
+              </button>
+            )}
+
             {user && (
               <button
                 type="button"
@@ -391,7 +531,7 @@ export default function EventDetailPage() {
                 aria-label={isSaved ? 'Saved in Wishlist' : 'Save to Wishlist'}
               >
                 <Heart size={14} className={isSaved ? 'fill-current text-rose-400' : 'text-zinc-400'} />
-                <span>{isSaved ? 'Saved' : 'Save Event'}</span>
+                <span>{isSaved ? 'Saved' : 'Save'}</span>
               </button>
             )}
 
@@ -405,6 +545,26 @@ export default function EventDetailPage() {
             </button>
           </div>
         </div>
+
+        {/* ── Pinned Live Announcement Alert Banner (if exists) ────────────── */}
+        {pinnedAnnouncement && (
+          <motion.div
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-[#18CFFC]/20 via-[#0E0E12] to-[#7F1AFB]/20 border border-[#18CFFC]/50 text-white flex items-start gap-3 text-xs sm:text-sm shadow-lg shadow-[#18CFFC]/10"
+          >
+            <Sparkles size={20} className="text-[#18CFFC] shrink-0 mt-0.5 animate-pulse" />
+            <div>
+              <strong className="block font-bold text-white mb-0.5">
+                📢 {pinnedAnnouncement.title}
+              </strong>
+              <p className="text-zinc-200 leading-relaxed font-sans">
+                {pinnedAnnouncement.content}
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         {/* ── Status Notice Banners ────────────────────────────────────────── */}
         {isCancelled && (
@@ -475,41 +635,41 @@ export default function EventDetailPage() {
           </motion.div>
         )}
 
-        {/* ── Editorial Hero Poster Banner ─────────────────────────────────── */}
-        <div className="relative w-full h-60 sm:h-80 md:h-[420px] rounded-3xl overflow-hidden border border-[var(--color-surface-3)] mb-6 sm:mb-8 shadow-2xl">
+        {/* ── Editorial Cinematic Hero Poster Banner ───────────────────────── */}
+        <div className="relative w-full h-64 sm:h-84 md:h-[430px] rounded-3xl overflow-hidden border border-white/[0.08] mb-6 sm:mb-8 shadow-2xl group">
           <img
             src={posterSource}
             alt={event.title}
             onError={() => setBannerImgError(true)}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
 
           {/* Badges Overlay */}
-          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-wrap gap-1.5 sm:gap-2 max-w-[calc(100%-1.5rem)]">
+          <div className="absolute top-3 left-3 sm:top-5 sm:left-5 flex flex-wrap gap-1.5 sm:gap-2 max-w-[calc(100%-1.5rem)]">
             <CategoryBadge category={event.category} />
             {event.event_type === 'online' && (
-              <Badge variant="cyan" className="text-xs">
-                Online Session
+              <Badge variant="cyan" className="text-xs flex items-center gap-1 shadow-md">
+                <Video size={12} /> Virtual Session
               </Badge>
             )}
             {event.event_type === 'hybrid' && (
-              <Badge variant="amber" className="text-xs">
-                Hybrid Event
+              <Badge variant="amber" className="text-xs flex items-center gap-1 shadow-md">
+                <Globe size={12} /> Hybrid Event
               </Badge>
             )}
             {event.event_type === 'offline' && (
-              <Badge variant="default" className="text-xs">
+              <Badge variant="default" className="text-xs shadow-md">
                 Campus In-Person
               </Badge>
             )}
             {event.participation_type === 'team' && (
-              <Badge variant="pink" className="text-xs flex items-center gap-1">
-                <Users size={12} /> Team ({event.min_team_size}–{event.max_team_size})
+              <Badge variant="pink" className="text-xs flex items-center gap-1 shadow-md">
+                <Users size={12} /> Squad ({event.min_team_size}–{event.max_team_size})
               </Badge>
             )}
             {event.approval_type === 'manual' && (
-              <Badge variant="purple" className="text-xs flex items-center gap-1">
+              <Badge variant="purple" className="text-xs flex items-center gap-1 shadow-md">
                 <ShieldCheck size={12} /> Host Approval Req.
               </Badge>
             )}
@@ -517,11 +677,11 @@ export default function EventDetailPage() {
 
           {/* Title on Poster */}
           <div className="absolute bottom-5 sm:bottom-8 left-5 right-5 sm:left-8 sm:right-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-white tracking-tight leading-snug drop-shadow-md line-clamp-2">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold font-display text-white tracking-tight leading-snug drop-shadow-lg line-clamp-2">
               {event.title}
             </h1>
             {event.summary && (
-              <p className="text-white/85 text-xs sm:text-sm mt-2 max-w-2xl line-clamp-2 leading-relaxed">
+              <p className="text-white/90 text-xs sm:text-sm md:text-base mt-2 max-w-2xl line-clamp-2 leading-relaxed drop-shadow">
                 {event.summary}
               </p>
             )}
@@ -530,7 +690,7 @@ export default function EventDetailPage() {
 
         {/* ── Main Content & Registration Layout ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Left 2 Cols: Editorial Details */}
+          {/* Left 2 Cols: Editorial Details & Phase 6 Experience Sections */}
           <div className="lg:col-span-2 flex flex-col gap-8">
             {/* Organizer Card */}
             <div className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-center justify-between gap-4 shadow-sm">
@@ -553,6 +713,14 @@ export default function EventDetailPage() {
 
               {isOwner && (
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowOrganizerModal(true)}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                  >
+                    <Sliders size={14} className="text-[#18CFFC]" />
+                    <span>Manage Hub</span>
+                  </button>
                   <Link to={`/club/events/${event.id}/registrations`}>
                     <Button variant="outline" size="sm" leftIcon={<Users size={14} />}>
                       Attendees
@@ -597,12 +765,48 @@ export default function EventDetailPage() {
                   </strong>
                   <span className="text-zinc-400 truncate block">
                     {event.event_type === 'online'
-                      ? (existingReg ? (event.online_meeting_url || 'Meeting link issued on digital pass') : 'Link unlocked upon confirmed registration')
+                      ? 'Encrypted Virtual Access Portal'
                       : (event.venue_address || 'Campus Campus')}
                   </span>
                 </div>
               </div>
             </div>
+
+            {/* ── Virtual / Hybrid Meeting Portal (Phase 6) ────────────────── */}
+            {(event.event_type === 'online' || event.event_type === 'hybrid') && (
+              <EventVirtualJoinSection
+                eventId={event.id}
+                eventType={event.event_type}
+                eventData={{
+                  start_date: event.start_date,
+                  end_date: event.end_date,
+                  access_window_minutes: (event as any).access_window_minutes || 30,
+                  meeting_platform: (event as any).meeting_platform,
+                  meeting_url: (event as any).meeting_url,
+                  joining_instructions: (event as any).joining_instructions,
+                  club_id: event.club_id,
+                }}
+                userId={user?.id}
+                isConfirmedAttendee={existingReg?.status === 'confirmed'}
+              />
+            )}
+
+            {/* ── Live Event Announcements (Phase 6) ───────────────────────── */}
+            {announcements.length > 0 && (
+              <EventAnnouncementsSection announcements={announcements} />
+            )}
+
+            {/* ── Multiple Ticket Categories & Passes (Phase 6) ────────────── */}
+            {ticketTiers.length > 0 && (
+              <EventTicketTiersSection
+                tiers={ticketTiers}
+                selectedTierId={selectedTierId}
+                onSelectTier={setSelectedTierId}
+                disabled={Boolean(existingReg)}
+                isCancelled={isCancelled}
+                isCompleted={isCompleted}
+              />
+            )}
 
             {/* Team Rules Callout (if team event) */}
             {event.participation_type === 'team' && (
@@ -637,21 +841,6 @@ export default function EventDetailPage() {
               </div>
             )}
 
-            {/* Custom Questions Notice (if configured by organizer) */}
-            {event.custom_questions && event.custom_questions.length > 0 && (
-              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3 text-xs">
-                <HelpCircle size={18} className="text-[#18CFFC] shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-white font-semibold block mb-0.5">
-                    Organizer Questionnaire Included
-                  </strong>
-                  <span className="text-zinc-400">
-                    The host requires {event.custom_questions.length} custom question{event.custom_questions.length > 1 ? 's' : ''} to be answered during checkout for attendee preparation.
-                  </span>
-                </div>
-              </div>
-            )}
-
             {/* Event Description */}
             <div className="flex flex-col gap-3">
               <h2 className="text-lg font-bold font-heading text-white">
@@ -662,13 +851,42 @@ export default function EventDetailPage() {
               </div>
             </div>
 
+            {/* ── Event Schedule & Timeline (Phase 6) ──────────────────────── */}
+            {schedules.length > 0 && (
+              <EventScheduleSection schedules={schedules} />
+            )}
+
+            {/* ── Featured Speakers & Judges (Phase 6) ─────────────────────── */}
+            {speakers.length > 0 && (
+              <EventSpeakersSection speakers={speakers} />
+            )}
+
+            {/* ── Event Moments Gallery (Phase 6) ──────────────────────────── */}
+            {galleryImages.length > 0 && (
+              <EventGallerySection images={galleryImages} />
+            )}
+
+            {/* ── Competition Leaderboard & Standings (Phase 6) ────────────── */}
+            {(Boolean((event as any).leaderboard_enabled) || leaderboardEntries.length > 0) && (
+              <EventLeaderboardSection
+                entries={leaderboardEntries}
+                title={(event as any).leaderboard_title || 'Competition Standings'}
+                isOrganizer={isOwner || role === 'platform_admin'}
+              />
+            )}
+
+            {/* ── Official Merchandise & Add-ons (Phase 6) ─────────────────── */}
+            {addons.length > 0 && (
+              <EventAddonsSection addons={addons} />
+            )}
+
             {/* Event Rules & Code of Conduct */}
             {event.rules && (
               <div className="flex flex-col gap-3">
                 <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] flex items-center gap-2">
-                  <FileText size={18} className="text-[var(--color-brand-cyan)]" /> Rules & Code of Conduct
+                  <FileText size={18} className="text-[#18CFFC]" /> Rules & Code of Conduct
                 </h2>
-                <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line bg-[var(--color-surface-1)] p-6 rounded-2xl border border-[oklch(100%_0_0_/_0.08)] shadow-sm">
+                <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line bg-[#0E0E12] p-6 rounded-2xl border border-white/[0.08] shadow-sm">
                   {event.rules}
                 </div>
               </div>
@@ -680,21 +898,83 @@ export default function EventDetailPage() {
                 <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] flex items-center gap-2">
                   <Sparkles size={18} className="text-amber-400" /> Eligibility & Requirements
                 </h2>
-                <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed bg-[var(--color-surface-1)] p-5 rounded-2xl border border-[oklch(100%_0_0_/_0.08)] flex items-start gap-3 shadow-sm">
+                <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08] flex items-start gap-3 shadow-sm">
                   <span>{event.eligibility}</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── Prizes & Rewards (if configured) ─────────────────────────── */}
+            {Array.isArray((event as any).prizes) && (event as any).prizes.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                  <Trophy size={18} className="text-amber-400" />
+                  Prizes & Rewards
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(event as any).prizes.map((prz: any, i: number) => (
+                    <div
+                      key={i}
+                      className="p-4 rounded-xl bg-gradient-to-b from-[#14141A] to-[#0E0E12] border border-white/[0.08] flex flex-col items-center text-center shadow-sm"
+                    >
+                      <span className="text-xs font-mono text-amber-400 font-bold mb-1">
+                        {prz.rank}
+                      </span>
+                      <span className="text-sm font-bold text-white mb-1">{prz.title}</span>
+                      <span className="text-lg font-extrabold text-[#18CFFC]">{prz.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Structured FAQs Accordion (Phase 6) ──────────────────────── */}
+            {Array.isArray((event as any).faqs) && (event as any).faqs.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                  <HelpCircle size={18} className="text-[#ED47FC]" />
+                  Frequently Asked Questions
+                </h2>
+                <div className="bg-[#0E0E12] p-4 sm:p-5 rounded-2xl border border-white/[0.08] flex flex-col gap-2.5">
+                  {(event as any).faqs.map((faq: any, i: number) => {
+                    const isOpen = activeFaqIndex === i
+                    return (
+                      <div
+                        key={i}
+                        className="p-3.5 rounded-xl bg-[#14141A] border border-white/[0.06] transition-all cursor-pointer"
+                        onClick={() => setActiveFaqIndex(isOpen ? null : i)}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <h4 className="text-xs sm:text-sm font-semibold text-white">
+                            {faq.question}
+                          </h4>
+                          {isOpen ? (
+                            <ChevronUp size={16} className="text-[#18CFFC] shrink-0" />
+                          ) : (
+                            <ChevronDown size={16} className="text-zinc-500 shrink-0" />
+                          )}
+                        </div>
+                        {isOpen && (
+                          <p className="text-xs text-zinc-300 leading-relaxed mt-2 pt-2 border-t border-white/[0.06] font-sans">
+                            {faq.answer}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
 
             {/* Organizer Contact Info */}
             {(event.contact_email || event.contact_phone) && (
-              <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <span className="text-[var(--color-text-muted)] font-medium">Have questions? Reach the host directly:</span>
+              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <span className="text-zinc-400 font-medium">Have questions? Reach the host directly:</span>
                 <div className="flex items-center gap-4 flex-wrap">
                   {event.contact_email && (
                     <a
                       href={`mailto:${event.contact_email}`}
-                      className="flex items-center gap-1.5 text-[var(--color-brand-cyan)] hover:underline font-medium"
+                      className="flex items-center gap-1.5 text-[#18CFFC] hover:underline font-medium"
                     >
                       <Mail size={14} /> {event.contact_email}
                     </a>
@@ -702,7 +982,7 @@ export default function EventDetailPage() {
                   {event.contact_phone && (
                     <a
                       href={`tel:${event.contact_phone}`}
-                      className="flex items-center gap-1.5 text-[var(--color-brand-purple)] hover:underline font-medium"
+                      className="flex items-center gap-1.5 text-[#7F1AFB] hover:underline font-medium"
                     >
                       <Phone size={14} /> {event.contact_phone}
                     </a>
@@ -711,167 +991,128 @@ export default function EventDetailPage() {
               </div>
             )}
 
-            {/* ── Dynamic Page Builder Custom Sections (Phase 2) ──────────── */}
-            {Array.isArray((event as any).page_layout) &&
-              (event as any).page_layout
-                .filter((sec: any) => sec.is_visible !== false)
-                .map((sec: any) => {
-                  if (sec.section_type === 'schedule' && Array.isArray(sec.content?.items) && sec.content.items.length > 0) {
-                    return (
-                      <div key={sec.id} className="flex flex-col gap-3">
-                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                          <Clock size={18} className="text-[#18CFFC]" />
-                          {sec.title || 'Event Schedule & Timeline'}
-                        </h2>
-                        <div className="bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08] flex flex-col gap-3">
-                          {sec.content.items.map((item: any, i: number) => (
-                            <div key={i} className="flex items-start gap-4 pb-3 border-b border-white/[0.06] last:border-b-0 last:pb-0">
-                              <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-[#14141A] text-[#18CFFC] border border-white/10 shrink-0">
-                                {item.time}
-                              </span>
-                              <div>
-                                <h4 className="text-sm font-semibold text-white">{item.title}</h4>
-                                {item.description && (
-                                  <p className="text-xs text-zinc-400 mt-0.5">{item.description}</p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+            {/* Event Community Q&A and Discussions */}
+            <EventDiscussionSection
+              eventId={event.id}
+              clubId={event.club_id}
+              isOrganizer={user?.id === event.club_id || role === 'platform_admin'}
+            />
+
+            {/* ── Related Events Recommendations (Phase 6) ────────────────── */}
+            {relatedEvents.length > 0 && (
+              <div className="flex flex-col gap-3 pt-6 border-t border-white/[0.08]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold font-heading text-white">
+                      Explore More Campus Events
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Other recommended {event.category} events on FestFlow
+                    </p>
+                  </div>
+                  <Link
+                    to="/discover"
+                    className="text-xs text-[#18CFFC] hover:underline font-semibold"
+                  >
+                    View All
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {relatedEvents.map((rel) => (
+                    <Link
+                      key={rel.id}
+                      to={`/events/${rel.slug}`}
+                      className="group p-3 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-[#18CFFC]/50 transition-all flex flex-col justify-between gap-2 shadow-sm"
+                    >
+                      <div>
+                        <div className="w-full h-24 rounded-xl overflow-hidden mb-2 bg-[#14141A]">
+                          <img
+                            src={
+                              rel.cover_url ||
+                              rel.poster_url ||
+                              (CATEGORY_POSTERS as Record<string, string>)[rel.category] ||
+                              CATEGORY_POSTERS.tech
+                            }
+                            alt={rel.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
                         </div>
+                        <h4 className="text-xs font-bold text-white group-hover:text-[#18CFFC] transition-colors line-clamp-1">
+                          {rel.title}
+                        </h4>
+                        <span className="text-[10px] text-zinc-400 block truncate">
+                          {new Date(rel.start_date).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}{' '}
+                          • {rel.venue_name}
+                        </span>
                       </div>
-                    )
-                  }
-
-                  if (sec.section_type === 'speakers' && Array.isArray(sec.content?.speakers) && sec.content.speakers.length > 0) {
-                    return (
-                      <div key={sec.id} className="flex flex-col gap-3">
-                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                          <Users size={18} className="text-[#7F1AFB]" />
-                          {sec.title || 'Featured Speakers & Guests'}
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {sec.content.speakers.map((spk: any, i: number) => (
-                            <div key={i} className="p-4 rounded-xl bg-[#0E0E12] border border-white/[0.08] flex items-center gap-3">
-                              {spk.avatar_url ? (
-                                <img src={spk.avatar_url} alt={spk.name} className="w-11 h-11 rounded-full object-cover border border-white/10" />
-                              ) : (
-                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/30 flex items-center justify-center text-white font-bold text-sm">
-                                  {spk.name?.charAt(0) || 'S'}
-                                </div>
-                              )}
-                              <div>
-                                <h4 className="text-sm font-semibold text-white">{spk.name}</h4>
-                                <span className="text-xs text-zinc-400 block">{spk.role}{spk.company ? ` • ${spk.company}` : ''}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="flex items-center justify-between text-[10px] pt-1 border-t border-white/[0.06]">
+                        <span className="text-zinc-500 uppercase">{rel.category}</span>
+                        <span className="font-bold text-white">
+                          {rel.is_free ? 'Free' : `₹${rel.price}`}
+                        </span>
                       </div>
-                    )
-                  }
-
-                  if (sec.section_type === 'faqs' && Array.isArray(sec.content?.faqs) && sec.content.faqs.length > 0) {
-                    return (
-                      <div key={sec.id} className="flex flex-col gap-3">
-                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                          <HelpCircle size={18} className="text-[#ED47FC]" />
-                          {sec.title || 'Frequently Asked Questions'}
-                        </h2>
-                        <div className="bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08] flex flex-col gap-3">
-                          {sec.content.faqs.map((faq: any, i: number) => (
-                            <div key={i} className="pb-3 border-b border-white/[0.06] last:border-b-0 last:pb-0">
-                              <h4 className="text-sm font-semibold text-white mb-1">{faq.question}</h4>
-                              <p className="text-xs text-zinc-400 leading-relaxed">{faq.answer}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  if (sec.section_type === 'prizes' && Array.isArray(sec.content?.prizes) && sec.content.prizes.length > 0) {
-                    return (
-                      <div key={sec.id} className="flex flex-col gap-3">
-                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                          <Sparkles size={18} className="text-amber-400" />
-                          {sec.title || 'Prizes & Rewards'}
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {sec.content.prizes.map((prz: any, i: number) => (
-                            <div key={i} className="p-4 rounded-xl bg-gradient-to-b from-[#14141A] to-[#0E0E12] border border-white/[0.08] flex flex-col items-center text-center">
-                              <span className="text-xs font-mono text-amber-400 font-bold mb-1">{prz.rank}</span>
-                              <span className="text-sm font-bold text-white mb-1">{prz.title}</span>
-                              <span className="text-lg font-extrabold text-[#18CFFC]">{prz.amount}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  if (sec.section_type === 'sponsors' && Array.isArray(sec.content?.sponsors) && sec.content.sponsors.length > 0) {
-                    return (
-                      <div key={sec.id} className="flex flex-col gap-3">
-                        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                          <Building2 size={18} className="text-[#07A4FC]" />
-                          {sec.title || 'Event Partners & Sponsors'}
-                        </h2>
-                        <div className="flex flex-wrap items-center gap-3 bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08]">
-                          {sec.content.sponsors.map((spn: any, i: number) => (
-                            <div key={i} className="px-4 py-2 rounded-xl bg-[#14141A] border border-white/10 flex items-center gap-2">
-                              {spn.logo_url && <img src={spn.logo_url} alt={spn.name} className="h-5 object-contain" />}
-                              <span className="text-xs font-semibold text-white">{spn.name}</span>
-                              <span className="text-[10px] text-zinc-500 uppercase">{spn.tier}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  return null
-                })}
-
-              {/* Event Community Q&A and Discussions */}
-              <EventDiscussionSection
-                eventId={event.id}
-                clubId={event.club_id}
-                isOrganizer={user?.id === event.club_id || role === 'platform_admin'}
-              />
-            </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Right 1 Col: Registration & Ticket Card */}
           <div className="flex flex-col gap-6">
             <div className="p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.1] shadow-2xl flex flex-col gap-5 lg:sticky lg:top-28">
+              {/* Fee & Tier Indicator */}
               <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                 <div>
                   <span className="text-xs text-zinc-500 font-medium block">
-                    Admission Fee
+                    {selectedTier ? selectedTier.name : 'Admission Fee'}
                   </span>
                   <span className="text-2xl sm:text-3xl font-extrabold font-heading text-white">
-                    {event.is_free ? (
+                    {displayIsFree ? (
                       <span className="text-emerald-400">Free Entry</span>
                     ) : (
-                      `₹${event.price}`
+                      `₹${displayPrice}`
                     )}
                   </span>
                 </div>
-                <Badge variant={event.is_free ? 'success' : 'purple'}>
-                  {event.is_free ? 'Complimentary' : 'Ticketed'}
+                <Badge variant={displayIsFree ? 'success' : 'purple'}>
+                  {displayIsFree ? 'Complimentary' : selectedTier ? selectedTier.tier_type.toUpperCase() : 'Ticketed'}
                 </Badge>
+              </div>
+
+              {/* Real-time Urgency & Capacity Progress Bar */}
+              <div className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400 flex items-center gap-1 font-medium">
+                    <Users size={13} className="text-[#18CFFC]" /> Seat Availability
+                  </span>
+                  <span className="font-mono text-white font-bold">
+                    {remainingSeats} left of {totalCapacity}
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden border border-white/5">
+                  <div
+                    className={`h-full transition-all duration-500 rounded-full ${
+                      capacityPercent >= 85
+                        ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+                        : 'bg-gradient-to-r from-[#18CFFC] to-[#07A4FC]'
+                    }`}
+                    style={{ width: `${capacityPercent}%` }}
+                  />
+                </div>
+                {capacityPercent >= 80 && remainingSeats > 0 && (
+                  <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                    🔥 Filling fast! Only {remainingSeats} seat{remainingSeats > 1 ? 's' : ''} left
+                  </span>
+                )}
               </div>
 
               {/* Specifications */}
               <div className="flex flex-col gap-2.5 text-xs text-zinc-300">
-                <div className="flex items-center justify-between py-1 border-b border-white/[0.06]">
-                  <span className="flex items-center gap-1.5 text-zinc-500">
-                    <Users size={14} className="text-[#18CFFC]" /> Total Capacity
-                  </span>
-                  <span className="font-semibold text-white font-mono">
-                    {event.capacity} seats
-                  </span>
-                </div>
-
                 <div className="flex items-center justify-between py-1 border-b border-white/[0.06]">
                   <span className="flex items-center gap-1.5 text-zinc-500">
                     <UserCheck size={14} className="text-[#18CFFC]" /> Participation
@@ -996,6 +1237,73 @@ export default function EventDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-2 mt-2">
+                  {/* Waitlist Callout if Event is Full / Sold Out */}
+                  {remainingSeats === 0 && totalCapacity > 0 && !existingReg && (
+                    <div className="space-y-2 mb-2">
+                      {waitlistStatus?.userEntry?.status === 'waiting' ? (
+                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold flex items-center gap-1.5 text-xs">
+                              <Clock size={15} /> You're on the Waitlist!
+                            </span>
+                            <span className="px-2 py-0.5 rounded font-mono text-xs font-bold bg-amber-400/20 text-amber-300">
+                              Position #{waitlistStatus.userEntry.position}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-amber-200/80 leading-relaxed">
+                            If an attendee cancels or capacity expands, we'll notify you immediately with a claim window.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleLeaveWaitlist}
+                            className="text-[11px] text-amber-300/70 hover:text-amber-200 underline cursor-pointer"
+                          >
+                            Leave waitlist
+                          </button>
+                        </div>
+                      ) : waitlistStatus?.userEntry?.status === 'offered' ? (
+                        <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 space-y-2">
+                          <span className="font-bold flex items-center gap-1.5 text-xs">
+                            <Sparkles size={15} /> A Spot Opened Up for You!
+                          </span>
+                          <p className="text-[11px] text-emerald-200/90 leading-relaxed">
+                            A seat is reserved for you. Complete registration now!
+                          </p>
+                          <Button
+                            variant="primary"
+                            size="md"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold"
+                            onClick={() => handleCtaClick()}
+                          >
+                            Claim Reserved Pass
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
+                            <AlertCircle size={15} />
+                            <span>Event Capacity Reached (Sold Out)</span>
+                          </div>
+                          <Button
+                            variant="primary"
+                            size="lg"
+                            className="w-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-bold"
+                            disabled={isJoiningWaitlist}
+                            onClick={handleJoinWaitlist}
+                            leftIcon={<Clock size={16} />}
+                          >
+                            {isJoiningWaitlist ? 'Joining Waitlist...' : 'Join Event Waitlist'}
+                          </Button>
+                          {waitlistMessage && (
+                            <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300">
+                              {waitlistMessage}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* One-Click Fast Registration for eligible free individual events */}
                   {canQuickRegister && (
                     <Button
@@ -1042,9 +1350,9 @@ export default function EventDetailPage() {
                       ? 'Sign In to Register'
                       : canQuickRegister
                       ? 'Custom Details Registration'
-                      : event.is_free
+                      : displayIsFree
                       ? (event.participation_type === 'team' ? 'Register Team (Free)' : 'Claim Free Pass')
-                      : (event.participation_type === 'team' ? 'Register Team Pass' : 'Register for Event')}
+                      : (event.participation_type === 'team' ? 'Register Team Pass' : `Register (₹${displayPrice})`)}
                   </Button>
                 </div>
               )}
@@ -1117,7 +1425,7 @@ export default function EventDetailPage() {
               </div>
 
               <p className="text-[11px] text-zinc-500 text-center leading-relaxed">
-                Tickets are issued instantly as digital QR passes with real-time gate authentication.
+                Tickets are issued as authenticated digital QR passes with instant gate verification.
               </p>
             </div>
           </div>
@@ -1176,6 +1484,7 @@ export default function EventDetailPage() {
             user={user}
             profile={profile}
             studentProfile={studentProfile}
+            selectedTierId={selectedTierId}
             onSuccess={(res) => {
               if (res.registration_id) {
                 setExistingReg({
@@ -1187,7 +1496,7 @@ export default function EventDetailPage() {
                     res.status ||
                     (event.approval_type === 'manual'
                       ? 'pending_approval'
-                      : event.is_free
+                      : displayIsFree
                       ? 'confirmed'
                       : 'pending_payment'),
                   created_at: new Date().toISOString(),
@@ -1197,6 +1506,9 @@ export default function EventDetailPage() {
                   approval_status:
                     res.approval_status ||
                     (event.approval_type === 'manual' ? 'pending' : 'approved'),
+                  ticket_tier_id: selectedTier ? selectedTier.id : null,
+                  ticket_tier_name: selectedTier ? selectedTier.name : null,
+                  unit_price: selectedTier ? selectedTier.price : null,
                 } as any)
               }
             }}
@@ -1253,7 +1565,7 @@ export default function EventDetailPage() {
                   <strong className="text-[var(--color-text-primary)]">{event.title}</strong>? Your seat will be returned to the event's public capacity for other campus students.
                 </p>
 
-                {!event.is_free && (
+                {!displayIsFree && (
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300 flex flex-col gap-1">
                     <strong className="font-semibold flex items-center gap-1.5 text-amber-200">
                       <AlertCircle size={14} /> Campus Payment & Refund Policy
@@ -1309,16 +1621,42 @@ export default function EventDetailPage() {
           </Modal>
         )}
 
+        {/* ── Organizer Experience Manager Hub Modal (Phase 6) ─────────────── */}
+        {event && (
+          <EventOrganizerExperienceModal
+            isOpen={showOrganizerModal}
+            onClose={() => setShowOrganizerModal(false)}
+            eventId={event.id}
+            clubId={event.club_id}
+            initialData={{
+              meetingPlatform: (event as any).meeting_platform,
+              meetingUrl: (event as any).meeting_url,
+              joiningInstructions: (event as any).joining_instructions,
+              accessWindowMinutes: (event as any).access_window_minutes,
+              leaderboardEnabled: (event as any).leaderboard_enabled,
+              leaderboardTitle: (event as any).leaderboard_title,
+            }}
+            tiers={ticketTiers}
+            schedules={schedules}
+            speakers={speakers}
+            gallery={galleryImages}
+            announcements={announcements}
+            leaderboard={leaderboardEntries}
+            addons={addons}
+            onRefresh={() => loadPhase6Data(event.id, event.category)}
+          />
+        )}
+
         {/* ── Persistent Mobile Registration Dock (Phones & Small Tablets) ────── */}
         <div className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 px-3.5 py-2.5 border-t border-white/[0.1] bg-[#08080A]/95 backdrop-blur-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.8)]">
           <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
             <div className="min-w-0">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 block">
-                {event.is_free ? 'Gate Admission' : 'Entry Ticket'}
+              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 block truncate">
+                {selectedTier ? selectedTier.name : displayIsFree ? 'Gate Admission' : 'Entry Ticket'}
               </span>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-lg font-extrabold font-heading text-white">
-                  {event.is_free ? <span className="text-emerald-400">Free Pass</span> : `₹${event.price}`}
+                  {displayIsFree ? <span className="text-emerald-400">Free Pass</span> : `₹${displayPrice}`}
                 </span>
                 {event.participation_type === 'team' && (
                   <span className="text-[10px] text-zinc-500">
@@ -1375,9 +1713,9 @@ export default function EventDetailPage() {
                     ? 'Started'
                     : !user
                     ? 'Sign In to Register'
-                    : event.is_free
+                    : displayIsFree
                     ? (event.participation_type === 'team' ? 'Register Team' : 'Claim Free Pass')
-                    : (event.participation_type === 'team' ? 'Register Team' : 'Register Pass')}
+                    : (event.participation_type === 'team' ? 'Register Team' : `Register (₹${displayPrice})`)}
                 </Button>
               </div>
             )}

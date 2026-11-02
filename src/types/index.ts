@@ -49,6 +49,19 @@ export type EventRecord = Database['public']['Tables']['events']['Row'] & {
   page_layout?: EventPageSection[] | null
   waitlist_enabled?: boolean
   is_unlisted?: boolean
+  has_multiple_tiers?: boolean
+  meeting_platform?: string | null
+  meeting_url?: string | null
+  joining_instructions?: string | null
+  access_window_minutes?: number
+  leaderboard_enabled?: boolean
+  leaderboard_title?: string
+  leaderboard_visibility?: 'public' | 'attendees_only' | 'hidden'
+  prizes?: Array<{ rank: string; title: string; amount: string }>
+  faqs?: Array<{ question: string; answer: string }>
+  gallery_enabled?: boolean
+  announcements_enabled?: boolean
+  addons_enabled?: boolean
 }
 export type EventInsert = Database['public']['Tables']['events']['Insert'] & {
   cover_url?: string | null
@@ -56,6 +69,19 @@ export type EventInsert = Database['public']['Tables']['events']['Insert'] & {
   page_layout?: EventPageSection[] | null
   waitlist_enabled?: boolean
   is_unlisted?: boolean
+  has_multiple_tiers?: boolean
+  meeting_platform?: string | null
+  meeting_url?: string | null
+  joining_instructions?: string | null
+  access_window_minutes?: number
+  leaderboard_enabled?: boolean
+  leaderboard_title?: string
+  leaderboard_visibility?: 'public' | 'attendees_only' | 'hidden'
+  prizes?: Array<{ rank: string; title: string; amount: string }>
+  faqs?: Array<{ question: string; answer: string }>
+  gallery_enabled?: boolean
+  announcements_enabled?: boolean
+  addons_enabled?: boolean
 }
 export type EventUpdate = Partial<EventInsert>
 export type RegistrationRecord = Database['public']['Tables']['registrations']['Row'] & {
@@ -63,15 +89,25 @@ export type RegistrationRecord = Database['public']['Tables']['registrations']['
   waitlist_offer_expires_at?: string | null
   coupon_id?: string | null
   discount_amount?: number
+  ticket_tier_id?: string | null
+  ticket_tier_name?: string | null
+  unit_price?: number | null
 }
 export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert'] & {
   waitlist_offer_expires_at?: string | null
   coupon_id?: string | null
   discount_amount?: number
+  ticket_tier_id?: string | null
+  ticket_tier_name?: string | null
+  unit_price?: number | null
 }
 export type ClubPaymentSettings = Database['public']['Tables']['club_payment_settings']['Row']
 export type PaymentSubmission = Database['public']['Tables']['payment_submissions']['Row']
-export type InAppNotification = Database['public']['Tables']['in_app_notifications']['Row']
+export type InAppNotification = Database['public']['Tables']['in_app_notifications']['Row'] & {
+  category?: NotificationCategory
+  metadata?: Record<string, any> | null
+  archived?: boolean
+}
 export type CheckInRecord = Database['public']['Tables']['check_ins']['Row']
 export type TeamRecord = Database['public']['Tables']['teams']['Row']
 export type TeamInsert = Database['public']['Tables']['teams']['Insert']
@@ -839,4 +875,460 @@ export interface ClubPublicProfile {
   announcements: ClubAnnouncementRecord[]
 }
 
+// ── Phase 6 Advanced Event Experience Types ──────────────────────────────────
+export type TicketTierType = 'standard' | 'early_bird' | 'vip' | 'student' | 'group' | 'free'
+
+export interface EventTicketTier {
+  id: string
+  event_id: string
+  name: string
+  tier_type: TicketTierType
+  description?: string | null
+  price: number
+  original_price?: number | null
+  capacity: number
+  sold_count: number
+  available_from?: string | null
+  available_until?: string | null
+  perks: string[]
+  is_active: boolean
+  max_per_order: number
+  eligibility?: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type ScheduleCategory =
+  | 'keynote'
+  | 'workshop'
+  | 'competition'
+  | 'networking'
+  | 'panel'
+  | 'break'
+  | 'ceremony'
+  | 'general'
+
+export interface EventScheduleItem {
+  id: string
+  event_id: string
+  day_number: number
+  start_time: string
+  end_time?: string | null
+  title: string
+  description?: string | null
+  speaker_name?: string | null
+  venue_stage?: string | null
+  category: ScheduleCategory
+  sort_order: number
+  created_at?: string
+  updated_at?: string
+}
+
+export type SpeakerRole =
+  | 'keynote_speaker'
+  | 'speaker'
+  | 'judge'
+  | 'mentor'
+  | 'host'
+  | 'panelist'
+
+export interface EventSpeaker {
+  id: string
+  event_id: string
+  name: string
+  designation?: string | null
+  organization?: string | null
+  bio?: string | null
+  avatar_url?: string | null
+  role: SpeakerRole
+  social_links?: {
+    linkedin?: string
+    twitter?: string
+    github?: string
+    website?: string
+  }
+  sort_order: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface EventGalleryImage {
+  id: string
+  event_id: string
+  image_url: string
+  caption?: string | null
+  tags?: string[]
+  sort_order: number
+  uploaded_by?: string | null
+  created_at: string
+}
+
+export type AnnouncementPriority = 'normal' | 'urgent' | 'schedule_change' | 'venue_change' | 'results'
+
+export interface EventAnnouncement {
+  id: string
+  event_id: string
+  club_id: string
+  author_id?: string | null
+  title: string
+  content: string
+  priority: AnnouncementPriority
+  is_pinned: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type LeaderboardSubmissionStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'evaluated'
+  | 'finalist'
+  | 'disqualified'
+
+export interface EventLeaderboardEntry {
+  id: string
+  event_id: string
+  participant_id?: string | null
+  team_id?: string | null
+  participant_name: string
+  team_name?: string | null
+  score: number
+  rank?: number | null
+  submission_status: LeaderboardSubmissionStatus
+  notes?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface EventAddon {
+  id: string
+  event_id: string
+  name: string
+  description?: string | null
+  image_url?: string | null
+  price: number
+  stock_quantity: number
+  sold_quantity: number
+  is_active: boolean
+  max_per_user: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface EventOnlineDetails {
+  accessible: boolean
+  error_code?: string
+  message?: string
+  platform?: string
+  meeting_url?: string | null
+  joining_instructions?: string | null
+  unlocks_at?: string
+  is_organizer?: boolean
+}
+
+export interface RelatedEventSummary {
+  id: string
+  slug: string
+  title: string
+  category: string
+  poster_url?: string | null
+  cover_url?: string | null
+  start_date: string
+  venue_name: string
+  is_free: boolean
+  price: number
+  participation_type: string
+}
+
+// =============================================================================
+// PHASE 7: SUPER ADMIN & PLATFORM MANAGEMENT TYPES
+// =============================================================================
+
+export type AdminRole =
+  | 'super_admin'
+  | 'platform_moderator'
+  | 'college_admin'
+  | 'support_admin'
+
+export type AdminPermission =
+  | 'manage_colleges'
+  | 'verify_clubs'
+  | 'moderate_events'
+  | 'review_reports'
+  | 'manage_announcements'
+  | 'view_analytics'
+  | 'manage_settings'
+  | 'manage_finances'
+  | 'manage_admins'
+
+export type CollegeStatus = 'active' | 'pending_verification' | 'suspended'
+
+export interface CollegeRecord {
+  id: string
+  name: string
+  code?: string | null
+  domain?: string | null
+  city?: string | null
+  state?: string | null
+  country: string
+  logo_url?: string | null
+  website?: string | null
+  status: CollegeStatus
+  verification_notes?: string | null
+  verified_at?: string | null
+  verified_by?: string | null
+  created_at: string
+  updated_at: string
+  // Aggregated metadata
+  club_count?: number
+  student_count?: number
+}
+
+export interface PlatformAdminRecord {
+  id: string
+  user_id: string
+  role: AdminRole
+  permissions: AdminPermission[]
+  assigned_by?: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  profile?: Profile | null
+}
+
+export interface AdminAuditLogRecord {
+  id: string
+  admin_id: string
+  admin_email: string
+  action: string
+  target_entity: string
+  target_record_id?: string | null
+  previous_state?: Record<string, any> | null
+  new_state?: Record<string, any> | null
+  reason?: string | null
+  metadata?: Record<string, any>
+  created_at: string
+}
+
+export interface PlatformAnnouncementRecord {
+  id: string
+  title: string
+  content: string
+  banner_url?: string | null
+  target_audience: 'all' | 'students' | 'clubs' | 'colleges'
+  target_college_id?: string | null
+  is_pinned: boolean
+  status: 'draft' | 'published' | 'archived'
+  created_by: string
+  published_at?: string | null
+  expires_at?: string | null
+  created_at: string
+  updated_at: string
+  author?: Profile | null
+}
+
+export interface PlatformSettingsMap {
+  maintenance_mode: boolean
+  student_registration_enabled: boolean
+  club_event_creation_enabled: boolean
+  require_event_approval: boolean
+  max_upload_size_mb: number
+  allowed_upload_types: string[]
+  support_email: string
+  support_phone: string
+  platform_fee_percentage: number
+  announcement_banner_enabled: boolean
+  [key: string]: any
+}
+
+export interface PlatformMetrics {
+  total_students: number
+  total_clubs: number
+  total_verified_clubs: number
+  total_colleges: number
+  total_events: number
+  total_published_events: number
+  total_pending_moderation: number
+  total_registrations: number
+  total_pending_payments: number
+  total_verified_payments: number
+  total_issued_passes: number
+  total_check_ins: number
+  total_revenue_inr: number
+}
+
+export type EventModerationStatus =
+  | 'approved'
+  | 'pending_approval'
+  | 'rejected'
+  | 'changes_requested'
+  | 'unpublished'
+
+export interface AdminReportRecord {
+  id: string
+  reporter_id: string
+  target_type: 'profile' | 'club' | 'event' | 'comment' | 'message' | 'announcement' | 'teammate_request' | 'payment'
+  target_id: string
+  reason: string
+  details?: string | null
+  status: 'pending' | 'investigating' | 'resolved' | 'dismissed'
+  action_taken?: string | null
+  moderator_notes?: string | null
+  created_at: string
+  updated_at: string
+  reporter?: Profile | null
+  target_title?: string
+}
+
+export interface AdminEventRecord {
+  id: string
+  title: string
+  slug: string
+  category: string
+  status: string
+  moderation_status: EventModerationStatus
+  moderation_notes?: string | null
+  start_date: string
+  end_date: string
+  venue_name: string
+  is_free: boolean
+  price: number
+  capacity: number
+  club_name?: string
+  created_at: string
+}
+
+export interface AdminClubRecord {
+  id: string
+  profile_id: string
+  club_name: string
+  representative_name: string
+  description?: string | null
+  website_url?: string | null
+  is_verified: boolean
+  status: 'active' | 'suspended' | 'pending_verification'
+  college_name?: string | null
+  verification_notes?: string | null
+  suspension_reason?: string | null
+  created_at: string
+  event_count?: number
+  member_count?: number
+}
+
+export interface AdminStudentRecord {
+  id: string
+  display_name: string
+  email: string
+  college_name?: string | null
+  graduation_year?: number | null
+  status: 'active' | 'suspended'
+  suspension_reason?: string | null
+  created_at: string
+  registration_count?: number
+  pass_count?: number
+}
+
+export interface AdminPaymentRecord {
+  id: string
+  registration_id: string
+  event_id: string
+  event_title: string
+  club_name: string
+  student_name: string
+  student_email: string
+  utr: string
+  amount: number
+  status: 'pending' | 'verified' | 'rejected'
+  screenshot_url?: string | null
+  created_at: string
+  verified_at?: string | null
+}
+
+// ── Phase 8 Notifications & Automation Types ────────────────────────────────
+export type NotificationCategory =
+  | 'registration'
+  | 'payment'
+  | 'events'
+  | 'team_invitations'
+  | 'digital_passes'
+  | 'certificates'
+  | 'announcements'
+  | 'reminders'
+  | 'club_activity'
+  | 'platform_updates'
+  | 'general'
+
+export interface PushSubscriptionRecord {
+  id: string
+  user_id: string
+  endpoint: string
+  p256dh: string
+  auth: string
+  user_agent?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface UserNotificationPreferences {
+  user_id: string
+  email_enabled: boolean
+  push_enabled: boolean
+  event_reminders: boolean
+  payment_updates: boolean
+  club_announcements: boolean
+  platform_announcements: boolean
+  team_notifications: boolean
+  certificate_notifications: boolean
+  updated_at?: string
+}
+
+export interface EventWaitlistRecord {
+  event_id: string
+  is_enabled: boolean
+  max_capacity: number
+  auto_promote: boolean
+  created_at?: string
+}
+
+export interface EventWaitlistEntryRecord {
+  id: string
+  event_id: string
+  student_id: string
+  position: number
+  status: 'waiting' | 'offered' | 'claimed' | 'expired' | 'cancelled'
+  offer_expires_at?: string | null
+  created_at: string
+  updated_at: string
+  student_name?: string
+  student_email?: string
+}
+
+export interface ClubEventAutomationRecord {
+  id: string
+  event_id: string
+  club_id: string
+  trigger_type:
+    | 'welcome_registration'
+    | 'reminder_7d'
+    | 'reminder_3d'
+    | 'reminder_1d'
+    | 'reminder_2h'
+    | 'post_event_feedback'
+    | 'certificate_ready'
+  schedule_offset?: string | null
+  message_template: string
+  is_enabled: boolean
+  last_executed_at?: string | null
+  created_at: string
+}
+
+export interface AutomationQueueMetrics {
+  emails_queued: number
+  emails_sent: number
+  emails_failed: number
+  push_subscriptions_count: number
+  waitlist_active_count: number
+  active_automations_count: number
+}
 

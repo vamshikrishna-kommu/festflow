@@ -8,6 +8,10 @@ import {
   Clock,
   Sparkles,
   Check,
+  ArrowRight,
+  Award,
+  Users2,
+  Ticket,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -15,6 +19,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from '@/lib/payments'
+import { subscribeToRealtimeNotifications } from '@/lib/notifications'
 import { dropdownMenu } from '@/lib/animations'
 import type { InAppNotification } from '@/types'
 
@@ -33,9 +38,18 @@ export function NotificationBell() {
 
   useEffect(() => {
     loadNotifications()
-    // Poll notifications every 30 seconds
+    // Poll fallback notifications every 30 seconds
     const interval = setInterval(loadNotifications, 30000)
     return () => clearInterval(interval)
+  }, [user])
+
+  // Real-time live notification listener
+  useEffect(() => {
+    if (!user) return
+    const unsubscribe = subscribeToRealtimeNotifications(user.id, (newNotif) => {
+      setNotifications((prev) => [newNotif, ...prev])
+    })
+    return () => unsubscribe()
   }, [user])
 
   // Close when clicking outside
@@ -73,11 +87,20 @@ export function NotificationBell() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'payment_approved':
+      case 'registration':
         return <CheckCircle2 size={16} className="text-emerald-400" />
       case 'payment_rejected':
         return <AlertTriangle size={16} className="text-rose-400" />
       case 'payment_submitted':
         return <Clock size={16} className="text-amber-400" />
+      case 'certificate':
+      case 'certificate_issued':
+        return <Award size={16} className="text-amber-400" />
+      case 'team_invitation':
+      case 'team_member_added':
+        return <Users2 size={16} className="text-[#ED47FC]" />
+      case 'ticket_issued':
+        return <Ticket size={16} className="text-[#18CFFC]" />
       default:
         return <Sparkles size={16} className="text-[#18CFFC]" />
     }
@@ -173,6 +196,21 @@ export function NotificationBell() {
                   </button>
                 ))
               )}
+            </div>
+
+            {/* Footer with link to Full Notification Center */}
+            <div className="pt-2 border-t border-[var(--color-surface-3)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  navigate('/notifications')
+                }}
+                className="w-full py-2 px-3 rounded-xl text-center text-xs font-bold text-[#18CFFC] hover:bg-[#18CFFC]/10 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Open Notification Center</span>
+                <ArrowRight size={13} />
+              </button>
             </div>
           </motion.div>
         )}

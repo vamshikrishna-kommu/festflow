@@ -14,6 +14,7 @@ import { PageShell } from '@/components/layout/PageShell'
 import { EventCard } from '@/components/sections/EventCard'
 import { EventDiscoveryMap } from '@/components/events/EventDiscoveryMap'
 import { Button, EmptyState } from '@/components/ui'
+import { SEOHead } from '@/components/seo/SEOHead'
 import { staggerContainer, fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -114,6 +115,11 @@ export default function DiscoverPage() {
 
   return (
     <PageShell>
+      <SEOHead
+        title="Discover Campus Events & Hackathons"
+        description="Find upcoming college hackathons, technical symposiums, workshops, and fests across verified campus clubs on FestFlow."
+        canonicalPath="/discover"
+      />
       {/* ── Page Hero Header ─────────────────────────────────────────────── */}
       <div className="relative overflow-hidden border-b border-white/[0.06] pb-8 sm:pb-12 text-left bg-gradient-to-b from-[#0E0E12] to-[#08080A]">
         {/* Subtle background glow */}

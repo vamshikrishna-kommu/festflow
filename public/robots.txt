@@ -1,0 +1,25 @@
+# FestFlow Robots.txt
+# https://festflow.online
+
+User-agent: *
+Allow: /
+Allow: /discover
+Allow: /events/
+Allow: /clubs/
+Allow: /verify/certificate/
+Allow: /privacy
+Allow: /terms
+Allow: /contact
+
+# Disallow private user workspaces, dashboards, and sensitive operational routes
+Disallow: /student/
+Disallow: /club/
+Disallow: /admin/
+Disallow: /messages
+Disallow: /join-team/
+Disallow: /unauthorized
+Disallow: /auth/
+
+# Sitemap location
+Sitemap: https://festflow.online/sitemap.xml
+
