@@ -121,7 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Fetch Profile from Supabase (Strict Database Source of Truth) ────────
   const fetchProfile = useCallback(
-    async (userId: string, userMeta?: Record<string, unknown>, silent = false) => {
+    async (
+      userId: string,
+      userMeta?: Record<string, unknown>,
+      silent = false,
+      userSessionEmail?: string
+    ) => {
       if (!silent) setIsRoleLoading(true)
       setProfileError(null)
     try {
@@ -163,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 id: userId,
                 role: 'student',
                 display_name: defaultName,
-                email: (userMeta?.email as string) || '',
+                email: (userMeta?.email as string) || userSessionEmail || '',
               })
               .select('*')
               .maybeSingle()
@@ -180,8 +185,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (profileData) {
-          const userEmail = (userMeta?.email as string) || profileData.email || ''
-          const isSuperAdminEmail = PLATFORM_ADMIN_EMAILS.includes(userEmail.toLowerCase().trim())
+          const userEmail =
+            userSessionEmail ||
+            (userMeta?.email as string) ||
+            profileData.email ||
+            ''
+          const isSuperAdminEmail =
+            PLATFORM_ADMIN_EMAILS.includes(userEmail.toLowerCase().trim()) ||
+            (userSessionEmail && PLATFORM_ADMIN_EMAILS.includes(userSessionEmail.toLowerCase().trim())) ||
+            (profileData.email && PLATFORM_ADMIN_EMAILS.includes(profileData.email.toLowerCase().trim()))
           if (isSuperAdminEmail && profileData.role !== 'platform_admin') {
             profileData = { ...profileData, role: 'platform_admin' }
             try {
@@ -429,7 +441,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(initialSession)
         setUser(initialSession?.user ?? null)
         if (initialSession?.user) {
-          fetchProfile(initialSession.user.id, initialSession.user.user_metadata).finally(() => {
+          fetchProfile(
+            initialSession.user.id,
+            initialSession.user.user_metadata,
+            false,
+            initialSession.user.email
+          ).finally(() => {
             if (mounted) setIsLoading(false)
           })
         } else {
@@ -445,7 +462,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const isSilent =
             event === 'TOKEN_REFRESHED' ||
             Boolean(profileRef.current && profileRef.current.id === newSession.user.id)
-          fetchProfile(newSession.user.id, newSession.user.user_metadata, isSilent)
+          fetchProfile(
+            newSession.user.id,
+            newSession.user.user_metadata,
+            isSilent,
+            newSession.user.email
+          )
         } else {
           profileRef.current = null
           setProfile(null)
@@ -510,7 +532,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { user: freshUser } } = await supabase.auth.getUser()
         if (freshUser) {
           setUser(freshUser)
-          await fetchProfile(freshUser.id, freshUser.user_metadata, true)
+          await fetchProfile(freshUser.id, freshUser.user_metadata, true, freshUser.email)
           return
         }
       } catch (err) {
@@ -533,7 +555,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (user?.id) {
-      await fetchProfile(user.id, user.user_metadata)
+      await fetchProfile(user.id, user.user_metadata, false, user.email)
     }
   }, [user, fetchProfile])
 
@@ -1356,7 +1378,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isSuperAdminUser =
     (user?.email && PLATFORM_ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) ||
-    (profile?.email && PLATFORM_ADMIN_EMAILS.includes(profile.email.toLowerCase().trim()))
+    (profile?.email && PLATFORM_ADMIN_EMAILS.includes(profile.email.toLowerCase().trim())) ||
+    (user?.user_metadata?.email &&
+      PLATFORM_ADMIN_EMAILS.includes(String(user.user_metadata.email).toLowerCase().trim()))
 
   const effectiveRole: UserRole | null = isSuperAdminUser
     ? 'platform_admin'

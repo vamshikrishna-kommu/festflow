@@ -85,17 +85,95 @@ export async function getEventCertificateEligibility(
 
   if (isSupabaseConfigured) {
     try {
-      // 1. Fetch event registrations
-      const { data: registrations, error: regErr } = await (supabase.from('registrations') as any)
-        .select('id, student_id, student_name, student_email, student_college, status, ticket_code, team_name, created_at')
+      // 1. Fetch event registrations with student profile details
+      let registrations: any[] = []
+
+      // Try explicit FK join first
+      const resExplicit = await (supabase.from('registrations') as any)
+        .select(`
+          id,
+          student_id,
+          status,
+          ticket_code,
+          created_at,
+          profiles!registrations_student_id_fkey (
+            display_name,
+            email
+          )
+        `)
         .eq('event_id', eventId)
         .in('status', ['confirmed', 'checked_in'])
 
-      if (regErr) {
-        return { success: false, candidates: [], message: regErr.message }
+      if (!resExplicit.error && resExplicit.data) {
+        registrations = resExplicit.data
+      } else {
+        // Fallback join without explicit fkey constraint name
+        const resFallback = await (supabase.from('registrations') as any)
+          .select(`
+            id,
+            student_id,
+            status,
+            ticket_code,
+            created_at,
+            profiles (
+              display_name,
+              email
+            )
+          `)
+          .eq('event_id', eventId)
+          .in('status', ['confirmed', 'checked_in'])
+
+        if (!resFallback.error && resFallback.data) {
+          registrations = resFallback.data
+        } else {
+          // Decoupled fetch: retrieve registrations alone first
+          const resDecoupled = await (supabase.from('registrations') as any)
+            .select('id, student_id, status, ticket_code, created_at')
+            .eq('event_id', eventId)
+
+          if (!resDecoupled.error && resDecoupled.data) {
+            registrations = resDecoupled.data.filter(
+              (r: any) => r.status === 'confirmed' || r.status === 'checked_in'
+            )
+          } else {
+            console.warn('[Certificates] Could not load registrations for event:', eventId, resDecoupled.error?.message)
+            return {
+              success: false,
+              candidates: [],
+              message: resDecoupled.error?.message || 'Failed to load registrations',
+            }
+          }
+        }
       }
 
-      // 2. Fetch event check-ins to verify attendance
+      // 2. Gather student profiles and student colleges
+      const studentIds = Array.from(new Set(registrations.map((r: any) => r.student_id).filter(Boolean)))
+      const profileMap = new Map<string, { display_name: string; email: string }>()
+      const collegeMap = new Map<string, string>()
+
+      if (studentIds.length > 0) {
+        try {
+          const [profRes, studRes] = await Promise.all([
+            (supabase.from('profiles') as any).select('id, display_name, email').in('id', studentIds),
+            (supabase.from('student_profiles') as any).select('profile_id, college_name').in('profile_id', studentIds),
+          ])
+
+          if (profRes.data) {
+            for (const p of profRes.data) {
+              profileMap.set(p.id, { display_name: p.display_name, email: p.email })
+            }
+          }
+          if (studRes.data) {
+            for (const sp of studRes.data) {
+              if (sp.college_name) collegeMap.set(sp.profile_id, sp.college_name)
+            }
+          }
+        } catch {
+          // ignore profile lookup failure
+        }
+      }
+
+      // 3. Fetch event check-ins to verify gate attendance
       const { data: checkins } = await (supabase.from('check_ins') as any)
         .select('registration_id, status, checked_in_at')
         .eq('event_id', eventId)
@@ -110,7 +188,7 @@ export async function getEventCertificateEligibility(
         }
       }
 
-      // 3. Fetch existing certificates issued for this event
+      // 4. Fetch existing certificates issued for this event
       const { data: existingCerts } = await (supabase.from('event_certificates') as any)
         .select('*')
         .eq('event_id', eventId)
@@ -119,14 +197,20 @@ export async function getEventCertificateEligibility(
       if (existingCerts) {
         for (const cert of existingCerts) {
           certMap.set(`${cert.student_id}_${cert.category}`, cert as EventCertificateRecord)
+          certMap.set(cert.student_id, cert as EventCertificateRecord)
         }
       }
 
-      // 4. Map candidates and evaluate eligibility
-      const candidates: CertificateEligibilityCandidate[] = (registrations || []).map((reg: any) => {
+      // 5. Map candidates and evaluate eligibility
+      const candidates: CertificateEligibilityCandidate[] = registrations.map((reg: any) => {
+        const studentProfile = profileMap.get(reg.student_id) || reg.profiles
+        const studentName = studentProfile?.display_name || reg.student_name || 'FestFlow Student'
+        const studentEmail = studentProfile?.email || reg.student_email || ''
+        const studentCollege = collegeMap.get(reg.student_id) || reg.student_college || 'Campus'
+
         const checkin = checkinMap.get(reg.id)
         const hasAttended = Boolean(checkin && (checkin.status === 'checked_in' || checkin.status === 'checked_out'))
-        const existingCert = certMap.get(`${reg.student_id}_participation`) || null
+        const existingCert = certMap.get(`${reg.student_id}_participation`) || certMap.get(reg.student_id) || null
 
         let isEligible = false
         let ineligibilityReason = ''
@@ -143,9 +227,9 @@ export async function getEventCertificateEligibility(
 
         return {
           studentId: reg.student_id,
-          studentName: reg.student_name || 'FestFlow Student',
-          studentEmail: reg.student_email,
-          studentCollege: reg.student_college,
+          studentName,
+          studentEmail,
+          studentCollege,
           registrationId: reg.id,
           ticketCode: reg.ticket_code,
           status: reg.status,
@@ -159,7 +243,8 @@ export async function getEventCertificateEligibility(
       })
 
       return { success: true, candidates }
-    } catch {
+    } catch (err: any) {
+      console.error('[Certificates] Error getting certificate eligibility:', err)
       // Fall through to simulation mode
     }
   }

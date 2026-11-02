@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, Navigate } from 'react-router'
 import { motion } from 'motion/react'
 import { ShieldAlert, ArrowRight, LogOut, Compass } from 'lucide-react'
 import { Button, Badge, Logo } from '@/components/ui'
@@ -16,6 +16,11 @@ export default function UnauthorizedPage() {
 
   const isClub = role === 'club_member'
   const isAdmin = role === 'platform_admin'
+
+  // If the user is an authenticated platform super admin, redirect to admin dashboard immediately
+  if (isAdmin) {
+    return <Navigate to="/admin/dashboard" replace />
+  }
 
   const dashboardPath = isAdmin ? '/admin/dashboard' : isClub ? '/club/dashboard' : '/student/dashboard'
   const dashboardLabel = isAdmin ? 'Super Admin Portal' : isClub ? 'Club Dashboard' : 'Student Dashboard'

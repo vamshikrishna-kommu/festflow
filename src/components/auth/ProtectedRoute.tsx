@@ -113,8 +113,9 @@ export function ProtectedRoute({
     const isClubTarget = allowedRoles.includes('club_member')
     const isAuthorizedByClubMembership = isClubTarget && Boolean(hasClubMembership)
     const isAuthorizedByRole = allowedRoles.includes(role)
+    const isPlatformAdmin = role === 'platform_admin'
 
-    if (!isAuthorizedByRole && !isAuthorizedByClubMembership) {
+    if (!isAuthorizedByRole && !isAuthorizedByClubMembership && !isPlatformAdmin) {
       return (
         <Navigate
           to="/unauthorized"

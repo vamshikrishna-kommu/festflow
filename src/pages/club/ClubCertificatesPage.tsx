@@ -134,9 +134,9 @@ export default function ClubCertificatesPage() {
       setLoadingEligibility(false)
       if (res.success) {
         setEligibilityCandidates(res.candidates)
-        // Automatically preselect all eligible attendees
+        // Automatically preselect all eligible attendees; if none have checked in yet, preselect all candidates by default
         const eligible = res.candidates.filter((c) => c.isEligible).map((c) => c.studentId)
-        setSelectedCandidateIds(eligible)
+        setSelectedCandidateIds(eligible.length > 0 ? eligible : res.candidates.map((c) => c.studentId))
       }
     }
 

@@ -282,3 +282,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_delete_announcement(UUID) TO authenticated;
+
