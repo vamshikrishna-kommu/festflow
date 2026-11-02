@@ -64,29 +64,85 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
         return data as PlatformMetrics
       }
     } catch {
-      // Fallback to client query
+      // Fallback to direct client table counts
+    }
+
+    try {
+      const [
+        studentsRes,
+        clubsRes,
+        verifiedClubsRes,
+        collegesRes,
+        eventsRes,
+        publishedEventsRes,
+        pendingModRes,
+        registrationsRes,
+        pendingPaymentsRes,
+        verifiedPaymentsRes,
+        checkInsRes,
+        revenueRes,
+      ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'club_member'),
+        supabase.from('club_profiles').select('*', { count: 'exact', head: true }).eq('is_verified', true),
+        (supabase as any).from('colleges').select('*', { count: 'exact', head: true }),
+        supabase.from('events').select('*', { count: 'exact', head: true }),
+        supabase.from('events').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+        supabase.from('events').select('*', { count: 'exact', head: true }).eq('moderation_status', 'pending_approval'),
+        supabase.from('registrations').select('*', { count: 'exact', head: true }),
+        supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
+        supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('check_ins').select('*', { count: 'exact', head: true }),
+        supabase.from('payment_submissions').select('amount').eq('status', 'approved'),
+      ])
+
+      const totalRevenue = revenueRes.data?.reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0) || 0
+
+      return {
+        total_students: studentsRes.count ?? 0,
+        total_clubs: clubsRes.count ?? 0,
+        total_verified_clubs: verifiedClubsRes.count ?? 0,
+        total_colleges: collegesRes.count ?? 0,
+        total_events: eventsRes.count ?? 0,
+        total_published_events: publishedEventsRes.count ?? 0,
+        total_pending_moderation: pendingModRes.count ?? 0,
+        total_registrations: registrationsRes.count ?? 0,
+        total_pending_payments: pendingPaymentsRes.count ?? 0,
+        total_verified_payments: verifiedPaymentsRes.count ?? 0,
+        total_issued_passes: verifiedPaymentsRes.count ?? 0,
+        total_check_ins: checkInsRes.count ?? 0,
+        total_revenue_inr: Math.round(totalRevenue),
+      }
+    } catch (err) {
+      console.warn('[AdminMetrics] Live query warning:', err)
     }
   }
 
-  // Local/Simulation state aggregation
+  // Local/Simulation state aggregation (real counts from actual local storage only)
   try {
     const events = JSON.parse(localStorage.getItem('festflow_managed_events') || '[]')
     const colleges = JSON.parse(localStorage.getItem(MOCK_COLLEGES_KEY) || '[]')
+    const clubs = JSON.parse(localStorage.getItem('festflow_local_clubs') || '[]')
+    const registrations = JSON.parse(localStorage.getItem('festflow_local_registrations') || '[]')
+    const payments = JSON.parse(localStorage.getItem('festflow_local_payments') || '[]')
+
+    const verifiedPayments = payments.filter((p: any) => p.status === 'approved')
+    const totalRev = verifiedPayments.reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0)
 
     return {
-      total_students: 1420,
-      total_clubs: 48,
-      total_verified_clubs: 39,
-      total_colleges: Math.max(12, colleges.length),
-      total_events: Math.max(86, events.length),
-      total_published_events: Math.max(64, events.filter((e: any) => e.status === 'published').length),
-      total_pending_moderation: Math.max(4, events.filter((e: any) => e.moderation_status === 'pending_approval').length),
-      total_registrations: 3840,
-      total_pending_payments: 18,
-      total_verified_payments: 3120,
-      total_issued_passes: 3120,
-      total_check_ins: 2450,
-      total_revenue_inr: 485200,
+      total_students: registrations.length,
+      total_clubs: clubs.length,
+      total_verified_clubs: clubs.filter((c: any) => c.is_verified).length,
+      total_colleges: colleges.length,
+      total_events: events.length,
+      total_published_events: events.filter((e: any) => e.status === 'published').length,
+      total_pending_moderation: events.filter((e: any) => e.moderation_status === 'pending_approval').length,
+      total_registrations: registrations.length,
+      total_pending_payments: payments.filter((p: any) => p.status === 'pending_review').length,
+      total_verified_payments: verifiedPayments.length,
+      total_issued_passes: verifiedPayments.length,
+      total_check_ins: 0,
+      total_revenue_inr: Math.round(totalRev),
     }
   } catch {
     return {
@@ -173,37 +229,11 @@ export async function getAdminAuditLogs(filters?: {
     } catch {
       // Fallback
     }
+    return []
   }
 
   try {
-    let logs: AdminAuditLogRecord[] = JSON.parse(localStorage.getItem(MOCK_AUDIT_LOGS_KEY) || '[]')
-    if (logs.length === 0) {
-      logs = [
-        {
-          id: 'log_seed_1',
-          admin_id: 'system_admin',
-          admin_email: 'admin@festflow.online',
-          action: 'bootstrap_initial_super_admin',
-          target_entity: 'platform_admins',
-          target_record_id: 'admin_1',
-          reason: 'Initial Super Admin provisioned via secure bootstrap protocol.',
-          created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-        },
-        {
-          id: 'log_seed_2',
-          admin_id: 'system_admin',
-          admin_email: 'admin@festflow.online',
-          action: 'verify_club',
-          target_entity: 'club_profiles',
-          target_record_id: 'cp_robotics',
-          previous_state: { is_verified: false },
-          new_state: { is_verified: true, status: 'active' },
-          reason: 'Verified official college affiliation with university faculty lead.',
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ]
-      localStorage.setItem(MOCK_AUDIT_LOGS_KEY, JSON.stringify(logs))
-    }
+    const logs: AdminAuditLogRecord[] = JSON.parse(localStorage.getItem(MOCK_AUDIT_LOGS_KEY) || '[]')
     return logs
   } catch {
     return []
@@ -222,57 +252,11 @@ export async function getColleges(search?: string): Promise<CollegeRecord[]> {
     } catch {
       // Fallback
     }
+    return []
   }
 
   try {
-    let items: CollegeRecord[] = JSON.parse(localStorage.getItem(MOCK_COLLEGES_KEY) || '[]')
-    if (items.length === 0) {
-      items = [
-        {
-          id: 'col_1',
-          name: 'National Institute of Technology, Warangal',
-          code: 'NITW',
-          domain: 'nitw.ac.in',
-          city: 'Warangal',
-          state: 'Telangana',
-          country: 'India',
-          status: 'active',
-          club_count: 8,
-          student_count: 540,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 'col_2',
-          name: 'Indian Institute of Technology, Hyderabad',
-          code: 'IITH',
-          domain: 'iith.ac.in',
-          city: 'Hyderabad',
-          state: 'Telangana',
-          country: 'India',
-          status: 'active',
-          club_count: 12,
-          student_count: 820,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 'col_3',
-          name: 'VNR Vignana Jyothi Institute of Engineering & Technology',
-          code: 'VNRVJIET',
-          domain: 'vnrvjiet.in',
-          city: 'Hyderabad',
-          state: 'Telangana',
-          country: 'India',
-          status: 'active',
-          club_count: 6,
-          student_count: 390,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]
-      localStorage.setItem(MOCK_COLLEGES_KEY, JSON.stringify(items))
-    }
+    const items: CollegeRecord[] = JSON.parse(localStorage.getItem(MOCK_COLLEGES_KEY) || '[]')
     if (search) {
       const s = search.toLowerCase()
       return items.filter((c) => c.name.toLowerCase().includes(s) || c.code?.toLowerCase().includes(s))
@@ -401,56 +385,30 @@ export async function getAdminClubs(search?: string, filter?: string): Promise<A
       if (search) query = query.ilike('club_name', `%${search}%`)
 
       const { data, error } = await query
-      if (!error && data) return data as AdminClubRecord[]
+      if (!error && data) {
+        return data.map((c: any) => ({
+          id: c.id,
+          profile_id: c.profile_id || c.id,
+          club_name: c.club_name,
+          representative_name: c.club_name || 'Organizer',
+          description: c.description || '',
+          is_verified: Boolean(c.is_verified),
+          status: c.status || (c.is_verified ? 'active' : 'pending_verification'),
+          college_name: c.college_name || 'Campus Organization',
+          created_at: c.created_at,
+          event_count: 0,
+          member_count: 1,
+        }))
+      }
     } catch {
       // Fallback
     }
+    return []
   }
 
   try {
-    const mockClubs: AdminClubRecord[] = [
-      {
-        id: 'club_1',
-        profile_id: 'prof_club_1',
-        club_name: 'Robotics & Automation Society',
-        representative_name: 'Sarah Chen',
-        description: 'Premier robotics club dedicated to autonomous drone engineering.',
-        is_verified: true,
-        status: 'active',
-        college_name: 'National Institute of Technology, Warangal',
-        created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
-        event_count: 5,
-        member_count: 14,
-      },
-      {
-        id: 'club_2',
-        profile_id: 'prof_club_2',
-        club_name: 'Developer Student Circle',
-        representative_name: 'Karthik Rao',
-        description: 'Campus open-source developers community organizing hackathons.',
-        is_verified: false,
-        status: 'pending_verification',
-        college_name: 'Indian Institute of Technology, Hyderabad',
-        created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-        event_count: 2,
-        member_count: 8,
-      },
-      {
-        id: 'club_3',
-        profile_id: 'prof_club_3',
-        club_name: 'Music & Cultural Guild',
-        representative_name: 'Priya Sharma',
-        description: 'Vocal, instrumental, and performing arts student association.',
-        is_verified: true,
-        status: 'active',
-        college_name: 'VNR Vignana Jyothi Institute of Engineering & Technology',
-        created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
-        event_count: 4,
-        member_count: 22,
-      },
-    ]
-
-    let filtered = mockClubs
+    const localClubs: AdminClubRecord[] = JSON.parse(localStorage.getItem('festflow_local_clubs') || '[]')
+    let filtered = localClubs
     if (filter === 'verified') filtered = filtered.filter((c) => c.is_verified)
     if (filter === 'unverified') filtered = filtered.filter((c) => !c.is_verified)
     if (filter === 'suspended') filtered = filtered.filter((c) => c.status === 'suspended')
@@ -516,72 +474,42 @@ export async function getAdminStudents(search?: string): Promise<AdminStudentRec
         .limit(50)
 
       if (search) {
-        query = query.or(`display_name.ilike.%${search}%,email.ilike.%${search}%`)
+        query = query.or(`email.ilike.%${search}%`)
       }
 
       const { data, error } = await query
       if (!error && data) {
         return data.map((p: any) => ({
           id: p.id,
-          display_name: p.display_name,
+          display_name: p.display_name || p.full_name || p.email?.split('@')[0] || 'Student',
           email: p.email,
           college_name: p.student_profiles?.college_name || null,
           graduation_year: p.student_profiles?.graduation_year || null,
           status: p.status || 'active',
           suspension_reason: p.suspension_reason || null,
           created_at: p.created_at,
-          registration_count: 3,
-          pass_count: 2,
+          registration_count: 0,
+          pass_count: 0,
         }))
       }
     } catch {
       // Fallback
     }
+    return []
   }
 
-  const mockStudents: AdminStudentRecord[] = [
-    {
-      id: 'stu_1',
-      display_name: 'Alex Rivera',
-      email: 'alex.rivera@campus.edu',
-      college_name: 'National Institute of Technology, Warangal',
-      graduation_year: 2026,
-      status: 'active',
-      created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-      registration_count: 4,
-      pass_count: 3,
-    },
-    {
-      id: 'stu_2',
-      display_name: 'Vamshi Krishna',
-      email: 'vamshi.krishna@nitw.ac.in',
-      college_name: 'National Institute of Technology, Warangal',
-      graduation_year: 2025,
-      status: 'active',
-      created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
-      registration_count: 6,
-      pass_count: 5,
-    },
-    {
-      id: 'stu_3',
-      display_name: 'Aanya Reddy',
-      email: 'aanya.reddy@iith.ac.in',
-      college_name: 'Indian Institute of Technology, Hyderabad',
-      graduation_year: 2027,
-      status: 'active',
-      created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-      registration_count: 2,
-      pass_count: 2,
-    },
-  ]
-
-  if (search) {
-    const s = search.toLowerCase()
-    return mockStudents.filter(
-      (st) => st.display_name.toLowerCase().includes(s) || st.email.toLowerCase().includes(s)
-    )
+  try {
+    const list: AdminStudentRecord[] = JSON.parse(localStorage.getItem('festflow_local_students') || '[]')
+    if (search) {
+      const s = search.toLowerCase()
+      return list.filter(
+        (st) => st.display_name.toLowerCase().includes(s) || st.email.toLowerCase().includes(s)
+      )
+    }
+    return list
+  } catch {
+    return []
   }
-  return mockStudents
 }
 
 export async function updateStudentStatus(
@@ -646,53 +574,23 @@ export async function getAdminEvents(filter?: string, search?: string): Promise<
     } catch {
       // Fallback
     }
+    return []
   }
 
-  const mockEvents: AdminEventRecord[] = [
-    {
-      id: 'evt_1',
-      title: 'RoboWars 2026: National Battle Championship',
-      slug: 'robowars-2026',
-      category: 'tech',
-      status: 'published',
-      moderation_status: 'approved',
-      start_date: new Date(Date.now() + 86400000 * 14).toISOString(),
-      end_date: new Date(Date.now() + 86400000 * 15).toISOString(),
-      venue_name: 'NITW Main Auditorium',
-      is_free: false,
-      price: 299,
-      capacity: 350,
-      club_name: 'Robotics & Automation Society',
-      created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-    },
-    {
-      id: 'evt_2',
-      title: 'HackCampus: 24-Hour AI Hackathon',
-      slug: 'hackcampus-24h',
-      category: 'tech',
-      status: 'draft',
-      moderation_status: 'pending_approval',
-      moderation_notes: 'Organizer requested moderation review for public listing.',
-      start_date: new Date(Date.now() + 86400000 * 20).toISOString(),
-      end_date: new Date(Date.now() + 86400000 * 21).toISOString(),
-      venue_name: 'CSE Innovation Lab',
-      is_free: true,
-      price: 0,
-      capacity: 200,
-      club_name: 'Developer Student Circle',
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-  ]
-
-  let filtered = mockEvents
-  if (filter === 'pending_approval') filtered = filtered.filter((e) => e.moderation_status === 'pending_approval')
-  if (filter === 'approved') filtered = filtered.filter((e) => e.moderation_status === 'approved')
-  if (filter === 'rejected') filtered = filtered.filter((e) => e.moderation_status === 'rejected')
-  if (search) {
-    const s = search.toLowerCase()
-    filtered = filtered.filter((e) => e.title.toLowerCase().includes(s))
+  try {
+    const events: AdminEventRecord[] = JSON.parse(localStorage.getItem('festflow_managed_events') || '[]')
+    let filtered = events
+    if (filter === 'pending_approval') filtered = filtered.filter((e) => e.moderation_status === 'pending_approval')
+    if (filter === 'approved') filtered = filtered.filter((e) => e.moderation_status === 'approved')
+    if (filter === 'rejected') filtered = filtered.filter((e) => e.moderation_status === 'rejected')
+    if (search) {
+      const s = search.toLowerCase()
+      filtered = filtered.filter((e) => e.title.toLowerCase().includes(s))
+    }
+    return filtered
+  } catch {
+    return []
   }
-  return filtered
 }
 
 export async function moderateEvent(
@@ -741,38 +639,18 @@ export async function getAdminReports(statusFilter?: string): Promise<AdminRepor
     } catch {
       // Fallback
     }
+    return []
   }
 
-  const mockReports: AdminReportRecord[] = [
-    {
-      id: 'rep_1',
-      reporter_id: 'usr_1',
-      target_type: 'event',
-      target_id: 'evt_suspicious_1',
-      target_title: 'Unsanctioned Flash Mob Contest',
-      reason: 'Inappropriate or unapproved campus gathering without faculty authorization.',
-      status: 'pending',
-      created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-      updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    },
-    {
-      id: 'rep_2',
-      reporter_id: 'usr_2',
-      target_type: 'profile',
-      target_id: 'usr_spammer_9',
-      target_title: 'Fake Student Account (Spam Comments)',
-      reason: 'Repeated promotional phishing links in community discussion feed.',
-      status: 'investigating',
-      details: 'Posted 14 duplicate links within 10 minutes.',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-  ]
-
-  if (statusFilter && statusFilter !== 'all') {
-    return mockReports.filter((r) => r.status === statusFilter)
+  try {
+    const list: AdminReportRecord[] = JSON.parse(localStorage.getItem('festflow_admin_reports') || '[]')
+    if (statusFilter && statusFilter !== 'all') {
+      return list.filter((r) => r.status === statusFilter)
+    }
+    return list
+  } catch {
+    return []
   }
-  return mockReports
 }
 
 export async function resolveAdminReport(
@@ -824,30 +702,13 @@ export async function getPlatformAnnouncements(): Promise<PlatformAnnouncementRe
     } catch {
       // Fallback
     }
+    return []
   }
 
   try {
     const list: PlatformAnnouncementRecord[] = JSON.parse(
       localStorage.getItem(MOCK_ANNOUNCEMENTS_KEY) || '[]'
     )
-    if (list.length === 0) {
-      const seed: PlatformAnnouncementRecord[] = [
-        {
-          id: 'ann_1',
-          title: 'Welcome to FestFlow 2.0 Platform!',
-          content: 'Discover college technical fests, manage student squads, and explore campus community events.',
-          target_audience: 'all',
-          is_pinned: true,
-          status: 'published',
-          created_by: 'admin_root',
-          published_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-          created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-          updated_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-        },
-      ]
-      localStorage.setItem(MOCK_ANNOUNCEMENTS_KEY, JSON.stringify(seed))
-      return seed
-    }
     return list
   } catch {
     return []
@@ -1054,45 +915,21 @@ export async function getAdminPaymentSubmissions(filter?: string, search?: strin
     } catch {
       // Fallback
     }
+    return []
   }
 
-  const mockPayments: AdminPaymentRecord[] = [
-    {
-      id: 'pay_sub_1',
-      registration_id: 'reg_101',
-      event_id: 'evt_1',
-      event_title: 'RoboWars 2026: National Battle Championship',
-      club_name: 'Robotics & Automation Society',
-      student_name: 'Alex Rivera',
-      student_email: 'alex.rivera@campus.edu',
-      utr: '430198273641',
-      amount: 299,
-      status: 'pending',
-      created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-    },
-    {
-      id: 'pay_sub_2',
-      registration_id: 'reg_102',
-      event_id: 'evt_1',
-      event_title: 'RoboWars 2026: National Battle Championship',
-      club_name: 'Robotics & Automation Society',
-      student_name: 'Vamshi Krishna',
-      student_email: 'vamshi.krishna@nitw.ac.in',
-      utr: '430198273999',
-      amount: 299,
-      status: 'verified',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      verified_at: new Date(Date.now() - 86400000 + 1800000).toISOString(),
-    },
-  ]
-
-  let filtered = mockPayments
-  if (filter && filter !== 'all') filtered = filtered.filter((p) => p.status === filter)
-  if (search) {
-    const s = search.toLowerCase()
-    filtered = filtered.filter((p) => p.utr.toLowerCase().includes(s) || p.student_email.toLowerCase().includes(s))
+  try {
+    const list: AdminPaymentRecord[] = JSON.parse(localStorage.getItem('festflow_local_payments') || '[]')
+    let filtered = list
+    if (filter && filter !== 'all') filtered = filtered.filter((p) => p.status === filter)
+    if (search) {
+      const s = search.toLowerCase()
+      filtered = filtered.filter((p) => p.utr?.toLowerCase().includes(s) || p.student_email?.toLowerCase().includes(s))
+    }
+    return filtered
+  } catch {
+    return []
   }
-  return filtered
 }
 
 export async function adminPaymentOverride(
@@ -1141,15 +978,91 @@ export async function getAdminTeam(): Promise<PlatformAdminRecord[]> {
         .select('*, profiles (display_name, email, avatar_url)')
         .order('created_at', { ascending: true })
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         return data.map((a: any) => ({
           ...a,
           profile: a.profiles,
         })) as PlatformAdminRecord[]
       }
+
+      // If platform_admins table hasn't been populated yet, fetch from profiles table directly
+      const directProfiles = await db
+        .from('profiles')
+        .select('id, email, display_name, avatar_url, role, created_at')
+        .eq('role', 'platform_admin')
+
+      if (directProfiles.data && directProfiles.data.length > 0) {
+        return directProfiles.data.map((p: any) => ({
+          id: `adm_${p.id}`,
+          user_id: p.id,
+          role: 'super_admin' as const,
+          permissions: [
+            'manage_colleges',
+            'verify_clubs',
+            'moderate_events',
+            'review_reports',
+            'manage_announcements',
+            'view_analytics',
+            'manage_settings',
+            'manage_finances',
+            'manage_admins',
+          ],
+          is_active: true,
+          created_at: p.created_at,
+          updated_at: p.created_at,
+          profile: {
+            id: p.id,
+            display_name: p.display_name || p.email?.split('@')[0] || 'Administrator',
+            email: p.email,
+            role: 'platform_admin' as const,
+            avatar_url: p.avatar_url || null,
+            created_at: p.created_at,
+            updated_at: p.created_at,
+          },
+        }))
+      }
+
+      // Check for platform owner/admin account if not yet marked as platform_admin
+      const { data: ownerProfile } = await db
+        .from('profiles')
+        .select('id, email, display_name, avatar_url, role, created_at')
+        .eq('email', 'vamshikrishnakommu0908@gmail.com')
+        .maybeSingle()
+
+      if (ownerProfile) {
+        return [{
+          id: `adm_${ownerProfile.id}`,
+          user_id: ownerProfile.id,
+          role: 'super_admin' as const,
+          permissions: [
+            'manage_colleges',
+            'verify_clubs',
+            'moderate_events',
+            'review_reports',
+            'manage_announcements',
+            'view_analytics',
+            'manage_settings',
+            'manage_finances',
+            'manage_admins',
+          ],
+          is_active: true,
+          created_at: ownerProfile.created_at,
+          updated_at: ownerProfile.created_at,
+          profile: {
+            id: ownerProfile.id,
+            display_name: ownerProfile.display_name || 'Vamshi Krishna (Super Admin)',
+            email: ownerProfile.email,
+            role: 'platform_admin' as const,
+            avatar_url: ownerProfile.avatar_url || null,
+            created_at: ownerProfile.created_at,
+            updated_at: ownerProfile.created_at,
+          },
+        }]
+      }
     } catch {
       // Fallback
     }
+    return []
   }
 
   try {
@@ -1159,37 +1072,7 @@ export async function getAdminTeam(): Promise<PlatformAdminRecord[]> {
     // Ignore
   }
 
-  const defaultTeam: PlatformAdminRecord[] = [
-    {
-      id: 'adm_root',
-      user_id: 'usr_root',
-      role: 'super_admin',
-      permissions: [
-        'manage_colleges',
-        'verify_clubs',
-        'moderate_events',
-        'review_reports',
-        'manage_announcements',
-        'view_analytics',
-        'manage_settings',
-        'manage_finances',
-        'manage_admins',
-      ],
-      is_active: true,
-      created_at: new Date(Date.now() - 86400000 * 90).toISOString(),
-      updated_at: new Date().toISOString(),
-      profile: {
-        id: 'usr_root',
-        display_name: 'Lead Platform Administrator',
-        email: 'admin@festflow.online',
-        role: 'platform_admin',
-        avatar_url: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    },
-  ]
-  return defaultTeam
+  return []
 }
 
 export async function updateAdminRole(

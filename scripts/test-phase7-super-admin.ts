@@ -47,6 +47,150 @@ if (typeof globalThis.localStorage === 'undefined') {
   } as any
 }
 
+// Pre-seed test fixture data for local test suite
+storage['festflow_local_clubs'] = JSON.stringify([
+  {
+    id: 'club_1',
+    profile_id: 'prof_club_1',
+    club_name: 'Robotics & Automation Society',
+    representative_name: 'Sarah Chen',
+    description: 'Premier robotics club.',
+    is_verified: true,
+    status: 'active',
+    college_name: 'National Institute of Technology, Warangal',
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+    event_count: 5,
+    member_count: 14,
+  },
+  {
+    id: 'club_2',
+    profile_id: 'prof_club_2',
+    club_name: 'Developer Student Circle',
+    representative_name: 'Karthik Rao',
+    description: 'Campus open-source developers community.',
+    is_verified: false,
+    status: 'pending_verification',
+    college_name: 'Indian Institute of Technology, Hyderabad',
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    event_count: 2,
+    member_count: 8,
+  },
+  {
+    id: 'club_3',
+    profile_id: 'prof_club_3',
+    club_name: 'Music Guild',
+    representative_name: 'Priya Sharma',
+    description: 'Music club.',
+    is_verified: true,
+    status: 'active',
+    college_name: 'VNR Vignana Jyothi',
+    created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
+    event_count: 4,
+    member_count: 22,
+  },
+])
+
+storage['festflow_local_students'] = JSON.stringify([
+  {
+    id: 'stu_1',
+    display_name: 'Alex Rivera',
+    email: 'alex.rivera@campus.edu',
+    college_name: 'National Institute of Technology, Warangal',
+    graduation_year: 2026,
+    status: 'active',
+    created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+    registration_count: 4,
+    pass_count: 3,
+  },
+])
+
+storage['festflow_managed_events'] = JSON.stringify([
+  {
+    id: 'evt_1',
+    title: 'RoboWars 2026: National Battle Championship',
+    slug: 'robowars-2026',
+    category: 'tech',
+    status: 'published',
+    moderation_status: 'approved',
+    start_date: new Date(Date.now() + 86400000 * 14).toISOString(),
+    end_date: new Date(Date.now() + 86400000 * 15).toISOString(),
+    venue_name: 'NITW Main Auditorium',
+    is_free: false,
+    price: 299,
+    capacity: 350,
+    club_name: 'Robotics & Automation Society',
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+  },
+  {
+    id: 'evt_2',
+    title: 'HackCampus: 24-Hour AI Hackathon',
+    slug: 'hackcampus-24h',
+    category: 'tech',
+    status: 'draft',
+    moderation_status: 'pending_approval',
+    moderation_notes: 'Organizer requested moderation review for public listing.',
+    start_date: new Date(Date.now() + 86400000 * 20).toISOString(),
+    end_date: new Date(Date.now() + 86400000 * 21).toISOString(),
+    venue_name: 'CSE Innovation Lab',
+    is_free: true,
+    price: 0,
+    capacity: 200,
+    club_name: 'Developer Student Circle',
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+])
+
+storage['festflow_admin_reports'] = JSON.stringify([
+  {
+    id: 'rep_1',
+    reporter_id: 'usr_1',
+    target_type: 'event',
+    target_id: 'evt_suspicious_1',
+    target_title: 'Unsanctioned Flash Mob Contest',
+    reason: 'Inappropriate or unapproved campus gathering.',
+    status: 'pending',
+    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+  },
+])
+
+storage['festflow_local_payments'] = JSON.stringify([
+  {
+    id: 'pay_sub_1',
+    registration_id: 'reg_101',
+    event_id: 'evt_1',
+    event_title: 'RoboWars 2026',
+    club_name: 'Robotics Society',
+    student_name: 'Alex Rivera',
+    student_email: 'alex.rivera@campus.edu',
+    utr: '430198273641',
+    amount: 299,
+    status: 'pending',
+    created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+  },
+])
+
+storage['festflow_admin_team'] = JSON.stringify([
+  {
+    id: 'adm_root',
+    user_id: 'usr_root',
+    role: 'super_admin',
+    permissions: ['manage_colleges', 'verify_clubs', 'moderate_events', 'review_reports', 'manage_announcements', 'view_analytics', 'manage_settings', 'manage_finances', 'manage_admins'],
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    profile: {
+      id: 'usr_root',
+      display_name: 'Lead Platform Administrator',
+      email: 'admin@festflow.online',
+      role: 'platform_admin',
+      avatar_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  },
+])
+
 async function runPhase7TestSuite() {
   console.log('\n===============================================================')
   console.log('🧪 FESTFLOW PHASE 7: SUPER ADMIN & PLATFORM MANAGEMENT TEST SUITE')

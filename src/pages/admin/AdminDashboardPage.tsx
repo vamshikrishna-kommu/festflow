@@ -68,8 +68,6 @@ export default function AdminDashboardPage() {
           title="Registered Students"
           value={metrics?.total_students ?? '—'}
           icon={GraduationCap}
-          delta="+14% this month"
-          trend="up"
           color="cyan"
           subtitle="Verified campus attendees"
         />

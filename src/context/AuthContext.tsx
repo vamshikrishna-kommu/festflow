@@ -103,6 +103,8 @@ interface SimulatedAuthData {
   studentProfile?: StudentProfile | null
 }
 
+const PLATFORM_ADMIN_EMAILS = ['vamshikrishnakommu0908@gmail.com']
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
   const [user, setUser] = useState<User | null>(null)
@@ -178,6 +180,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (profileData) {
+          const userEmail = (userMeta?.email as string) || profileData.email || ''
+          const isSuperAdminEmail = PLATFORM_ADMIN_EMAILS.includes(userEmail.toLowerCase().trim())
+          if (isSuperAdminEmail && profileData.role !== 'platform_admin') {
+            profileData = { ...profileData, role: 'platform_admin' }
+            try {
+              void (supabase as any).rpc('bootstrap_initial_super_admin', {
+                p_email: userEmail.toLowerCase().trim(),
+              })
+            } catch {
+              // Non-blocking
+            }
+          }
+
           profileRef.current = profileData
           setProfile(profileData)
 
@@ -1339,7 +1354,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null
   }, [clubProfile, activeClubId, activeClubMembership])
 
-  const effectiveRole = isSupabaseConfigured
+  const isSuperAdminUser =
+    (user?.email && PLATFORM_ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) ||
+    (profile?.email && PLATFORM_ADMIN_EMAILS.includes(profile.email.toLowerCase().trim()))
+
+  const effectiveRole: UserRole | null = isSuperAdminUser
+    ? 'platform_admin'
+    : isSupabaseConfigured
     ? (profile?.role ?? null)
     : (profile?.role ?? (user?.user_metadata?.role as UserRole) ?? null)
 

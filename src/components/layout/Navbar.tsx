@@ -719,6 +719,18 @@ export function Navbar() {
               <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-[oklch(100%_0_0_/_0.08)]">
                 {session ? (
                   <>
+                    {role === 'platform_admin' && (
+                      <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)}>
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10 mb-2"
+                          leftIcon={<ShieldCheck size={16} />}
+                        >
+                          Super Admin Console
+                        </Button>
+                      </Link>
+                    )}
                     {isClubWorkspace ? (
                       <>
                         <Link to="/club/dashboard" onClick={() => setMobileOpen(false)}>

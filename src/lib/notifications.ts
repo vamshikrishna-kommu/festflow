@@ -239,9 +239,15 @@ export async function archiveNotification(notificationId: string): Promise<void>
   }
 }
 
+// Global map of user notification listeners for multiplexed single-channel connection:
+// userId -> Set<callback>
+const userNotificationListeners = new Map<string, Set<(notification: InAppNotification) => void>>()
+const userChannels = new Map<string, any>()
+
 /**
  * Real-time notification subscription handler using Supabase Realtime channel.
- * Gracefully cleans up duplicate notifications and handles connection issues.
+ * Multiplexes multiple UI components (desktop bell, mobile bell, notifications page)
+ * into a single connection per user, avoiding duplicate channel collisions.
  */
 export function subscribeToRealtimeNotifications(
   userId: string,
@@ -252,43 +258,92 @@ export function subscribeToRealtimeNotifications(
     return () => {}
   }
 
-  const channelName = `realtime-notifications-${userId}-${Date.now()}`
-  const channel = supabase
-    .channel(channelName)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'in_app_notifications',
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload) => {
-        const newNotif = payload.new as InAppNotification
-        if (newNotif && newNotif.id) {
-          // Duplicate prevention check
-          if (seenNotificationIds.has(newNotif.id)) {
-            return
-          }
-          seenNotificationIds.add(newNotif.id)
-          // Limit memory size of seen Set
-          if (seenNotificationIds.size > 500) {
-            const first = seenNotificationIds.values().next().value
-            if (first) seenNotificationIds.delete(first)
-          }
+  // 1. Register listener in listener Set
+  let listeners = userNotificationListeners.get(userId)
+  if (!listeners) {
+    listeners = new Set()
+    userNotificationListeners.set(userId, listeners)
+  }
+  listeners.add(onNotification)
 
-          onNotification(newNotif)
+  // 2. If a channel does not already exist for this user, create and subscribe ONCE
+  if (!userChannels.has(userId)) {
+    try {
+      const channelName = `realtime-notifs-${userId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+      const channel = supabase.channel(channelName)
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'in_app_notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          try {
+            const newNotif = payload.new as InAppNotification
+            if (newNotif && newNotif.id) {
+              // Duplicate prevention check
+              if (seenNotificationIds.has(newNotif.id)) {
+                return
+              }
+              seenNotificationIds.add(newNotif.id)
+              // Limit memory size of seen Set
+              if (seenNotificationIds.size > 500) {
+                const first = seenNotificationIds.values().next().value
+                if (first) seenNotificationIds.delete(first)
+              }
+
+              // Dispatch to all active registered component listeners
+              const currentListeners = userNotificationListeners.get(userId)
+              if (currentListeners) {
+                currentListeners.forEach((cb) => {
+                  try {
+                    cb(newNotif)
+                  } catch (e) {
+                    console.error('[Notification] Callback execution error:', e)
+                  }
+                })
+              }
+            }
+          } catch (err) {
+            console.error('[Notification] Payload parsing error:', err)
+          }
+        }
+      )
+
+      channel.subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR' && onError) {
+          onError(err)
+        }
+      })
+
+      userChannels.set(userId, channel)
+    } catch (err) {
+      console.warn('[RealtimeNotification] Subscription error:', err)
+      if (onError) onError(err)
+    }
+  }
+
+  // 3. Return cleanup: remove listener, and close channel only when the LAST listener unmounts
+  return () => {
+    const currentListeners = userNotificationListeners.get(userId)
+    if (currentListeners) {
+      currentListeners.delete(onNotification)
+      if (currentListeners.size === 0) {
+        userNotificationListeners.delete(userId)
+        const channel = userChannels.get(userId)
+        if (channel) {
+          userChannels.delete(userId)
+          try {
+            supabase.removeChannel(channel).catch(() => {})
+          } catch {
+            // Ignore channel cleanup errors
+          }
         }
       }
-    )
-    .subscribe((status, err) => {
-      if (status === 'CHANNEL_ERROR' && onError) {
-        onError(err)
-      }
-    })
-
-  return () => {
-    supabase.removeChannel(channel).catch(() => {})
+    }
   }
 }
 
