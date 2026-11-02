@@ -108,7 +108,7 @@ export default function ClubDashboardPage() {
     if (isSupabaseConfigured && eventIds.length > 0) {
       try {
         const { data: regData } = await (supabase.from('registrations') as any)
-          .select('id, event_id, status, attendance_status, created_at, ticket_code')
+          .select('id, event_id, status, created_at, ticket_code')
           .in('event_id', eventIds)
           .order('created_at', { ascending: false })
 

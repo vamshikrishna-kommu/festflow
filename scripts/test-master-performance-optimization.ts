@@ -117,7 +117,7 @@ const migration38Content = fs.readFileSync(migration38Path, 'utf8');
 assert(migration38Content.includes('idx_events_status_start_date'), '038 migration indexes events(status, start_date)');
 assert(migration38Content.includes('idx_registrations_student_status'), '038 migration indexes registrations(student_id, status)');
 assert(migration38Content.includes('idx_payment_submissions_event_status'), '038 migration indexes payment_submissions(event_id, status)');
-assert(migration38Content.includes('idx_certificates_recipient_event'), '038 migration indexes certificates(recipient_id, event_id)');
+assert(migration38Content.includes('idx_certificates_student_event'), '038 migration indexes certificates(student_id, event_id)');
 
 console.log('\n================================================================');
 console.log(' ALL 10 MASTER PERFORMANCE OPTIMIZATION CHECKS PASSED SUCCESSFULLY! 🚀');
