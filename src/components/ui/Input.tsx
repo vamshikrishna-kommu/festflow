@@ -62,7 +62,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           disabled={disabled}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : helperText ? helperId : undefined}
-          className={`w-full rounded-[var(--radius-input)] bg-[var(--color-surface-2)] border text-xs sm:text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] transition-all duration-200 outline-none h-11 ${
+          className={`w-full rounded-[var(--radius-input)] bg-[var(--color-surface-2)] border text-xs sm:text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] transition-colors duration-150 outline-none h-11 ${
             leftIcon ? 'pl-10' : 'pl-3.5'
           } ${rightIcon ? 'pr-10' : 'pr-3.5'} ${
             error

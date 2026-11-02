@@ -18,11 +18,9 @@ import {
   Info,
   Scan,
   Sparkles,
-  RefreshCw,
   Users,
   Tag,
   X,
-  Zap,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Card, Badge, PageHeader, Alert } from '@/components/ui'
@@ -33,7 +31,6 @@ import {
   getClubPaymentSettings,
   getStudentPaymentSubmission,
   submitPaymentProof,
-  autoVerifyAndIssuePass,
   uploadPaymentScreenshot,
 } from '@/lib/payments'
 import { validateCoupon, redeemCoupon } from '@/lib/coupons'
@@ -86,7 +83,6 @@ export default function StudentPaymentPage() {
   const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [couponError, setCouponError] = useState<string | null>(null)
   const [couponSuccess, setCouponSuccess] = useState<string | null>(null)
-  const [autoVerifying, setAutoVerifying] = useState(false)
 
   const hasUserEditedUtr = useRef(false)
   const initialLoadDone = useRef(false)
@@ -275,83 +271,25 @@ export default function StudentPaymentPage() {
     setCouponInput('')
   }
 
-  const handleGenerateFallbackUtr = () => {
-    const gen = `42${Date.now().toString().slice(-10)}`
-    setUtrReference(gen)
-    hasUserEditedUtr.current = true
-    setFieldError(null)
-    setOcrStatusMessage({
-      type: 'info',
-      text: `Generated standard UPI reference (${gen}).`,
-    })
-  }
-
-  // ── Instant UPI App Auto-Verification & Pass Issuance ────────────────────────
-  const handleAutoVerify = async () => {
-    if (!registrationId || !user) return
-    setAutoVerifying(true)
-    setNotice(null)
-    setFieldError(null)
-
-    const effectiveRef = utrReference.trim() || `42${Date.now().toString().slice(-10)}`
-    if (!utrReference.trim()) {
-      setUtrReference(effectiveRef)
-    }
-
-    let combinedNotes = studentNotes.trim()
-    const autoTag = '[Auto-Verified via Direct UPI App Flow]'
-    if (appliedCoupon) {
-      const finalPaid = Math.max(0, (registration?.event?.price || 0) - discountAmount)
-      const couponTag = `[Coupon Applied: ${appliedCoupon.code} | Discount: ₹${discountAmount} | Final Amount Paid: ₹${finalPaid}]`
-      combinedNotes = `${autoTag} | ${couponTag} | ${combinedNotes}`.trim()
-    } else {
-      combinedNotes = combinedNotes ? `${autoTag} | ${combinedNotes}` : autoTag
-    }
-
-    let uploadedScreenshotUrl = screenshotPreview
-    if (screenshotFile) {
-      try {
-        setUploadingScreenshot(true)
-        const uploadRes = await uploadPaymentScreenshot(user.id, screenshotFile)
-        setUploadingScreenshot(false)
-        if (uploadRes.success && uploadRes.url) {
-          uploadedScreenshotUrl = uploadRes.url
-        }
-      } catch {
-        setUploadingScreenshot(false)
-      }
-    }
-
-    const res = await autoVerifyAndIssuePass({
-      registrationId,
-      transactionReference: effectiveRef,
-      screenshotUrl: uploadedScreenshotUrl,
-      notes: combinedNotes,
-    })
-
-    setAutoVerifying(false)
-
-    if (res.success) {
-      if (appliedCoupon) {
-        redeemCoupon(appliedCoupon.id).catch(() => {})
-      }
-      setNotice({ message: res.message || 'Payment auto-verified! Your digital entry pass is now active.' })
-      await loadData(true)
-    } else {
-      setNotice({ message: res.message || 'Auto-verification failed.', isError: true })
-      await loadData(true)
-    }
-  }
-
-  // ── UPI UTR Submission ──────────────────────────────────────────────────────
+  // ── UPI UTR Submission (Honest Organizer Verification Workflow) ─────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!registrationId || !user) return
 
-    // If student did not provide a UTR, auto-generate a valid 12-digit standard reference
-    const cleanRef = utrReference.trim() || `42${Date.now().toString().slice(-10)}`
-    if (cleanRef !== utrReference.trim()) {
-      setUtrReference(cleanRef)
+    const cleanRef = utrReference.trim()
+    if (!cleanRef) {
+      setFieldError('Please enter the 12-digit UPI transaction reference (UTR) from your payment receipt.')
+      return
+    }
+
+    if (cleanRef.length < 6 || cleanRef.length > 24) {
+      setFieldError('Transaction reference / UTR must be between 6 and 24 characters.')
+      return
+    }
+
+    if (!/^[A-Za-z0-9\-_]{6,24}$/.test(cleanRef)) {
+      setFieldError('Transaction reference may only contain alphanumeric characters and hyphens.')
+      return
     }
 
     setSubmitting(true)
@@ -365,6 +303,11 @@ export default function StudentPaymentPage() {
       setUploadingScreenshot(false)
       if (uploadRes.success && uploadRes.url) {
         uploadedScreenshotUrl = uploadRes.url
+      } else if (uploadRes.error) {
+        setNotice({
+          message: `Screenshot upload warning: ${uploadRes.error}. Submitting transaction reference...`,
+          isError: false,
+        })
       }
     }
 
@@ -388,10 +331,12 @@ export default function StudentPaymentPage() {
       if (appliedCoupon) {
         redeemCoupon(appliedCoupon.id).catch(() => {})
       }
-      setNotice({ message: res.message })
+      setNotice({
+        message: res.message || 'Payment reference submitted successfully! The club organizer will verify and activate your pass.',
+      })
       await loadData(true)
     } else {
-      setNotice({ message: res.message, isError: true })
+      setNotice({ message: res.message || 'Failed to submit payment details.', isError: true })
     }
   }
 
@@ -402,6 +347,13 @@ export default function StudentPaymentPage() {
   const finalPrice = Math.max(0, basePrice - discountAmount)
   const effectiveAmount = appliedCoupon ? finalPrice : basePrice
   const effectiveCurrency = event?.currency || 'INR'
+
+  // Authoritative payment display status booleans
+  const isFreeEvent = Boolean(event?.is_free) || effectiveAmount === 0 || basePrice === 0
+  const isPaymentApproved = submission?.status === 'approved' && registration?.status === 'confirmed'
+  const isPaymentPendingReview = !isPaymentApproved && (submission?.status === 'pending_review' || registration?.status === 'pending_approval')
+  const isPaymentRejected = !isPaymentApproved && !isPaymentPendingReview && (submission?.status === 'rejected' || registration?.status === 'rejected')
+  const isPaymentPendingSubmission = !isFreeEvent && !isPaymentApproved && !isPaymentPendingReview && !isPaymentRejected
 
   // Dynamic UPI URI for QR and mobile app intent
   const upiIntentUri = effectiveUpi
@@ -455,34 +407,48 @@ export default function StudentPaymentPage() {
               ]}
               title={`Pay via UPI: ${event.title}`}
               badge={
-                event.is_free
+                isFreeEvent
                   ? 'Free Event'
-                  : registration.status === 'confirmed' || submission?.status === 'approved'
+                  : isPaymentApproved
                   ? 'Payment Verified'
-                  : submission?.status === 'pending_review'
-                  ? 'Payment Under Review'
-                  : submission?.status === 'rejected' || registration.status === 'rejected'
+                  : isPaymentPendingReview
+                  ? 'Awaiting Club Verification'
+                  : isPaymentRejected
                   ? 'Payment Rejected'
                   : registration.status === 'pending_approval'
                   ? 'Application Under Review'
-                  : 'Awaiting UPI Payment'
+                  : registration.status === 'cancelled'
+                  ? 'Registration Cancelled'
+                  : 'Payment Pending'
               }
               badgeVariant={
-                event.is_free || registration.status === 'confirmed' || submission?.status === 'approved'
+                isFreeEvent || isPaymentApproved
                   ? 'success'
-                  : submission?.status === 'pending_review'
+                  : isPaymentPendingReview
                   ? 'amber'
-                  : submission?.status === 'rejected' || registration.status === 'rejected'
+                  : isPaymentRejected
                   ? 'danger'
                   : registration.status === 'pending_approval'
                   ? 'purple'
+                  : registration.status === 'cancelled'
+                  ? 'neutral'
                   : 'amber'
               }
-              subtitle={`Registration Reference: ${registration.ticket_code} • Pay via direct UPI to the organizer and submit your UTR for ticket verification.`}
+              subtitle={
+                isFreeEvent
+                  ? `Registration Reference: ${registration.ticket_code} • Free event admission pass is confirmed.`
+                  : isPaymentApproved
+                  ? `Registration Reference: ${registration.ticket_code} • Payment verified by organizer. Active gate pass issued.`
+                  : isPaymentPendingReview
+                  ? `Registration Reference: ${registration.ticket_code} • Payment submitted (UTR: ${submission?.transaction_reference}). Awaiting organizer verification.`
+                  : isPaymentRejected
+                  ? `Registration Reference: ${registration.ticket_code} • Payment submission was declined. Please verify and resubmit.`
+                  : `Registration Reference: ${registration.ticket_code} • Transfer ${effectiveCurrency} ${effectiveAmount} via UPI to the organizer and submit your 12-digit transaction reference for verification.`
+              }
             />
 
             {/* ── Status Notices ─────────────────────────────────────────────── */}
-            {event.is_free ? (
+            {isFreeEvent ? (
               <motion.div
                 variants={fadeIn}
                 initial="hidden"
@@ -496,7 +462,7 @@ export default function StudentPaymentPage() {
                       This Event is Free of Charge!
                     </h3>
                     <p className="text-xs text-emerald-300/80">
-                      No payment transaction is required for free campus events.
+                      No payment transaction is required for free campus events. Present your digital QR pass at the entrance gate.
                     </p>
                   </div>
                 </div>
@@ -537,31 +503,33 @@ export default function StudentPaymentPage() {
                   </Link>
                 </div>
               </motion.div>
-            ) : registration.status === 'confirmed' || submission?.status === 'approved' ? (
+            ) : isPaymentApproved ? (
               <motion.div
                 variants={fadeIn}
                 initial="hidden"
                 animate="visible"
-                className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg"
               >
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 size={24} className="text-emerald-400 shrink-0" />
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={24} />
+                  </div>
                   <div>
-                    <h3 className="font-bold text-sm text-emerald-200">
+                    <h3 className="font-bold text-base text-emerald-200">
                       Payment Verified & Pass Active!
                     </h3>
-                    <p className="text-xs text-emerald-300/80">
-                      Your entry ticket has been verified and confirmed by the organizer. Present your digital QR pass at the entrance gate.
+                    <p className="text-xs text-emerald-300/80 mt-0.5">
+                      Your payment of <strong className="text-white">{effectiveCurrency} {effectiveAmount}</strong> (Ref: <span className="font-mono text-white font-bold">{submission?.transaction_reference || 'Verified'}</span>) has been verified and confirmed by the organizer. Your active digital pass and QR code are ready for entrance gate check-in.
                     </p>
                   </div>
                 </div>
-                <Link to={`/student/tickets/${registration.id}`}>
-                  <Button variant="primary" size="sm" rightIcon={<ExternalLink size={14} />}>
+                <Link to={`/student/tickets/${registration.id}`} className="shrink-0">
+                  <Button variant="primary" size="md" rightIcon={<ExternalLink size={15} />}>
                     View Digital Pass
                   </Button>
                 </Link>
               </motion.div>
-            ) : submission?.status === 'pending_review' ? (
+            ) : isPaymentPendingReview ? (
               <motion.div
                 variants={fadeIn}
                 initial="hidden"
@@ -572,16 +540,16 @@ export default function StudentPaymentPage() {
                   <Clock size={24} className="text-amber-400 shrink-0 animate-pulse" />
                   <div>
                     <h3 className="font-bold text-sm text-amber-200">
-                      Payment Under Review
+                      Payment Submitted — Awaiting Club Verification
                     </h3>
-                    <p className="text-xs text-amber-300/80">
-                      Submitted UTR: <span className="font-mono font-bold text-white">{submission.transaction_reference}</span>. The organizer is verifying your payment against their bank records. Your ticket will activate upon approval.
+                    <p className="text-xs text-amber-300/80 mt-0.5">
+                      Submitted UTR: <span className="font-mono font-bold text-white">{submission?.transaction_reference}</span>. The host club organizer is verifying this payment against their official bank records. Your digital entry ticket will activate as soon as approved.
                     </p>
                   </div>
                 </div>
-                <Badge variant="amber">Awaiting Approval</Badge>
+                <Badge variant="amber" className="shrink-0">Awaiting Verification</Badge>
               </motion.div>
-            ) : (registration.status === 'rejected' || submission?.status === 'rejected') ? (
+            ) : isPaymentRejected ? (
               <motion.div
                 variants={fadeIn}
                 initial="hidden"
@@ -591,18 +559,35 @@ export default function StudentPaymentPage() {
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={20} className="text-rose-400 shrink-0" />
                   <h3 className="font-bold text-sm text-rose-200">
-                    Payment Rejected — Review Reason
+                    Payment Verification Declined
                   </h3>
                 </div>
                 <p className="text-xs text-rose-300/90 leading-relaxed">
                   Reason provided by organizer:{' '}
                   <span className="font-semibold text-white">
-                    {submission?.review_notes || 'Transaction reference could not be verified in organizer account.'}
+                    {submission?.review_notes || registration.rejection_reason || 'Transaction reference could not be verified in organizer bank account.'}
                   </span>
                 </p>
                 <p className="text-[11px] text-rose-300/70">
-                  Please verify your UPI transaction history, copy the correct 12-digit UTR/RRN number, and resubmit below.
+                  Please verify your UPI transaction history in Google Pay, PhonePe, Paytm, or BHIM, copy the correct 12-digit UTR/RRN number, and resubmit below.
                 </p>
+              </motion.div>
+            ) : isPaymentPendingSubmission ? (
+              <motion.div
+                variants={fadeIn}
+                initial="hidden"
+                animate="visible"
+                className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-200 flex items-start gap-3 text-xs leading-relaxed"
+              >
+                <Info size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-semibold text-amber-100">
+                    Payment Pending — Ticket Amount Due: {effectiveCurrency} {effectiveAmount}
+                  </strong>
+                  <span>
+                    To unlock your official event pass, transfer the registration fee using UPI and enter your 12-digit transaction reference (UTR) below for organizer verification.
+                  </span>
+                </div>
               </motion.div>
             ) : null}
 
@@ -640,8 +625,8 @@ export default function StudentPaymentPage() {
               </Alert>
             )}
 
-            {/* ── Main Direct UPI Payment Container (when payable) ─────────────────────────── */}
-            {!event.is_free && registration.status !== 'pending_approval' && (
+            {/* ── Main Direct UPI Payment Container (when payable and unapproved) ───────────── */}
+            {!isFreeEvent && registration.status !== 'pending_approval' && registration.status !== 'cancelled' && !isPaymentApproved && (
               isProduction && !effectiveUpi ? (
                 <Card className="p-8 text-center max-w-lg mx-auto flex flex-col items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
@@ -674,9 +659,9 @@ export default function StudentPaymentPage() {
                   </div>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start w-full">
                   {/* Left Column: Organizer UPI Details & QR */}
-                  <div className="lg:col-span-5 flex flex-col gap-6">
+                  <div className="lg:col-span-5 flex flex-col gap-6 w-full min-w-0">
                     {/* Redeem Promo / Coupon Card */}
                     <Card className="p-5 border border-white/[0.08] bg-[#0E0E12] space-y-3">
                       <div className="flex items-center justify-between">
@@ -709,8 +694,8 @@ export default function StudentPaymentPage() {
                               setCouponInput(e.target.value.toUpperCase())
                               if (couponError) setCouponError(null)
                             }}
-                            placeholder="Enter Code (e.g. FEST20, CAMPUS50)"
-                            className="flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono font-bold text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC] uppercase"
+                            placeholder="Enter Code (e.g. FEST20)"
+                            className="flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono font-bold text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC] uppercase min-w-0"
                             disabled={couponLoading}
                           />
                           <Button
@@ -766,7 +751,8 @@ export default function StudentPaymentPage() {
                       )}
                     </Card>
 
-                    <Card className="p-6 flex flex-col items-center text-center relative overflow-hidden">
+                    {/* Amount & QR Details Card */}
+                    <Card className="p-5 sm:p-6 flex flex-col items-center text-center relative overflow-hidden">
                       <span className="text-xs uppercase tracking-wider font-semibold text-[var(--color-text-muted)] mb-1">
                         {appliedCoupon ? 'Discounted Amount Due' : 'Amount Due'}
                       </span>
@@ -788,53 +774,28 @@ export default function StudentPaymentPage() {
                         </div>
                       )}
 
-                      {effectiveAmount === 0 && appliedCoupon && (
-                        <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-200 text-xs space-y-2 mb-4 text-left">
-                          <div className="flex items-center gap-2 font-bold text-sm text-white">
-                            <Sparkles className="text-emerald-400 w-4 h-4 shrink-0" />
-                            100% Free Pass via Coupon {appliedCoupon.code}!
-                          </div>
-                          <p className="text-[11px] text-emerald-300 leading-relaxed">
-                            Your pass fee is fully waived. Click below to claim your zero-cost pass and proceed to verification.
-                          </p>
-                          <Button
-                            type="button"
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              setUtrReference(`COUPON-FREE-${appliedCoupon.code}`)
-                              hasUserEditedUtr.current = true
-                              setFieldError(null)
-                            }}
-                            className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs"
-                          >
-                            Claim 100% Free Pass
-                          </Button>
-                        </div>
-                      )}
-
                       {!effectiveUpi ? (
                         <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2 text-center w-full my-4">
                           <AlertTriangle size={28} className="mx-auto text-amber-400" />
                           <h4 className="font-bold text-sm text-amber-200">UPI Not Configured</h4>
                           <p className="text-xs text-amber-300/80 leading-relaxed font-sans">
-                            The host club has not configured their UPI ID yet. Please contact the event organizer.
+                            The host club has not configured their official UPI ID yet. Please contact the event organizer.
                           </p>
                         </div>
                       ) : (
                         <>
                           {/* QR Code Container */}
-                          <div className="p-4 bg-white rounded-2xl shadow-xl border border-white/20 mb-4 max-w-[220px] w-full flex items-center justify-center">
+                          <div className="p-4 bg-white rounded-2xl shadow-xl border border-white/20 mb-3 max-w-[200px] sm:max-w-[220px] w-full flex items-center justify-center">
                             {clubSettings?.qr_image_url ? (
                               <img
                                 src={clubSettings.qr_image_url}
                                 alt="Organizer Official UPI QR"
-                                className="w-44 h-44 max-w-full object-contain rounded-xl"
+                                className="w-40 sm:w-44 h-40 sm:h-44 max-w-full object-contain rounded-xl"
                               />
                             ) : (
                               <QRCodeSVG
                                 value={upiIntentUri}
-                                size={176}
+                                size={160}
                                 level="M"
                                 includeMargin={false}
                                 className="max-w-full h-auto"
@@ -849,7 +810,7 @@ export default function StudentPaymentPage() {
                             <div className="w-full p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] mb-3 text-left flex items-start gap-2">
                               <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-400" />
                               <span>
-                                <strong>Coupon Applied:</strong> When scanning this club's static QR code, manually enter the discounted total: <strong>{effectiveCurrency} {effectiveAmount}</strong>.
+                                <strong>Coupon Note:</strong> When scanning this club's static QR, manually enter the discounted total: <strong>{effectiveCurrency} {effectiveAmount}</strong>.
                               </span>
                             </div>
                           )}
@@ -857,43 +818,14 @@ export default function StudentPaymentPage() {
                           {/* Mobile Intent Button */}
                           <a
                             href={upiIntentUri}
-                            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md transition-all mb-3 cursor-pointer"
+                            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all mb-3 cursor-pointer select-none active:scale-[0.99]"
                           >
-                            <Smartphone size={15} /> Pay using UPI App
+                            <Smartphone size={16} /> Pay using UPI App
                           </a>
-
-                          {/* Instant Auto-Verification for App Payments */}
-                          <div className="w-full mb-4 p-3 rounded-xl bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-purple-500/10 border border-emerald-500/30 text-left flex flex-col gap-2 shadow-sm">
-                            <div className="flex items-center gap-1.5">
-                              <span className="p-1 rounded bg-emerald-500/20 text-emerald-400">
-                                <Zap size={13} />
-                              </span>
-                              <span className="text-xs font-bold text-white">Paid via App? Instant Pass</span>
-                            </div>
-                            <p className="text-[11px] text-zinc-300 leading-relaxed">
-                              Completed payment in Google Pay, PhonePe, or Paytm? Tap below to auto-verify and unlock your digital pass instantly without waiting for host review:
-                            </p>
-                            <Button
-                              type="button"
-                              onClick={handleAutoVerify}
-                              disabled={autoVerifying}
-                              className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-[#18CFFC] hover:brightness-110 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow cursor-pointer transition-all"
-                            >
-                              {autoVerifying ? (
-                                <>
-                                  <RefreshCw size={13} className="animate-spin" /> Verifying & Issuing Pass...
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle2 size={13} /> ⚡ I've Paid — Auto-Verify & Unlock Pass
-                                </>
-                              )}
-                            </Button>
-                          </div>
 
                           {/* UPI ID Pill with Copy */}
                           <div className="w-full p-3 rounded-xl bg-[#14141A] border border-white/[0.08] flex items-center justify-between gap-2 text-left">
-                            <div className="truncate">
+                            <div className="truncate min-w-0">
                               <span className="text-[10px] uppercase font-semibold text-zinc-500 block">
                                 Organizer UPI ID
                               </span>
@@ -933,23 +865,30 @@ export default function StudentPaymentPage() {
                         )}
                       </div>
 
-                      <div className="w-full mt-3 p-3 rounded-xl bg-[#14141A] border border-white/[0.08] text-left flex items-start gap-2 text-[11px] text-zinc-400">
-                        <Info size={14} className="text-[#18CFFC] shrink-0 mt-0.5" />
-                        <span>
-                          Opening a UPI app or scanning the QR initiates payment with your bank. You must submit your 12-digit UTR below for organizer verification.
-                        </span>
+                      {/* Step-by-Step Payment Instructions */}
+                      <div className="w-full mt-3 p-3.5 rounded-xl bg-[#14141A] border border-white/[0.08] text-left flex flex-col gap-2 text-xs text-zinc-300">
+                        <div className="flex items-center gap-1.5 font-semibold text-white">
+                          <Info size={14} className="text-[#18CFFC] shrink-0" />
+                          <span>Payment & Verification Steps</span>
+                        </div>
+                        <ol className="list-decimal list-inside space-y-1 text-[11px] text-zinc-400 font-sans leading-relaxed">
+                          <li>Tap <strong>Pay using UPI App</strong> or scan the QR code above.</li>
+                          <li>Complete the payment of <strong>{effectiveCurrency} {effectiveAmount}</strong>.</li>
+                          <li>Copy the 12-digit <strong>UTR / RRN reference</strong> from your UPI app receipt.</li>
+                          <li>Enter the reference below and tap <strong>Submit for Verification</strong>.</li>
+                        </ol>
                       </div>
                     </Card>
                   </div>
 
                   {/* Right Column: UTR Submission Form & Event Details */}
-                  <div className="lg:col-span-7 flex flex-col gap-6">
-                    <Card className="p-6 sm:p-8">
+                  <div className="lg:col-span-7 flex flex-col gap-6 w-full min-w-0">
+                    <Card className="p-5 sm:p-8">
                       <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] mb-1">
                         Submit UPI Transaction Reference
                       </h2>
-                      <p className="text-xs text-[var(--color-text-secondary)] mb-6">
-                        After completing the transfer in your UPI application, enter the 12-digit UPI transaction reference number (UTR/RRN) below so the host club can verify and activate your pass.
+                      <p className="text-xs text-[var(--color-text-secondary)] mb-6 leading-relaxed">
+                        After transferring the fee via Google Pay, PhonePe, Paytm, or BHIM, enter your 12-digit UPI reference number (UTR / RRN) below so the club organizer can verify and activate your pass.
                       </p>
 
                       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -957,61 +896,54 @@ export default function StudentPaymentPage() {
                         <div>
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                             <label
-                              htmlFor="utr"
+                              htmlFor="utr-input"
                               className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]"
                             >
-                              UPI Transaction Reference (UTR / RRN)
+                              UPI Transaction Reference (UTR / RRN) <span className="text-rose-400">*</span>
                             </label>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {detectedUtrCandidate && utrReference.trim() !== detectedUtrCandidate && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setUtrReference(detectedUtrCandidate)
-                                    hasUserEditedUtr.current = true
-                                    setFieldError(null)
-                                    setOcrStatusMessage({
-                                      type: 'success',
-                                      text: 'Applied detected UTR — please verify it.',
-                                    })
-                                  }}
-                                  className="text-[11px] font-semibold text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Sparkles size={12} /> Use detected: <span className="font-mono">{detectedUtrCandidate}</span>
-                                </button>
-                              )}
+                            {detectedUtrCandidate && utrReference.trim() !== detectedUtrCandidate && (
                               <button
                                 type="button"
-                                onClick={handleGenerateFallbackUtr}
-                                className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                                onClick={() => {
+                                  setUtrReference(detectedUtrCandidate)
+                                  hasUserEditedUtr.current = true
+                                  setFieldError(null)
+                                  setOcrStatusMessage({
+                                    type: 'success',
+                                    text: 'Applied detected reference — please verify it before submitting.',
+                                  })
+                                }}
+                                className="text-[11px] font-semibold text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 cursor-pointer"
                               >
-                                <Sparkles size={12} /> Auto-Generate Reference
+                                <Sparkles size={12} /> Use detected: <span className="font-mono">{detectedUtrCandidate}</span>
                               </button>
-                            </div>
+                            )}
                           </div>
 
                           <div className="relative flex items-center">
                             <input
-                              id="utr"
+                              id="utr-input"
                               name="transactionReference"
                               type="text"
-                              disabled={submission?.status === 'approved' || registration?.status === 'confirmed'}
-                              autoComplete="off"
+                              inputMode="text"
+                              autoCapitalize="characters"
+                              autoCorrect="off"
                               spellCheck={false}
-                              placeholder="e.g. 428910485923 (or click Auto-Generate)"
+                              required
+                              placeholder="e.g. 428910485923"
                               value={utrReference}
                               onChange={(e) => {
                                 hasUserEditedUtr.current = true
                                 setUtrReference(e.target.value)
                                 if (fieldError) setFieldError(null)
                               }}
-                              className={`w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm sm:text-base focus:outline-none font-mono transition-colors disabled:opacity-50 ${
+                              className={`w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm sm:text-base focus:outline-none font-mono transition-colors ${
                                 fieldError
                                   ? 'border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-500'
-                                  : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)] focus:ring-1 focus:ring-[var(--color-brand-purple)]'
+                                  : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
                               }`}
                             />
-                            {utrReference && !(submission?.status === 'approved' || registration?.status === 'confirmed') && (
+                            {utrReference && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1042,21 +974,33 @@ export default function StudentPaymentPage() {
                         {/* Screenshot Upload with OCR Auto-Extraction */}
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
-                              Payment Screenshot / Receipt <span className="text-emerald-400 font-normal normal-case">(100% Optional)</span>
+                            <label
+                              htmlFor="screenshot-file-input"
+                              className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]"
+                            >
+                              Payment Screenshot / Receipt <span className="text-zinc-500 font-normal normal-case">(Optional)</span>
                             </label>
                             <span className="text-[11px] text-[var(--color-brand-cyan)] flex items-center gap-1">
                               <Scan size={12} /> Auto-detects UTR
                             </span>
                           </div>
 
+                          <input
+                            id="screenshot-file-input"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/*"
+                            className="sr-only"
+                            onChange={handleScreenshotSelect}
+                            disabled={submitting || uploadingScreenshot}
+                          />
+
                           {screenshotPreview ? (
                             <div className="flex flex-col gap-2">
-                              <div className="relative group p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-between">
+                              <div className="relative group p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <img
                                     src={screenshotPreview}
-                                    alt="Proof preview"
+                                    alt="Payment receipt preview"
                                     className="w-14 h-14 object-cover rounded-lg border border-[var(--color-surface-3)] shrink-0"
                                   />
                                   <div className="min-w-0">
@@ -1071,35 +1015,27 @@ export default function StudentPaymentPage() {
                                   </div>
                                 </div>
 
-                                {submission?.status !== 'approved' && registration?.status !== 'confirmed' && (
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    {screenshotFile && (
-                                      <button
-                                        type="button"
-                                        disabled={isExtractingOcr}
-                                        onClick={() => runOcrExtraction(screenshotFile)}
-                                        title="Re-run text scan on this screenshot"
-                                        className="text-xs text-[var(--color-brand-cyan)] hover:underline flex items-center gap-1 px-2.5 py-1 rounded bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-4)] transition-colors cursor-pointer disabled:opacity-50"
-                                      >
-                                        <RefreshCw size={12} className={isExtractingOcr ? 'animate-spin' : ''} />
-                                        <span className="hidden sm:inline">Try extracting again</span>
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      disabled={isExtractingOcr || submitting}
-                                      onClick={() => {
-                                        setScreenshotFile(null)
-                                        setScreenshotPreview(null)
-                                        setOcrStatusMessage(null)
-                                        setDetectedUtrCandidate(null)
-                                      }}
-                                      className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors cursor-pointer"
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <label
+                                    htmlFor="screenshot-file-input"
+                                    className="text-xs text-[var(--color-brand-cyan)] hover:underline px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-4)] transition-colors cursor-pointer"
+                                  >
+                                    Replace
+                                  </label>
+                                  <button
+                                    type="button"
+                                    disabled={isExtractingOcr || submitting}
+                                    onClick={() => {
+                                      setScreenshotFile(null)
+                                      setScreenshotPreview(null)
+                                      setOcrStatusMessage(null)
+                                      setDetectedUtrCandidate(null)
+                                    }}
+                                    className="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
                               </div>
 
                               {/* OCR In-Progress Indicator */}
@@ -1145,20 +1081,18 @@ export default function StudentPaymentPage() {
                               )}
                             </div>
                           ) : (
-                            <label className="border-2 border-dashed border-[var(--color-surface-3)] hover:border-[var(--color-brand-purple)]/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-[var(--color-surface-1)]">
-                              <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp,image/*"
-                                className="hidden"
-                                onChange={handleScreenshotSelect}
-                                disabled={submission?.status === 'approved' || registration?.status === 'confirmed'}
-                              />
-                              <Upload size={24} className="text-[var(--color-text-muted)] mb-2" />
-                              <span className="text-xs text-[var(--color-text-primary)] font-medium">
-                                Upload transaction receipt screenshot
+                            <label
+                              htmlFor="screenshot-file-input"
+                              className="border-2 border-dashed border-[var(--color-surface-3)] hover:border-[#18CFFC]/50 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center cursor-pointer transition-all text-center bg-[var(--color-surface-1)] active:bg-[var(--color-surface-2)] select-none min-h-[120px]"
+                            >
+                              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-[#18CFFC] mb-2.5 shadow-sm">
+                                <Upload size={22} />
+                              </div>
+                              <span className="text-xs sm:text-sm text-[var(--color-text-primary)] font-semibold">
+                                Tap to upload payment receipt screenshot
                               </span>
-                              <span className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                                PNG, JPG or WEBP up to 10MB • Auto-extracts 12-digit UTR
+                              <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
+                                Supports JPG, PNG, WEBP (up to 10MB) • Scans receipt for 12-digit UTR
                               </span>
                             </label>
                           )}
@@ -1175,50 +1109,35 @@ export default function StudentPaymentPage() {
                           <input
                             id="notes"
                             type="text"
-                            disabled={submission?.status === 'approved' || registration?.status === 'confirmed'}
                             placeholder="e.g. Transferred from HDFC account ending in 4102"
                             value={studentNotes}
                             onChange={(e) => setStudentNotes(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-xs focus:outline-none focus:border-[var(--color-brand-purple)] transition-colors disabled:opacity-50"
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-xs focus:outline-none focus:border-[#18CFFC] transition-colors"
                           />
                         </div>
 
-                        {/* Action Buttons: Auto-Verify Instantly (Primary) & Submit for Manual Review (Secondary) */}
-                        <div className="pt-2 flex flex-col gap-3">
-                          <Button
-                            type="button"
-                            onClick={handleAutoVerify}
-                            disabled={isExtractingOcr || submitting || autoVerifying || uploadingScreenshot}
-                            isLoading={autoVerifying}
-                            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-[#18CFFC] hover:brightness-110 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
-                          >
-                            <Sparkles size={17} />
-                            {autoVerifying ? 'Auto-Verifying & Generating Pass…' : '⚡ Auto-Verify & Unlock Pass Instantly (No Waiting)'}
-                          </Button>
-
-                          <div className="flex items-center gap-2 my-0.5">
-                            <div className="flex-1 h-px bg-white/[0.08]" />
-                            <span className="text-[10px] uppercase font-semibold text-zinc-500">or manual organizer review</span>
-                            <div className="flex-1 h-px bg-white/[0.08]" />
-                          </div>
-
+                        {/* Action Button: Single Honest Submission for Club Review */}
+                        <div className="pt-2 flex flex-col gap-2">
                           <Button
                             type="submit"
-                            variant="outline"
-                            size="md"
-                            className="w-full text-xs"
-                            disabled={isExtractingOcr || submitting || autoVerifying || uploadingScreenshot}
+                            variant="primary"
+                            size="lg"
+                            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-[#18CFFC] hover:brightness-110 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer min-h-[48px]"
+                            disabled={isExtractingOcr || submitting || uploadingScreenshot}
                             isLoading={submitting || uploadingScreenshot}
-                            leftIcon={<ShieldCheck size={16} />}
+                            leftIcon={<ShieldCheck size={18} />}
                           >
-                            {submitting
+                            {submitting || uploadingScreenshot
                               ? 'Submitting Proof…'
-                              : submission?.status === 'pending_review'
+                              : isPaymentPendingReview
                               ? 'Update Payment Reference'
-                              : submission?.status === 'rejected' || registration?.status === 'rejected'
-                              ? 'Resubmit Corrected Reference'
-                              : 'Submit for Organizer Manual Verification'}
+                              : isPaymentRejected
+                              ? 'Resubmit for Verification'
+                              : 'Submit for Verification'}
                           </Button>
+                          <p className="text-[11px] text-center text-zinc-500">
+                            Your transaction reference will be verified by the host club organizer before pass issuance.
+                          </p>
                         </div>
                       </form>
                     </Card>

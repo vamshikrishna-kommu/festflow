@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { motion } from 'motion/react'
 import {
   Search,
@@ -16,6 +16,7 @@ import { EventDiscoveryMap } from '@/components/events/EventDiscoveryMap'
 import { Button, EmptyState } from '@/components/ui'
 import { staggerContainer, fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { useDebounce } from '@/hooks/useDebounce'
 import { EVENT_CATEGORIES, type CategoryFilter } from '@/lib/mock-data'
 import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
 import type { Event } from '@/types'
@@ -33,22 +34,30 @@ export default function DiscoverPage() {
 
   const [viewMode, setViewMode]           = useState<'grid' | 'map'>('grid')
   const [search, setSearch]               = useState('')
+  // Debounce search query to eliminate network storms on every keystroke
+  const debouncedSearch = useDebounce(search, 300)
+  const activeRequestId = useRef(0)
+
   const [category, setCategory]           = useState<CategoryFilter>('all')
   const [participationFilter, setParticipationFilter] = useState<'all' | 'individual' | 'team'>('all')
   const [pricingFilter, setPricingFilter] = useState<'all' | 'free' | 'paid'>('all')
   const [offset, setOffset]               = useState(0)
 
   const fetchEvents = useCallback(async (isLoadMore = false, newOffset = 0) => {
+    const reqId = ++activeRequestId.current
     if (isLoadMore) setLoadingMore(true)
     else setLoading(true)
     setError(null)
 
     const res = await listPublishedEvents({
       category: category === 'all' ? undefined : category,
-      search: search.trim() || undefined,
+      search: debouncedSearch.trim() || undefined,
       limit: PAGE_SIZE,
       offset: newOffset,
     })
+
+    // Ignore response if a newer search query was fired
+    if (reqId !== activeRequestId.current) return
 
     if (res.error) {
       setError(res.error)
@@ -61,12 +70,12 @@ export default function DiscoverPage() {
 
     setLoading(false)
     setLoadingMore(false)
-  }, [category, search])
+  }, [category, debouncedSearch])
 
   useEffect(() => {
     setOffset(0)
     fetchEvents(false, 0)
-  }, [category, search, fetchEvents])
+  }, [category, debouncedSearch, fetchEvents])
 
   const handleLoadMore = () => {
     const next = offset + PAGE_SIZE

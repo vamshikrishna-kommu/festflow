@@ -180,106 +180,113 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (profileData) {
           profileRef.current = profileData
           setProfile(profileData)
-          if (profileData.role === 'club_member') {
-            const { data: cData } = await supabase
-              .from('club_profiles')
-              .select('*')
-              .eq('profile_id', userId)
-              .maybeSingle()
-            setClubProfile((cData as unknown as ClubProfile | null) ?? null)
-          } else if (profileData.role === 'student') {
-            const { data: sData } = await supabase
-              .from('student_profiles')
-              .select('*')
-              .eq('profile_id', userId)
-              .maybeSingle()
-            if (sData) {
-              const sp = sData as unknown as StudentProfile
-              setStudentProfile({
-                ...sp,
-                college_name: sp.college_name || (userMeta?.college as string) || null,
-                graduation_year: sp.graduation_year || (userMeta?.graduation_year as number) || null,
-              })
-            } else {
-              setStudentProfile({
-                id: `sp_${userId}`,
-                profile_id: userId,
-                college_name: (userMeta?.college as string) || null,
-                graduation_year: (userMeta?.graduation_year as number) || null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
-            }
-          }
 
-          // Fetch active club memberships for role and organization coexistence
-          try {
-            const { data: memberRows, error: mErr } = await (supabase.from('club_members') as any)
-              .select('*')
-              .eq('user_id', userId)
-              .eq('status', 'active')
-
-            if (!mErr && memberRows && memberRows.length > 0) {
-              const typedMembers = memberRows as ClubMemberRecord[]
-              const clubIds = typedMembers.map((m) => m.club_id)
-
-              // Fetch matching organization profiles to enrich club names
-              let enrichedMembers: ClubMemberRecord[] = typedMembers
-              try {
-                const { data: orgData } = await (supabase.from('club_profiles') as any)
-                  .select('*')
-                  .in('profile_id', clubIds)
-                if (orgData && orgData.length > 0) {
-                  const orgList = orgData as ClubProfile[]
-                  enrichedMembers = typedMembers.map((m) => {
-                    const org = orgList.find((o) => o.profile_id === m.club_id)
-                    return {
-                      ...m,
-                      club: org || null,
-                      club_name: org?.club_name || 'Campus Club',
-                    }
-                  })
-                }
-              } catch {
-                // ignore org lookup failure
-              }
-
-              setClubMemberships(enrichedMembers)
-
-              // Check preferred club from sessionStorage
-              let preferredId: string | null = null
-              try {
-                preferredId = sessionStorage.getItem('festflow_preferred_club_id')
-              } catch {
-                // ignore
-              }
-
-              const matched = preferredId
-                ? enrichedMembers.find((m) => m.club_id === preferredId)
-                : null
-              const selectedMembership = matched || enrichedMembers[0]
-
-              setActiveClubMembership(selectedMembership)
-              if (selectedMembership.club) {
-                setActiveClubProfile(selectedMembership.club)
+          // Concurrently fetch subprofile and club memberships in parallel to avoid sequential network round trips
+          const subProfilePromise = (async () => {
+            if (profileData.role === 'club_member') {
+              const { data: cData } = await supabase
+                .from('club_profiles')
+                .select('*')
+                .eq('profile_id', userId)
+                .maybeSingle()
+              setClubProfile((cData as unknown as ClubProfile | null) ?? null)
+            } else if (profileData.role === 'student') {
+              const { data: sData } = await supabase
+                .from('student_profiles')
+                .select('*')
+                .eq('profile_id', userId)
+                .maybeSingle()
+              if (sData) {
+                const sp = sData as unknown as StudentProfile
+                setStudentProfile({
+                  ...sp,
+                  college_name: sp.college_name || (userMeta?.college as string) || null,
+                  graduation_year: sp.graduation_year || (userMeta?.graduation_year as number) || null,
+                })
               } else {
-                const { data: cOrgData } = await (supabase.from('club_profiles') as any)
-                  .select('*')
-                  .eq('profile_id', selectedMembership.club_id)
-                  .maybeSingle()
-                setActiveClubProfile(cOrgData ? (cOrgData as unknown as ClubProfile) : null)
+                setStudentProfile({
+                  id: `sp_${userId}`,
+                  profile_id: userId,
+                  college_name: (userMeta?.college as string) || null,
+                  graduation_year: (userMeta?.graduation_year as number) || null,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
               }
-            } else {
+            }
+          })()
+
+          const membershipsPromise = (async () => {
+            try {
+              const { data: memberRows, error: mErr } = await (supabase.from('club_members') as any)
+                .select('*')
+                .eq('user_id', userId)
+                .eq('status', 'active')
+
+              if (!mErr && memberRows && memberRows.length > 0) {
+                const typedMembers = memberRows as ClubMemberRecord[]
+                const clubIds = typedMembers.map((m) => m.club_id)
+
+                // Fetch matching organization profiles to enrich club names
+                let enrichedMembers: ClubMemberRecord[] = typedMembers
+                try {
+                  const { data: orgData } = await (supabase.from('club_profiles') as any)
+                    .select('*')
+                    .in('profile_id', clubIds)
+                  if (orgData && orgData.length > 0) {
+                    const orgList = orgData as ClubProfile[]
+                    enrichedMembers = typedMembers.map((m) => {
+                      const org = orgList.find((o) => o.profile_id === m.club_id)
+                      return {
+                        ...m,
+                        club: org || null,
+                        club_name: org?.club_name || 'Campus Club',
+                      }
+                    })
+                  }
+                } catch {
+                  // ignore org lookup failure
+                }
+
+                setClubMemberships(enrichedMembers)
+
+                // Check preferred club from sessionStorage
+                let preferredId: string | null = null
+                try {
+                  preferredId = sessionStorage.getItem('festflow_preferred_club_id')
+                } catch {
+                  // ignore
+                }
+
+                const matched = preferredId
+                  ? enrichedMembers.find((m) => m.club_id === preferredId)
+                  : null
+                const selectedMembership = matched || enrichedMembers[0]
+
+                setActiveClubMembership(selectedMembership)
+                if (selectedMembership.club) {
+                  setActiveClubProfile(selectedMembership.club)
+                } else {
+                  const { data: cOrgData } = await (supabase.from('club_profiles') as any)
+                    .select('*')
+                    .eq('profile_id', selectedMembership.club_id)
+                    .maybeSingle()
+                  setActiveClubProfile(cOrgData ? (cOrgData as unknown as ClubProfile) : null)
+                }
+              } else {
+                setClubMemberships([])
+                setActiveClubMembership(null)
+                setActiveClubProfile(null)
+              }
+            } catch (mCatchErr) {
+              console.warn('[FestFlow Auth] Club members lookup warning:', mCatchErr)
               setClubMemberships([])
               setActiveClubMembership(null)
               setActiveClubProfile(null)
             }
-          } catch (mCatchErr) {
-            console.warn('[FestFlow Auth] Club members lookup warning:', mCatchErr)
-            setClubMemberships([])
-            setActiveClubMembership(null)
-            setActiveClubProfile(null)
-          }
+          })()
+
+          await Promise.all([subProfilePromise, membershipsPromise])
         } else {
           // Profile missing in database — fail closed to prevent metadata privilege escalation
           console.warn('[FestFlow Security] No database profile found for user:', userId)

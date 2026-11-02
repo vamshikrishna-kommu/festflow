@@ -33,6 +33,17 @@ const VARIANT_CONTAINER_CLASSES: Record<NonNullable<LogoProps['variant']>, strin
   custom: '',
 }
 
+const VARIANT_DIMENSIONS: Record<NonNullable<LogoProps['variant']>, { width: number; height: number }> = {
+  navbar: { width: 140, height: 44 },
+  auth: { width: 180, height: 48 },
+  footer: { width: 130, height: 40 },
+  hero: { width: 220, height: 56 },
+  ticket: { width: 96, height: 36 },
+  emblem: { width: 36, height: 36 },
+  compact: { width: 32, height: 32 },
+  custom: { width: 140, height: 44 },
+}
+
 export function Logo({
   variant = 'navbar',
   alt = 'FestFlow logo',
@@ -43,11 +54,14 @@ export function Logo({
   const isEmblem = variant === 'emblem' || variant === 'compact'
   const src = isEmblem ? '/festflow-emblem.png' : '/festflow-logo.png'
   const containerClasses = VARIANT_CONTAINER_CLASSES[variant]
+  const dims = VARIANT_DIMENSIONS[variant]
 
   const imageElement = (
     <img
       src={src}
       alt={alt}
+      width={dims.width}
+      height={dims.height}
       loading="eager"
       decoding="async"
       className={`w-auto h-auto max-h-full max-w-full object-contain shrink-0 select-none ${className}`}

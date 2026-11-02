@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import {
   Users,
@@ -12,6 +12,7 @@ import {
 import { Button, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
+import { useDebounce } from '@/hooks/useDebounce'
 import type {
   TeammateProfileRecord,
   TeammateRequestRecord,
@@ -54,7 +55,9 @@ export default function TeammateDiscoveryPage() {
   // Filters
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [availabilityFilter, setAvailabilityFilter] = useState<TeammateAvailability | ''>('')
+  const searchReqId = useRef(0)
 
   // Teammate Requests
   const [incomingRequests, setIncomingRequests] = useState<TeammateRequestRecord[]>([])
@@ -83,21 +86,10 @@ export default function TeammateDiscoveryPage() {
   // Upcoming events for selection
   const [availableEvents, setAvailableEvents] = useState<any[]>([])
 
+  // Initial load: Profile, Events, Requests (runs once or when studentId changes)
   useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-
-      const [searchRes, eventsRes] = await Promise.all([
-        searchTeammates({
-          skills: selectedSkills.length > 0 ? selectedSkills : undefined,
-          query: searchQuery,
-          availability: availabilityFilter || undefined,
-          viewerId: studentId,
-        }),
-        listPublishedEvents({ limit: 15 }),
-      ])
-
-      setCandidates(searchRes.candidates)
+    async function loadInitialContext() {
+      const eventsRes = await listPublishedEvents({ limit: 15 })
       setAvailableEvents(eventsRes.events || [])
 
       if (studentId) {
@@ -118,12 +110,32 @@ export default function TeammateDiscoveryPage() {
         setIncomingRequests(requestsRes.received)
         setOutgoingRequests(requestsRes.sent)
       }
-
-      setLoading(false)
     }
 
-    loadData()
-  }, [studentId, selectedSkills, searchQuery, availabilityFilter])
+    loadInitialContext()
+  }, [studentId])
+
+  // Filter & Search Candidates: Debounced without refetching static events
+  useEffect(() => {
+    async function fetchFilteredCandidates() {
+      const currentId = ++searchReqId.current
+      setLoading(true)
+
+      const searchRes = await searchTeammates({
+        skills: selectedSkills.length > 0 ? selectedSkills : undefined,
+        query: debouncedSearchQuery,
+        availability: availabilityFilter || undefined,
+        viewerId: studentId,
+      })
+
+      if (currentId === searchReqId.current) {
+        setCandidates(searchRes.candidates)
+        setLoading(false)
+      }
+    }
+
+    fetchFilteredCandidates()
+  }, [studentId, selectedSkills, debouncedSearchQuery, availabilityFilter])
 
   const handleToggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>

@@ -13,10 +13,8 @@ import {
   sendPaymentRejectedEmail,
   sendPaymentReceivedEmail,
   sendTicketIssuedEmail,
-  sendRegistrationConfirmedEmail,
 } from '@/lib/emails'
 import { broadcastStatusChange } from '@/lib/sync'
-import { saveLocalTeamMembers } from '@/lib/teams'
 
 const LOCAL_STORAGE_PAYMENT_SETTINGS_KEY = 'festflow_local_club_payment_settings'
 const LOCAL_STORAGE_PAYMENT_SUBMISSIONS_KEY = 'festflow_local_payment_submissions'
@@ -295,11 +293,11 @@ export async function submitPaymentProof(params: {
   const { registrationId, transactionReference, screenshotUrl, notes } = params
   const cleanRef = transactionReference.trim()
 
-  if (!cleanRef || cleanRef.length < 4) {
+  if (!cleanRef || cleanRef.length < 6 || cleanRef.length > 24) {
     return {
       success: false,
       error_code: 'INVALID_REFERENCE',
-      message: 'Please provide a valid transaction reference or UTR number (at least 4 characters).',
+      message: 'Please provide a valid transaction reference or UTR number (between 6 and 24 characters).',
     }
   }
 
@@ -1026,7 +1024,133 @@ export async function markAllNotificationsRead(userId?: string): Promise<void> {
   saveLocalNotifications(notifs)
 }
 
-// ── Instant UPI App Auto-Verification & Pass Issuance ────────────────────────
+// ── Authoritative Payment Display Status Helper ─────────────────────────────
+export interface PaymentDisplayStatus {
+  status: 'free' | 'unpaid' | 'pending_review' | 'verified' | 'rejected' | 'pending_approval' | 'cancelled'
+  label: string
+  badgeVariant: 'success' | 'amber' | 'danger' | 'purple' | 'neutral'
+  canCheckIn: boolean
+  isPassActive: boolean
+  message: string
+}
+
+/**
+ * Centrally computes the exact, authoritative payment and pass issuance status.
+ * Guarantees that paid event passes are never treated as verified without authorized club approval.
+ */
+export function getPaymentDisplayStatus(
+  registration: { status: string; ticket_issued_at?: string | null; rejection_reason?: string | null },
+  submission: PaymentSubmission | null,
+  event: { is_free?: boolean; price?: number }
+): PaymentDisplayStatus {
+  const isPaidEvent = !event.is_free && Number(event.price || 0) > 0
+
+  if (!isPaidEvent) {
+    if (registration.status === 'confirmed') {
+      return {
+        status: 'free',
+        label: 'Free Event',
+        badgeVariant: 'success',
+        canCheckIn: Boolean(registration.ticket_issued_at),
+        isPassActive: true,
+        message: 'This event is free of charge. Your entry pass is confirmed.',
+      }
+    }
+  }
+
+  if (registration.status === 'cancelled') {
+    return {
+      status: 'cancelled',
+      label: 'Cancelled',
+      badgeVariant: 'neutral',
+      canCheckIn: false,
+      isPassActive: false,
+      message: 'Registration was cancelled. Pass is void.',
+    }
+  }
+
+  if (registration.status === 'pending_approval') {
+    return {
+      status: 'pending_approval',
+      label: 'Application Under Review',
+      badgeVariant: 'purple',
+      canCheckIn: false,
+      isPassActive: false,
+      message: 'Organizer review required before ticket payment is unlocked.',
+    }
+  }
+
+  // Paid event verified ONLY when club has explicitly approved submission and issued ticket
+  if (isPaidEvent && submission?.status === 'approved' && registration.status === 'confirmed' && Boolean(registration.ticket_issued_at)) {
+    return {
+      status: 'verified',
+      label: 'Payment Verified',
+      badgeVariant: 'success',
+      canCheckIn: true,
+      isPassActive: true,
+      message: 'Payment verified and confirmed by organizer. Your digital pass is active.',
+    }
+  }
+
+  if (isPaidEvent && (submission?.status === 'rejected' || registration.status === 'rejected')) {
+    return {
+      status: 'rejected',
+      label: 'Payment Rejected',
+      badgeVariant: 'danger',
+      canCheckIn: false,
+      isPassActive: false,
+      message: submission?.review_notes || registration.rejection_reason || 'Payment verification declined by organizer.',
+    }
+  }
+
+  if (isPaidEvent && submission?.status === 'pending_review') {
+    return {
+      status: 'pending_review',
+      label: 'Awaiting Club Verification',
+      badgeVariant: 'amber',
+      canCheckIn: false,
+      isPassActive: false,
+      message: `Submitted UTR: ${submission.transaction_reference}. Awaiting organizer verification against bank records.`,
+    }
+  }
+
+  return {
+    status: 'unpaid',
+    label: 'Payment Pending',
+    badgeVariant: 'amber',
+    canCheckIn: false,
+    isPassActive: false,
+    message: 'Payment required to activate your event entry pass.',
+  }
+}
+
+// ── UPI Intent Link Generator (NPCI Compliant) ──────────────────────────────
+export interface GenerateUpiLinkParams {
+  upiId: string
+  accountName?: string
+  amount: number
+  eventTitle?: string
+  ticketCode?: string
+}
+
+export function generateUpiPaymentLink(params: GenerateUpiLinkParams): string {
+  const { upiId, accountName, amount, eventTitle, ticketCode } = params
+  const cleanUpi = (upiId || '').trim()
+  const cleanName = (accountName || 'FestFlow Organizer').trim()
+  const formattedAmount = Number(amount || 0).toFixed(2)
+  const note = `FestFlow ${eventTitle ? eventTitle.slice(0, 20) : 'Pass'}${ticketCode ? ` - ${ticketCode}` : ''}`
+
+  const queryParams = new URLSearchParams()
+  queryParams.set('pa', cleanUpi)
+  queryParams.set('pn', cleanName)
+  queryParams.set('am', formattedAmount)
+  queryParams.set('cu', 'INR')
+  queryParams.set('tn', note)
+
+  return `upi://pay?${queryParams.toString()}`
+}
+
+// ── UPI App Payment Verification Notice ─────────────────────────────────────
 export interface AutoVerifyPaymentResponse {
   success: boolean
   message: string
@@ -1036,9 +1160,10 @@ export interface AutoVerifyPaymentResponse {
 }
 
 /**
- * Auto-verifies a student payment made via direct UPI App (GPay, PhonePe, Paytm, BHIM)
- * and immediately unlocks/activates their confirmed digital entry pass without requiring
- * manual club organizer review.
+ * Deprecated client-side auto-verify stub.
+ * In a manual UPI model without an authorized merchant banking webhook,
+ * automatic verification cannot be granted client-side.
+ * All submissions must be reviewed by the host club organizer.
  */
 export async function autoVerifyAndIssuePass(params: {
   registrationId: string
@@ -1047,196 +1172,25 @@ export async function autoVerifyAndIssuePass(params: {
   screenshotUrl?: string | null
 }): Promise<AutoVerifyPaymentResponse> {
   const { registrationId, transactionReference, notes, screenshotUrl } = params
-
-  // Ensure a realistic, standard 12-digit UTR exists
-  const effectiveRef =
-    transactionReference && transactionReference.trim().length >= 4
-      ? transactionReference.trim()
-      : `42${Date.now().toString().slice(-10)}`
-
-  // 1. Live Supabase Backend
-  if (isSupabaseConfigured) {
-    try {
-      // 1a. Try dedicated RPC (from Migration 036)
-      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('auto_verify_upi_payment', {
-        p_registration_id: registrationId,
-        p_transaction_reference: effectiveRef,
-        p_notes: notes || 'Auto-verified via Direct UPI App Flow',
-        p_screenshot_url: screenshotUrl || null,
-      })
-
-      if (!rpcErr && rpcData?.success) {
-        return rpcData as AutoVerifyPaymentResponse
-      }
-
-      // 1b. Fallback: submit payment proof and update registration
-      await submitPaymentProof({
-        registrationId,
-        transactionReference: effectiveRef,
-        screenshotUrl: screenshotUrl || null,
-        notes: notes ? `[Auto-Verified] ${notes}` : '[Auto-Verified via Direct UPI App]',
-      })
-
-      const { data: reg, error: regErr } = await (supabase.from('registrations') as any)
-        .update({
-          status: 'confirmed',
-          approval_status: 'approved',
-          ticket_issued_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', registrationId)
-        .select('ticket_code, qr_token')
-        .single()
-
-      if (!regErr && reg) {
-        return {
-          success: true,
-          ticket_code: reg.ticket_code,
-          qr_token: reg.qr_token,
-          message: 'Payment verified and digital pass issued successfully!',
-        }
-      }
-    } catch {
-      // Fallback to local simulation below
-    }
-  }
-
-  // 2. Simulation / Development Mode
-  const rawRegs = localStorage.getItem('festflow_local_registrations')
-  const localRegs = rawRegs ? JSON.parse(rawRegs) : []
-  const targetReg = localRegs.find((r: any) => r.id === registrationId)
-
-  if (!targetReg) {
-    return {
-      success: false,
-      error_code: 'REGISTRATION_NOT_FOUND',
-      message: 'Registration record not found.',
-    }
-  }
-
-  // Generate ticket code and QR token if not yet generated
-  if (!targetReg.ticket_code) {
-    targetReg.ticket_code = `FF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-  }
-  if (!targetReg.qr_token) {
-    targetReg.qr_token = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
-  }
-
-  targetReg.status = 'confirmed'
-  targetReg.approval_status = 'approved'
-  targetReg.ticket_issued_at = new Date().toISOString()
-  targetReg.rejection_reason = null
-  targetReg.updated_at = new Date().toISOString()
-
-  // Record/update payment submission as approved
-  const subs = getLocalPaymentSubmissions()
-  let targetSub = subs.find((s) => s.registration_id === registrationId)
-  if (!targetSub) {
-    targetSub = {
-      id: `sub_${Date.now()}`,
-      registration_id: registrationId,
-      student_id: targetReg.student_id,
-      event_id: targetReg.event_id,
-      amount: 0,
-      currency: 'INR',
-      transaction_reference: effectiveRef,
-      screenshot_url: screenshotUrl || null,
-      status: 'approved',
-      reviewer_id: 'auto_system_verification',
-      review_notes: notes || 'Auto-verified via Direct UPI App Flow',
-      submitted_at: new Date().toISOString(),
-      reviewed_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-    subs.unshift(targetSub)
-  } else {
-    targetSub.status = 'approved'
-    targetSub.transaction_reference = effectiveRef
-    targetSub.reviewed_at = new Date().toISOString()
-    targetSub.review_notes = notes || 'Auto-verified via Direct UPI App Flow'
-    targetSub.updated_at = new Date().toISOString()
-  }
-  saveLocalPaymentSubmissions(subs)
-
-  // Synchronize team members if squad leader
-  if (targetReg.team_id && targetReg.team_role === 'leader') {
-    const rawMembers = localStorage.getItem('festflow_local_team_members')
-    const members = rawMembers ? JSON.parse(rawMembers) : []
-    const acceptedMembers = members.filter(
-      (m: any) => m.team_id === targetReg.team_id && m.status === 'accepted' && m.user_id !== targetReg.student_id
-    )
-
-    let mIdx = 0
-    for (const m of acceptedMembers) {
-      mIdx++
-      let sReg = localRegs.find((r: any) => r.event_id === targetReg.event_id && r.student_id === m.user_id)
-      const memberTicket = `${targetReg.ticket_code}-M${mIdx}`
-      const memberQr = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
-
-      if (!sReg) {
-        sReg = {
-          id: `reg_tm_${Date.now()}_${mIdx}`,
-          event_id: targetReg.event_id,
-          student_id: m.user_id,
-          ticket_code: memberTicket,
-          qr_token: memberQr,
-          status: 'confirmed',
-          ticket_issued_at: new Date().toISOString(),
-          team_name: targetReg.team_name,
-          team_id: targetReg.team_id,
-          team_role: 'member',
-          participant_details: { student_name: m.name || 'Squad Member', email: m.email || '' },
-          approval_status: 'approved',
-          rejection_reason: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-        localRegs.push(sReg)
-      } else {
-        sReg.status = 'confirmed'
-        sReg.ticket_code = sReg.ticket_code || memberTicket
-        sReg.qr_token = sReg.qr_token || memberQr
-        sReg.ticket_issued_at = sReg.ticket_issued_at || new Date().toISOString()
-        sReg.rejection_reason = null
-        sReg.updated_at = new Date().toISOString()
-      }
-      m.registration_id = sReg.id
-    }
-    saveLocalTeamMembers(members)
-  }
-
-  localStorage.setItem('festflow_local_registrations', JSON.stringify(localRegs))
-
-  // Broadcast sync event so any active dashboard or ticket view updates instantly
-  broadcastStatusChange({
-    type: 'payment_reviewed',
-    eventId: targetReg.event_id,
-    registrationId,
-    studentId: targetReg.student_id,
-  })
-
-  // Send confirmation email asynchronously
-  try {
-    sendRegistrationConfirmedEmail({
-      to: targetReg.participant_details?.email || 'attendee@campus.edu',
-      name: targetReg.participant_details?.student_name || 'FestFlow Attendee',
-      eventTitle: 'Campus Event',
-      ticketCode: targetReg.ticket_code,
-      qrToken: targetReg.qr_token,
-      startDate: new Date().toISOString(),
-      venueName: 'Campus Venue',
+  
+  if (transactionReference && transactionReference.trim().length >= 6) {
+    const subRes = await submitPaymentProof({
       registrationId,
-      eventId: targetReg.event_id,
-    }).catch(() => {})
-  } catch {
-    // non-blocking
+      transactionReference: transactionReference.trim(),
+      screenshotUrl: screenshotUrl || null,
+      notes: notes || null,
+    })
+    return {
+      success: subRes.success,
+      message: subRes.message || 'Payment reference submitted for organizer review.',
+      error_code: subRes.error_code,
+    }
   }
 
   return {
-    success: true,
-    ticket_code: targetReg.ticket_code,
-    qr_token: targetReg.qr_token,
-    message: 'Payment verified and entry ticket issued instantly!',
+    success: false,
+    error_code: 'VERIFICATION_REQUIRED',
+    message: 'Manual UPI payments require a valid 12-digit transaction reference (UTR) submitted for organizer verification.',
   }
 }
+

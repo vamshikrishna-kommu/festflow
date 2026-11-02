@@ -24,12 +24,7 @@ import {
   exportPaymentReconciliationCsv,
   exportAttendanceReportCsv,
 } from '@/lib/csvExport'
-import {
-  exportFullAttendeesXlsx,
-  exportAttendanceReportXlsx,
-  exportTeamsReportXlsx,
-  exportPaymentsReportXlsx,
-} from '@/lib/excelExport'
+// Dynamic import for excelExport ensures the ~940KB ExcelJS library is only fetched on-demand when downloading
 import type {
   EventRecord,
   RegistrationWithStudent,
@@ -321,6 +316,7 @@ export default function EventReportsPage() {
                     if (!event) return
                     setExportingType('full_xlsx')
                     try {
+                      const { exportFullAttendeesXlsx } = await import('@/lib/excelExport')
                       await exportFullAttendeesXlsx({
                         event,
                         registrations,
@@ -373,6 +369,7 @@ export default function EventReportsPage() {
                     if (!event) return
                     setExportingType('attendance_xlsx')
                     try {
+                      const { exportAttendanceReportXlsx } = await import('@/lib/excelExport')
                       await exportAttendanceReportXlsx({
                         event,
                         registrations: attendeesWithCheckIn,
@@ -423,6 +420,7 @@ export default function EventReportsPage() {
                     if (!event) return
                     setExportingType('payment_xlsx')
                     try {
+                      const { exportPaymentsReportXlsx } = await import('@/lib/excelExport')
                       await exportPaymentsReportXlsx({
                         event,
                         payments,
@@ -474,6 +472,7 @@ export default function EventReportsPage() {
                       if (!event) return
                       setExportingType('team_xlsx')
                       try {
+                        const { exportTeamsReportXlsx } = await import('@/lib/excelExport')
                         await exportTeamsReportXlsx({
                           event,
                           registrations,
@@ -522,6 +521,7 @@ export default function EventReportsPage() {
                       if (!event) return
                       setExportingType('confirmed_xlsx')
                       try {
+                        const { exportFullAttendeesXlsx } = await import('@/lib/excelExport')
                         await exportFullAttendeesXlsx({
                           event,
                           registrations: registrations.filter((r) => r.status === 'confirmed'),

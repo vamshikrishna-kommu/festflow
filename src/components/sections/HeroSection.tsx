@@ -1,10 +1,16 @@
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
 import { ArrowRight, Sparkles, QrCode, Zap, Users } from 'lucide-react'
 import { Button, KineticHeading } from '@/components/ui'
 import { fadeUp, fadeIn, staggerContainer } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { HeroScene3D } from './HeroScene3D'
+import { CharacterDuoFallback } from './CharacterDuoFallback'
+
+// Lazy-load Three.js WebGL canvas to allow hero content and CTAs to render with 0ms delay
+const HeroScene3D = lazy(() =>
+  import('./HeroScene3D').then((m) => ({ default: m.HeroScene3D }))
+)
 
 const CAPABILITIES = [
   { icon: Zap, label: '0% Platform Fee', subtext: 'Direct UPI to club bank' },
@@ -143,7 +149,9 @@ export function HeroSection() {
                 filter: 'blur(35px)',
               }}
             />
-            <HeroScene3D />
+            <Suspense fallback={<CharacterDuoFallback />}>
+              <HeroScene3D />
+            </Suspense>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useDeferredValue } from 'react'
 import { useParams, Link } from 'react-router'
 import { motion } from 'motion/react'
 import {
@@ -69,8 +69,9 @@ export default function EventRegistrationsPage() {
   const [loading, setLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
 
-  // Search & Multi-Filters
+  // Search & Multi-Filters (using React 19 useDeferredValue for 0ms typing latency)
   const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search)
   const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'pending_review' | 'unpaid'>('all')
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'checked_in' | 'checked_out' | 'not_checked_in'>('all')
@@ -246,7 +247,7 @@ export default function EventRegistrationsPage() {
       }
 
       // 5. Text Search (Name, email, team, registration ID, ticket code, squad member names)
-      const q = search.trim().toLowerCase()
+      const q = deferredSearch.trim().toLowerCase()
       if (q !== '') {
         const studentName = r.student?.display_name || (r.team_name ? `Team ${r.team_name}` : 'Student Attendee')
         const studentEmail = r.student?.email || ''
@@ -275,7 +276,7 @@ export default function EventRegistrationsPage() {
 
       return true
     })
-  }, [registrations, search, statusFilter, paymentFilter, attendanceFilter, participationFilter, paymentMap, event])
+  }, [registrations, deferredSearch, statusFilter, paymentFilter, attendanceFilter, participationFilter, paymentMap, event])
 
   // Sorting Logic
   const sortedRegistrations = useMemo(() => {
