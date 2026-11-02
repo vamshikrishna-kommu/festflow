@@ -163,9 +163,14 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
   }
 }
 
-// ── 2. AUDIT LOGGING HELPER ───────────────────────────────────────────────────
+// ── 2. AUDIT LOGGING HELPER & UUID UTILITY ──────────────────────────────────
+export function isValidUuid(id?: string | null): boolean {
+  if (!id) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+}
+
 export async function logAdminAction(params: {
-  adminId: string
+  adminId?: string
   adminEmail: string
   action: string
   targetEntity: string
@@ -175,31 +180,53 @@ export async function logAdminAction(params: {
   reason?: string | null
   metadata?: Record<string, any>
 }): Promise<void> {
-  const logEntry: AdminAuditLogRecord = {
-    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    admin_id: params.adminId,
-    admin_email: params.adminEmail,
-    action: params.action,
-    target_entity: params.targetEntity,
-    target_record_id: params.targetRecordId || null,
-    previous_state: params.previousState || null,
-    new_state: params.newState || null,
-    reason: params.reason || null,
-    metadata: params.metadata || {},
-    created_at: new Date().toISOString(),
-  }
+  const now = new Date().toISOString()
+  let adminUuid = isValidUuid(params.adminId) ? params.adminId : null
 
   if (isSupabaseConfigured) {
     try {
       const db = supabase as any
-      await db.from('admin_audit_logs').insert(logEntry)
-      return
+      if (!adminUuid) {
+        const { data: authData } = await supabase.auth.getUser()
+        if (authData?.user?.id && isValidUuid(authData.user.id)) {
+          adminUuid = authData.user.id
+        }
+      }
+
+      if (adminUuid) {
+        // Do not pass non-UUID id; let PostgreSQL generate gen_random_uuid()
+        await db.from('admin_audit_logs').insert({
+          admin_id: adminUuid,
+          admin_email: params.adminEmail,
+          action: params.action,
+          target_entity: params.targetEntity,
+          target_record_id: params.targetRecordId || null,
+          previous_state: params.previousState || null,
+          new_state: params.newState || null,
+          reason: params.reason || null,
+          metadata: params.metadata || {},
+          created_at: now,
+        })
+      }
     } catch {
       // Local fallback
     }
   }
 
   try {
+    const logEntry: AdminAuditLogRecord = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      admin_id: adminUuid || 'admin_user',
+      admin_email: params.adminEmail,
+      action: params.action,
+      target_entity: params.targetEntity,
+      target_record_id: params.targetRecordId || null,
+      previous_state: params.previousState || null,
+      new_state: params.newState || null,
+      reason: params.reason || null,
+      metadata: params.metadata || {},
+      created_at: now,
+    }
     const existing = JSON.parse(localStorage.getItem(MOCK_AUDIT_LOGS_KEY) || '[]')
     localStorage.setItem(MOCK_AUDIT_LOGS_KEY, JSON.stringify([logEntry, ...existing]))
   } catch {
@@ -268,12 +295,10 @@ export async function getColleges(search?: string): Promise<CollegeRecord[]> {
 }
 
 export async function saveCollege(college: Partial<CollegeRecord>, adminEmail: string): Promise<CollegeRecord> {
-  const isNew = !college.id
-  const collegeId = college.id || `col_${Date.now()}`
+  const isNew = !college.id || !isValidUuid(college.id)
   const now = new Date().toISOString()
 
-  const payload: CollegeRecord = {
-    id: collegeId,
+  const payload: Record<string, any> = {
     name: college.name || 'Unnamed College',
     code: college.code || null,
     domain: college.domain || null,
@@ -284,47 +309,70 @@ export async function saveCollege(college: Partial<CollegeRecord>, adminEmail: s
     website: college.website || null,
     status: college.status || 'active',
     verification_notes: college.verification_notes || null,
-    created_at: college.created_at || now,
     updated_at: now,
   }
+
+  let savedRecord: CollegeRecord | null = null
 
   if (isSupabaseConfigured) {
     try {
       const db = supabase as any
       if (isNew) {
-        await db.from('colleges').insert(payload)
+        const { data, error } = await db.from('colleges').insert(payload).select('*').single()
+        if (!error && data) {
+          savedRecord = data as CollegeRecord
+        }
       } else {
-        await db.from('colleges').update(payload).eq('id', collegeId)
+        const { data, error } = await db.from('colleges').update(payload).eq('id', college.id).select('*').single()
+        if (!error && data) {
+          savedRecord = data as CollegeRecord
+        }
       }
     } catch {
       // Fallback
     }
   }
 
+  const localId = savedRecord?.id || college.id || `col_${Date.now()}`
+  const localCollege: CollegeRecord = {
+    id: localId,
+    name: payload.name,
+    code: payload.code,
+    domain: payload.domain,
+    city: payload.city,
+    state: payload.state,
+    country: payload.country,
+    logo_url: payload.logo_url,
+    website: payload.website,
+    status: payload.status,
+    verification_notes: payload.verification_notes,
+    created_at: college.created_at || now,
+    updated_at: now,
+  }
+
   try {
     const list = await getColleges()
-    const index = list.findIndex((c) => c.id === collegeId)
+    const index = list.findIndex((c) => c.id === localId)
     if (index >= 0) {
-      list[index] = payload
+      list[index] = localCollege
     } else {
-      list.push(payload)
+      list.push(localCollege)
     }
     localStorage.setItem(MOCK_COLLEGES_KEY, JSON.stringify(list))
   } catch {
     // Ignore
   }
 
-  await logAdminAction({
-    adminId: 'current_admin',
+  void logAdminAction({
     adminEmail,
     action: isNew ? 'create_college' : 'update_college',
     targetEntity: 'colleges',
-    targetRecordId: collegeId,
-    newState: payload,
+    targetRecordId: localId,
+    newState: localCollege,
     reason: isNew ? 'Added new educational institution' : 'Updated college profile details',
   })
 
-  return payload
+  return savedRecord || localCollege
 }
 
 export async function updateCollegeStatus(
@@ -356,8 +404,7 @@ export async function updateCollegeStatus(
       match.updated_at = new Date().toISOString()
       localStorage.setItem(MOCK_COLLEGES_KEY, JSON.stringify(list))
 
-      await logAdminAction({
-        adminId: 'current_admin',
+      void logAdminAction({
         adminEmail,
         action: `college_status_${status}`,
         targetEntity: 'colleges',
@@ -766,15 +813,16 @@ export async function getPlatformAnnouncements(): Promise<PlatformAnnouncementRe
 
 export async function savePlatformAnnouncement(
   announcement: Partial<PlatformAnnouncementRecord>,
-  adminId: string,
-  adminEmail: string
-): Promise<PlatformAnnouncementRecord> {
-  const isNew = !announcement.id
-  const id = announcement.id || `ann_${Date.now()}`
+  adminId?: string,
+  adminEmail?: string
+): Promise<PlatformAnnouncementRecord & { error?: string }> {
+  let adminUuid = isValidUuid(adminId) ? adminId : null
   const now = new Date().toISOString()
+  const isNew = !announcement.id || !isValidUuid(announcement.id)
 
-  const payload: PlatformAnnouncementRecord = {
-    id,
+  const localId = announcement.id || `ann_${Date.now()}`
+  const localAnnouncement: PlatformAnnouncementRecord = {
+    id: localId,
     title: announcement.title || 'Untitled Announcement',
     content: announcement.content || '',
     banner_url: announcement.banner_url || null,
@@ -782,7 +830,7 @@ export async function savePlatformAnnouncement(
     target_college_id: announcement.target_college_id || null,
     is_pinned: Boolean(announcement.is_pinned),
     status: announcement.status || 'published',
-    created_by: announcement.created_by || adminId,
+    created_by: adminUuid || 'admin_user',
     published_at: announcement.published_at || now,
     expires_at: announcement.expires_at || null,
     created_at: announcement.created_at || now,
@@ -792,50 +840,163 @@ export async function savePlatformAnnouncement(
   if (isSupabaseConfigured) {
     try {
       const db = supabase as any
-      if (isNew) {
-        await db.from('platform_announcements').insert(payload)
-      } else {
-        await db.from('platform_announcements').update(payload).eq('id', id)
+      if (!adminUuid) {
+        const { data: authData } = await supabase.auth.getUser()
+        if (authData?.user?.id && isValidUuid(authData.user.id)) {
+          adminUuid = authData.user.id
+        }
       }
-    } catch {
-      // Fallback
+
+      // 1. Try secure RPC first
+      try {
+        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc('admin_save_announcement', {
+          p_title: announcement.title || 'Untitled Announcement',
+          p_content: announcement.content || '',
+          p_banner_url: announcement.banner_url || null,
+          p_target_audience: announcement.target_audience || 'all',
+          p_is_pinned: Boolean(announcement.is_pinned),
+          p_id: !isNew ? announcement.id : null,
+        })
+
+        if (!rpcErr && rpcData?.success) {
+          const resId = rpcData.id
+          const { data: fetched } = await db.from('platform_announcements').select('*').eq('id', resId).single()
+          if (fetched) {
+            return fetched as PlatformAnnouncementRecord & { error?: string }
+          }
+        }
+      } catch {
+        // Fallback to direct table query
+      }
+
+      // 2. Fallback attempt: direct table query
+      const targetCollegeId = isValidUuid(announcement.target_college_id) ? announcement.target_college_id : null
+      const dbPayload: Record<string, any> = {
+        title: announcement.title || 'Untitled Announcement',
+        content: announcement.content || '',
+        banner_url: announcement.banner_url || null,
+        target_audience: announcement.target_audience || 'all',
+        target_college_id: targetCollegeId,
+        is_pinned: Boolean(announcement.is_pinned),
+        status: announcement.status || 'published',
+        published_at: announcement.published_at || now,
+        expires_at: announcement.expires_at || null,
+        updated_at: now,
+      }
+
+      if (isNew) {
+        if (adminUuid) dbPayload.created_by = adminUuid
+        const { data, error } = await db
+          .from('platform_announcements')
+          .insert(dbPayload)
+          .select('*')
+          .single()
+
+        if (error) {
+          console.error('[AdminAnnouncement] Direct insert error:', error.message)
+          return { ...localAnnouncement, error: error.message }
+        }
+
+        if (data) {
+          if (adminEmail) {
+            void logAdminAction({
+              adminId: adminUuid || undefined,
+              adminEmail,
+              action: 'create_announcement',
+              targetEntity: 'platform_announcements',
+              targetRecordId: data.id,
+              newState: data,
+              reason: `Announcement title: ${data.title}`,
+            })
+          }
+          return data as PlatformAnnouncementRecord & { error?: string }
+        }
+      } else {
+        const { data, error } = await db
+          .from('platform_announcements')
+          .update(dbPayload)
+          .eq('id', announcement.id)
+          .select('*')
+          .single()
+
+        if (error) {
+          console.error('[AdminAnnouncement] Direct update error:', error.message)
+          return { ...localAnnouncement, error: error.message }
+        }
+
+        if (data) {
+          if (adminEmail) {
+            void logAdminAction({
+              adminId: adminUuid || undefined,
+              adminEmail,
+              action: 'update_announcement',
+              targetEntity: 'platform_announcements',
+              targetRecordId: data.id,
+              newState: data,
+              reason: `Announcement title: ${data.title}`,
+            })
+          }
+          return data as PlatformAnnouncementRecord & { error?: string }
+        }
+      }
+    } catch (err: any) {
+      console.error('[AdminAnnouncement] Exception:', err)
+      return { ...localAnnouncement, error: err.message || 'Failed to save announcement' }
     }
   }
 
+  // Simulation fallback
   try {
     const list = await getPlatformAnnouncements()
-    const index = list.findIndex((a) => a.id === id)
-    if (index >= 0) list[index] = payload
-    else list.unshift(payload)
+    const index = list.findIndex((a) => a.id === localId)
+    if (index >= 0) list[index] = localAnnouncement
+    else list.unshift(localAnnouncement)
     localStorage.setItem(MOCK_ANNOUNCEMENTS_KEY, JSON.stringify(list))
   } catch {
     // Ignore
   }
 
-  await logAdminAction({
-    adminId,
-    adminEmail,
-    action: isNew ? 'create_announcement' : 'update_announcement',
-    targetEntity: 'platform_announcements',
-    targetRecordId: id,
-    newState: payload,
-    reason: `Announcement title: ${payload.title}`,
-  })
+  if (adminEmail) {
+    void logAdminAction({
+      adminId: adminUuid || undefined,
+      adminEmail,
+      action: isNew ? 'create_announcement' : 'update_announcement',
+      targetEntity: 'platform_announcements',
+      targetRecordId: localId,
+      newState: localAnnouncement,
+      reason: `Announcement title: ${localAnnouncement.title}`,
+    })
+  }
 
-  return payload
+  return localAnnouncement
 }
 
 export async function deletePlatformAnnouncement(
   id: string,
-  adminId: string,
-  adminEmail: string
-): Promise<void> {
+  adminId?: string,
+  adminEmail?: string
+): Promise<{ success: boolean; error?: string }> {
   if (isSupabaseConfigured) {
     try {
+      // 1. Try secure RPC first
+      try {
+        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc('admin_delete_announcement', { p_id: id })
+        if (!rpcErr && (rpcData as any)?.success) {
+          return { success: true }
+        }
+      } catch {
+        // Fallback
+      }
+
+      // 2. Direct table delete
       const db = supabase as any
-      await db.from('platform_announcements').delete().eq('id', id)
-    } catch {
-      // Fallback
+      const { error } = await db.from('platform_announcements').delete().eq('id', id)
+      if (error) {
+        console.error('[AdminAnnouncement] Delete error:', error.message)
+        return { success: false, error: error.message }
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
     }
   }
 
@@ -847,14 +1008,18 @@ export async function deletePlatformAnnouncement(
     // Ignore
   }
 
-  await logAdminAction({
-    adminId,
-    adminEmail,
-    action: 'delete_announcement',
-    targetEntity: 'platform_announcements',
-    targetRecordId: id,
-    reason: 'Announcement removed by platform administrator',
-  })
+  if (adminEmail) {
+    void logAdminAction({
+      adminId,
+      adminEmail,
+      action: 'delete_announcement',
+      targetEntity: 'platform_announcements',
+      targetRecordId: id,
+      reason: 'Announcement removed by platform administrator',
+    })
+  }
+
+  return { success: true }
 }
 
 // ── 9. PLATFORM CONFIGURATION & SETTINGS ──────────────────────────────────────
@@ -888,40 +1053,76 @@ export async function getPlatformSettings(): Promise<PlatformSettingsMap> {
 export async function updatePlatformSetting(
   key: string,
   value: any,
-  adminId: string,
-  adminEmail: string
-): Promise<void> {
+  adminId?: string,
+  adminEmail?: string
+): Promise<{ success: boolean; error?: string }> {
+  let adminUuid = isValidUuid(adminId) ? adminId : null
+
   if (isSupabaseConfigured) {
     try {
       const db = supabase as any
-      await db.from('platform_settings').upsert({
+      if (!adminUuid) {
+        const { data: authData } = await supabase.auth.getUser()
+        if (authData?.user?.id && isValidUuid(authData.user.id)) {
+          adminUuid = authData.user.id
+        }
+      }
+
+      // 1. Try secure RPC first
+      try {
+        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc('admin_update_setting', {
+          p_key: key,
+          p_value: value,
+        })
+        if (!rpcErr && (rpcData as any)?.success) {
+          return { success: true }
+        }
+      } catch {
+        // Fallback to direct table upsert
+      }
+
+      // 2. Direct table upsert
+      const payload: Record<string, any> = {
         key,
         value,
-        updated_by: adminId,
         updated_at: new Date().toISOString(),
-      })
-    } catch {
-      // Fallback
+      }
+      if (adminUuid) {
+        payload.updated_by = adminUuid
+      }
+
+      const { error } = await db.from('platform_settings').upsert(payload, { onConflict: 'key' })
+      if (error) {
+        console.error('[AdminSettings] Upsert error:', error.message)
+        return { success: false, error: error.message }
+      }
+    } catch (err: any) {
+      console.error('[AdminSettings] Exception:', err)
+      return { success: false, error: err.message || 'Failed to update setting' }
     }
   }
 
   try {
     const current = await getPlatformSettings()
-    current[key] = value
+    current[key as keyof PlatformSettingsMap] = value
     localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(current))
   } catch {
     // Ignore
   }
 
-  await logAdminAction({
-    adminId,
-    adminEmail,
-    action: 'update_platform_setting',
-    targetEntity: 'platform_settings',
-    targetRecordId: key,
-    newState: { [key]: value },
-    reason: `Platform configuration updated for key: ${key}`,
-  })
+  if (adminEmail) {
+    void logAdminAction({
+      adminId: adminUuid || undefined,
+      adminEmail,
+      action: 'update_platform_setting',
+      targetEntity: 'platform_settings',
+      targetRecordId: key,
+      newState: { [key]: value },
+      reason: `Platform configuration updated for key: ${key}`,
+    })
+  }
+
+  return { success: true }
 }
 
 // ── 10. FINANCIAL & PAYMENT OVERSIGHT ─────────────────────────────────────────

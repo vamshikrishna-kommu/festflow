@@ -33,11 +33,19 @@ export default function AdminAnnouncementsPage() {
     loadData()
   }, [])
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!current.title?.trim() || !current.content?.trim()) return
+    setErrorMessage(null)
 
-    await savePlatformAnnouncement(current, adminId, adminEmail)
+    const res = await savePlatformAnnouncement(current, adminId, adminEmail)
+    if (res.error) {
+      setErrorMessage(`Failed to publish announcement: ${res.error}`)
+      return
+    }
+
     setModalOpen(false)
     setCurrent({ target_audience: 'all', is_pinned: false, status: 'published' })
     loadData()
@@ -45,7 +53,11 @@ export default function AdminAnnouncementsPage() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this platform announcement?')) return
-    await deletePlatformAnnouncement(id, adminId, adminEmail)
+    setErrorMessage(null)
+    const res = await deletePlatformAnnouncement(id, adminId, adminEmail)
+    if (!res.success) {
+      setErrorMessage(`Failed to delete announcement: ${res.error}`)
+    }
     loadData()
   }
 
@@ -67,6 +79,12 @@ export default function AdminAnnouncementsPage() {
         </Button>
       }
     >
+      {errorMessage && (
+        <div className="p-3 mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
+          {errorMessage}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4">
         {announcements.map((ann) => (
           <div

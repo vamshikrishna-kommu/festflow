@@ -25,13 +25,23 @@ export default function AdminSettingsPage() {
     loadData()
   }, [])
 
+  const [errorFeedback, setErrorFeedback] = useState<string | null>(null)
+
   const handleToggle = async (key: keyof PlatformSettingsMap) => {
     if (!settings) return
     const newVal = !settings[key]
     setSettings({ ...settings, [key]: newVal })
-    await updatePlatformSetting(key as string, newVal, adminId, adminEmail)
-    setFeedback(`Updated "${key}" successfully.`)
-    setTimeout(() => setFeedback(null), 3000)
+    setErrorFeedback(null)
+
+    const res = await updatePlatformSetting(key as string, newVal, adminId, adminEmail)
+    if (!res.success) {
+      setSettings({ ...settings, [key]: !newVal })
+      setErrorFeedback(res.error || `Failed to update ${key}.`)
+      setTimeout(() => setErrorFeedback(null), 5000)
+    } else {
+      setFeedback(`Updated "${key}" successfully.`)
+      setTimeout(() => setFeedback(null), 3000)
+    }
   }
 
   const handleTextChange = (key: keyof PlatformSettingsMap, val: any) => {
@@ -44,11 +54,18 @@ export default function AdminSettingsPage() {
     if (!settings) return
     try {
       setIsSaving(true)
-      await updatePlatformSetting('support_email', settings.support_email, adminId, adminEmail)
-      await updatePlatformSetting('support_phone', settings.support_phone, adminId, adminEmail)
-      await updatePlatformSetting('max_upload_size_mb', Number(settings.max_upload_size_mb), adminId, adminEmail)
-      setFeedback('Contact and upload parameters saved to platform configuration.')
-      setTimeout(() => setFeedback(null), 3000)
+      setErrorFeedback(null)
+      const res1 = await updatePlatformSetting('support_email', settings.support_email, adminId, adminEmail)
+      const res2 = await updatePlatformSetting('support_phone', settings.support_phone, adminId, adminEmail)
+      const res3 = await updatePlatformSetting('max_upload_size_mb', Number(settings.max_upload_size_mb), adminId, adminEmail)
+
+      if (!res1.success || !res2.success || !res3.success) {
+        setErrorFeedback(res1.error || res2.error || res3.error || 'Failed to persist settings.')
+        setTimeout(() => setErrorFeedback(null), 5000)
+      } else {
+        setFeedback('Contact and upload parameters saved to platform configuration.')
+        setTimeout(() => setFeedback(null), 3000)
+      }
     } finally {
       setIsSaving(false)
     }
@@ -68,6 +85,13 @@ export default function AdminSettingsPage() {
         <div className="p-3 rounded-xl bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC] text-xs font-medium flex items-center gap-2">
           <ShieldCheck size={14} />
           <span>{feedback}</span>
+        </div>
+      )}
+
+      {errorFeedback && (
+        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium flex items-center gap-2">
+          <ShieldCheck size={14} />
+          <span>{errorFeedback}</span>
         </div>
       )}
 
