@@ -27,6 +27,8 @@ export interface SignUpClubParams {
   clubName: string
   email: string
   password: string
+  collegeId?: string | null
+  collegeName?: string | null
   redirectTo?: string
 }
 
@@ -34,6 +36,8 @@ export interface SignUpStudentParams {
   name: string
   email: string
   password: string
+  collegeId?: string | null
+  collegeName?: string | null
   redirectTo?: string
 }
 
@@ -71,6 +75,7 @@ export interface AuthContextType {
   updateProfile: (data: {
     displayName?: string
     collegeName?: string
+    collegeId?: string | null
     gradYear?: number | null
     phone?: string
     clubName?: string
@@ -564,6 +569,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (params: {
       displayName?: string
       collegeName?: string
+      collegeId?: string | null
       gradYear?: number | null
       phone?: string
       clubName?: string
@@ -593,11 +599,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           // 2. Update student_profiles table if student fields provided
-          if (params.collegeName !== undefined || params.gradYear !== undefined) {
+          if (params.collegeName !== undefined || params.collegeId !== undefined || params.gradYear !== undefined) {
             const updatePayload: Record<string, any> = {
               updated_at: new Date().toISOString(),
             }
             if (params.collegeName !== undefined) updatePayload.college_name = params.collegeName?.trim() || null
+            if (params.collegeId !== undefined) updatePayload.college_id = params.collegeId || null
             if (params.gradYear !== undefined) updatePayload.graduation_year = params.gradYear
 
             // First attempt update to comply with existing "students can update own student profile" RLS policy
@@ -626,13 +633,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             params.clubName !== undefined ||
             params.repName !== undefined ||
             params.description !== undefined ||
-            params.websiteUrl !== undefined
+            params.websiteUrl !== undefined ||
+            params.collegeId !== undefined
           ) {
             const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() }
             if (params.clubName !== undefined) updatePayload.club_name = params.clubName.trim()
             if (params.repName !== undefined) updatePayload.representative_name = params.repName.trim()
             if (params.description !== undefined) updatePayload.description = params.description?.trim() || null
             if (params.websiteUrl !== undefined) updatePayload.website_url = params.websiteUrl?.trim() || null
+            if (params.collegeId !== undefined) updatePayload.college_id = params.collegeId || null
 
             const { error: cErr } = await (supabase.from('club_profiles') as any)
               .update(updatePayload)
@@ -646,6 +655,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const metadataUpdates: Record<string, any> = {}
           if (params.displayName !== undefined) metadataUpdates.display_name = params.displayName.trim()
           if (params.collegeName !== undefined) metadataUpdates.college = params.collegeName?.trim() || null
+          if (params.collegeId !== undefined) metadataUpdates.college_id = params.collegeId || null
           if (params.gradYear !== undefined) metadataUpdates.graduation_year = params.gradYear
           if (params.phone !== undefined) metadataUpdates.phone = params.phone?.trim() || null
           if (params.clubName !== undefined) metadataUpdates.club_name = params.clubName.trim()
@@ -675,6 +685,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 id: `sp_${user.id}`,
                 profile_id: user.id,
                 college_name: params.collegeName?.trim() || null,
+                college_id: params.collegeId || null,
                 graduation_year: params.gradYear ?? null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -683,6 +694,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return {
               ...prev,
               ...(params.collegeName !== undefined ? { college_name: params.collegeName?.trim() || null } : {}),
+              ...(params.collegeId !== undefined ? { college_id: params.collegeId || null } : {}),
               ...(params.gradYear !== undefined ? { graduation_year: params.gradYear } : {}),
               updated_at: new Date().toISOString(),
             }
@@ -1020,6 +1032,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clubName,
       email,
       password,
+      collegeId,
+      collegeName,
       redirectTo,
     }: SignUpClubParams): Promise<{ error: string | null; requiresVerification: boolean }> => {
       setIsLoading(true)
@@ -1033,6 +1047,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: 'club_member',
                 display_name: name,
                 club_name: clubName,
+                college_id: collegeId || null,
+                college: collegeName || null,
               },
               emailRedirectTo: getAuthCallbackUrl(redirectTo),
             },
@@ -1078,6 +1094,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name,
       email,
       password,
+      collegeId,
+      collegeName,
       redirectTo,
     }: SignUpStudentParams): Promise<{ error: string | null; requiresVerification: boolean }> => {
       setIsLoading(true)
@@ -1090,6 +1108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               data: {
                 role: 'student',
                 display_name: name,
+                college_id: collegeId || null,
+                college: collegeName || null,
               },
               emailRedirectTo: getAuthCallbackUrl(redirectTo),
             },

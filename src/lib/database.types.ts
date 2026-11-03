@@ -98,6 +98,7 @@ export interface Database {
           profile_id: string
           club_name: string
           representative_name: string
+          college_id?: string | null
           website_url: string | null
           description: string | null
           is_verified: boolean
@@ -109,6 +110,7 @@ export interface Database {
           profile_id: string
           club_name: string
           representative_name: string
+          college_id?: string | null
           website_url?: string | null
           description?: string | null
           is_verified?: boolean
@@ -122,6 +124,7 @@ export interface Database {
           id: string
           profile_id: string
           college_name: string | null
+          college_id?: string | null
           graduation_year: number | null
           interests?: string[] | null
           bio?: string | null
@@ -140,6 +143,7 @@ export interface Database {
           id?: string
           profile_id: string
           college_name?: string | null
+          college_id?: string | null
           graduation_year?: number | null
           interests?: string[] | null
           bio?: string | null

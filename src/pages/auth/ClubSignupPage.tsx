@@ -8,6 +8,7 @@ import { PasswordInput } from '@/components/auth/PasswordInput'
 import { VerificationNotice } from '@/components/auth/VerificationNotice'
 import { GoogleAuthButton, AuthDivider } from '@/components/auth/GoogleAuthButton'
 import { useAuth } from '@/context/AuthContext'
+import { CollegeSearchCombobox } from '@/components/colleges/CollegeSearchCombobox'
 
 export default function ClubSignupPage() {
   const navigate = useNavigate()
@@ -17,6 +18,8 @@ export default function ClubSignupPage() {
   // Form fields
   const [representativeName, setRepresentativeName] = useState('')
   const [clubName, setClubName] = useState('')
+  const [collegeId, setCollegeId] = useState<string | null>(null)
+  const [collegeName, setCollegeName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -71,6 +74,8 @@ export default function ClubSignupPage() {
       clubName: clubName.trim(),
       email: email.trim().toLowerCase(),
       password,
+      collegeId: collegeId || null,
+      collegeName: collegeName.trim() || null,
     })
 
     if (res.error) {
@@ -195,6 +200,26 @@ export default function ClubSignupPage() {
           {errors.clubName && (
             <p className="text-xs text-rose-400">{errors.clubName}</p>
           )}
+        </div>
+
+        {/* Educational Institution Affiliation */}
+        <div className="text-left">
+          <CollegeSearchCombobox
+            label="Affiliated Educational Institution"
+            placeholder="Search institution (e.g. CBIT, OU, VNR, IITH)..."
+            selectedCollegeId={collegeId}
+            selectedCollegeName={collegeName}
+            onSelect={(col, rawName) => {
+              if (col) {
+                setCollegeId(col.id)
+                setCollegeName(col.official_name || col.name)
+              } else {
+                setCollegeId(null)
+                setCollegeName(rawName || '')
+              }
+            }}
+            helperText="Associate your club with your verified campus. Note: institutional affiliation does not bypass separate club verification."
+          />
         </div>
 
         {/* Email */}

@@ -24,6 +24,7 @@ import { Button, Badge, Alert } from '@/components/ui'
 import { Link } from 'react-router'
 import { registerForEvent } from '@/lib/registrations'
 import { buildTeamInviteLink } from '@/lib/teams'
+import { CollegeSearchCombobox } from '@/components/colleges/CollegeSearchCombobox'
 import type {
   EventWithClub,
   Profile,
@@ -79,6 +80,9 @@ export function EventRegistrationModal({
   )
   const [collegeName, setCollegeName] = useState<string>(
     studentProfile?.college_name || user.user_metadata?.college || ''
+  )
+  const [collegeId, setCollegeId] = useState<string | null>(
+    (studentProfile as any)?.college_id || (user.user_metadata as any)?.college_id || null
   )
   const [phone, setPhone] = useState<string>(
     user.user_metadata?.phone || ''
@@ -742,31 +746,24 @@ export function EventRegistrationModal({
 
               {/* College / Institution */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                    College / University {pRequirements.require_college && <span className="text-rose-400">*</span>}
-                  </label>
-                  {!pRequirements.require_college && (
-                    <span className="text-[10px] text-[var(--color-text-muted)]">Optional</span>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={collegeName}
-                  onChange={(e) => {
-                    setCollegeName(e.target.value)
+                <CollegeSearchCombobox
+                  label="College / University"
+                  required={pRequirements.require_college}
+                  selectedCollegeId={collegeId}
+                  selectedCollegeName={collegeName}
+                  onSelect={(col, rawName) => {
+                    if (col) {
+                      setCollegeId(col.id)
+                      setCollegeName(col.official_name || col.name)
+                    } else {
+                      setCollegeId(null)
+                      setCollegeName(rawName || '')
+                    }
                     if (fieldErrors.collegeName) setFieldErrors({ ...fieldErrors, collegeName: '' })
                   }}
-                  placeholder="e.g. Indian Institute of Technology Bombay"
-                  className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
-                    fieldErrors.collegeName
-                      ? 'border-rose-500 ring-1 ring-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
+                  error={fieldErrors.collegeName}
+                  helperText={pRequirements.require_college ? undefined : 'Optional for this event'}
                 />
-                {fieldErrors.collegeName && (
-                  <span className="text-[10px] text-rose-400 block">{fieldErrors.collegeName}</span>
-                )}
               </div>
 
               {/* Phone & Graduation Year Grid */}

@@ -917,6 +917,19 @@ export type AdminPermission =
 
 export type CollegeStatus = 'active' | 'pending_verification' | 'suspended'
 
+export type {
+  CollegeDistrict,
+  InstitutionType,
+  ManagementType,
+  CollegeVerificationStatus,
+  VerificationAuthority,
+  CollegeDirectoryRecord,
+  CollegeVerificationHistoryRecord,
+  CollegeRequestRecord,
+  CollegeSearchFilters,
+  CollegeSearchResult,
+} from '@/lib/collegeDirectory'
+
 export interface CollegeRecord {
   id: string
   name: string

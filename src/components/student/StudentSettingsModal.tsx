@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
+import { CollegeSearchCombobox } from '@/components/colleges/CollegeSearchCombobox'
 
 interface StudentSettingsModalProps {
   isOpen: boolean
@@ -32,6 +33,9 @@ export function StudentSettingsModal({
   // Profile form state
   const [displayName, setDisplayName] = useState(profile?.display_name || user?.user_metadata?.display_name || '')
   const [collegeName, setCollegeName] = useState(studentProfile?.college_name || user?.user_metadata?.college || '')
+  const [collegeId, setCollegeId] = useState<string | null>(
+    (studentProfile as any)?.college_id || (user?.user_metadata as any)?.college_id || null
+  )
   const [gradYear, setGradYear] = useState(studentProfile?.graduation_year ? String(studentProfile.graduation_year) : '')
   const [phone, setPhone] = useState(user?.user_metadata?.phone || '')
 
@@ -77,6 +81,7 @@ export function StudentSettingsModal({
     if (isOpen) {
       setDisplayName(profile?.display_name || user?.user_metadata?.display_name || '')
       setCollegeName(studentProfile?.college_name || user?.user_metadata?.college || '')
+      setCollegeId((studentProfile as any)?.college_id || (user?.user_metadata as any)?.college_id || null)
       setGradYear(
         studentProfile?.graduation_year
           ? String(studentProfile.graduation_year)
@@ -119,6 +124,7 @@ export function StudentSettingsModal({
       const res = await updateProfile({
         displayName: displayName.trim(),
         collegeName: collegeName.trim() || undefined,
+        collegeId: collegeId || undefined,
         gradYear: gradYear.trim() ? parseInt(gradYear.trim(), 10) : null,
         phone: phone.trim() || undefined,
         preferences: {
@@ -236,19 +242,21 @@ export function StudentSettingsModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="block font-semibold text-[var(--color-text-primary)]">
-                    College / Institute
-                  </label>
-                  <input
-                    type="text"
-                    value={collegeName}
-                    onChange={(e) => setCollegeName(e.target.value)}
-                    placeholder="e.g. IIT Bombay"
-                    className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-cyan)] min-h-[44px]"
-                  />
-                </div>
+              <div className="space-y-3">
+                <CollegeSearchCombobox
+                  label="College / Institute"
+                  selectedCollegeId={collegeId}
+                  selectedCollegeName={collegeName}
+                  onSelect={(col, rawName) => {
+                    if (col) {
+                      setCollegeId(col.id)
+                      setCollegeName(col.official_name || col.name)
+                    } else {
+                      setCollegeId(null)
+                      setCollegeName(rawName || '')
+                    }
+                  }}
+                />
 
                 <div className="space-y-1">
                   <label className="block font-semibold text-[var(--color-text-primary)]">
