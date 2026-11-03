@@ -4,10 +4,8 @@ import type {
   ClubPublicProfile,
   ClubAnnouncementRecord,
   CampusFeedItem,
-  EventCertificateRecord,
   StudentBadgeRecord,
 } from '@/types'
-import { getStudentCertificates } from '@/lib/certificates'
 import { getStudentBadges } from '@/lib/badges'
 import { listClubEvents, listPublishedEvents } from '@/lib/events'
 
@@ -170,27 +168,33 @@ export async function getStudentPublicProfile(
         preferredCategories: [],
         socialLinks: {},
         visibility: 'private',
-        hideCertificates: true,
         hideEvents: true,
         hideSkills: true,
         badges: [],
-        certificates: [],
         attendedEventsCount: 0,
         isTeammateDiscoverable: false,
       },
     }
   }
 
-  // Fetch verified badges and certificates
-  const [certsRes, badgesRes] = await Promise.all([
-    getStudentCertificates(studentId),
-    getStudentBadges(studentId),
-  ])
+  // Fetch verified badges
+  const badgesRes = await getStudentBadges(studentId)
 
-  const visibleCertificates =
-    studentDetails?.hide_certificates && !isOwner
-      ? []
-      : certsRes.certificates.filter((c: EventCertificateRecord) => c.status === 'issued')
+  // Calculate attended events from check-ins or registrations
+  let attendedCount = 0
+  if (isSupabaseConfigured) {
+    try {
+      const { data: userRegs } = await (supabase.from('registrations') as any)
+        .select('id')
+        .eq('student_id', studentId)
+        .in('status', ['confirmed'])
+      if (userRegs && userRegs.length > 0) {
+        attendedCount = userRegs.length
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   const visibleBadges = (badgesRes || []).filter(
     (b: StudentBadgeRecord) => isOwner || b.is_public
@@ -209,12 +213,10 @@ export async function getStudentPublicProfile(
     preferredCategories: studentDetails?.preferred_categories || [],
     socialLinks: studentDetails?.social_links || {},
     visibility,
-    hideCertificates: !!studentDetails?.hide_certificates,
     hideEvents: !!studentDetails?.hide_events,
     hideSkills: !!studentDetails?.hide_skills,
     badges: visibleBadges,
-    certificates: visibleCertificates,
-    attendedEventsCount: studentDetails?.hide_events && !isOwner ? 0 : visibleCertificates.length,
+    attendedEventsCount: studentDetails?.hide_events && !isOwner ? 0 : attendedCount,
     isTeammateDiscoverable: !!teammateDoc?.is_opted_in,
     teammateAvailability: teammateDoc?.availability || null,
   }
@@ -503,7 +505,7 @@ export async function createClubAnnouncement(params: {
  * Combines:
  * 1. Club announcements from followed clubs or featured clubs
  * 2. Newly published campus events
- * 3. Recent milestone achievements and certificates
+ * 3. Recent milestone achievements and badges
  */
 export async function getCampusActivityFeed(options: {
   viewerId?: string

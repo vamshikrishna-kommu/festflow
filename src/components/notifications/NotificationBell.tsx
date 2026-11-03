@@ -9,7 +9,6 @@ import {
   Sparkles,
   Check,
   ArrowRight,
-  Award,
   Users2,
   Ticket,
 } from 'lucide-react'
@@ -93,9 +92,6 @@ export function NotificationBell() {
         return <AlertTriangle size={16} className="text-rose-400" />
       case 'payment_submitted':
         return <Clock size={16} className="text-amber-400" />
-      case 'certificate':
-      case 'certificate_issued':
-        return <Award size={16} className="text-amber-400" />
       case 'team_invitation':
       case 'team_member_added':
         return <Users2 size={16} className="text-[#ED47FC]" />

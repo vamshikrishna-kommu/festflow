@@ -69,10 +69,10 @@ async function runPhase8TestSuite() {
       {
         id: 'notif_3',
         user_id: testUserId,
-        title: 'Certificate Ready',
-        message: 'Your participation certificate is available for download',
-        type: 'certificate_issued',
-        category: 'certificates',
+        title: 'Team Update',
+        message: 'A teammate has joined your hackathon roster',
+        type: 'team_member_added',
+        category: 'team_invitations',
         is_read: true,
         created_at: new Date(Date.now() - 900000).toISOString(),
       },
@@ -132,7 +132,7 @@ async function runPhase8TestSuite() {
     const updatedPrefs: UserNotificationPreferences = {
       ...initialPrefs,
       event_reminders: false,
-      certificate_notifications: false,
+      team_notifications: false,
     }
 
     const saveRes = await saveUserNotificationPreferences(updatedPrefs)
@@ -140,7 +140,7 @@ async function runPhase8TestSuite() {
 
     const reloaded = await getUserNotificationPreferences(testUserId)
     assert(reloaded.event_reminders === false, 'Persistent setting: event reminders disabled')
-    assert(reloaded.certificate_notifications === false, 'Persistent setting: certificate alerts disabled')
+    assert(reloaded.team_notifications === false, 'Persistent setting: team alerts disabled')
   }
 
   // 3. Web Push Detection Tests
@@ -180,7 +180,7 @@ async function runPhase8TestSuite() {
   console.log('\n5. Club Event Automation Rules Tests:')
   {
     const clubRules = await getClubEventAutomations(testEventId, 'test_club_1')
-    assert(clubRules.length === 6, 'Pre-seeds 6 core event automation triggers')
+    assert(clubRules.length === 5, 'Pre-seeds 5 core event automation triggers')
     assert(
       clubRules.some((r) => r.trigger_type === 'reminder_7d'),
       'Includes 7-day countdown reminder trigger'

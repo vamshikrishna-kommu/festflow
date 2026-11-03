@@ -10,7 +10,6 @@ import {
   Check,
   Calendar,
   CreditCard,
-  Award,
   Users2,
   Ticket,
   Megaphone,
@@ -39,7 +38,6 @@ const CATEGORY_TABS: Array<{ id: NotificationCategory | 'all'; label: string; ic
   { id: 'events', label: 'Events', icon: Calendar },
   { id: 'team_invitations', label: 'Teams', icon: Users2 },
   { id: 'digital_passes', label: 'Passes', icon: Ticket },
-  { id: 'certificates', label: 'Certificates', icon: Award },
   { id: 'announcements', label: 'Announcements', icon: Megaphone },
   { id: 'reminders', label: 'Reminders', icon: Clock },
 ]
@@ -145,8 +143,6 @@ export default function NotificationsPage() {
         return { label: 'Pass Active', color: 'bg-[#18CFFC]/15 text-[#18CFFC] border-[#18CFFC]/20' }
       case 'team_invitations':
         return { label: 'Team', color: 'bg-[#ED47FC]/15 text-[#ED47FC] border-[#ED47FC]/20' }
-      case 'certificates':
-        return { label: 'Certificate', color: 'bg-amber-400/15 text-amber-400 border-amber-400/20' }
       case 'reminders':
         return { label: 'Reminder', color: 'bg-sky-400/15 text-sky-400 border-sky-400/20' }
       case 'announcements':
@@ -166,8 +162,6 @@ export default function NotificationsPage() {
       case 'payment_submitted':
       case 'reminders':
         return <Clock size={18} className="text-amber-400" />
-      case 'certificates':
-        return <Award size={18} className="text-amber-400" />
       case 'team_invitations':
         return <Users2 size={18} className="text-[#ED47FC]" />
       case 'announcements':

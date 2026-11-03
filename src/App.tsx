@@ -53,9 +53,6 @@ const EventReportsPage        = lazy(() => import('@/pages/club/EventReportsPage
 const JoinTeamPage            = lazy(() => import('@/pages/student/JoinTeamPage'))
 const ClubMembersPage         = lazy(() => import('@/pages/club/ClubMembersPage'))
 const AcceptClubInvitationPage = lazy(() => import('@/pages/club/AcceptClubInvitationPage'))
-const ClubCertificatesPage      = lazy(() => import('@/pages/club/ClubCertificatesPage'))
-const StudentCertificatesPage   = lazy(() => import('@/pages/student/StudentCertificatesPage'))
-const CertificateVerificationPage = lazy(() => import('@/pages/verification/CertificateVerificationPage'))
 
 // Phase 5: Campus Community & Social
 const CommunityFeedPage     = lazy(() => import('@/pages/community/CommunityFeedPage'))
@@ -421,26 +418,6 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/club/certificates',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
-              <ClubCertificatesPage />
-            </ProtectedRoute>
-          </Suspense>
-        ),
-      },
-      {
-        path: '/club/certificates/designer',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
-              <ClubCertificatesPage />
-            </ProtectedRoute>
-          </Suspense>
-        ),
-      },
-      {
         path: '/club/invitations/:token',
         element: (
           <Suspense fallback={<PageLoader />}>
@@ -500,26 +477,6 @@ const router = createBrowserRouter([
           <Suspense fallback={<PageLoader />}>
             <ProtectedRoute allowedRoles={['student', 'platform_admin']}>
               <StudentDashboardPage />
-            </ProtectedRoute>
-          </Suspense>
-        ),
-      },
-      {
-        path: '/student/certificates',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['student', 'platform_admin']}>
-              <StudentCertificatesPage />
-            </ProtectedRoute>
-          </Suspense>
-        ),
-      },
-      {
-        path: '/student/achievements',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['student', 'platform_admin']}>
-              <StudentCertificatesPage />
             </ProtectedRoute>
           </Suspense>
         ),
@@ -715,32 +672,6 @@ const router = createBrowserRouter([
             <ProtectedRoute allowedRoles={['platform_admin']}>
               <AdminTeamPage />
             </ProtectedRoute>
-          </Suspense>
-        ),
-      },
-
-      // Public Certificate Verification Portal (No login required)
-      {
-        path: '/verify/certificate/:token',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <CertificateVerificationPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: '/verify/:token',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <CertificateVerificationPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: '/certificate/verify/:token',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <CertificateVerificationPage />
           </Suspense>
         ),
       },

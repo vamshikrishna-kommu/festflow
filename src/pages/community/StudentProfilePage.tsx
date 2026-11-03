@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router'
 import {
   GraduationCap,
   Trophy,
-  ShieldCheck,
   Lock,
   MessageSquare,
   UserPlus,
@@ -17,7 +16,6 @@ import { useAuth } from '@/context/AuthContext'
 import type { StudentPublicProfile } from '@/types'
 import { getStudentPublicProfile } from '@/lib/community'
 import { ReportModal } from '@/components/community/ReportModal'
-import { CertificatePreviewModal } from '@/components/certificates/CertificatePreviewModal'
 
 export default function StudentProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -32,10 +30,6 @@ export default function StudentProfilePage() {
 
   // Report Modal
   const [reportModalOpen, setReportModalOpen] = useState(false)
-
-  // Certificate Preview Modal
-  const [previewCert, setPreviewCert] = useState<any | null>(null)
-  const [previewModalOpen, setPreviewModalOpen] = useState(false)
 
   const isOwner = user?.id === profileId
 
@@ -268,65 +262,6 @@ export default function StudentProfilePage() {
           )}
         </div>
 
-        {/* Verified Certificates Portfolio */}
-        {!profile.hideCertificates && (
-          <div className="p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.08] space-y-4">
-            <div>
-              <h3 className="text-base font-bold font-['Syne'] text-white flex items-center gap-2">
-                <ShieldCheck size={16} className="text-[#18CFFC]" />
-                Official Credential Portfolio ({profile.certificates.length})
-              </h3>
-              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                Cryptographically verifiable event credentials and awards.
-              </p>
-            </div>
-
-            {profile.certificates.length === 0 ? (
-              <div className="p-6 text-center rounded-2xl bg-white/[0.02] border border-white/[0.04] text-xs text-zinc-500">
-                No public certificates listed.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {profile.certificates.map((cert) => (
-                  <div
-                    key={cert.id}
-                    className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col justify-between gap-3 hover:border-white/20 transition"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-mono font-bold uppercase text-[#18CFFC] px-2 py-0.5 rounded-full bg-[#18CFFC]/10 border border-[#18CFFC]/20">
-                          {cert.category}
-                        </span>
-                        <span className="text-[10px] font-mono text-zinc-500">
-                          {new Date(cert.issue_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <h4 className="text-sm font-bold text-white line-clamp-1">{cert.title || cert.event_title}</h4>
-                      <p className="text-xs text-zinc-400 line-clamp-1">{cert.club_name}</p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
-                      <span className="font-mono text-[11px] text-zinc-500">
-                        {cert.certificate_number}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setPreviewCert(cert)
-                          setPreviewModalOpen(true)
-                        }}
-                      >
-                        Inspect
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Report Modal */}
         <ReportModal
           isOpen={reportModalOpen}
@@ -334,13 +269,6 @@ export default function StudentProfilePage() {
           targetType="profile"
           targetId={profile.id}
           targetTitle={profile.displayName}
-        />
-
-        {/* Certificate Preview Modal */}
-        <CertificatePreviewModal
-          isOpen={previewModalOpen}
-          onClose={() => setPreviewModalOpen(false)}
-          certificate={previewCert}
         />
       </div>
     </PageShell>

@@ -326,7 +326,7 @@ async function runMasterReleaseVerification() {
     { phase: 'Phase 1 - Student Experience', migration: '030_student_experience_phase1.sql' },
     { phase: 'Phase 2 - Club Management', migration: '031_club_management_phase2.sql' },
     { phase: 'Phase 3 - Ticketing & Payments', migration: '032_ticketing_and_payments_phase3.sql' },
-    { phase: 'Phase 4 - Certificates', migration: '034_certificates_and_achievements_phase4.sql' },
+    { phase: 'Phase 4 - Achievements & Badges', migration: '034_certificates_and_achievements_phase4.sql' },
     { phase: 'Phase 5 - Community & Teammates', migration: '035_social_and_campus_community_phase5.sql' },
     { phase: 'Phase 6 - Advanced Event Experience', migration: '040_advanced_event_experience_phase6.sql' },
     { phase: 'Phase 7 - Super Admin Management', migration: '041_super_admin_and_platform_management_phase7.sql' },

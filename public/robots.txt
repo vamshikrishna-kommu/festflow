@@ -6,7 +6,6 @@ Allow: /
 Allow: /discover
 Allow: /events/
 Allow: /clubs/
-Allow: /verify/certificate/
 Allow: /privacy
 Allow: /terms
 Allow: /contact

@@ -17,7 +17,6 @@ import {
   Ticket,
   Settings,
   Users,
-  Award,
   MessageSquare,
   User,
   UserPlus,
@@ -50,7 +49,6 @@ const STUDENT_NAV_LINKS: NavItem[] = [
   { label: 'Discover', href: '/discover' },
   { label: 'Community', href: '/community' },
   { label: 'My Dashboard', href: '/student/dashboard' },
-  { label: 'Certificates', href: '/student/certificates' },
 ]
 
 const UNRESOLVED_NAV_LINKS: NavItem[] = [
@@ -132,9 +130,6 @@ export function Navbar() {
       }
       if (!activeClubRole || hasPermission(activeClubRole, 'manage_members')) {
         links.push({ label: 'Team', href: '/club/members' })
-      }
-      if (!activeClubRole || hasPermission(activeClubRole, 'manage_events')) {
-        links.push({ label: 'Certificates', href: '/club/certificates' })
       }
       if (!activeClubRole || hasPermission(activeClubRole, 'review_payments')) {
         links.push({ label: 'Payments', href: '/club/payments' })
@@ -403,14 +398,6 @@ export function Navbar() {
                                 <span>Team & Roles</span>
                               </Link>
                               <Link
-                                to="/club/certificates"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
-                              >
-                                <Award size={14} className="text-[#18CFFC]" />
-                                <span>Certificates & Studio</span>
-                              </Link>
-                              <Link
                                 to="/club/settings"
                                 onClick={() => setUserMenuOpen(false)}
                                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
@@ -460,14 +447,6 @@ export function Navbar() {
                               >
                                 <MessageSquare size={14} className="text-[#18CFFC]" />
                                 <span>Messages</span>
-                              </Link>
-                              <Link
-                                to="/student/certificates"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
-                              >
-                                <Award size={14} className="text-[#18CFFC]" />
-                                <span>Certificates & Badges</span>
                               </Link>
                               <Link
                                 to="/student/dashboard"

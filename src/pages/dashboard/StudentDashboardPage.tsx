@@ -859,12 +859,6 @@ export default function StudentDashboardPage() {
                     </p>
                   </div>
                 </div>
-
-                <Link to="/student/certificates">
-                  <Button variant="outline" size="sm" rightIcon={<ChevronRight size={14} />}>
-                    Certificates & Vault
-                  </Button>
-                </Link>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">

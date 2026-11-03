@@ -97,7 +97,7 @@ assert(registrationsContent.includes('useDeferredValue(search)'), 'EventRegistra
 // 8. Promise.all concurrent querying
 const studentDashboardPath = path.resolve('src/pages/dashboard/StudentDashboardPage.tsx');
 const studentDashContent = fs.readFileSync(studentDashboardPath, 'utf8');
-assert(studentDashContent.includes('Promise.all(['), 'StudentDashboardPage fetches registrations, notifications, and certificates concurrently');
+assert(studentDashContent.includes('Promise.all(['), 'StudentDashboardPage fetches dashboard data concurrently');
 assert(studentDashContent.includes('useMemo(() => {'), 'StudentDashboardPage uses useMemo for single-pass metric counts');
 
 const authContextPath = path.resolve('src/context/AuthContext.tsx');

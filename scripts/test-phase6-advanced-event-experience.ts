@@ -136,7 +136,7 @@ async function runTestSuite() {
     tier_type: 'student',
     price: 0,
     capacity: 100,
-    perks: ['Main stage access', 'Digital Certificate'],
+    perks: ['Main stage access', 'Exclusive Swag & Badges'],
     max_per_order: 1,
   })
 

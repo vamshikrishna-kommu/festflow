@@ -114,7 +114,6 @@ async function runPhase5Tests() {
       interests: ['AI/ML', 'Web Development'],
       preferred_categories: ['Hackathon', 'Coding'],
       visibility: 'public',
-      hide_certificates: false,
       hide_skills: false,
     },
   }
@@ -124,7 +123,6 @@ async function runPhase5Tests() {
     studentProfile: {
       bio: 'Private campus learner.',
       visibility: 'private',
-      hide_certificates: true,
       hide_skills: true,
     },
   }
@@ -153,8 +151,8 @@ async function runPhase5Tests() {
   )
 
   assert(
-    Array.isArray(aliceProf?.certificates),
-    'Requirement 5: Student certificates integration presents verified credentials'
+    Array.isArray(aliceProf?.badges),
+    'Requirement 5: Student achievements integration presents verified badges'
   )
 
   // Test Private profile accessed by another user

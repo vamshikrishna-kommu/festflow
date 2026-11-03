@@ -22,7 +22,6 @@ import {
   Sparkles,
   Layers,
   ShieldCheck,
-  Award,
   Settings,
 } from 'lucide-react'
 import { Button, Badge, EmptyState } from '@/components/ui'
@@ -445,17 +444,6 @@ export default function ClubDashboardPage() {
             >
               Brand & Profile
             </Button>
-
-            {/* Certificates Studio Shortcut */}
-            <Link to="/club/certificates">
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<Award size={14} className="text-[#18CFFC]" />}
-              >
-                Certificates
-              </Button>
-            </Link>
 
             {(!activeClubRole || hasPermission(activeClubRole, 'manage_members')) && (
               <Link to="/club/members">

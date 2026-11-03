@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { StudentBadgeRecord } from '@/types'
-import { getStudentCertificates } from '@/lib/certificates'
 
 const LOCAL_STORAGE_KEY = 'festflow_local_student_badges'
 
@@ -18,8 +17,6 @@ export interface BadgeDefinition {
 export interface StudentStats {
   attendedCount: number
   totalRegistrations: number
-  certificateCount: number
-  competitionAwardsCount: number
   distinctClubsCount: number
   teamEventsCount: number
 }
@@ -96,31 +93,31 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     }),
   },
   {
-    key: 'first_certificate_earned',
-    title: 'Certified Achiever',
-    description: 'Received your first verified digital certificate issued on the FestFlow platform.',
-    iconName: 'ShieldCheck',
-    category: 'awards',
+    key: 'active_campus_explorer',
+    title: 'Campus Explorer',
+    description: 'Explored and registered for 3 or more campus events on FestFlow.',
+    iconName: 'Compass',
+    category: 'participation',
     tier: 'bronze',
-    threshold: 1,
+    threshold: 3,
     evaluate: (s) => ({
-      isUnlocked: s.certificateCount >= 1,
-      progress: Math.min(s.certificateCount, 1),
-      total: 1,
+      isUnlocked: s.totalRegistrations >= 3,
+      progress: Math.min(s.totalRegistrations, 3),
+      total: 3,
     }),
   },
   {
-    key: 'first_competition_award',
-    title: 'Podium Finisher',
-    description: 'Secured a Winner, Runner-Up, or Finalist certificate in a competitive event.',
-    iconName: 'Trophy',
-    category: 'awards',
-    tier: 'gold',
-    threshold: 1,
+    key: 'dedicated_attendee',
+    title: 'Dedicated Attendee',
+    description: 'Successfully checked into 3 or more campus events.',
+    iconName: 'Award',
+    category: 'attendance',
+    tier: 'silver',
+    threshold: 3,
     evaluate: (s) => ({
-      isUnlocked: s.competitionAwardsCount >= 1,
-      progress: Math.min(s.competitionAwardsCount, 1),
-      total: 1,
+      isUnlocked: s.attendedCount >= 3,
+      progress: Math.min(s.attendedCount, 3),
+      total: 3,
     }),
   },
   {
@@ -226,18 +223,9 @@ export async function calculateStudentStats(studentId: string): Promise<StudentS
     }
   }
 
-  // 2. Query student certificates
-  const { certificates } = await getStudentCertificates(studentId)
-  const validCerts = certificates.filter((c) => c.status === 'issued')
-  const competitionAwards = validCerts.filter(
-    (c) => c.category === 'winner' || c.category === 'runner_up' || c.category === 'finalist'
-  )
-
   return {
     attendedCount,
     totalRegistrations,
-    certificateCount: validCerts.length,
-    competitionAwardsCount: competitionAwards.length,
     distinctClubsCount: distinctClubs.size,
     teamEventsCount,
   }

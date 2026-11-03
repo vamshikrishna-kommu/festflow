@@ -357,7 +357,6 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Omit<UserNotificationPreferences,
   club_announcements: true,
   platform_announcements: true,
   team_notifications: true,
-  certificate_notifications: true,
 }
 
 export async function getUserNotificationPreferences(
@@ -804,13 +803,6 @@ export const DEFAULT_CLUB_AUTOMATIONS: Array<{
     description: 'Sent 2 hours after event conclusion requesting student ratings & comments',
     defaultTemplate:
       'Thank you for attending {{event_title}}! How was your experience? Share your feedback with our organizers.',
-  },
-  {
-    trigger_type: 'certificate_ready',
-    label: 'Certificate Available Notice',
-    description: 'Sent when official attendance/merit certificates are issued to verified attendees',
-    defaultTemplate:
-      'Congratulations! Your official certificate of participation for {{event_title}} is now ready to download.',
   },
 ]
 

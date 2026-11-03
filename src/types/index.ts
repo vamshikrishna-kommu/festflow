@@ -592,144 +592,7 @@ export interface WaitlistPromotionResult {
   notifiedStudents: string[]
 }
 
-// ── Phase 4 Certificates & Achievements Types ───────────────────────────────
-
-export type CertificateCategory =
-  | 'participation'
-  | 'completion'
-  | 'winner'
-  | 'runner_up'
-  | 'finalist'
-  | 'special_recognition'
-  | 'merit'
-
-export type CertificateStatus = 'issued' | 'revoked' | 'reissued'
-
-export type CertificateTheme =
-  | 'obsidian_gold'
-  | 'cyan_cobalt'
-  | 'royal_violet'
-  | 'radiant_magenta'
-  | 'minimal_ivory'
-
-export type CertificateBorderStyle =
-  | 'modern_double'
-  | 'classic_gold'
-  | 'tech_neon'
-  | 'minimal_sleek'
-
-export interface CertificateTemplateRecord {
-  id: string
-  club_id: string
-  name: string
-  description?: string | null
-  layout: 'landscape' | 'portrait'
-  theme: CertificateTheme
-  title_text: string
-  subtitle_text?: string | null
-  body_template?: string | null
-  signatory_1_name?: string | null
-  signatory_1_role?: string | null
-  signatory_1_signature_url?: string | null
-  signatory_2_name?: string | null
-  signatory_2_role?: string | null
-  signatory_2_signature_url?: string | null
-  club_logo_url?: string | null
-  border_style: CertificateBorderStyle
-  is_default: boolean
-  is_archived: boolean
-  created_at: string
-  updated_at: string
-}
-
-export interface CertificateTemplateInsert {
-  club_id: string
-  name: string
-  description?: string | null
-  layout?: 'landscape' | 'portrait'
-  theme?: CertificateTheme
-  title_text?: string
-  subtitle_text?: string | null
-  body_template?: string | null
-  signatory_1_name?: string | null
-  signatory_1_role?: string | null
-  signatory_1_signature_url?: string | null
-  signatory_2_name?: string | null
-  signatory_2_role?: string | null
-  signatory_2_signature_url?: string | null
-  club_logo_url?: string | null
-  border_style?: CertificateBorderStyle
-  is_default?: boolean
-  is_archived?: boolean
-}
-
-export interface EventCertificateRecord {
-  id: string
-  certificate_number: string
-  verification_token: string
-  event_id: string
-  club_id: string
-  student_id: string
-  registration_id?: string | null
-  template_id?: string | null
-  category: CertificateCategory
-  title: string
-  recipient_name: string
-  recipient_college?: string | null
-  recipient_email?: string | null
-  event_title: string
-  club_name: string
-  issue_date: string
-  status: CertificateStatus
-  revoked_at?: string | null
-  revoked_by?: string | null
-  revocation_reason?: string | null
-  reissued_certificate_id?: string | null
-  reissued_from_id?: string | null
-  reissued_at?: string | null
-  qr_code_url?: string | null
-  pdf_storage_path?: string | null
-  metadata?: Record<string, any>
-  created_at: string
-  updated_at: string
-  event?: EventRecord | null
-  club?: ClubProfile | null
-  student?: Profile | null
-  template?: CertificateTemplateRecord | null
-}
-
-export interface CertificateIssueParams {
-  eventId: string
-  clubId: string
-  studentId: string
-  registrationId?: string | null
-  templateId?: string | null
-  category: CertificateCategory
-  title?: string
-  recipientName: string
-  recipientCollege?: string | null
-  recipientEmail?: string | null
-  eventTitle: string
-  clubName: string
-  issueDate?: string
-  metadata?: Record<string, any>
-}
-
-export interface CertificateEligibilityCandidate {
-  studentId: string
-  studentName: string
-  studentEmail?: string | null
-  studentCollege?: string | null
-  registrationId: string
-  ticketCode?: string
-  status: string
-  hasAttended: boolean
-  checkedInAt?: string | null
-  isEligible: boolean
-  ineligibilityReason?: string
-  existingCertificate?: EventCertificateRecord | null
-  suggestedCategory: CertificateCategory
-}
+// ── Phase 4 Achievements & Badges Types ────────────────────────────────────────
 
 export interface StudentBadgeRecord {
   id: string
@@ -745,13 +608,6 @@ export interface StudentBadgeRecord {
   is_public: boolean
   metadata?: Record<string, any>
   created_at: string
-}
-
-export interface CertificateVerificationResult {
-  isValid: boolean
-  status: 'valid' | 'revoked' | 'invalid' | 'reissued'
-  certificate?: EventCertificateRecord | null
-  message: string
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -828,7 +684,6 @@ export interface CampusFeedItem {
     eventCategory?: string
     eventStartDate?: string
     badgeTier?: string
-    certificateNumber?: string
     isPinned?: boolean
     isMembersOnly?: boolean
   }
@@ -847,11 +702,9 @@ export interface StudentPublicProfile {
   preferredCategories: string[]
   socialLinks: Record<string, string>
   visibility: ProfileVisibility
-  hideCertificates: boolean
   hideEvents: boolean
   hideSkills: boolean
   badges: StudentBadgeRecord[]
-  certificates: EventCertificateRecord[]
   attendedEventsCount: number
   isTeammateDiscoverable: boolean
   teammateAvailability?: TeammateAvailability | null
@@ -1252,7 +1105,6 @@ export type NotificationCategory =
   | 'events'
   | 'team_invitations'
   | 'digital_passes'
-  | 'certificates'
   | 'announcements'
   | 'reminders'
   | 'club_activity'
@@ -1279,7 +1131,6 @@ export interface UserNotificationPreferences {
   club_announcements: boolean
   platform_announcements: boolean
   team_notifications: boolean
-  certificate_notifications: boolean
   updated_at?: string
 }
 
@@ -1315,7 +1166,6 @@ export interface ClubEventAutomationRecord {
     | 'reminder_1d'
     | 'reminder_2h'
     | 'post_event_feedback'
-    | 'certificate_ready'
   schedule_offset?: string | null
   message_template: string
   is_enabled: boolean

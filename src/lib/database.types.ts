@@ -131,7 +131,6 @@ export interface Database {
           preferred_categories?: string[] | null
           social_links?: Record<string, string> | null
           visibility?: 'public' | 'campus_only' | 'private'
-          hide_certificates?: boolean
           hide_events?: boolean
           hide_skills?: boolean
           created_at: string
@@ -150,7 +149,6 @@ export interface Database {
           preferred_categories?: string[] | null
           social_links?: Record<string, string> | null
           visibility?: 'public' | 'campus_only' | 'private'
-          hide_certificates?: boolean
           hide_events?: boolean
           hide_skills?: boolean
           created_at?: string
@@ -596,116 +594,6 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['team_members']['Insert']>
-      }
-      certificate_templates: {
-        Row: {
-          id: string
-          club_id: string
-          name: string
-          description: string | null
-          layout: 'landscape' | 'portrait'
-          theme: string
-          title_text: string
-          subtitle_text: string | null
-          body_template: string | null
-          signatory_1_name: string | null
-          signatory_1_role: string | null
-          signatory_1_signature_url: string | null
-          signatory_2_name: string | null
-          signatory_2_role: string | null
-          signatory_2_signature_url: string | null
-          club_logo_url: string | null
-          border_style: string
-          is_default: boolean
-          is_archived: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          club_id: string
-          name: string
-          description?: string | null
-          layout?: 'landscape' | 'portrait'
-          theme?: string
-          title_text?: string
-          subtitle_text?: string | null
-          body_template?: string | null
-          signatory_1_name?: string | null
-          signatory_1_role?: string | null
-          signatory_1_signature_url?: string | null
-          signatory_2_name?: string | null
-          signatory_2_role?: string | null
-          signatory_2_signature_url?: string | null
-          club_logo_url?: string | null
-          border_style?: string
-          is_default?: boolean
-          is_archived?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: Partial<Database['public']['Tables']['certificate_templates']['Insert']>
-      }
-      event_certificates: {
-        Row: {
-          id: string
-          certificate_number: string
-          verification_token: string
-          event_id: string
-          club_id: string
-          student_id: string
-          registration_id: string | null
-          template_id: string | null
-          category: string
-          title: string
-          recipient_name: string
-          recipient_college: string | null
-          recipient_email: string | null
-          event_title: string
-          club_name: string
-          issue_date: string
-          status: string
-          revoked_at: string | null
-          revoked_by: string | null
-          revocation_reason: string | null
-          reissued_certificate_id: string | null
-          reissued_at: string | null
-          qr_code_url: string | null
-          pdf_storage_path: string | null
-          metadata: Record<string, unknown>
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          certificate_number: string
-          verification_token: string
-          event_id: string
-          club_id: string
-          student_id: string
-          registration_id?: string | null
-          template_id?: string | null
-          category: string
-          title: string
-          recipient_name: string
-          recipient_college?: string | null
-          recipient_email?: string | null
-          event_title: string
-          club_name: string
-          issue_date?: string
-          status?: string
-          revoked_at?: string | null
-          revoked_by?: string | null
-          revocation_reason?: string | null
-          reissued_certificate_id?: string | null
-          reissued_at?: string | null
-          qr_code_url?: string | null
-          pdf_storage_path?: string | null
-          metadata?: Record<string, unknown>
-          created_at?: string
-          updated_at?: string
-        }
-        Update: Partial<Database['public']['Tables']['event_certificates']['Insert']>
       }
       student_badges: {
         Row: {

@@ -8,7 +8,6 @@ import {
   Calendar,
   CreditCard,
   Users2,
-  Award,
   ShieldCheck,
   Check,
   Loader2,
@@ -306,36 +305,6 @@ export function NotificationPreferencesModal({
                         <div
                           className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
                             prefs.team_notifications ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Certificates */}
-                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)]">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-[var(--color-surface-3)] text-amber-400">
-                          <Award size={16} />
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-[var(--color-text-primary)]">
-                            Certificates & Achievements
-                          </div>
-                          <div className="text-xs text-[var(--color-text-secondary)]">
-                            Notices when verified certificates are ready to download or verify
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleToggle('certificate_notifications')}
-                        className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                          prefs.certificate_notifications ? 'bg-amber-400' : 'bg-[var(--color-surface-3)]'
-                        }`}
-                      >
-                        <div
-                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                            prefs.certificate_notifications ? 'translate-x-5' : 'translate-x-0'
                           }`}
                         />
                       </button>
