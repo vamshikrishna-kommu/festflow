@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { broadcastStatusChange } from '@/lib/sync'
+import { generateSecureQrToken, hashQrTokenSync } from '@/lib/qrCrypto'
 import type { RegistrationRecord, RegistrationWithStudent } from '@/types'
 
 const LOCAL_STORAGE_REG_KEY = 'festflow_local_registrations'
@@ -32,7 +33,19 @@ export async function getEventWaitlist(
     try {
       const { data, error } = await (supabase.from('registrations') as any)
         .select(`
-          *,
+          id,
+          event_id,
+          student_id,
+          ticket_code,
+          status,
+          team_name,
+          team_id,
+          team_members,
+          participant_details,
+          approval_status,
+          waitlist_offer_expires_at,
+          created_at,
+          updated_at,
           student:student_id (
             id,
             display_name,
@@ -67,12 +80,14 @@ export async function joinEventWaitlist(params: {
   participantDetails?: Record<string, any>
   teamName?: string
 }): Promise<{ registration?: RegistrationRecord; error?: string }> {
+  const qrToken = generateSecureQrToken()
   const newReg: RegistrationRecord = {
     id: `reg_wl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     event_id: params.eventId,
     student_id: params.studentId,
     ticket_code: `WL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-    qr_token: `QR_WL_${Math.random().toString(36).slice(2, 9)}`,
+    qr_token: qrToken,
+    qr_token_hash: hashQrTokenSync(qrToken),
     status: 'waitlisted',
     team_name: params.teamName || null,
     team_role: null,

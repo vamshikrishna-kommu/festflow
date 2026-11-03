@@ -255,7 +255,8 @@ export interface Database {
           event_id: string
           student_id: string
           ticket_code: string
-          qr_token: string
+          qr_token?: string | null
+          qr_token_hash?: string | null
           status: RegistrationStatus
           team_name: string | null
           team_role: 'leader' | 'member' | null
@@ -276,6 +277,7 @@ export interface Database {
           student_id: string
           ticket_code: string
           qr_token?: string
+          qr_token_hash?: string | null
           status?: RegistrationStatus
           team_name?: string | null
           team_role?: 'leader' | 'member' | null

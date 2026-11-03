@@ -36,8 +36,8 @@ export default function TicketDetailPage() {
         const cachedRaw = localStorage.getItem(`festflow_cached_ticket_${id}`)
         if (cachedRaw) {
           const cached = JSON.parse(cachedRaw)
-          // Also verify cached ticket ownership
-          if (user && cached.student_id !== user.id && role !== 'platform_admin') {
+          // Strictly verify cached ticket ownership; unauthenticated users cannot view cached credentials
+          if (!user || (cached.student_id !== user.id && role !== 'platform_admin')) {
             setError('You do not have permission to view this ticket.')
             return
           }

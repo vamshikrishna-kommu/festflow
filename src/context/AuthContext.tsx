@@ -1211,6 +1211,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         localStorage.removeItem(MOCK_STORAGE_KEY)
       }
+      // Clean up sensitive client-cached ticket passes on sign-out to prevent shared-device exposure
+      try {
+        const keysToRemove: string[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('festflow_cached_ticket_')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach((k) => localStorage.removeItem(k))
+      } catch {
+        // ignore localStorage access issues
+      }
       setSession(null)
       setUser(null)
       setProfile(null)

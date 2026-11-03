@@ -28,6 +28,7 @@ import {
   sendTeamInvitationAcceptedEmail,
   sendTicketIssuedEmail,
 } from '@/lib/emails'
+import { generateSecureQrToken, hashQrTokenSync } from '@/lib/qrCrypto'
 import { broadcastStatusChange } from '@/lib/sync'
 import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 
@@ -660,7 +661,8 @@ export async function joinTeam(params: {
   const memberTicketCode = leaderReg?.ticket_code
     ? `${leaderReg.ticket_code}-M${memberIndex}`
     : `FF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-  const memberQrToken = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+  const memberQrToken = generateSecureQrToken()
+  const memberQrTokenHash = hashQrTokenSync(memberQrToken)
   const isFree = Boolean(event.is_free)
   const isLeaderConfirmed = leaderReg?.status === 'confirmed' && Boolean(leaderReg.ticket_issued_at)
   const isApproved = isFree || isLeaderConfirmed
@@ -679,6 +681,7 @@ export async function joinTeam(params: {
       status: memberStatus,
       ticket_code: memberTicketCode,
       qr_token: memberQrToken,
+      qr_token_hash: memberQrTokenHash,
       ticket_issued_at: memberTicketIssuedAt,
       team_name: team.name,
       team_id: team.id,
@@ -949,7 +952,8 @@ export async function acceptTeamInvitation(params: {
   const memberTicketCode = leaderReg?.ticket_code
     ? `${leaderReg.ticket_code}-M${memberIndex}`
     : `FF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-  const memberQrToken = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+  const memberQrToken = generateSecureQrToken()
+  const memberQrTokenHash = hashQrTokenSync(memberQrToken)
   const isFree = Boolean(event.is_free)
   const isLeaderConfirmed = leaderReg?.status === 'confirmed' && Boolean(leaderReg.ticket_issued_at)
   const isApproved = isFree || isLeaderConfirmed
@@ -969,6 +973,7 @@ export async function acceptTeamInvitation(params: {
       status: memberStatus,
       ticket_code: memberTicketCode,
       qr_token: memberQrToken,
+      qr_token_hash: memberQrTokenHash,
       ticket_issued_at: memberTicketIssuedAt,
       team_name: team.name,
       team_id: team.id,

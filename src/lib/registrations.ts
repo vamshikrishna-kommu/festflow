@@ -18,6 +18,7 @@ import {
 } from '@/lib/emails'
 import { createTeam, getLocalTeamMembers, saveLocalTeamMembers, getLocalTeams } from '@/lib/teams'
 import { broadcastStatusChange } from '@/lib/sync'
+import { generateSecureQrToken, hashQrTokenSync } from '@/lib/qrCrypto'
 
 export { resendPassEmail }
 
@@ -339,7 +340,8 @@ export async function registerForEvent(
     }
 
     const ticketCode = 'FF-' + Math.random().toString(36).substring(2, 10).toUpperCase()
-    const qrToken = 'FFQ_' + Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase()
+    const qrToken = generateSecureQrToken()
+    const qrTokenHash = hashQrTokenSync(qrToken)
     
     // Resolve ticket tier details if selected
     let selectedTier: any = null
@@ -397,6 +399,7 @@ export async function registerForEvent(
       student_id: studentId,
       ticket_code: ticketCode,
       qr_token: qrToken,
+      qr_token_hash: qrTokenHash,
       status: initialStatus,
       created_at: now.toISOString(),
       ticket_issued_at: issuedAt,
@@ -582,7 +585,7 @@ export async function reviewRegistrationApplication(
         name: 'FestFlow Student',
         eventTitle: eventRes.event.title,
         ticketCode: reg.ticket_code,
-        qrToken: reg.qr_token,
+        qrToken: reg.qr_token || undefined,
         startDate: eventRes.event.start_date,
         venueName: eventRes.event.venue_name,
         teamName: reg.team_name,
@@ -740,6 +743,32 @@ export async function cancelRegistration(
   }
 }
 
+// Safe columns for registrations excluding sensitive bearer credentials (qr_token, qr_token_hash)
+export const SAFE_REGISTRATION_FIELDS = `
+  id,
+  event_id,
+  student_id,
+  ticket_code,
+  status,
+  team_name,
+  team_role,
+  team_id,
+  team_members,
+  custom_responses,
+  participant_details,
+  ticket_tier_id,
+  ticket_tier_name,
+  unit_price,
+  coupon_id,
+  discount_amount,
+  approval_status,
+  rejection_reason,
+  waitlist_offer_expires_at,
+  ticket_issued_at,
+  created_at,
+  updated_at
+`
+
 // ── Check if Student has Active Registration for Event ───────────────────────
 export async function checkStudentRegistrationForEvent(
   eventId: string,
@@ -749,7 +778,7 @@ export async function checkStudentRegistrationForEvent(
     try {
       const { data, error } = await supabase
         .from('registrations')
-        .select('*, check_ins(*)')
+        .select(`${SAFE_REGISTRATION_FIELDS}, check_ins(*)`)
         .eq('event_id', eventId)
         .eq('student_id', studentId)
         .neq('status', 'cancelled')
@@ -804,7 +833,7 @@ export async function getRegistrationById(
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId)
 
       const selectClause = `
-        *,
+        ${SAFE_REGISTRATION_FIELDS},
         check_ins (*),
         event:event_id (
           *,
@@ -841,8 +870,8 @@ export async function getRegistrationById(
       ) {
         console.warn('[FestFlow] Relational join issue detected in getRegistrationById, performing decoupled fetch')
         const regRes: any = isUuid
-          ? await supabase.from('registrations').select('*, check_ins(*)').eq('id', cleanId).maybeSingle()
-          : await supabase.from('registrations').select('*, check_ins(*)').eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
+          ? await supabase.from('registrations').select(`${SAFE_REGISTRATION_FIELDS}, check_ins(*)`).eq('id', cleanId).maybeSingle()
+          : await supabase.from('registrations').select(`${SAFE_REGISTRATION_FIELDS}, check_ins(*)`).eq('ticket_code', cleanId.toUpperCase()).maybeSingle()
 
         if (!regRes.error && regRes.data) {
           const rawItem = regRes.data as Record<string, any>
@@ -857,6 +886,21 @@ export async function getRegistrationById(
 
       if (error && !data) return { registration: null, error: error.message }
       if (!data) return { registration: null, error: 'Registration not found' }
+
+      // Secure Authoritative Ticket Pass Retrieval:
+      // If caller is the legitimate ticket owner or admin, retrieve the bearer qr_token via the owner-only RPC.
+      if (data && data.id) {
+        try {
+          const passRes = await (supabase as any).rpc('get_student_ticket_pass', {
+            p_registration_id: data.id,
+          })
+          if (passRes?.data?.success && passRes.data.qr_token) {
+            data.qr_token = passRes.data.qr_token
+          }
+        } catch {
+          // ignore RPC error (e.g. simulation mode or if caller is unauthorized viewer)
+        }
+      }
 
       if (data) {
         const regObj = data as any
@@ -927,7 +971,7 @@ export async function getStudentRegistrations(
         .from('registrations')
         .select(
           `
-          *,
+          ${SAFE_REGISTRATION_FIELDS},
           event:events!registrations_event_id_fkey (
             *,
             club:profiles!events_club_id_fkey (
@@ -947,7 +991,7 @@ export async function getStudentRegistrations(
           .from('registrations')
           .select(
             `
-            *,
+            ${SAFE_REGISTRATION_FIELDS},
             event:event_id (
               *,
               club:club_id (
@@ -973,7 +1017,7 @@ export async function getStudentRegistrations(
           console.warn('[FestFlow] Performing decoupled fetch for student registrations')
           const { data: rawRegs, error: regErr } = await supabase
             .from('registrations')
-            .select('*')
+            .select(SAFE_REGISTRATION_FIELDS)
             .eq('student_id', studentId)
             .order('created_at', { ascending: false })
 
@@ -1059,7 +1103,8 @@ export async function getStudentRegistrations(
         const ticketCode = leaderReg?.ticket_code
           ? `${leaderReg.ticket_code}-M${memberIndex}`
           : `FF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-        const qrToken = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+        const qrToken = generateSecureQrToken()
+        const qrTokenHash = hashQrTokenSync(qrToken)
 
         const newMemberReg: RegistrationRecord = {
           id: `reg_tm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -1068,6 +1113,7 @@ export async function getStudentRegistrations(
           status: isConfirmed ? 'confirmed' : 'pending_payment',
           ticket_code: ticketCode,
           qr_token: qrToken,
+          qr_token_hash: qrTokenHash,
           ticket_issued_at: isConfirmed ? new Date().toISOString() : null,
           cancelled_at: null,
           team_name: team?.name || null,
@@ -1123,14 +1169,34 @@ export async function getEventRegistrations(
   if (isSupabaseConfigured) {
     try {
       // First attempt query with explicit foreign key relation to profiles table
+      // Authoritatively exclude sensitive bearer columns (qr_token, qr_token_hash) at database query level
       let data: any = null
       let queryError: string | null = null
+
+      const SAFE_ROSTER_FIELDS = `
+        id,
+        event_id,
+        student_id,
+        ticket_code,
+        status,
+        team_name,
+        team_id,
+        team_members,
+        participant_details,
+        approval_status,
+        rejection_reason,
+        ticket_issued_at,
+        created_at,
+        updated_at,
+        custom_responses,
+        unit_price
+      `
 
       const resExplicit = await supabase
         .from('registrations')
         .select(
           `
-          *,
+          ${SAFE_ROSTER_FIELDS},
           student:profiles!registrations_student_id_fkey (
             display_name,
             email,
@@ -1149,7 +1215,7 @@ export async function getEventRegistrations(
           .from('registrations')
           .select(
             `
-            *,
+            ${SAFE_ROSTER_FIELDS},
             student:profiles (
               display_name,
               email,
@@ -1168,7 +1234,7 @@ export async function getEventRegistrations(
             .from('registrations')
             .select(
               `
-              *,
+              ${SAFE_ROSTER_FIELDS},
               student:student_id (
                 display_name,
                 email,
@@ -1190,12 +1256,14 @@ export async function getEventRegistrations(
       if (queryError) return { registrations: [], error: queryError }
 
       // Map registrations and ensure genuine attendee data is preserved.
+      // Strip sensitive bearer qr_token and qr_token_hash from organizer-facing roster.
       // If student profile relation is null (e.g. deleted user, missing profile row, or RLS block),
       // provide safe non-null fallback object so downstream consumers do not crash.
       const normalizedRegistrations: RegistrationWithStudent[] = (data || []).map((r: any) => {
         const fallbackName = r.team_name ? `Team ${r.team_name}` : 'Student Attendee'
+        const { qr_token: _rawQr, qr_token_hash: _rawHash, ...safeRecord } = r
         return {
-          ...r,
+          ...safeRecord,
           student: r.student
             ? {
                 display_name: r.student.display_name || fallbackName,
@@ -1224,14 +1292,17 @@ export async function getEventRegistrations(
     const current = getInitialLocalRegistrations()
     const matching = current.filter((r) => r.event_id === eventId)
 
-    const list: RegistrationWithStudent[] = matching.map((r, i) => ({
-      ...r,
-      student: {
-        display_name: (r.participant_details as any)?.full_name || `Attendee #${i + 1}`,
-        email: (r.participant_details as any)?.email || `attendee${i + 1}@campus.edu`,
-        avatar_url: null,
-      },
-    }))
+    const list: RegistrationWithStudent[] = matching.map((r, i) => {
+      const { qr_token: _rawQr, qr_token_hash: _rawHash, ...safeRecord } = r
+      return {
+        ...safeRecord,
+        student: {
+          display_name: (r.participant_details as any)?.full_name || `Attendee #${i + 1}`,
+          email: (r.participant_details as any)?.email || `attendee${i + 1}@campus.edu`,
+          avatar_url: null,
+        },
+      }
+    })
 
     return { registrations: list, error: null }
   }

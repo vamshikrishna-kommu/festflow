@@ -89,7 +89,7 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
         supabase.from('events').select('*', { count: 'exact', head: true }),
         supabase.from('events').select('*', { count: 'exact', head: true }).eq('status', 'published'),
         supabase.from('events').select('*', { count: 'exact', head: true }).eq('moderation_status', 'pending_approval'),
-        supabase.from('registrations').select('*', { count: 'exact', head: true }),
+        supabase.from('registrations').select('id', { count: 'exact', head: true }),
         supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
         supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
         supabase.from('check_ins').select('*', { count: 'exact', head: true }),

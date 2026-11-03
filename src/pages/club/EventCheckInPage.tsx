@@ -228,7 +228,6 @@ export default function EventCheckInPage() {
       const matchesSearch =
         !q ||
         (a.ticket_code && a.ticket_code.toLowerCase().includes(q)) ||
-        (a.qr_token && a.qr_token.toLowerCase().includes(q)) ||
         studentName.toLowerCase().includes(q) ||
         studentEmail.toLowerCase().includes(q) ||
         Boolean(a.team_name && a.team_name.toLowerCase().includes(q)) ||
@@ -561,14 +560,14 @@ export default function EventCheckInPage() {
                 Manual Code Entry ({scannerMode === 'check_in' ? 'Check-In' : 'Check-Out'})
               </h3>
               <p className="text-xs text-[var(--color-text-muted)] mb-3">
-                If the camera cannot read the attendee's screen, enter their ticket code or pass token manually:
+                If the camera cannot read the attendee's screen, enter their secure pass token (FFQ_…) manually. Reference ticket codes (e.g. FF-…, TKT-…) cannot be used for gate admission.
               </p>
 
               <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-2">
                 <input
                   ref={manualInputRef}
                   type="text"
-                  placeholder="e.g. TKT-INNOVATE-2026 or FFQ_…"
+                  placeholder="e.g. FFQ_0123456789abcdef…"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
                   className="flex-1 px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] font-mono focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors min-h-[40px]"

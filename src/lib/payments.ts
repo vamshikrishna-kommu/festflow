@@ -15,6 +15,7 @@ import {
   sendTicketIssuedEmail,
 } from '@/lib/emails'
 import { broadcastStatusChange } from '@/lib/sync'
+import { generateSecureQrToken, hashQrTokenSync } from '@/lib/qrCrypto'
 
 const LOCAL_STORAGE_PAYMENT_SETTINGS_KEY = 'festflow_local_club_payment_settings'
 const LOCAL_STORAGE_PAYMENT_SUBMISSIONS_KEY = 'festflow_local_payment_submissions'
@@ -712,7 +713,8 @@ export async function reviewPaymentSubmission(params: {
           mIdx++
           let sReg = localRegs.find((r: any) => r.event_id === targetReg.event_id && r.student_id === m.user_id)
           const memberTicket = `${issuedTicketCode}-M${mIdx}`
-          const memberQr = `FFQ_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+          const memberQr = generateSecureQrToken()
+          const memberQrHash = hashQrTokenSync(memberQr)
 
           if (!sReg) {
             sReg = {
@@ -721,6 +723,7 @@ export async function reviewPaymentSubmission(params: {
               student_id: m.user_id,
               ticket_code: memberTicket,
               qr_token: memberQr,
+              qr_token_hash: memberQrHash,
               status: 'confirmed',
               ticket_issued_at: new Date().toISOString(),
               team_name: targetReg.team_name,
@@ -739,7 +742,10 @@ export async function reviewPaymentSubmission(params: {
             sReg.team_name = targetReg.team_name
             sReg.team_role = 'member'
             if (!sReg.ticket_code) sReg.ticket_code = memberTicket
-            if (!sReg.qr_token) sReg.qr_token = memberQr
+            if (!sReg.qr_token) {
+              sReg.qr_token = memberQr
+              sReg.qr_token_hash = memberQrHash
+            }
             sReg.ticket_issued_at = sReg.ticket_issued_at || new Date().toISOString()
             sReg.rejection_reason = null
             sReg.updated_at = new Date().toISOString()

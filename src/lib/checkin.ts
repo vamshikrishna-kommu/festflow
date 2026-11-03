@@ -10,6 +10,7 @@ import type {
 import { getEventRegistrations } from '@/lib/registrations'
 import { getEventById } from '@/lib/events'
 import { sendCheckinConfirmedEmail } from '@/lib/emails'
+import { isTicketCode, hashQrTokenSync } from '@/lib/qrCrypto'
 
 const LOCAL_STORAGE_CHECKINS_KEY = 'festflow_local_checkins'
 
@@ -24,8 +25,7 @@ export function cleanTicketPayload(raw: string): string {
       const parsed = JSON.parse(cleaned)
       if (parsed.qr_token) return cleanTicketPayload(String(parsed.qr_token))
       if (parsed.token) return cleanTicketPayload(String(parsed.token))
-      if (parsed.ticket_code) return cleanTicketPayload(String(parsed.ticket_code))
-      if (parsed.code) return cleanTicketPayload(String(parsed.code))
+      if (parsed.qr) return cleanTicketPayload(String(parsed.qr))
     } catch {
       // not valid JSON, proceed with string parsing
     }
@@ -48,7 +48,7 @@ export function cleanTicketPayload(raw: string): string {
     try {
       const queryStr = cleaned.substring(cleaned.indexOf('?') + 1)
       const params = new URLSearchParams(queryStr)
-      const paramVal = params.get('token') || params.get('code') || params.get('qr') || params.get('t')
+      const paramVal = params.get('token') || params.get('qr') || params.get('t')
       if (paramVal) {
         cleaned = paramVal
       } else {
@@ -173,8 +173,20 @@ export async function checkInTicket(
     return {
       success: false,
       outcome: 'INVALID_TICKET',
-      message: 'Invalid ticket reference. Please provide a valid ticket code or pass QR.',
+      message: 'Invalid ticket reference. Please provide a valid pass QR code.',
     }
+  }
+
+  // SECURITY HARDENING: Reject human-readable ticket codes from scanner
+  if (isTicketCode(cleanCode)) {
+    const res: CheckInResponse = {
+      success: false,
+      outcome: 'INVALID_TICKET',
+      ticket_code: cleanCode,
+      message: 'Human-readable ticket reference codes (e.g. FF-..., TKT-...) cannot be used for turnstile gate admission. Please scan the student\'s verified QR pass.',
+    }
+    triggerScanFeedback(res.outcome)
+    return res
   }
 
   if (isSupabaseConfigured) {
@@ -298,14 +310,14 @@ export async function checkInTicket(
       return res
     }
 
-    // Find registration by ticket code or qr_token
+    // Find registration by matching hashed QR token or unhashed legacy token (NEVER ticket_code)
+    const inputHash = hashQrTokenSync(baseCode)
     const reg = localRegs.find((r: any) => {
-      const tCode = (r.ticket_code || '').toUpperCase()
+      const qHash = (r.qr_token_hash || '').toLowerCase()
       const qToken = (r.qr_token || '').toUpperCase()
       return (
-        tCode === baseCode ||
+        (qHash && qHash === inputHash.toLowerCase()) ||
         qToken === baseCode ||
-        tCode === cleanCode ||
         qToken === cleanCode
       )
     })
@@ -333,9 +345,19 @@ export async function checkInTicket(
       return res
     }
 
-    // Resolve attendee / member display name
+    // Resolve attendee / member display name & validate member index
     let memberName: string | undefined = undefined
-    if (memberIndex > 0 && Array.isArray(reg.team_members) && reg.team_members.length >= memberIndex) {
+    if (memberIndex > 0) {
+      if (!Array.isArray(reg.team_members) || reg.team_members.length < memberIndex || memberIndex < 1) {
+        const res: CheckInResponse = {
+          success: false,
+          outcome: 'INVALID_TICKET',
+          ticket_code: cleanCode,
+          message: `Invalid team member pass. Registration does not contain member #${memberIndex}.`,
+        }
+        triggerScanFeedback(res.outcome)
+        return res
+      }
       const memberObj = reg.team_members[memberIndex - 1]
       memberName = memberObj?.name || `Team Member #${memberIndex}`
     }
@@ -580,7 +602,17 @@ export async function checkOutTicket(
     return {
       success: false,
       outcome: 'INVALID_TICKET',
-      message: 'Invalid ticket reference. Please provide a valid ticket code or pass QR for check-out.',
+      message: 'Invalid ticket reference. Please provide a valid QR pass for check-out.',
+    }
+  }
+
+  // SECURITY HARDENING: Reject human-readable ticket codes
+  if (isTicketCode(cleanCode)) {
+    return {
+      success: false,
+      outcome: 'INVALID_TICKET',
+      ticket_code: cleanCode,
+      message: 'Ticket reference codes cannot be used for gate check-out. Please scan the student\'s verified QR pass.',
     }
   }
 
@@ -665,13 +697,13 @@ export async function checkOutTicket(
     const eventRes = await getEventById(eventId)
     const targetEvent = eventRes.event
 
+    const inputHash = hashQrTokenSync(baseCode)
     const reg = localRegs.find((r: any) => {
-      const tCode = (r.ticket_code || '').toUpperCase()
+      const qHash = (r.qr_token_hash || '').toLowerCase()
       const qToken = (r.qr_token || '').toUpperCase()
       return (
-        tCode === baseCode ||
+        (qHash && qHash === inputHash.toLowerCase()) ||
         qToken === baseCode ||
-        tCode === cleanCode ||
         qToken === cleanCode
       )
     })
@@ -695,7 +727,15 @@ export async function checkOutTicket(
     }
 
     let memberName: string | undefined = undefined
-    if (memberIndex > 0 && Array.isArray(reg.team_members) && reg.team_members.length >= memberIndex) {
+    if (memberIndex > 0) {
+      if (!Array.isArray(reg.team_members) || reg.team_members.length < memberIndex || memberIndex < 1) {
+        return {
+          success: false,
+          outcome: 'INVALID_TICKET',
+          ticket_code: cleanCode,
+          message: `Invalid team member pass for check-out. Registration does not contain member #${memberIndex}.`,
+        }
+      }
       const memberObj = reg.team_members[memberIndex - 1]
       memberName = memberObj?.name || `Team Member #${memberIndex}`
     }
