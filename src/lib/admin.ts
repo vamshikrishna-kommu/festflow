@@ -1021,6 +1021,23 @@ export async function deletePlatformAnnouncement(
   return { success: true }
 }
 
+export function syncLocalSetting(key: string, value: any) {
+  try {
+    const stored = localStorage.getItem(MOCK_SETTINGS_KEY)
+    const map = stored ? JSON.parse(stored) : { ...DEFAULT_SETTINGS }
+    map[key] = value
+    localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(map))
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('festflow:settings_changed', { detail: { key, value } }))
+      if (key === 'maintenance_mode') {
+        window.dispatchEvent(new CustomEvent('festflow:maintenance_mode_changed', { detail: { enabled: Boolean(value) } }))
+      }
+    }
+  } catch (err) {
+    console.warn('[AdminSettings] Failed to sync local setting:', err)
+  }
+}
+
 // ── 9. PLATFORM CONFIGURATION & SETTINGS ──────────────────────────────────────
 export async function getPlatformSettings(): Promise<PlatformSettingsMap> {
   if (isSupabaseConfigured) {
@@ -1030,8 +1047,15 @@ export async function getPlatformSettings(): Promise<PlatformSettingsMap> {
       if (!error && Array.isArray(data) && data.length > 0) {
         const map: any = { ...DEFAULT_SETTINGS }
         for (const row of data) {
-          map[row.key] = row.value
+          if (row.key === 'maintenance_mode') {
+            map.maintenance_mode = row.value === true || row.value === 'true'
+          } else {
+            map[row.key] = row.value
+          }
         }
+        try {
+          localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(map))
+        } catch {}
         return map
       }
     } catch {
@@ -1041,7 +1065,14 @@ export async function getPlatformSettings(): Promise<PlatformSettingsMap> {
 
   try {
     const stored = localStorage.getItem(MOCK_SETTINGS_KEY)
-    if (stored) return JSON.parse(stored)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        maintenance_mode: parsed.maintenance_mode === true || parsed.maintenance_mode === 'true',
+      }
+    }
   } catch {
     // Ignore
   }
@@ -1056,6 +1087,9 @@ export async function updatePlatformSetting(
   adminEmail?: string
 ): Promise<{ success: boolean; error?: string }> {
   let adminUuid = isValidUuid(adminId) ? adminId : null
+
+  // Synchronously update local state and notify listeners
+  syncLocalSetting(key, value)
 
   if (isSupabaseConfigured) {
     try {
@@ -1074,6 +1108,17 @@ export async function updatePlatformSetting(
           p_value: value,
         })
         if (!rpcErr && (rpcData as any)?.success) {
+          if (adminEmail) {
+            void logAdminAction({
+              adminId: adminUuid || undefined,
+              adminEmail,
+              action: 'update_platform_setting',
+              targetEntity: 'platform_settings',
+              targetRecordId: key,
+              newState: { [key]: value },
+              reason: `Platform configuration updated for key: ${key}`,
+            })
+          }
           return { success: true }
         }
       } catch {
@@ -1099,14 +1144,6 @@ export async function updatePlatformSetting(
       console.error('[AdminSettings] Exception:', err)
       return { success: false, error: err.message || 'Failed to update setting' }
     }
-  }
-
-  try {
-    const current = await getPlatformSettings()
-    current[key as keyof PlatformSettingsMap] = value
-    localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(current))
-  } catch {
-    // Ignore
   }
 
   if (adminEmail) {

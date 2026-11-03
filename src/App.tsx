@@ -7,7 +7,10 @@ import {
   useNavigationType,
 } from 'react-router'
 import { lazy, Suspense, useEffect } from 'react'
-import { AuthProvider } from '@/context/AuthContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { MaintenanceProvider, useMaintenance } from '@/context/MaintenanceContext'
+import { MaintenanceScreen } from '@/components/maintenance/MaintenanceScreen'
+import { AdminMaintenanceBanner } from '@/components/maintenance/AdminMaintenanceBanner'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Logo } from '@/components/ui'
@@ -109,6 +112,11 @@ function PageLoader() {
 function RootLayout() {
   const location = useLocation()
   const navigationType = useNavigationType()
+  const { role } = useAuth()
+  const { isMaintenanceMode } = useMaintenance()
+
+  const isAdmin = role === 'platform_admin'
+  const isExcludedPath = location.pathname.startsWith('/admin') || location.pathname.startsWith('/auth')
 
   useEffect(() => {
     // 1. Handle in-page anchor hash navigation (e.g. /#features or skip link #main-content)
@@ -155,9 +163,20 @@ function RootLayout() {
     registerServiceWorker()
   }, [])
 
+  // If maintenance mode is active, non-administrative users see the maintenance screen
+  if (isMaintenanceMode && !isAdmin && !isExcludedPath) {
+    return (
+      <>
+        <NetworkStatusBanner />
+        <MaintenanceScreen />
+      </>
+    )
+  }
+
   return (
     <>
       <NetworkStatusBanner />
+      {isAdmin && isMaintenanceMode && <AdminMaintenanceBanner />}
       <ScrollRestoration
         getKey={(loc) => {
           // Returning loc.pathname ensures that changing query parameters (such as filters,
@@ -805,7 +824,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <MaintenanceProvider>
+          <RouterProvider router={router} />
+        </MaintenanceProvider>
       </AuthProvider>
     </ErrorBoundary>
   )

@@ -6,11 +6,13 @@ import { getPlatformSettings, updatePlatformSetting } from '@/lib/admin'
 import type { PlatformSettingsMap } from '@/types'
 import { Button } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
+import { useMaintenance } from '@/context/MaintenanceContext'
 
 export default function AdminSettingsPage() {
   const { profile } = useAuth()
   const adminId = profile?.id || 'admin_root'
   const adminEmail = profile?.email || 'admin@festflow.online'
+  const { setMaintenanceMode } = useMaintenance()
 
   const [settings, setSettings] = useState<PlatformSettingsMap | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -31,11 +33,17 @@ export default function AdminSettingsPage() {
     if (!settings) return
     const newVal = !settings[key]
     setSettings({ ...settings, [key]: newVal })
+    if (key === 'maintenance_mode') {
+      setMaintenanceMode(newVal)
+    }
     setErrorFeedback(null)
 
     const res = await updatePlatformSetting(key as string, newVal, adminId, adminEmail)
     if (!res.success) {
       setSettings({ ...settings, [key]: !newVal })
+      if (key === 'maintenance_mode') {
+        setMaintenanceMode(!newVal)
+      }
       setErrorFeedback(res.error || `Failed to update ${key}.`)
       setTimeout(() => setErrorFeedback(null), 5000)
     } else {
