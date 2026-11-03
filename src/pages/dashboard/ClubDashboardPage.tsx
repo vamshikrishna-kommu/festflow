@@ -348,15 +348,15 @@ export default function ClubDashboardPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="relative rounded-3xl border border-white/[0.08] overflow-hidden p-5 sm:p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-2xl bg-gradient-to-b from-[#0E0E12] to-[#08080A]"
+          className="relative rounded-3xl border border-white/[0.08] p-5 sm:p-6 md:p-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6 shadow-2xl bg-gradient-to-b from-[#0E0E12] to-[#08080A]"
         >
           <div
             aria-hidden="true"
-            className="absolute inset-0 pointer-events-none"
+            className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden"
             style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(24, 207, 252, 0.12) 0%, transparent 65%)' }}
           />
 
-          <div className="relative flex items-center gap-4 sm:gap-5">
+          <div className="relative flex items-center gap-4 sm:gap-5 min-w-0">
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-[#18CFFC]/20 shrink-0 border border-white/10 bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB]">
               <Building2 size={32} className="sm:w-9 sm:h-9" />
             </div>
@@ -387,21 +387,22 @@ export default function ClubDashboardPage() {
           </div>
 
           {/* Quick Actions Action Bar */}
-          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-white/[0.08] shrink-0">
+          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-4 xl:pt-0 border-t xl:border-t-0 border-white/[0.08] max-w-full justify-start xl:justify-end">
             {(!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
-              <Link to="/club/events/new">
-                <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
+              <Link to="/club/events/new" className="shrink-0">
+                <Button variant="primary" size="sm" leftIcon={<Plus size={15} />} className="whitespace-nowrap">
                   Create Event
                 </Button>
               </Link>
             )}
 
             {(!activeClubRole || hasPermission(activeClubRole, 'review_payments')) && (
-              <Link to="/club/payments">
+              <Link to="/club/payments" className="shrink-0">
                 <Button
                   variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
                   size="sm"
                   leftIcon={<CreditCard size={15} />}
+                  className="whitespace-nowrap"
                 >
                   Payments
                   {pendingPaymentsCount > 0 && (
@@ -419,6 +420,7 @@ export default function ClubDashboardPage() {
               size="sm"
               onClick={() => setCouponsModalOpen(true)}
               leftIcon={<Tag size={14} className="text-amber-400" />}
+              className="shrink-0 whitespace-nowrap"
             >
               Coupons
             </Button>
@@ -430,6 +432,7 @@ export default function ClubDashboardPage() {
                 size="sm"
                 onClick={() => setComparisonModalOpen(true)}
                 leftIcon={<BarChart3 size={14} className="text-[#18CFFC]" />}
+                className="shrink-0 whitespace-nowrap"
               >
                 Compare
               </Button>
@@ -441,23 +444,25 @@ export default function ClubDashboardPage() {
               size="sm"
               onClick={() => setBrandingModalOpen(true)}
               leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
+              className="shrink-0 whitespace-nowrap"
             >
               Brand & Profile
             </Button>
 
             {(!activeClubRole || hasPermission(activeClubRole, 'manage_members')) && (
-              <Link to="/club/members">
-                <Button variant="outline" size="sm" leftIcon={<Users size={15} />}>
+              <Link to="/club/members" className="shrink-0">
+                <Button variant="outline" size="sm" leftIcon={<Users size={15} />} className="whitespace-nowrap">
                   Team Roster
                 </Button>
               </Link>
             )}
 
-            <Link to="/club/settings">
+            <Link to="/club/settings" className="shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 leftIcon={<Settings size={14} className="text-zinc-400" />}
+                className="whitespace-nowrap"
               >
                 Settings
               </Button>
@@ -468,7 +473,7 @@ export default function ClubDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => switchWorkspace('student', navigate)}
-                className="text-zinc-300 hover:text-white"
+                className="text-zinc-300 hover:text-white shrink-0 whitespace-nowrap"
                 leftIcon={<GraduationCap size={15} />}
               >
                 Student Space
@@ -479,7 +484,7 @@ export default function ClubDashboardPage() {
               variant="outline"
               size="sm"
               onClick={() => signOut()}
-              className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30"
+              className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30 shrink-0 whitespace-nowrap"
             >
               Sign Out
             </Button>

@@ -603,8 +603,7 @@ export async function getAdminEvents(filter?: string, search?: string): Promise<
           id, title, slug, category, status, moderation_status, moderation_notes,
           start_date, end_date, venue_name, is_free, price, capacity, created_at, club_id,
           club:club_id (
-            display_name,
-            club_profiles!profile_id (club_name)
+            display_name
           )
         `)
         .order('created_at', { ascending: false })

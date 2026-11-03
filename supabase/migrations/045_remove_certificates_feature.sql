@@ -2,12 +2,11 @@
 -- Permanently removes all certificate-related tables, storage buckets, RLS policies, indexes, and columns.
 -- Preserves all unrelated events, registrations, check-ins, payments, users, and audit records.
 
--- 1. Drop storage policies and bucket for certificates
+-- 1. Drop storage policies for certificates
 DROP POLICY IF EXISTS "Public can view certificates" ON storage.objects;
 DROP POLICY IF EXISTS "Organizers can upload certificates" ON storage.objects;
-
-DELETE FROM storage.objects WHERE bucket_id = 'certificates';
-DELETE FROM storage.buckets WHERE id = 'certificates';
+-- Note: Supabase protects storage tables from direct SQL deletion (storage.protect_delete).
+-- Dropping policies secures the bucket; bucket deletion can be completed via Supabase Storage UI if desired.
 
 -- 2. Drop RLS policies for event_certificates and certificate_templates
 DROP POLICY IF EXISTS "Public can verify valid certificates" ON public.event_certificates;

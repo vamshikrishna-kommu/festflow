@@ -355,14 +355,6 @@ export async function getEventBySlug(
 ): Promise<{ event: EventWithClub | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const selectClauseDisambiguated = `
-        *,
-        club:club_id (
-          display_name,
-          avatar_url,
-          club_profiles!profile_id (*)
-        )
-      `
       const selectClauseSimple = `
         *,
         club:club_id (
@@ -371,23 +363,14 @@ export async function getEventBySlug(
         )
       `
 
-      // 1. Try with disambiguated relationship
+      // 1. Fetch event with club profile information directly (decoupled to prevent PostgREST embed ambiguity)
       let res = await supabasePublic
         .from('events')
-        .select(selectClauseDisambiguated)
+        .select(selectClauseSimple)
         .eq('slug', slug)
         .maybeSingle()
 
-      // 2. If embed failed (e.g. multiple relationships error), fall back to simple select
-      if (res.error && (res.error.message.includes('relationship') || res.error.message.includes('embed'))) {
-        res = await supabasePublic
-          .from('events')
-          .select(selectClauseSimple)
-          .eq('slug', slug)
-          .maybeSingle()
-      }
-
-      // 3. Fallback to authenticated client if needed
+      // 2. Fallback to authenticated client if needed
       if (res.error && !res.error.message.includes('infinite recursion')) {
         const retry = await supabase
           .from('events')
@@ -520,14 +503,6 @@ export async function listPublishedEvents(params?: {
         return q
       }
 
-      const selectDisambiguated = `
-        *,
-        club:club_id (
-          display_name,
-          avatar_url,
-          club_profiles!profile_id (*)
-        )
-      `
       const selectSimple = `
         *,
         club:club_id (
@@ -536,26 +511,10 @@ export async function listPublishedEvents(params?: {
         )
       `
 
-      // 1. Try disambiguated select first with supabasePublic
-      let { data, count, error } = await executeQuery(supabasePublic, selectDisambiguated)
+      // 1. Fetch events with simple join to prevent PostgREST reverse-relationship embedding errors
+      let { data, count, error } = await executeQuery(supabasePublic, selectSimple)
 
-      // 2. If relationship embedding failed (due to multiple foreign keys), retry with simple select
-      if (error) {
-        const isEmbedError =
-          error.message.includes('relationship') ||
-          error.message.includes('embed') ||
-          error.message.includes('Could not embed')
-        if (isEmbedError) {
-          const simpleRes = await executeQuery(supabasePublic, selectSimple)
-          if (!simpleRes.error) {
-            data = simpleRes.data
-            count = simpleRes.count
-            error = null
-          }
-        }
-      }
-
-      // 3. Fallback to standard authenticated client if public client failed
+      // 2. Fallback to standard authenticated client if public client failed
       if (error && !error.message.includes('infinite recursion')) {
         const fallbackRes = await executeQuery(supabase, selectSimple)
         if (!fallbackRes.error) {

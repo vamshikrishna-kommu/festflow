@@ -809,8 +809,7 @@ export async function getRegistrationById(
         event:event_id (
           *,
           club:club_id (
-            display_name,
-            club_profiles!profile_id (*)
+            display_name
           )
         )
       `
@@ -932,8 +931,7 @@ export async function getStudentRegistrations(
           event:events!registrations_event_id_fkey (
             *,
             club:profiles!events_club_id_fkey (
-              display_name,
-              club_profiles!profile_id (*)
+              display_name
             )
           )
         `
@@ -953,8 +951,7 @@ export async function getStudentRegistrations(
             event:event_id (
               *,
               club:club_id (
-                display_name,
-                club_profiles!profile_id (*)
+                display_name
               )
             )
           `
