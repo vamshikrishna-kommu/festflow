@@ -53,3 +53,4 @@ BEGIN
     ALTER TABLE public.notification_preferences DROP COLUMN certificate_notifications;
   END IF;
 END $$;
+

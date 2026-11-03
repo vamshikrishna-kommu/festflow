@@ -62,8 +62,8 @@ export default function TermsPage() {
             </h2>
             <p>
               Questions regarding these terms should be directed to{' '}
-              <a href="mailto:terms@festflow.com" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
-                terms@festflow.com
+              <a href="mailto:terms@festflow.online" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
+                terms@festflow.online
               </a>.
             </p>
           </section>

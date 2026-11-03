@@ -11,7 +11,7 @@ export default function ContactPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const mailtoUrl = `mailto:support@festflow.com?subject=${encodeURIComponent(
+    const mailtoUrl = `mailto:support@festflow.online?subject=${encodeURIComponent(
       `FestFlow Inquiry from ${name.trim()}`
     )}&body=${encodeURIComponent(
       `${message.trim()}\n\n---\nSender: ${name.trim()}\nReply-To: ${email.trim()}`
@@ -43,8 +43,8 @@ export default function ContactPage() {
             <div>
               <h3 className="font-semibold text-sm text-white">Email Support</h3>
               <p className="text-xs text-[var(--color-text-muted)] mt-1">General inquiries & organizer assistance</p>
-              <a href="mailto:support@festflow.com" className="text-xs text-[#18CFFC] hover:text-[#18CFFC] mt-2 inline-block font-medium transition-colors">
-                support@festflow.com
+              <a href="mailto:support@festflow.online" className="text-xs text-[#18CFFC] hover:text-[#18CFFC] mt-2 inline-block font-medium transition-colors">
+                support@festflow.online
               </a>
             </div>
           </Card>
@@ -56,8 +56,8 @@ export default function ContactPage() {
             <div>
               <h3 className="font-semibold text-sm text-white">Club Onboarding</h3>
               <p className="text-xs text-[var(--color-text-muted)] mt-1">Direct support for student councils & clubs</p>
-              <a href="mailto:clubs@festflow.com" className="text-xs text-[#18CFFC] hover:text-[#18CFFC] mt-2 inline-block font-medium transition-colors">
-                clubs@festflow.com
+              <a href="mailto:clubs@festflow.online" className="text-xs text-[#18CFFC] hover:text-[#18CFFC] mt-2 inline-block font-medium transition-colors">
+                clubs@festflow.online
               </a>
             </div>
           </Card>
@@ -70,7 +70,7 @@ export default function ContactPage() {
               <h3 className="font-semibold text-sm text-white">Documentation</h3>
               <p className="text-xs text-[var(--color-text-muted)] mt-1">Setup guides, Edge Functions & migrations</p>
               <span className="text-xs text-amber-400 mt-2 inline-block font-medium">
-                docs.festflow.com (Pre-launch)
+                festflow.online/contact
               </span>
             </div>
           </Card>
@@ -87,11 +87,11 @@ export default function ContactPage() {
               <CheckCircle2 size={36} className="text-emerald-400 mx-auto" />
               <h3 className="font-bold text-sm text-emerald-200">Email Draft Prepared</h3>
               <p className="text-xs text-emerald-300/80 max-w-md mx-auto leading-relaxed">
-                Thank you, {name}! Your email client has been prepared to dispatch your message to <span className="font-semibold text-white">support@festflow.com</span>. If your mail app did not open automatically, you can send it directly.
+                Thank you, {name}! Your email client has been prepared to dispatch your message to <span className="font-semibold text-white">support@festflow.online</span>. If your mail app did not open automatically, you can send it directly.
               </p>
               <div className="pt-2">
                 <a
-                  href={`mailto:support@festflow.com?subject=${encodeURIComponent(`FestFlow Inquiry from ${name.trim()}`)}&body=${encodeURIComponent(`${message.trim()}\n\n---\nSender: ${name.trim()}\nReply-To: ${email.trim()}`)}`}
+                  href={`mailto:support@festflow.online?subject=${encodeURIComponent(`FestFlow Inquiry from ${name.trim()}`)}&body=${encodeURIComponent(`${message.trim()}\n\n---\nSender: ${name.trim()}\nReply-To: ${email.trim()}`)}`}
                   className="text-xs font-semibold text-[#18CFFC] hover:text-[#18CFFC] underline"
                 >
                   Click here to re-open mail client

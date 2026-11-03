@@ -59,8 +59,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>
               For privacy inquiries, data deletion requests, or institutional compliance audits, please contact the FestFlow team at{' '}
-              <a href="mailto:privacy@festflow.com" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
-                privacy@festflow.com
+              <a href="mailto:privacy@festflow.online" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
+                privacy@festflow.online
               </a>.
             </p>
           </section>
