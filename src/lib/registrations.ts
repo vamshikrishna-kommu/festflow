@@ -56,13 +56,19 @@ export async function registerForEvent(
 ): Promise<RegistrationResponse> {
   if (isSupabaseConfigured) {
     try {
+      const participantDetails = {
+        ...(options?.participantDetails || {}),
+        ...(options?.ticketTierId ? { ticket_tier_id: options.ticketTierId } : {}),
+      }
+
+      // Canonical 5-parameter signature matching PostgreSQL function:
+      // public.register_for_event(p_event_id, p_team_name, p_team_members, p_custom_responses, p_participant_details)
       const { data, error } = await (supabase.rpc as any)('register_for_event', {
         p_event_id: eventId,
         p_team_name: options?.teamName || null,
         p_team_members: options?.teamMembers || [],
         p_custom_responses: options?.customResponses || {},
-        p_participant_details: options?.participantDetails || {},
-        p_ticket_tier_id: options?.ticketTierId || null,
+        p_participant_details: participantDetails,
       })
 
       if (error) {
@@ -74,6 +80,17 @@ export async function registerForEvent(
       }
 
       const res = data as RegistrationResponse
+
+      // If a specific ticket tier was chosen, persist it to the registration record
+      if (res.success && res.registration_id && options?.ticketTierId) {
+        try {
+          await (supabase.from('registrations' as any) as any)
+            .update({ ticket_tier_id: options.ticketTierId })
+            .eq('id', res.registration_id)
+        } catch {
+          // ignore
+        }
+      }
       if (res.success && options?.teamName && res.registration_id) {
         try {
           const teamRes = await createTeam({
