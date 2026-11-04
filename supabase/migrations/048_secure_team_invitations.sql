@@ -1025,6 +1025,11 @@ DROP POLICY IF EXISTS "team leaders view invitations" ON public.team_invitations
 DROP POLICY IF EXISTS "Team leaders can manage team invitations" ON public.team_invitations;
 DROP POLICY IF EXISTS "recipients view own invitations" ON public.team_invitations;
 DROP POLICY IF EXISTS "Recipients can view invitations sent to their email" ON public.team_invitations;
+DROP POLICY IF EXISTS "team_leaders_select_invitations" ON public.team_invitations;
+DROP POLICY IF EXISTS "team_leaders_insert_invitations" ON public.team_invitations;
+DROP POLICY IF EXISTS "team_leaders_update_invitations" ON public.team_invitations;
+DROP POLICY IF EXISTS "recipients_select_own_invitations" ON public.team_invitations;
+DROP POLICY IF EXISTS "service_role_team_invitations_all" ON public.team_invitations;
 
 -- Policy: Leaders can view and insert invitations for their team
 CREATE POLICY "team_leaders_select_invitations"
