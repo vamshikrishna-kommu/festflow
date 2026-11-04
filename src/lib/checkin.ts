@@ -368,13 +368,25 @@ export async function checkInTicket(
       (reg.team_name ? `Team ${reg.team_name}` : 'Student Attendee')
 
     // Check status & eligibility
-    if (reg.status === 'cancelled') {
+    if (reg.status === 'cancelled' || reg.cancellation_request_status === 'approved') {
       const res: CheckInResponse = {
         success: false,
         outcome: 'CANCELLED',
         student_name: memberName || primaryName,
         ticket_code: cleanCode,
         message: 'This registration has been cancelled. This pass is void for entry.',
+      }
+      triggerScanFeedback(res.outcome)
+      return res
+    }
+
+    if (reg.status === 'cancellation_requested') {
+      const res: CheckInResponse = {
+        success: false,
+        outcome: 'NOT_CONFIRMED',
+        student_name: memberName || primaryName,
+        ticket_code: cleanCode,
+        message: 'A cancellation request is pending for this pass. Entry cannot be granted.',
       }
       triggerScanFeedback(res.outcome)
       return res

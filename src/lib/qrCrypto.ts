@@ -74,6 +74,53 @@ export function isSecureQrToken(token: string): boolean {
 }
 
 /**
+ * Generates a 256-bit cryptographically secure team invitation token.
+ * Output format: "FFINV_" followed by 64 hexadecimal characters (32 random bytes).
+ */
+export function generateSecureInvitationToken(): string {
+  const bytes = new Uint8Array(32)
+  const gCrypto = typeof crypto !== 'undefined' ? crypto : (globalThis as any).crypto
+  if (gCrypto && typeof gCrypto.getRandomValues === 'function') {
+    gCrypto.getRandomValues(bytes)
+  } else {
+    try {
+      const nodeCrypto = (globalThis as any).process ? (globalThis as any).crypto || null : null
+      if (nodeCrypto && typeof nodeCrypto.getRandomValues === 'function') {
+        nodeCrypto.getRandomValues(bytes)
+      } else {
+        throw new Error('No cryptographically secure random number generator (CSPRNG) available.')
+      }
+    } catch {
+      throw new Error('No cryptographically secure random number generator (CSPRNG) available.')
+    }
+  }
+
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()
+
+  return `FFINV_${hex}`
+}
+
+/**
+ * Computes a SHA-256 hex digest of a team invitation token.
+ */
+export function hashInvitationTokenSync(token: string): string {
+  const normalized = token.trim()
+  return syncSha256(normalized)
+}
+
+/**
+ * Checks if a string is a valid team invitation token format.
+ */
+export function isInvitationToken(token: string): boolean {
+  if (!token || typeof token !== 'string') return false
+  const clean = token.trim()
+  return /^FFINV_[0-9A-Fa-f]{64}$/.test(clean) || /^[0-9A-Za-z_-]{20,80}$/.test(clean)
+}
+
+/**
  * Checks if a string is a legacy human-readable ticket code (e.g. "FF-12345678" or "TKT-...").
  * Human-readable ticket codes MUST be rejected from turnstile QR scanning.
  */

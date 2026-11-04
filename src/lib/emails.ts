@@ -10,6 +10,7 @@ export interface EmailDispatchParams {
     | 'payment_rejected'
     | 'team_invitation'
     | 'team_invitation_accepted'
+    | 'team_invitation_declined'
     | 'team_member_added'
     | 'ticket_issued'
     | 'ticket_updated'
@@ -947,6 +948,37 @@ export async function sendTeamInvitationAcceptedEmail(params: {
       member_name: params.memberName,
       member_email: params.memberEmail,
       current_size: params.currentSize,
+      dashboard_url: `${origin}/student/dashboard`,
+    },
+  })
+}
+
+/**
+ * Sends notification to team leader when an invited student declines the squad invitation.
+ */
+export async function sendTeamInvitationDeclinedEmail(params: {
+  leaderEmail: string
+  leaderName?: string
+  recipientEmail: string
+  teamName: string
+  eventTitle: string
+  reason?: string
+  eventId: string
+  teamId: string
+}): Promise<EmailDispatchResult> {
+  const origin = getFrontendBaseUrl()
+  return triggerTransactionalEmail({
+    template: 'team_invitation_declined',
+    to: params.leaderEmail,
+    name: params.leaderName,
+    eventId: params.eventId,
+    teamId: params.teamId,
+    idempotencyKey: `team_dec_${params.teamId}_${params.recipientEmail}_${Date.now()}`,
+    payload: {
+      team_name: params.teamName,
+      event_title: params.eventTitle,
+      recipient_email: params.recipientEmail,
+      decline_reason: params.reason || 'No reason provided',
       dashboard_url: `${origin}/student/dashboard`,
     },
   })

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router'
-import { ArrowLeft, AlertCircle, AlertTriangle, Users } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Clock, Users, Edit3, XCircle } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
-import { Button, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { DigitalTicketCard } from '@/components/tickets/DigitalTicketCard'
 import { TeamManageModal } from '@/components/team/TeamManageModal'
-import { getRegistrationById, cancelRegistration } from '@/lib/registrations'
+import { RequestCancellationModal } from '@/components/registration/RequestCancellationModal'
+import { RequestEditModal } from '@/components/registration/RequestEditModal'
+import { getRegistrationById } from '@/lib/registrations'
 import { subscribeToStatusChanges } from '@/lib/sync'
 import { useAuth } from '@/context/AuthContext'
 import type { RegistrationWithEvent } from '@/types'
@@ -18,9 +20,8 @@ export default function TicketDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
-  const [actionLoading, setActionLoading] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
   const [isOffline, setIsOffline] = useState(false)
 
   const loadTicket = async (silent = false) => {
@@ -79,21 +80,6 @@ export default function TicketDetailPage() {
     )
     return () => unsubscribe()
   }, [id, user, role])
-
-  const handleCancel = async () => {
-    if (!id) return
-    setActionLoading(true)
-    setActionError(null)
-    const res = await cancelRegistration(id)
-    setActionLoading(false)
-
-    if (res.success) {
-      setShowCancelModal(false)
-      loadTicket()
-    } else {
-      setActionError(res.message || 'Failed to cancel registration.')
-    }
-  }
 
   return (
     <PageShell>
@@ -170,11 +156,56 @@ export default function TicketDetailPage() {
               </div>
             )}
 
+            {/* Cancellation or Review Status Banners */}
+            {registration.cancellation_request_status === 'pending' && (
+              <div className="w-full max-w-lg p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-3 shadow-md">
+                <Clock size={18} className="shrink-0 text-amber-400" />
+                <div>
+                  <strong className="block font-semibold">Cancellation Pending Organizer Review</strong>
+                  <span>Your request to cancel this pass has been received and is being processed by the event organizer.</span>
+                </div>
+              </div>
+            )}
+
+            {registration.status === 'cancelled' && (
+              <div className="w-full max-w-lg p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3 shadow-md">
+                <XCircle size={18} className="shrink-0 text-rose-400" />
+                <div>
+                  <strong className="block font-semibold">Pass Cancelled & Inactive</strong>
+                  <span>This registration was cancelled. Entry cannot be granted with this digital ticket.</span>
+                </div>
+              </div>
+            )}
+
             <DigitalTicketCard
               registration={registration}
               studentName={profile?.display_name || 'FestFlow Student'}
               onCancel={() => setShowCancelModal(true)}
             />
+
+            {/* Quick Actions (Request Edit / Cancellation) */}
+            {registration.status !== 'cancelled' && (
+              <div className="flex items-center gap-3 w-full max-w-lg justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Edit3 size={14} />}
+                  onClick={() => setShowEditModal(true)}
+                >
+                  Request Details Edit
+                </Button>
+                {registration.cancellation_request_status !== 'pending' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs"
+                    onClick={() => setShowCancelModal(true)}
+                  >
+                    Request Cancellation
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -188,70 +219,33 @@ export default function TicketDetailPage() {
           />
         )}
 
-        {/* Cancellation Confirmation Modal */}
-        <Modal
-          isOpen={showCancelModal}
-          onClose={() => {
-            setShowCancelModal(false)
-            setActionError(null)
-          }}
-          title="Cancel Entry Pass"
-          size="sm"
-        >
-          <ModalBody>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 text-rose-400">
-                <div className="p-2.5 rounded-xl bg-rose-500/15">
-                  <AlertTriangle size={24} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
-                    Revoke Registration
-                  </h4>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    This action immediately voids your gate admission pass.
-                  </p>
-                </div>
-              </div>
+        {/* Request Cancellation Modal */}
+        {registration && (
+          <RequestCancellationModal
+            isOpen={showCancelModal}
+            onClose={() => setShowCancelModal(false)}
+            registrationId={registration.id}
+            eventTitle={registration.event?.title || 'this event'}
+            onSubmitted={() => {
+              setShowCancelModal(false)
+              loadTicket(true)
+            }}
+          />
+        )}
 
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
-                Are you sure you want to cancel your entry pass for{' '}
-                <strong className="text-[var(--color-text-primary)]">
-                  {registration?.event?.title || 'this event'}
-                </strong>
-                ? Your seat will be released immediately for other campus students, and this QR pass will become void.
-              </p>
-
-              {actionError && (
-                <Alert variant="error" className="mt-2 text-xs">
-                  {actionError}
-                </Alert>
-              )}
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={actionLoading}
-              onClick={() => {
-                setShowCancelModal(false)
-                setActionError(null)
-              }}
-            >
-              Keep Pass
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              disabled={actionLoading}
-              isLoading={actionLoading}
-              onClick={handleCancel}
-            >
-              Confirm Cancellation
-            </Button>
-          </ModalFooter>
-        </Modal>
+        {/* Request Edit Modal */}
+        {registration && (
+          <RequestEditModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            registration={registration}
+            eventTitle={registration.event?.title || 'this event'}
+            onSubmitted={() => {
+              setShowEditModal(false)
+              loadTicket(true)
+            }}
+          />
+        )}
       </div>
     </PageShell>
   )

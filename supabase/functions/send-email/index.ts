@@ -15,6 +15,7 @@ export type EmailTemplateType =
   | 'payment_rejected'
   | 'team_invitation'
   | 'team_invitation_accepted'
+  | 'team_invitation_declined'
   | 'team_member_added'
   | 'ticket_issued'
   | 'ticket_updated'
@@ -35,6 +36,7 @@ export const VALID_TEMPLATES = new Set<string>([
   'payment_rejected',
   'team_invitation',
   'team_invitation_accepted',
+  'team_invitation_declined',
   'team_member_added',
   'ticket_issued',
   'ticket_updated',
@@ -367,6 +369,28 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
           <p style="margin: 4px 0; color: ${textWhite};">👥 <strong>Member:</strong> ${sanitizeText(payload.member_name || 'Teammate')} (${sanitizeText(payload.member_email || '')})</p>
           <p style="margin: 4px 0; color: ${textWhite};">🛡️ <strong>Current Squad Size:</strong> ${sanitizeText(String(payload.current_size || 'Updated'))} members</p>
         </div>
+      `
+      break
+    }
+
+    case 'team_invitation_declined': {
+      const safeDashboardUrl = sanitizeSafeUrl(payload.dashboard_url, 'https://festflow.online/student/dashboard')
+      const decEmail = sanitizeText(payload.recipient_email || 'An invited student')
+      const reason = sanitizeText(payload.decline_reason || 'No reason provided')
+      subject = `Squad Update: Invitation declined for "${teamName}"`
+      textFallback = `Hello ${recipient},\n\n${decEmail} has declined the invitation to join "${teamName}" for ${eventTitle}.\nReason: ${reason}\n\nYou can invite another teammate from your squad dashboard: ${safeDashboardUrl}`
+      bodyContent = `
+        <h2 style="color: #f43f5e; margin-top: 0;">Squad Invitation Declined</h2>
+        <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
+          Hi <strong>${recipient}</strong>, <strong>${decEmail}</strong> has declined your invitation to join <strong>"${teamName}"</strong> for <strong>${eventTitle}</strong>.
+        </p>
+        <div style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 12px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 4px 0; color: ${textWhite};">📧 <strong>Recipient:</strong> ${decEmail}</p>
+          <p style="margin: 4px 0; color: ${textWhite};">💬 <strong>Note:</strong> ${reason}</p>
+        </div>
+        <p style="text-align: center; margin: 25px 0;">
+          <a href="${safeDashboardUrl}" style="background: #18CFFC; color: #08080A; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Manage Squad & Invite Others</a>
+        </p>
       `
       break
     }

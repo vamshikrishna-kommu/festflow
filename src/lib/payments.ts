@@ -1234,3 +1234,121 @@ export async function autoVerifyAndIssuePass(params: {
   }
 }
 
+// ── Payment Disputes & Review Requests (Module 8) ───────────────────────────
+const LOCAL_STORAGE_PAYMENT_DISPUTES_KEY = 'festflow_local_payment_disputes'
+
+export function getLocalPaymentDisputes(): any[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_PAYMENT_DISPUTES_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // ignore
+  }
+  return []
+}
+
+export function saveLocalPaymentDisputes(disputes: any[]) {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_PAYMENT_DISPUTES_KEY, JSON.stringify(disputes))
+  } catch {
+    // ignore
+  }
+}
+
+export async function requestPaymentReview(params: {
+  submissionId: string
+  studentNotes: string
+  additionalProofUrl?: string
+  studentId?: string
+}): Promise<{ success: boolean; message: string; reviewId?: string; error_code?: string }> {
+  const { submissionId, studentNotes, additionalProofUrl } = params
+
+  if (!studentNotes || !studentNotes.trim()) {
+    return { success: false, error_code: 'INVALID_NOTES', message: 'Please provide notes explaining your payment review request.' }
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('request_payment_review', {
+        p_submission_id: submissionId,
+        p_student_notes: studentNotes.trim(),
+        p_proof_url: additionalProofUrl || null,
+      })
+
+      if (error) {
+        return { success: false, error_code: 'RPC_ERROR', message: error.message }
+      }
+
+      return data
+    } catch (err: any) {
+      return { success: false, error_code: 'NETWORK_ERROR', message: err?.message || 'Failed to request payment review.' }
+    }
+  }
+
+  // Simulation Mode
+  const subs = getLocalPaymentSubmissions()
+  const sub = subs.find((s) => s.id === submissionId)
+  if (!sub) {
+    return { success: false, error_code: 'NOT_FOUND', message: 'Payment submission not found.' }
+  }
+
+  const reviewId = `rev_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+  const disputes = getLocalPaymentDisputes()
+  disputes.unshift({
+    id: reviewId,
+    payment_submission_id: sub.id,
+    registration_id: sub.registration_id,
+    event_id: sub.event_id,
+    student_id: sub.student_id,
+    student_notes: studentNotes.trim(),
+    additional_proof_url: additionalProofUrl || null,
+    status: 'pending',
+    reviewed_by: null,
+    reviewed_at: null,
+    decision_notes: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  })
+  saveLocalPaymentDisputes(disputes)
+
+  return {
+    success: true,
+    reviewId,
+    message: 'Payment review request submitted. The organizer will re-verify your submission.',
+  }
+}
+
+export async function reviewPaymentDispute(params: {
+  reviewId: string
+  decision: 'approved' | 'rejected'
+  decisionNotes?: string
+  reviewerId?: string
+}): Promise<{ success: boolean; message: string; error_code?: string }> {
+  const { reviewId, decision, decisionNotes, reviewerId } = params
+
+  const disputes = getLocalPaymentDisputes()
+  const disp = disputes.find((d) => d.id === reviewId)
+  if (!disp) return { success: false, error_code: 'NOT_FOUND', message: 'Dispute review record not found.' }
+
+  disp.status = decision
+  disp.reviewed_by = reviewerId || 'club_reviewer'
+  disp.reviewed_at = new Date().toISOString()
+  disp.decision_notes = decisionNotes || null
+  disp.updated_at = new Date().toISOString()
+  saveLocalPaymentDisputes(disputes)
+
+  if (decision === 'approved') {
+    await reviewPaymentSubmission({
+      paymentId: disp.payment_submission_id,
+      decision: 'approved',
+      notes: decisionNotes || 'Approved via payment dispute review.',
+    })
+  }
+
+  return {
+    success: true,
+    message: `Payment dispute review marked as ${decision}.`,
+  }
+}
+
+

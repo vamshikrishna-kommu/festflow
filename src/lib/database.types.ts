@@ -51,9 +51,20 @@ export type RegistrationStatus =
   | 'pending_approval'
   | 'pending_payment'
   | 'confirmed'
+  | 'cancellation_requested'
   | 'cancelled'
   | 'rejected'
   | 'waitlisted'
+  | 'attended'
+
+export type RefundStatus =
+  | 'not_applicable'
+  | 'refund_requested'
+  | 'refund_approved'
+  | 'refund_rejected'
+  | 'refund_processing'
+  | 'refunded'
+  | 'refund_failed'
 export type PaymentStatus = 'pending_review' | 'approved' | 'rejected'
 export type OrderStatus = 'created' | 'attempted' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'expired'
 export type CheckInOutcome =
@@ -270,6 +281,13 @@ export interface Database {
           participant_details: Record<string, any> | null
           approval_status: 'pending' | 'approved' | 'rejected' | null
           rejection_reason: string | null
+          cancellation_request_status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | null
+          refund_status?: RefundStatus
+          refund_amount?: number
+          refund_transaction_ref?: string | null
+          waitlist_position?: number | null
+          waitlist_offered_at?: string | null
+          waitlist_offer_expires_at?: string | null
           created_at: string
           ticket_issued_at: string | null
           cancelled_at: string | null
@@ -291,6 +309,13 @@ export interface Database {
           participant_details?: Record<string, any> | null
           approval_status?: 'pending' | 'approved' | 'rejected' | null
           rejection_reason?: string | null
+          cancellation_request_status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | null
+          refund_status?: RefundStatus
+          refund_amount?: number
+          refund_transaction_ref?: string | null
+          waitlist_position?: number | null
+          waitlist_offered_at?: string | null
+          waitlist_offer_expires_at?: string | null
           created_at?: string
           ticket_issued_at?: string | null
           cancelled_at?: string | null
@@ -535,6 +560,10 @@ export interface Database {
           inviter_id: string
           email: string
           token: string
+          token_hash: string | null
+          registration_id: string | null
+          decline_reason: string | null
+          declined_at: string | null
           status: 'pending' | 'accepted' | 'declined' | 'expired' | 'revoked'
           expires_at: string
           accepted_by: string | null
@@ -551,6 +580,10 @@ export interface Database {
           inviter_id: string
           email: string
           token: string
+          token_hash?: string | null
+          registration_id?: string | null
+          decline_reason?: string | null
+          declined_at?: string | null
           status?: 'pending' | 'accepted' | 'declined' | 'expired' | 'revoked'
           expires_at?: string
           accepted_by?: string | null
@@ -836,6 +869,189 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['community_reports']['Insert']>
+      }
+      registration_cancellation_requests: {
+        Row: {
+          id: string
+          registration_id: string
+          event_id: string
+          student_id: string
+          reason: string
+          explanation: string | null
+          status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+          refund_applicable: boolean
+          refund_status: RefundStatus
+          refund_amount: number
+          refund_notes: string | null
+          refund_transaction_ref: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          decision_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          registration_id: string
+          event_id: string
+          student_id: string
+          reason: string
+          explanation?: string | null
+          status?: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+          refund_applicable?: boolean
+          refund_status?: RefundStatus
+          refund_amount?: number
+          refund_notes?: string | null
+          refund_transaction_ref?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          decision_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['registration_cancellation_requests']['Insert']>
+      }
+      registration_edit_requests: {
+        Row: {
+          id: string
+          registration_id: string
+          event_id: string
+          student_id: string
+          proposed_changes: Record<string, any>
+          previous_values: Record<string, any>
+          reason: string
+          status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+          reviewed_by: string | null
+          reviewed_at: string | null
+          decision_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          registration_id: string
+          event_id: string
+          student_id: string
+          proposed_changes: Record<string, any>
+          previous_values: Record<string, any>
+          reason: string
+          status?: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          decision_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['registration_edit_requests']['Insert']>
+      }
+      team_change_requests: {
+        Row: {
+          id: string
+          team_id: string
+          event_id: string
+          requested_by: string
+          request_type: 'remove_member' | 'replace_member' | 'leave_team' | 'change_leader'
+          target_member_id: string | null
+          target_email: string | null
+          replacement_email: string | null
+          reason: string
+          status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+          reviewed_by: string | null
+          reviewed_at: string | null
+          decision_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          event_id: string
+          requested_by: string
+          request_type: 'remove_member' | 'replace_member' | 'leave_team' | 'change_leader'
+          target_member_id?: string | null
+          target_email?: string | null
+          replacement_email?: string | null
+          reason: string
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          decision_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['team_change_requests']['Insert']>
+      }
+      workflow_audit_logs: {
+        Row: {
+          id: string
+          actor_id: string
+          actor_email: string | null
+          actor_role: string | null
+          action: string
+          target_entity: string
+          target_record_id: string | null
+          event_id: string | null
+          registration_id: string | null
+          team_id: string | null
+          previous_state: Record<string, any> | null
+          new_state: Record<string, any> | null
+          reason: string | null
+          decision_notes: string | null
+          metadata: Record<string, any> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          actor_id: string
+          actor_email?: string | null
+          actor_role?: string | null
+          action: string
+          target_entity: string
+          target_record_id?: string | null
+          event_id?: string | null
+          registration_id?: string | null
+          team_id?: string | null
+          previous_state?: Record<string, any> | null
+          new_state?: Record<string, any> | null
+          reason?: string | null
+          decision_notes?: string | null
+          metadata?: Record<string, any> | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['workflow_audit_logs']['Insert']>
+      }
+      payment_dispute_reviews: {
+        Row: {
+          id: string
+          payment_submission_id: string
+          registration_id: string
+          event_id: string
+          student_id: string
+          student_notes: string
+          additional_proof_url: string | null
+          status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+          reviewed_by: string | null
+          reviewed_at: string | null
+          decision_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          payment_submission_id: string
+          registration_id: string
+          event_id: string
+          student_id: string
+          student_notes: string
+          additional_proof_url?: string | null
+          status?: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          decision_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['payment_dispute_reviews']['Insert']>
       }
     }
     Views: Record<string, never>

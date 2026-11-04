@@ -28,7 +28,12 @@ import {
   sendTeamInvitationAcceptedEmail,
   sendTicketIssuedEmail,
 } from '@/lib/emails'
-import { generateSecureQrToken, hashQrTokenSync } from '@/lib/qrCrypto'
+import {
+  generateSecureQrToken,
+  hashQrTokenSync,
+  generateSecureInvitationToken,
+  hashInvitationTokenSync,
+} from '@/lib/qrCrypto'
 import { broadcastStatusChange } from '@/lib/sync'
 import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 
@@ -102,12 +107,16 @@ export function generateInviteCode(): string {
 }
 
 export function generateToken(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  let token = ''
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length))
+  try {
+    return generateSecureInvitationToken()
+  } catch {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    let token = ''
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return `FFINV_${token.toUpperCase()}`
   }
-  return token
 }
 
 export function buildTeamInviteLink(eventSlug: string, inviteCode: string, token?: string): string {
@@ -117,6 +126,11 @@ export function buildTeamInviteLink(eventSlug: string, inviteCode: string, token
     url += `&token=${encodeURIComponent(token)}`
   }
   return url
+}
+
+export function buildIndividualInviteLink(token: string): string {
+  const origin = getFrontendBaseUrl()
+  return `${origin}/join-team?token=${encodeURIComponent(token)}`
 }
 
 // ── Create Team ────────────────────────────────────────────────────────────
@@ -376,7 +390,8 @@ export async function getTeamInvitationPreview(
 
   // Simulation mode
   const invites = getLocalTeamInvites()
-  const inv = invites.find((i) => i.token === cleanToken)
+  const cleanHash = hashInvitationTokenSync(cleanToken)
+  const inv = invites.find((i) => i.token === cleanToken || i.token_hash === cleanHash)
   if (!inv) {
     return { success: false, message: 'Invitation not found or link has expired.', error_code: 'INVITATION_NOT_FOUND' }
   }
@@ -387,6 +402,10 @@ export async function getTeamInvitationPreview(
 
   if (inv.status === 'accepted') {
     return { success: false, message: 'This squad invitation has already been accepted and claimed.', error_code: 'ALREADY_ACCEPTED' }
+  }
+
+  if (inv.status === 'declined') {
+    return { success: false, message: 'This squad invitation was previously declined.', error_code: 'INVITATION_DECLINED' }
   }
 
   if (new Date(inv.expires_at) < new Date()) {
@@ -440,6 +459,8 @@ export async function getTeamInvitationPreview(
     event_title: event.title,
     event_slug: event.slug,
     event_category: event.category,
+    poster_url: event.poster_url || null,
+    description: event.description || null,
     venue_name: event.venue_name,
     start_date: event.start_date,
     is_free: event.is_free,
@@ -454,6 +475,7 @@ export async function getTeamInvitationPreview(
     current_size: members.length,
     max_size: maxSize,
     is_full: members.length >= maxSize,
+    is_open: event.status === 'published' && (!event.registration_closes_at || new Date(event.registration_closes_at) > new Date()),
   }
 
   return { success: true, preview }
@@ -845,7 +867,8 @@ export async function acceptTeamInvitation(params: {
 
   // Simulation Mode
   const invites = getLocalTeamInvites()
-  const inv = invites.find((i) => i.token === cleanToken)
+  const cleanHash = hashInvitationTokenSync(cleanToken)
+  const inv = invites.find((i) => i.token === cleanToken || i.token_hash === cleanHash)
   if (!inv) {
     return { success: false, message: 'Invitation not found or link has expired.', error_code: 'INVITATION_NOT_FOUND' }
   }
@@ -856,6 +879,10 @@ export async function acceptTeamInvitation(params: {
 
   if (inv.status === 'accepted') {
     return { success: false, message: 'This squad invitation has already been accepted and claimed.', error_code: 'ALREADY_ACCEPTED' }
+  }
+
+  if (inv.status === 'declined') {
+    return { success: false, message: 'This squad invitation was previously declined.', error_code: 'INVITATION_DECLINED' }
   }
 
   if (new Date(inv.expires_at) < new Date()) {
@@ -1124,7 +1151,22 @@ export async function inviteTeamMember(params: {
     return { success: false, message: 'Please provide a valid email address.' }
   }
 
+  // Check if leader is trying to invite themselves
+  try {
+    const rawAuth = localStorage.getItem('festflow_mock_session') || localStorage.getItem('sb-current-user')
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth)
+      const callerEmail = (parsed?.user?.email || parsed?.email || '').toLowerCase().trim()
+      if (callerEmail && callerEmail === cleanEmail) {
+        return { success: false, message: 'You are already the leader of this squad and cannot invite yourself.' }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   const token = generateToken()
+  const tokenHash = hashInvitationTokenSync(token)
 
   if (isSupabaseConfigured) {
     try {
@@ -1373,6 +1415,11 @@ export async function inviteTeamMember(params: {
   }
 
   const members = getLocalTeamMembers()
+  const leaderMember = members.find((m) => m.team_id === team.id && m.role === 'leader')
+  if (leaderMember && leaderMember.email.toLowerCase() === cleanEmail) {
+    return { success: false, message: 'You are the leader of this squad and cannot invite yourself.' }
+  }
+
   const currentAccepted = members.filter((m) => m.team_id === team.id && m.status === 'accepted')
   const eventRes = await getEventById(team.event_id)
   const event = eventRes.event
@@ -1399,6 +1446,7 @@ export async function inviteTeamMember(params: {
 
   if (existingInvite) {
     existingInvite.token = token
+    existingInvite.token_hash = tokenHash
     existingInvite.last_sent_at = new Date().toISOString()
     existingInvite.resend_count += 1
     existingInvite.expires_at = expiresAt
@@ -1411,10 +1459,14 @@ export async function inviteTeamMember(params: {
       inviter_id: params.leaderId,
       email: cleanEmail,
       token,
+      token_hash: tokenHash,
+      registration_id: null,
       status: 'pending',
       expires_at: expiresAt,
       accepted_by: null,
       accepted_at: null,
+      decline_reason: null,
+      declined_at: null,
       last_sent_at: new Date().toISOString(),
       resend_count: 0,
       created_at: new Date().toISOString(),
@@ -1638,6 +1690,111 @@ export async function revokeTeamInvitation(
   saveLocalTeamMembers(remaining)
 
   return { success: true, message: 'Invitation has been revoked.' }
+}
+
+// ── Decline Team Invitation ────────────────────────────────────────────────
+export async function declineTeamInvitation(params: {
+  token: string
+  reason?: string
+}): Promise<{ success: boolean; message: string; error_code?: string }> {
+  const cleanToken = (params.token || '').trim()
+  if (!cleanToken) {
+    return { success: false, message: 'Invalid token.', error_code: 'INVALID_TOKEN' }
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('decline_team_invitation', {
+        p_token: cleanToken,
+        p_reason: params.reason || null,
+      })
+      if (error) {
+        return { success: false, message: error.message, error_code: 'RPC_ERROR' }
+      }
+      if (!data?.success) {
+        return { success: false, message: data?.message || 'Failed to decline invitation.', error_code: data?.error_code }
+      }
+      broadcastStatusChange({ type: 'team_updated', teamId: data.team_id })
+      return data
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to decline invitation.', error_code: 'NETWORK_ERROR' }
+    }
+  }
+
+  // Simulation Mode
+  const invites = getLocalTeamInvites()
+  const cleanHash = hashInvitationTokenSync(cleanToken)
+  const inv = invites.find((i) => i.token === cleanToken || i.token_hash === cleanHash)
+  if (!inv) {
+    return { success: false, message: 'Invitation not found or link has expired.', error_code: 'INVITATION_NOT_FOUND' }
+  }
+
+  if (inv.status === 'revoked') {
+    return { success: false, message: 'This invitation has already been revoked.', error_code: 'INVITATION_REVOKED' }
+  }
+
+  if (inv.status === 'accepted') {
+    return { success: false, message: 'This invitation was already accepted and cannot be declined.', error_code: 'ALREADY_ACCEPTED' }
+  }
+
+  inv.status = 'declined'
+  inv.decline_reason = params.reason || null
+  inv.declined_at = new Date().toISOString()
+  inv.updated_at = new Date().toISOString()
+  saveLocalTeamInvites(invites)
+
+  // Update pending slot in team_members
+  const members = getLocalTeamMembers()
+  const memIdx = members.findIndex(
+    (m) => m.team_id === inv.team_id && m.invitation_id === inv.id && m.status === 'pending'
+  )
+  if (memIdx >= 0) {
+    members[memIdx].status = 'declined'
+    members[memIdx].updated_at = new Date().toISOString()
+    saveLocalTeamMembers(members)
+  }
+
+  broadcastStatusChange({ type: 'team_updated', teamId: inv.team_id })
+  return { success: true, message: 'Squad invitation declined.' }
+}
+
+// ── Batch Invite Team Members ──────────────────────────────────────────────
+export async function batchInviteTeamMembers(params: {
+  teamId: string
+  emails: string[]
+  leaderId: string
+}): Promise<{
+  success: boolean
+  message: string
+  succeeded: TeamInviteResponse[]
+  failed: { email: string; error: string }[]
+}> {
+  const succeeded: TeamInviteResponse[] = []
+  const failed: { email: string; error: string }[] = []
+
+  for (const rawEmail of params.emails) {
+    const cleanEmail = rawEmail.trim().toLowerCase()
+    if (!cleanEmail) continue
+
+    const res = await inviteTeamMember({
+      teamId: params.teamId,
+      email: cleanEmail,
+      leaderId: params.leaderId,
+    })
+
+    if (res.success) {
+      succeeded.push(res)
+    } else {
+      failed.push({ email: cleanEmail, error: res.message })
+    }
+  }
+
+  return {
+    success: succeeded.length > 0,
+    message: `${succeeded.length} invitation(s) sent${failed.length > 0 ? `, ${failed.length} failed` : ''}.`,
+    succeeded,
+    failed,
+  }
 }
 
 // ── Get Complete Team Details (Leader / Member Dashboard Roster) ───────────

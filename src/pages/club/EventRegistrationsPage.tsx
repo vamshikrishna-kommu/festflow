@@ -34,7 +34,11 @@ import {
 } from '@/lib/registrations'
 import { getEventRegistrationsWithCheckIn, checkInTicket } from '@/lib/checkin'
 import { getClubPaymentSubmissions } from '@/lib/payments'
-import { promoteWaitlistStudent, autoPromoteWaitlist } from '@/lib/waitlist'
+import { promoteWaitlistStudent, autoPromoteWaitlist, offerWaitlistSlot } from '@/lib/waitlist'
+import { getEventCancellationRequests } from '@/lib/cancellations'
+import { getEventEditRequests } from '@/lib/editRequests'
+import { ReviewCancellationModal } from '@/components/club/ReviewCancellationModal'
+import { ReviewEditModal } from '@/components/club/ReviewEditModal'
 import { ClubCouponsModal } from '@/components/club/ClubCouponsModal'
 import { EventTeamDelegationModal } from '@/components/club/EventTeamDelegationModal'
 import { EventFeedbackDashboardModal } from '@/components/club/EventFeedbackDashboardModal'
@@ -56,6 +60,8 @@ import type {
   CheckInRecord,
   PaymentSubmissionWithDetails,
   CustomQuestion,
+  RegistrationCancellationRequestRecord,
+  RegistrationEditRequestRecord,
 } from '@/types'
 
 export default function EventRegistrationsPage() {
@@ -66,13 +72,19 @@ export default function EventRegistrationsPage() {
   const [registrations, setRegistrations] = useState<RegistrationWithCheckIn[]>([])
   const [checkIns, setCheckIns] = useState<CheckInRecord[]>([])
   const [payments, setPayments] = useState<PaymentSubmissionWithDetails[]>([])
+  const [cancellationRequests, setCancellationRequests] = useState<RegistrationCancellationRequestRecord[]>([])
+  const [editRequests, setEditRequests] = useState<RegistrationEditRequestRecord[]>([])
+  const [selectedCancellationReq, setSelectedCancellationReq] = useState<RegistrationCancellationRequestRecord | null>(null)
+  const [selectedCancellationAttendee, setSelectedCancellationAttendee] = useState<RegistrationWithCheckIn | null>(null)
+  const [selectedEditReq, setSelectedEditReq] = useState<RegistrationEditRequestRecord | null>(null)
+  const [selectedEditAttendee, setSelectedEditAttendee] = useState<RegistrationWithCheckIn | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
 
   // Search & Multi-Filters (using React 19 useDeferredValue for 0ms typing latency)
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
-  const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus | 'edit_requests'>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'pending_review' | 'unpaid'>('all')
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'checked_in' | 'checked_out' | 'not_checked_in'>('all')
   const [participationFilter, setParticipationFilter] = useState<'all' | 'individual' | 'team'>('all')
@@ -124,10 +136,12 @@ export default function EventRegistrationsPage() {
   const loadData = async (silent = false) => {
     if (!id) return
     if (!silent) setLoading(true)
-    const [eventRes, checkInRes, payRes] = await Promise.all([
+    const [eventRes, checkInRes, payRes, cancelRes, editRes] = await Promise.all([
       getEventById(id),
       getEventRegistrationsWithCheckIn(id),
       getClubPaymentSubmissions(user?.id, id),
+      getEventCancellationRequests(id),
+      getEventEditRequests(id),
     ])
     if (!silent) setLoading(false)
 
@@ -139,6 +153,8 @@ export default function EventRegistrationsPage() {
         if (checkInRes.registrations) setRegistrations(checkInRes.registrations)
         if (checkInRes.checkIns) setCheckIns(checkInRes.checkIns)
         if (payRes.submissions) setPayments(payRes.submissions)
+        if (cancelRes.requests) setCancellationRequests(cancelRes.requests)
+        if (editRes.requests) setEditRequests(editRes.requests)
       }
     } else {
       setIsAuthorized(false)
@@ -190,16 +206,32 @@ export default function EventRegistrationsPage() {
   const insideCount = registrations.filter((r) => r.attendance_status === 'checked_in').length
   const checkedOutCount = registrations.filter((r) => r.attendance_status === 'checked_out').length
 
+  const cancellationPendingCount = registrations.filter(
+    (r) => r.cancellation_request_status === 'pending' || r.status === 'cancellation_requested'
+  ).length
+  const editPendingCount = editRequests.filter((e) => e.status === 'pending').length
+
   const filterCounts = useMemo(() => {
     return {
       all: registrations.length,
       confirmed: confirmedCount,
       pending_approval: pendingApprovalCount,
       pending_payment: pendingPaymentCount,
+      cancellation_requested: cancellationPendingCount,
+      edit_requests: editPendingCount,
       cancelled: cancelledCount,
       waitlisted: waitlistCount,
     }
-  }, [registrations, confirmedCount, pendingApprovalCount, pendingPaymentCount, cancelledCount, waitlistCount])
+  }, [
+    registrations,
+    confirmedCount,
+    pendingApprovalCount,
+    pendingPaymentCount,
+    cancellationPendingCount,
+    editPendingCount,
+    cancelledCount,
+    waitlistCount,
+  ])
 
   // Reset pagination to page 1 whenever filters change
   useEffect(() => {
@@ -213,6 +245,10 @@ export default function EventRegistrationsPage() {
       if (statusFilter !== 'all') {
         if (statusFilter === 'cancelled') {
           if (r.status !== 'cancelled' && r.status !== 'rejected') return false
+        } else if (statusFilter === 'cancellation_requested') {
+          if (r.cancellation_request_status !== 'pending' && r.status !== 'cancellation_requested') return false
+        } else if (statusFilter === 'edit_requests') {
+          if (!editRequests.some((e) => e.registration_id === r.id && e.status === 'pending')) return false
         } else if (r.status !== statusFilter) {
           return false
         }
@@ -371,6 +407,19 @@ export default function EventRegistrationsPage() {
         isError: false,
       })
       loadData()
+    } else {
+      setNotice({ message: res.message, isError: true })
+    }
+  }
+
+  // Waitlist Slot Offer Handler
+  const handleOfferSlot = async (regId: string) => {
+    setActionLoading(true)
+    const res = await offerWaitlistSlot({ registrationId: regId, expiresHours: 24 })
+    setActionLoading(false)
+    if (res.success) {
+      setNotice({ message: res.message, isError: false })
+      loadData(true)
     } else {
       setNotice({ message: res.message, isError: true })
     }
@@ -920,7 +969,15 @@ export default function EventRegistrationsPage() {
                   { id: 'confirmed', label: 'Confirmed', count: filterCounts.confirmed },
                   { id: 'pending_approval', label: 'Under Review', count: filterCounts.pending_approval },
                   { id: 'pending_payment', label: 'Payment Due', count: filterCounts.pending_payment },
-                  ...(filterCounts.waitlisted > 0 ? [{ id: 'waitlisted', label: 'Waitlist', count: filterCounts.waitlisted }] : []),
+                  ...(filterCounts.cancellation_requested > 0
+                    ? [{ id: 'cancellation_requested', label: 'Cancellation Requests', count: filterCounts.cancellation_requested }]
+                    : []),
+                  ...(filterCounts.edit_requests > 0
+                    ? [{ id: 'edit_requests', label: 'Edit Requests', count: filterCounts.edit_requests }]
+                    : []),
+                  ...(filterCounts.waitlisted > 0
+                    ? [{ id: 'waitlisted', label: 'Waitlist', count: filterCounts.waitlisted }]
+                    : []),
                   { id: 'cancelled', label: 'Cancelled', count: filterCounts.cancelled },
                 ] as const).map((tab) => (
                   <button
@@ -1176,29 +1233,119 @@ export default function EventRegistrationsPage() {
                         <span>{formatExcelDateTime(reg.created_at)}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-surface-3)]">
-                        <Button
-                          variant={isPendingApproval ? 'primary' : 'ghost'}
-                          size="sm"
-                          onClick={() => {
-                            setSelectedAttendee(reg)
-                            setReviewDecision('approved')
-                            setRejectionReason('')
-                          }}
-                          className={`flex-1 justify-center text-xs min-h-[40px] ${
-                            isPendingApproval
-                              ? 'bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium'
-                              : ''
-                          }`}
-                        >
-                          {isPendingApproval ? 'Review Application' : 'Attendee Details'}
-                        </Button>
+                      <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-surface-3)] flex-wrap">
+                        {reg.cancellation_request_status === 'pending' ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              const match = cancellationRequests.find((cr) => cr.registration_id === reg.id && cr.status === 'pending')
+                              setSelectedCancellationAttendee(reg)
+                              setSelectedCancellationReq(match || {
+                                id: `cr_${reg.id}`,
+                                registration_id: reg.id,
+                                event_id: reg.event_id,
+                                student_id: reg.student_id,
+                                reason: 'Attendee requested cancellation',
+                                explanation: null,
+                                status: 'pending',
+                                refund_applicable: !event?.is_free,
+                                refund_status: !event?.is_free ? 'refund_requested' : 'not_applicable',
+                                refund_amount: Number(event?.price || 0),
+                                refund_notes: null,
+                                refund_transaction_ref: null,
+                                reviewed_by: null,
+                                reviewed_at: null,
+                                decision_notes: null,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString(),
+                              })
+                            }}
+                            className="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs min-h-[40px] flex-1"
+                          >
+                            Review Cancellation
+                          </Button>
+                        ) : isPendingApproval ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAttendee(reg)
+                              setReviewDecision('approved')
+                              setRejectionReason('')
+                            }}
+                            className="bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium flex-1 justify-center text-xs min-h-[40px]"
+                          >
+                            Review Application
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAttendee(reg)
+                              setReviewDecision('approved')
+                              setRejectionReason('')
+                            }}
+                            className="flex-1 justify-center text-xs min-h-[40px]"
+                          >
+                            Attendee Details
+                          </Button>
+                        )}
 
-                        {reg.status !== 'cancelled' && reg.status !== 'rejected' && (
+                        {editRequests.some((e) => e.registration_id === reg.id && e.status === 'pending') && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setCancellingAttendee(reg)}
+                            onClick={() => {
+                              const match = editRequests.find((e) => e.registration_id === reg.id && e.status === 'pending')
+                              setSelectedEditAttendee(reg)
+                              setSelectedEditReq(match || null)
+                            }}
+                            className="text-[#18CFFC] border-[#18CFFC]/40 text-xs min-h-[40px]"
+                          >
+                            Review Edit
+                          </Button>
+                        )}
+
+                        {reg.status === 'waitlisted' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOfferSlot(reg.id)}
+                            disabled={actionLoading}
+                            className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 text-xs min-h-[40px]"
+                          >
+                            Offer Slot (24h)
+                          </Button>
+                        )}
+
+                        {reg.status !== 'cancelled' && reg.status !== 'rejected' && reg.cancellation_request_status !== 'pending' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCancellationAttendee(reg)
+                              setSelectedCancellationReq({
+                                id: `admin_cancel_${reg.id}`,
+                                registration_id: reg.id,
+                                event_id: reg.event_id,
+                                student_id: reg.student_id,
+                                reason: 'Organizer initiated pass revocation',
+                                explanation: null,
+                                status: 'pending',
+                                refund_applicable: !event?.is_free,
+                                refund_status: !event?.is_free ? 'refund_approved' : 'not_applicable',
+                                refund_amount: Number(event?.price || 0),
+                                refund_notes: null,
+                                refund_transaction_ref: null,
+                                reviewed_by: null,
+                                reviewed_at: null,
+                                decision_notes: null,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString(),
+                              })
+                            }}
                             className="text-xs text-rose-400 hover:text-rose-300 border-rose-500/20 min-h-[40px]"
                           >
                             Cancel Pass
@@ -1352,7 +1499,38 @@ export default function EventRegistrationsPage() {
                                   </Button>
                                 )}
 
-                                {isPendingApproval ? (
+                                 {reg.cancellation_request_status === 'pending' ? (
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => {
+                                      const match = cancellationRequests.find((cr) => cr.registration_id === reg.id && cr.status === 'pending')
+                                      setSelectedCancellationAttendee(reg)
+                                      setSelectedCancellationReq(match || {
+                                        id: `cr_${reg.id}`,
+                                        registration_id: reg.id,
+                                        event_id: reg.event_id,
+                                        student_id: reg.student_id,
+                                        reason: 'Attendee requested cancellation',
+                                        explanation: null,
+                                        status: 'pending',
+                                        refund_applicable: !event?.is_free,
+                                        refund_status: !event?.is_free ? 'refund_requested' : 'not_applicable',
+                                        refund_amount: Number(event?.price || 0),
+                                        refund_notes: null,
+                                        refund_transaction_ref: null,
+                                        reviewed_by: null,
+                                        reviewed_at: null,
+                                        decision_notes: null,
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString(),
+                                      })
+                                    }}
+                                    className="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-[11px] py-1 px-2.5 h-auto"
+                                  >
+                                    Review Cancellation
+                                  </Button>
+                                ) : isPendingApproval ? (
                                   <Button
                                     variant="primary"
                                     size="sm"
@@ -1379,10 +1557,56 @@ export default function EventRegistrationsPage() {
                                   </button>
                                 )}
 
-                                {reg.status !== 'cancelled' && reg.status !== 'rejected' && (
+                                {editRequests.some((e) => e.registration_id === reg.id && e.status === 'pending') && (
                                   <button
                                     type="button"
-                                    onClick={() => setCancellingAttendee(reg)}
+                                    onClick={() => {
+                                      const match = editRequests.find((e) => e.registration_id === reg.id && e.status === 'pending')
+                                      setSelectedEditAttendee(reg)
+                                      setSelectedEditReq(match || null)
+                                    }}
+                                    className="text-[11px] text-[#18CFFC] hover:text-[#07A4FC] font-medium px-2 py-1 transition-colors hover:bg-[#18CFFC]/10 rounded-lg cursor-pointer"
+                                  >
+                                    Review Edit
+                                  </button>
+                                )}
+
+                                {isWaitlisted && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOfferSlot(reg.id)}
+                                    disabled={actionLoading}
+                                    className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium px-2 py-1 transition-colors hover:bg-emerald-500/10 rounded-lg cursor-pointer"
+                                  >
+                                    Offer Slot
+                                  </button>
+                                )}
+
+                                {reg.status !== 'cancelled' && reg.status !== 'rejected' && reg.cancellation_request_status !== 'pending' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedCancellationAttendee(reg)
+                                      setSelectedCancellationReq({
+                                        id: `admin_cancel_${reg.id}`,
+                                        registration_id: reg.id,
+                                        event_id: reg.event_id,
+                                        student_id: reg.student_id,
+                                        reason: 'Organizer initiated pass revocation',
+                                        explanation: null,
+                                        status: 'pending',
+                                        refund_applicable: !event?.is_free,
+                                        refund_status: !event?.is_free ? 'refund_approved' : 'not_applicable',
+                                        refund_amount: Number(event?.price || 0),
+                                        refund_notes: null,
+                                        refund_transaction_ref: null,
+                                        reviewed_by: null,
+                                        reviewed_at: null,
+                                        decision_notes: null,
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString(),
+                                      })
+                                    }}
                                     className="text-[11px] text-rose-400 hover:text-rose-300 font-medium px-2 py-1 transition-colors hover:bg-rose-500/10 rounded-lg cursor-pointer"
                                   >
                                     Cancel
@@ -2111,6 +2335,61 @@ export default function EventRegistrationsPage() {
             </Button>
           </ModalFooter>
         </Modal>
+
+        {/* ── Modal: Review Cancellation Request (Module 2) ────────────────── */}
+        <ReviewCancellationModal
+          isOpen={Boolean(selectedCancellationReq)}
+          onClose={() => {
+            setSelectedCancellationReq(null)
+            setSelectedCancellationAttendee(null)
+          }}
+          request={selectedCancellationReq}
+          registration={selectedCancellationAttendee}
+          studentName={
+            selectedCancellationAttendee?.student?.display_name ||
+            selectedCancellationAttendee?.participant_details?.student_name ||
+            (selectedCancellationAttendee?.team_name ? `Team ${selectedCancellationAttendee?.team_name}` : 'Attendee')
+          }
+          studentEmail={
+            selectedCancellationAttendee?.student?.email ||
+            selectedCancellationAttendee?.participant_details?.email ||
+            ''
+          }
+          eventTitle={event?.title || 'Event'}
+          isPaidEvent={!event?.is_free}
+          price={Number(event?.price || 0)}
+          onReviewed={() => {
+            setSelectedCancellationReq(null)
+            setSelectedCancellationAttendee(null)
+            loadData(true)
+          }}
+        />
+
+        {/* ── Modal: Review Details Edit Request (Module 4) ────────────────── */}
+        <ReviewEditModal
+          isOpen={Boolean(selectedEditReq)}
+          onClose={() => {
+            setSelectedEditReq(null)
+            setSelectedEditAttendee(null)
+          }}
+          request={selectedEditReq}
+          registration={selectedEditAttendee}
+          studentName={
+            selectedEditAttendee?.student?.display_name ||
+            selectedEditAttendee?.participant_details?.student_name ||
+            'Attendee'
+          }
+          studentEmail={
+            selectedEditAttendee?.student?.email ||
+            selectedEditAttendee?.participant_details?.email ||
+            ''
+          }
+          onReviewed={() => {
+            setSelectedEditReq(null)
+            setSelectedEditAttendee(null)
+            loadData(true)
+          }}
+        />
 
         {/* ── Modal: Validated CSV Attendee Import (Part 9) ────────────────── */}
         <Modal

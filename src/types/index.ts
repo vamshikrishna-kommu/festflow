@@ -14,6 +14,7 @@ import type {
   CustomQuestionType,
   CustomQuestion,
   ParticipantFieldsRequirement,
+  RefundStatus,
 } from '@/lib/database.types'
 
 export type {
@@ -23,6 +24,7 @@ export type {
   EventCategory,
   RegistrationStatus,
   PaymentStatus,
+  RefundStatus,
   CheckInOutcome,
   Database,
   ParticipationType,
@@ -113,6 +115,28 @@ export type TeamRecord = Database['public']['Tables']['teams']['Row']
 export type TeamInsert = Database['public']['Tables']['teams']['Insert']
 export type TeamInvitationRecord = Database['public']['Tables']['team_invitations']['Row']
 export type TeamMemberRecord = Database['public']['Tables']['team_members']['Row']
+export type RegistrationCancellationRequestRecord = Database['public']['Tables']['registration_cancellation_requests']['Row']
+export type RegistrationEditRequestRecord = Database['public']['Tables']['registration_edit_requests']['Row']
+export type TeamChangeRequestRecord = Database['public']['Tables']['team_change_requests']['Row']
+export type WorkflowAuditLogRecord = Database['public']['Tables']['workflow_audit_logs']['Row']
+export type PaymentDisputeReviewRecord = Database['public']['Tables']['payment_dispute_reviews']['Row']
+
+export type CancellationReasonType =
+  | 'unable_to_attend'
+  | 'personal'
+  | 'health'
+  | 'schedule_conflict'
+  | 'wrong_event'
+  | 'other'
+
+export const CANCELLATION_REASONS: { value: CancellationReasonType; label: string }[] = [
+  { value: 'unable_to_attend', label: 'Unable to attend' },
+  { value: 'personal', label: 'Personal reasons' },
+  { value: 'health', label: 'Health-related reasons' },
+  { value: 'schedule_conflict', label: 'Schedule conflict' },
+  { value: 'wrong_event', label: 'Registered for the wrong event' },
+  { value: 'other', label: 'Other' },
+]
 
 // ── Club Members & Permissions (Phase 6) ────────────────────────────────────
 export type ClubRole =
@@ -195,6 +219,7 @@ export interface TeamPreview {
   event_slug: string
   event_category: EventCategory
   event_poster?: string | null
+  poster_url?: string | null
   start_date: string
   venue_name: string
   is_free: boolean
@@ -239,6 +264,8 @@ export interface TeamInvitationPreview {
   event_title: string
   event_slug: string
   event_category?: EventCategory
+  poster_url?: string | null
+  description?: string | null
   venue_name?: string
   start_date?: string
   is_free?: boolean
@@ -253,6 +280,7 @@ export interface TeamInvitationPreview {
   current_size: number
   max_size: number
   is_full: boolean
+  is_open?: boolean
 }
 
 export interface TeamDetails extends TeamRecord {

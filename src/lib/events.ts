@@ -707,3 +707,77 @@ export function mapRecordToUiEvent(record: EventRecord | EventWithClub): Event {
     clubId: record.club_id,
   }
 }
+
+// ── Cancel Event By Organizer (Module 7) ────────────────────────────────────
+export async function cancelEventByOrganizer(params: {
+  eventId: string
+  cancellationReason: string
+  _organizerId?: string
+}): Promise<{ success: boolean; message: string; affectedRegistrations?: number; error_code?: string }> {
+  const { eventId, cancellationReason } = params
+
+  if (!cancellationReason || !cancellationReason.trim()) {
+    return { success: false, error_code: 'INVALID_REASON', message: 'Please provide a reason for cancelling this event.' }
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('cancel_event_by_organizer', {
+        p_event_id: eventId,
+        p_cancellation_reason: cancellationReason.trim(),
+      })
+
+      if (error) {
+        return { success: false, error_code: 'RPC_ERROR', message: error.message }
+      }
+
+      return data
+    } catch (err: any) {
+      return { success: false, error_code: 'NETWORK_ERROR', message: err?.message || 'Failed to cancel event.' }
+    }
+  }
+
+  // Simulation Mode
+  const events = getInitialLocalEvents()
+  const ev = events.find((e) => e.id === eventId)
+  if (!ev) {
+    return { success: false, error_code: 'NOT_FOUND', message: 'Event not found.' }
+  }
+
+  ev.status = 'cancelled'
+  ev.description = `${ev.description || ''}\n\n[EVENT CANCELLED BY ORGANIZER: ${cancellationReason.trim()}]`
+  ev.updated_at = new Date().toISOString()
+  saveLocalEvents(events)
+
+  // Invalidate registrations and setup refund request
+  let affected = 0
+  try {
+    const rawRegs = localStorage.getItem('festflow_local_registrations')
+    if (rawRegs) {
+      const regs = JSON.parse(rawRegs)
+      for (const r of regs) {
+        if (r.event_id === eventId && r.status !== 'cancelled' && r.status !== 'rejected') {
+          r.status = 'cancelled'
+          r.cancellation_request_status = 'approved'
+          r.cancelled_at = new Date().toISOString()
+          r.ticket_issued_at = null
+          if (!ev.is_free && Number(ev.price) > 0) {
+            r.refund_status = 'refund_requested'
+            r.refund_amount = Number(ev.price)
+          }
+          r.updated_at = new Date().toISOString()
+          affected++
+        }
+      }
+      localStorage.setItem('festflow_local_registrations', JSON.stringify(regs))
+    }
+  } catch {
+    // ignore
+  }
+
+  return {
+    success: true,
+    affectedRegistrations: affected,
+    message: `Event cancelled successfully. ${affected} registrations marked cancelled with refund review queued.`,
+  }
+}

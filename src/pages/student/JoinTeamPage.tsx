@@ -14,14 +14,17 @@ import {
   ShieldCheck,
   AlertTriangle,
   LogOut,
+  MapPin,
+  XCircle,
 } from 'lucide-react'
-import { Button, Badge, Alert, Card } from '@/components/ui'
+import { Button, Badge, Alert, Card, Modal } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import {
   getTeamPreview,
   getTeamInvitationPreview,
   joinTeam,
   acceptTeamInvitation,
+  declineTeamInvitation,
 } from '@/lib/teams'
 import type { TeamPreview, TeamInvitationPreview, TeamJoinResponse } from '@/types'
 import { useAuth } from '@/context/AuthContext'
@@ -58,6 +61,11 @@ export default function JoinTeamPage() {
   const [isJoining, setIsJoining] = useState(false)
   const [joinResult, setJoinResult] = useState<TeamJoinResponse | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  // Decline states
+  const [declined, setDeclined] = useState(false)
+  const [showDeclineConfirm, setShowDeclineConfirm] = useState(false)
+  const [isDeclining, setIsDeclining] = useState(false)
 
   // ── 1. Fetch Token Preview ───────────────────────────────────────────────
   const fetchTokenPreview = useCallback(async (tokenToVerify: string) => {
@@ -231,6 +239,28 @@ export default function JoinTeamPage() {
     }
   }
 
+  // ── 6. Handle Decline ────────────────────────────────────────────────────
+  const handleDecline = async () => {
+    if (!token) return
+    setIsDeclining(true)
+    setErrorMessage(null)
+
+    const res = await declineTeamInvitation({ token })
+    setIsDeclining(false)
+
+    if (res.success) {
+      setDeclined(true)
+      setShowDeclineConfirm(false)
+      try {
+        sessionStorage.removeItem('festflow_pending_team_token')
+      } catch {
+        // ignore
+      }
+    } else {
+      setErrorMessage(res.message || 'Failed to decline squad invitation.')
+    }
+  }
+
   return (
     <PageShell>
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6 text-left">
@@ -390,8 +420,40 @@ export default function JoinTeamPage() {
           </Card>
         )}
 
+        {/* ── State 3B: Declined Confirmation ───────────────────────────── */}
+        {declined && (
+          <Card className="p-6 sm:p-8 flex flex-col items-center text-center gap-4 bg-[#0E0E12] border border-white/10 shadow-xl rounded-3xl">
+            <div className="w-16 h-16 rounded-2xl bg-zinc-800 text-zinc-400 flex items-center justify-center border border-white/10 shadow-lg">
+              <XCircle size={36} className="text-rose-400" />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold font-display text-white">
+                Squad Invitation Declined
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1.5 max-w-sm leading-relaxed">
+                You have declined the squad invitation for <strong className="text-white">{activePreview?.team_name || 'the team'}</strong>.
+                The squad leader has been notified. You can still discover and register for other exciting campus events.
+              </p>
+            </div>
+
+            <div className="w-full flex flex-col sm:flex-row gap-3 pt-2">
+              <Link to="/discover" className="flex-1">
+                <Button variant="primary" size="md" className="w-full">
+                  Browse Events
+                </Button>
+              </Link>
+              <Link to="/student/dashboard" className="flex-1">
+                <Button variant="outline" size="md" className="w-full">
+                  Student Dashboard
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        )}
+
         {/* ── State 4: Normal Invitation / Verification Form ─────────────── */}
-        {!tokenLoading && !tokenError && !joinResult && (
+        {!tokenLoading && !tokenError && !joinResult && !declined && (
           <div className="p-5 sm:p-6 bg-[#0E0E12] border border-white/[0.1] shadow-2xl rounded-3xl flex flex-col gap-5">
             {/* If NO token provided, allow code input */}
             {!token && (
@@ -439,71 +501,107 @@ export default function JoinTeamPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-4 rounded-2xl bg-[#14141A] border border-[#18CFFC]/30 flex flex-col gap-3 shadow-md"
+                  className="rounded-2xl bg-[#14141A] border border-[#18CFFC]/30 flex flex-col overflow-hidden shadow-lg"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-[#18CFFC]">
-                        Verified Squad
-                      </span>
-                      <h3 className="text-base font-bold text-white font-heading mt-0.5">
-                        {activePreview.team_name}
-                      </h3>
-                      <p className="text-xs text-zinc-400 mt-0.5 font-sans">
-                        Led by <strong className="text-zinc-200">{activePreview.leader_name}</strong>
-                      </p>
+                  {/* Event Poster Card if available */}
+                  {activePreview.poster_url && (
+                    <div className="relative w-full h-44 sm:h-52 bg-zinc-900 overflow-hidden">
+                      <img
+                        src={activePreview.poster_url}
+                        alt={activePreview.event_title}
+                        className="w-full h-full object-cover object-center"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#14141A] via-transparent to-black/30" />
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs">
+                        <Badge variant="cyan" className="text-[10px] uppercase font-bold py-0.5">
+                          {activePreview.event_category || 'Featured Event'}
+                        </Badge>
+                        {activePreview.venue_name && (
+                          <span className="flex items-center gap-1 text-[11px] text-zinc-300 bg-black/60 px-2.5 py-1 rounded-full backdrop-blur-md">
+                            <MapPin size={12} className="text-[#18CFFC]" />
+                            {activePreview.venue_name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-4 sm:p-5 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-[#18CFFC]">
+                          Verified Squad Invitation
+                        </span>
+                        <h3 className="text-lg font-bold text-white font-heading mt-0.5">
+                          {activePreview.team_name}
+                        </h3>
+                        <p className="text-xs text-zinc-400 mt-0.5 font-sans">
+                          Invited by Team Leader <strong className="text-zinc-200">{activePreview.leader_name}</strong>
+                        </p>
+                      </div>
+
+                      <Badge variant={activePreview.is_full ? 'danger' : 'success'}>
+                        {activePreview.is_full ? 'Team Full' : `${activePreview.current_size}/${activePreview.max_size} Joined`}
+                      </Badge>
                     </div>
 
-                    <Badge variant={activePreview.is_full ? 'danger' : 'success'}>
-                      {activePreview.is_full ? 'Team Full' : `${activePreview.current_size}/${activePreview.max_size} Joined`}
-                    </Badge>
+                    <div className="pt-2 border-t border-white/[0.08] grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
+                          <Ticket size={12} className="text-[#18CFFC]" /> Event
+                        </span>
+                        <span className="font-medium text-white truncate block">
+                          {activePreview.event_title}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
+                          <Calendar size={12} className="text-[#18CFFC]" /> Pass Status
+                        </span>
+                        <span className="font-medium text-white">
+                          {activePreview.is_free ? 'Free Entry' : `₹${activePreview.price} Pass`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {activePreview.venue_name && !activePreview.poster_url && (
+                      <div className="pt-2 border-t border-white/[0.08] text-xs">
+                        <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
+                          <MapPin size={12} className="text-[#18CFFC]" /> Venue
+                        </span>
+                        <span className="font-medium text-white">
+                          {activePreview.venue_name}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Recipient Context if Token Preview */}
+                    {tokenPreview && (
+                      <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between text-xs">
+                        <span className="text-zinc-400 flex items-center gap-1.5">
+                          <Mail size={12} /> Recipient
+                        </span>
+                        <span className="font-medium text-white">
+                          {tokenPreview.recipient_email || tokenPreview.masked_email}
+                        </span>
+                      </div>
+                    )}
+
+                    {activePreview.is_full && (
+                      <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2">
+                        <AlertCircle size={15} />
+                        <span>This squad has reached its maximum size of {activePreview.max_size} members.</span>
+                      </div>
+                    )}
+
+                    {'is_open' in activePreview && !activePreview.is_open && (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
+                        <Clock size={15} />
+                        <span>Registration for this event is closed or past the deadline.</span>
+                      </div>
+                    )}
                   </div>
-
-                  <div className="pt-2 border-t border-white/[0.08] grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
-                        <Ticket size={12} className="text-[#18CFFC]" /> Event
-                      </span>
-                      <span className="font-medium text-white truncate block">
-                        {activePreview.event_title}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
-                        <Calendar size={12} className="text-[#18CFFC]" /> Status
-                      </span>
-                      <span className="font-medium text-white">
-                        {activePreview.is_free ? 'Free Entry' : `₹${activePreview.price} Pass`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Recipient Context if Token Preview */}
-                  {tokenPreview && (
-                    <div className="pt-2 border-t border-[var(--color-surface-3)] flex items-center justify-between text-xs">
-                      <span className="text-[var(--color-text-muted)] flex items-center gap-1.5">
-                        <Mail size={12} /> Recipient
-                      </span>
-                      <span className="font-medium text-[var(--color-text-primary)]">
-                        {tokenPreview.recipient_email || tokenPreview.masked_email}
-                      </span>
-                    </div>
-                  )}
-
-                  {activePreview.is_full && (
-                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2">
-                      <AlertCircle size={15} />
-                      <span>This squad has reached its maximum size of {activePreview.max_size} members.</span>
-                    </div>
-                  )}
-
-                  {'is_open' in activePreview && !activePreview.is_open && (
-                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
-                      <Clock size={15} />
-                      <span>Registration for this event is closed or past the deadline.</span>
-                    </div>
-                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -653,24 +751,76 @@ export default function JoinTeamPage() {
                       />
                     </div>
 
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="lg"
-                      className="w-full mt-2"
-                      isLoading={isJoining}
-                      disabled={isJoining || hasEmailMismatch}
-                      onClick={handleJoin}
-                      rightIcon={<CheckCircle2 size={16} />}
-                    >
-                      {token ? 'Accept Invitation & Claim Pass' : 'Confirm & Join Squad'}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="lg"
+                        className="flex-1"
+                        isLoading={isJoining}
+                        disabled={isJoining || hasEmailMismatch}
+                        onClick={handleJoin}
+                        rightIcon={<CheckCircle2 size={16} />}
+                      >
+                        {token ? 'Accept Invitation & Claim Pass' : 'Confirm & Join Squad'}
+                      </Button>
+
+                      {token && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="lg"
+                          className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border-rose-500/30 text-xs sm:w-auto"
+                          disabled={isJoining || isDeclining}
+                          onClick={() => setShowDeclineConfirm(true)}
+                        >
+                          Decline
+                        </Button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
             )}
           </div>
         )}
+
+        {/* ── Decline Confirmation Modal ─────────────────────────────────── */}
+        <Modal
+          isOpen={showDeclineConfirm}
+          onClose={() => setShowDeclineConfirm(false)}
+          title="Decline Squad Invitation"
+          size="sm"
+        >
+          <div className="flex flex-col gap-4 text-left">
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Are you sure you want to decline joining <strong className="text-white">{activePreview?.team_name || 'this team'}</strong> for <strong className="text-white">{activePreview?.event_title || 'this event'}</strong>?
+              The squad leader will be notified and this invitation link will be cancelled.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeclineConfirm(false)}
+                disabled={isDeclining}
+              >
+                Keep Invitation
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={handleDecline}
+                isLoading={isDeclining}
+                disabled={isDeclining}
+              >
+                Yes, Decline Invitation
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </PageShell>
   )

@@ -253,25 +253,20 @@ export function EventRegistrationModal({
       return false
     }
 
-    // Validate member details & duplicate emails
+    // Validate teammate emails & duplicate prevention
     const leaderEmail = (user.email || '').toLowerCase().trim()
     const seenEmails = new Set<string>()
 
     for (let i = 0; i < teamMembers.length; i++) {
       const m = teamMembers[i]
-      const name = m.name.trim()
       const email = m.email.trim().toLowerCase()
 
-      if (!name) {
-        errors[`member_name_${i}`] = `Full name is required for Team Member #${i + 1}.`
-      }
-
-      if (!email || !email.includes('@') || !email.includes('.')) {
-        errors[`member_email_${i}`] = `Valid email is required for Team Member #${i + 1}.`
+      if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+        errors[`member_email_${i}`] = `Valid email is required for Teammate #${i + 1}.`
       } else if (email === leaderEmail) {
-        errors[`member_email_${i}`] = `Member #${i + 1} uses your email. You are already listed as the Team Leader.`
+        errors[`member_email_${i}`] = `You cannot invite your own email (${leaderEmail}). You are the Team Leader.`
       } else if (seenEmails.has(email)) {
-        errors[`member_email_${i}`] = `Duplicate email "${email}" found in your team roster.`
+        errors[`member_email_${i}`] = `Duplicate email "${email}" found in your invited teammates list.`
       }
 
       if (email) seenEmails.add(email)
@@ -279,7 +274,7 @@ export function EventRegistrationModal({
 
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
-      setErrorNotice('Please resolve all team member validation errors to proceed.')
+      setErrorNotice('Please resolve all teammate email validation errors to proceed.')
       return false
     }
 
@@ -904,29 +899,48 @@ export function EventRegistrationModal({
               </div>
 
               {/* Leader Card */}
-              <div className="p-3 rounded-xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[var(--color-brand-purple)]/20 text-[var(--color-brand-purple)] flex items-center justify-center font-bold text-xs">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--color-brand-cyan)] to-[var(--color-brand-purple)] text-white flex items-center justify-center font-bold text-xs shadow-md">
                     L
                   </div>
                   <div>
-                    <div className="font-semibold text-[var(--color-text-primary)]">
+                    <div className="font-semibold text-xs text-[var(--color-text-primary)]">
                       {fullName || user.email} (You)
                     </div>
                     <span className="text-[10px] text-[var(--color-text-muted)]">
-                      Team Leader • {user.email}
+                      Team Leader & Owner • {user.email}
                     </span>
                   </div>
                 </div>
-                <Badge variant="purple" className="text-[10px]">Leader</Badge>
+                <Badge variant="cyan" className="text-[10px]">Leader</Badge>
+              </div>
+
+              {/* Explicit Acceptance Workflow Notice */}
+              <div className="p-3.5 rounded-2xl bg-[var(--color-brand-cyan)]/10 border border-[var(--color-brand-cyan)]/25 flex items-start gap-2.5 text-xs text-[var(--color-brand-cyan)]">
+                <Users size={16} className="shrink-0 mt-0.5 text-[var(--color-brand-cyan)]" />
+                <div className="space-y-0.5 leading-relaxed">
+                  <span className="font-semibold block text-[var(--color-text-primary)]">
+                    Secure Teammate Invitation Workflow
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-secondary)] block">
+                    Teammates are invited via email and secure link. Every invited student must sign in to FestFlow and explicitly accept the invitation before becoming a confirmed team member and claiming their pass.
+                  </span>
+                </div>
               </div>
 
               {/* Member Inputs */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[var(--color-text-primary)]">
-                    Additional Teammates ({teamMembers.length})
-                  </span>
+                  <div>
+                    <span className="text-xs font-semibold text-[var(--color-text-primary)] block">
+                      Invite Teammates ({teamMembers.length})
+                    </span>
+                    <span className="text-[10px] text-[var(--color-text-muted)]">
+                      Capacity: 1 Leader + {teamMembers.length} Invited / {event.max_team_size || 5} Max
+                    </span>
+                  </div>
+
                   {teamMembers.length + (event.leader_counts_towards_size ? 1 : 0) < (event.max_team_size || 10) && (
                     <Button
                       type="button"
@@ -936,7 +950,7 @@ export function EventRegistrationModal({
                       leftIcon={<Plus size={13} />}
                       className="text-xs min-h-[36px]"
                     >
-                      Add Member
+                      Add Teammate
                     </Button>
                   )}
                 </div>
@@ -945,7 +959,7 @@ export function EventRegistrationModal({
                   <div className="p-6 rounded-2xl border border-dashed border-[var(--color-surface-3)] text-center text-[var(--color-text-muted)] space-y-2">
                     <Users size={24} className="mx-auto text-[var(--color-text-muted)] opacity-50" />
                     <p className="text-xs">
-                      No additional members added yet. Click &quot;Add Member&quot; to build your squad roster.
+                      No teammates invited yet. Click &quot;Add Teammate&quot; to invite members by email, or you can invite them anytime after registration using your Squad Dashboard.
                     </p>
                   </div>
                 )}
@@ -956,15 +970,16 @@ export function EventRegistrationModal({
                     className="p-3.5 rounded-2xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] space-y-2.5 relative"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[var(--color-brand-cyan)] flex items-center gap-1">
-                        <span>Member #{idx + 1}</span>
+                      <span className="text-[11px] font-bold text-[var(--color-brand-cyan)] flex items-center gap-1.5">
+                        <span>Invited Teammate #{idx + 1}</span>
+                        <Badge variant="outline" className="text-[9px] py-0 px-1.5">Pending Invite</Badge>
                       </span>
                       <button
                         type="button"
                         onClick={() => handleRemoveTeamMember(idx)}
                         className="text-rose-400 hover:text-rose-300 p-1 rounded-md transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
-                        title="Remove member"
-                        aria-label={`Remove Member #${idx + 1}`}
+                        title="Remove invitee"
+                        aria-label={`Remove Teammate #${idx + 1}`}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -973,27 +988,8 @@ export function EventRegistrationModal({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
                         <input
-                          type="text"
-                          placeholder="Full Name *"
-                          value={m.name}
-                          onChange={(e) => handleUpdateTeamMember(idx, 'name', e.target.value)}
-                          className={`w-full px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-1)] border ${
-                            fieldErrors[`member_name_${idx}`]
-                              ? 'border-rose-500'
-                              : 'border-[var(--color-surface-3)]'
-                          } text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] min-h-[38px]`}
-                        />
-                        {fieldErrors[`member_name_${idx}`] && (
-                          <span className="text-[9px] text-rose-400 mt-0.5 block">
-                            {fieldErrors[`member_name_${idx}`]}
-                          </span>
-                        )}
-                      </div>
-
-                      <div>
-                        <input
                           type="email"
-                          placeholder="College Email *"
+                          placeholder="Student Email Address *"
                           value={m.email}
                           onChange={(e) => handleUpdateTeamMember(idx, 'email', e.target.value)}
                           className={`w-full px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-1)] border ${
@@ -1008,23 +1004,16 @@ export function EventRegistrationModal({
                           </span>
                         )}
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        placeholder="Student ID / Roll (optional)"
-                        value={m.studentId || ''}
-                        onChange={(e) => handleUpdateTeamMember(idx, 'studentId', e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] min-h-[38px]"
-                      />
-                      <input
-                        type="text"
-                        placeholder="College Name (optional)"
-                        value={m.college || ''}
-                        onChange={(e) => handleUpdateTeamMember(idx, 'college', e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] min-h-[38px]"
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Full Name (optional)"
+                          value={m.name}
+                          onChange={(e) => handleUpdateTeamMember(idx, 'name', e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] min-h-[38px]"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

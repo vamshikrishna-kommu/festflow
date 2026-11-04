@@ -29,14 +29,12 @@ import {
   Download,
   Smartphone,
   AlertCircle,
+  Edit3,
 } from 'lucide-react'
 import {
   Button,
   Badge,
   Logo,
-  Modal,
-  ModalBody,
-  ModalFooter,
   EmptyState,
   Alert,
 } from '@/components/ui'
@@ -44,7 +42,7 @@ import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { Link, useSearchParams, useNavigate } from 'react-router'
 import { fadeIn, staggerContainer, metricItem } from '@/lib/animations'
-import { getStudentRegistrations, cancelRegistration } from '@/lib/registrations'
+import { getStudentRegistrations } from '@/lib/registrations'
 import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
 import { getSmartRecommendations, type RecommendedEvent } from '@/lib/recommendations'
 import { calculateTrendingEvents, type TrendingEvent } from '@/lib/trending'
@@ -57,6 +55,9 @@ import { EventCountdown } from '@/components/events/EventCountdown'
 import { StudentInterestsSelector } from '@/components/student/StudentInterestsSelector'
 import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
 import { TeamManageModal } from '@/components/team/TeamManageModal'
+import { RequestCancellationModal } from '@/components/registration/RequestCancellationModal'
+import { RequestEditModal } from '@/components/registration/RequestEditModal'
+import { claimWaitlistOffer, declineWaitlistOffer } from '@/lib/waitlist'
 import { subscribeToStatusChanges } from '@/lib/sync'
 import type { RegistrationWithEvent, Event, InAppNotification, StudentAchievement } from '@/types'
 
@@ -91,8 +92,9 @@ export default function StudentDashboardPage() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [showInterestsEditor, setShowInterestsEditor] = useState(false)
 
-  // Cancellation and Team Modals
-  const [cancellingReg, setCancellingReg] = useState<RegistrationWithEvent | null>(null)
+  // Cancellation, Edit and Team Modals
+  const [cancellationModalReg, setCancellationModalReg] = useState<RegistrationWithEvent | null>(null)
+  const [editingReg, setEditingReg] = useState<RegistrationWithEvent | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
@@ -403,19 +405,26 @@ export default function StudentDashboardPage() {
     }
   }, [registrations, now])
 
-  // ── Cancel Pass Handler ────────────────────────────────────────────────────
-  const handleCancelPass = async () => {
-    if (!cancellingReg) return
+  // ── Waitlist Actions Handler ──────────────────────────────────────────────
+  const handleClaimWaitlist = async (regId: string) => {
     setActionLoading(true)
-    const res = await cancelRegistration(cancellingReg.id)
+    const res = await claimWaitlistOffer(regId)
     setActionLoading(false)
-    setCancellingReg(null)
-
     if (res.success) {
-      setNotice({ message: 'Your event pass has been cancelled successfully.', isError: false })
+      setNotice({ message: res.message, isError: false })
       loadAllStudentData(true)
     } else {
       setNotice({ message: res.message, isError: true })
+    }
+  }
+
+  const handleDeclineWaitlist = async (regId: string) => {
+    setActionLoading(true)
+    const res = await declineWaitlistOffer(regId)
+    setActionLoading(false)
+    if (res.success) {
+      setNotice({ message: res.message, isError: false })
+      loadAllStudentData(true)
     }
   }
 
@@ -1013,7 +1022,11 @@ export default function StudentDashboardPage() {
                         </div>
 
                         <div className="shrink-0 flex flex-col items-end gap-1">
-                          {isCheckedIn ? (
+                          {reg.cancellation_request_status === 'pending' ? (
+                            <Badge variant="amber" className="text-[10px]">
+                              Cancellation Pending
+                            </Badge>
+                          ) : isCheckedIn ? (
                             <Badge variant="cyan" className="text-[10px]">
                               Gate Admitted
                             </Badge>
@@ -1034,11 +1047,38 @@ export default function StudentDashboardPage() {
                               {reg.status}
                             </Badge>
                           )}
+                          {reg.refund_status && reg.refund_status !== 'not_applicable' && (
+                            <Badge variant="outline" className="text-[9px] text-[#18CFFC] border-[#18CFFC]/30">
+                              Refund: {reg.refund_status.replace(/_/g, ' ')}
+                            </Badge>
+                          )}
                           <span className="text-[10px] font-mono text-zinc-500">
                             #{reg.ticket_code}
                           </span>
                         </div>
                       </div>
+
+                      {/* Waitlist Allocation Banner (Module 6) */}
+                      {reg.status === 'waitlisted' && reg.waitlist_offer_expires_at && (
+                        <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div>
+                            <div className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                              <Sparkles size={14} /> Spot Allocated from Waitlist!
+                            </div>
+                            <div className="text-[11px] text-zinc-300">
+                              An opening has been offered to you. Claim before expiry.
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button size="sm" variant="primary" isLoading={actionLoading} className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-xs" onClick={() => handleClaimWaitlist(reg.id)}>
+                              Claim Pass
+                            </Button>
+                            <Button size="sm" variant="ghost" disabled={actionLoading} className="text-xs" onClick={() => handleDeclineWaitlist(reg.id)}>
+                              Decline
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Event Countdown for upcoming confirmed pass */}
                       {reg.status === 'confirmed' && event?.start_date && (
@@ -1138,6 +1178,29 @@ export default function StudentDashboardPage() {
                               className="text-xs"
                             >
                               Manage Squad
+                            </Button>
+                          )}
+
+                          {reg.status === 'confirmed' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingReg(reg)}
+                              leftIcon={<Edit3 size={13} />}
+                              className="text-xs text-zinc-400 hover:text-white"
+                            >
+                              Edit
+                            </Button>
+                          )}
+
+                          {reg.status === 'confirmed' && reg.cancellation_request_status !== 'pending' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setCancellationModalReg(reg)}
+                              className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                            >
+                              Cancel Pass
                             </Button>
                           )}
                         </div>
@@ -1378,37 +1441,32 @@ export default function StudentDashboardPage() {
           />
         )}
 
-        {cancellingReg && (
-          <Modal
-            isOpen={Boolean(cancellingReg)}
-            onClose={() => setCancellingReg(null)}
-            title="Cancel Event Pass"
-          >
-            <ModalBody>
-              <div className="flex flex-col gap-3 py-2 text-left">
-                <p className="text-sm text-zinc-300">
-                  Are you sure you want to cancel your pass for{' '}
-                  <strong className="text-white">{cancellingReg.event?.title}</strong>?
-                </p>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Your seat will be returned to the event capacity so other students can register.
-                </p>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="ghost" size="sm" onClick={() => setCancellingReg(null)}>
-                Keep Pass
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                isLoading={actionLoading}
-                onClick={handleCancelPass}
-              >
-                Confirm Cancellation
-              </Button>
-            </ModalFooter>
-          </Modal>
+        {/* Request Cancellation Modal (Module 2) */}
+        {cancellationModalReg && (
+          <RequestCancellationModal
+            isOpen={Boolean(cancellationModalReg)}
+            onClose={() => setCancellationModalReg(null)}
+            registrationId={cancellationModalReg.id}
+            eventTitle={cancellationModalReg.event?.title || 'this event'}
+            onSubmitted={() => {
+              setCancellationModalReg(null)
+              loadAllStudentData(true)
+            }}
+          />
+        )}
+
+        {/* Request Details Edit Modal (Module 4) */}
+        {editingReg && (
+          <RequestEditModal
+            isOpen={Boolean(editingReg)}
+            onClose={() => setEditingReg(null)}
+            registration={editingReg}
+            eventTitle={editingReg.event?.title || 'this event'}
+            onSubmitted={() => {
+              setEditingReg(null)
+              loadAllStudentData(true)
+            }}
+          />
         )}
       </div>
     </PageShell>

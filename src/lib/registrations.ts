@@ -13,7 +13,6 @@ import {
   sendApplicationSubmittedEmail,
   sendPaymentRejectedEmail,
   sendRegistrationCancelledEmail,
-  sendTeamMemberAddedEmail,
   resendPassEmail,
 } from '@/lib/emails'
 import { createTeam, getLocalTeamMembers, saveLocalTeamMembers, getLocalTeams } from '@/lib/teams'
@@ -469,26 +468,6 @@ export async function registerForEvent(
         registrationId: newReg.id,
         eventId: event.id,
       }).catch(() => {})
-    }
-
-    // Notify registered squad members when leader directly registers them
-    if (options?.teamMembers && Array.isArray(options.teamMembers) && options.teamName) {
-      for (const tm of options.teamMembers) {
-        if (tm.email && tm.email.includes('@')) {
-          sendTeamMemberAddedEmail({
-            to: tm.email,
-            name: tm.name,
-            teamName: options.teamName,
-            eventTitle: event.title,
-            leaderName: options.participantDetails?.student_name || 'Team Leader',
-            startDate: event.start_date,
-            venueName: event.venue_name,
-            eventId: event.id,
-            teamId: createdTeamId,
-            isPaid: !isFree,
-          }).catch(() => {})
-        }
-      }
     }
 
     broadcastStatusChange({

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
-import { AlertCircle } from 'lucide-react'
-import { Button, PageHeader } from '@/components/ui'
+import { AlertCircle, AlertTriangle } from 'lucide-react'
+import { Button, PageHeader, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { EventForm } from '@/components/events/EventForm'
-import { getEventById, updateEvent } from '@/lib/events'
+import { getEventById, updateEvent, cancelEventByOrganizer } from '@/lib/events'
 import { useAuth } from '@/context/AuthContext'
 import type { EventRecord, EventInsert, EventUpdate } from '@/types'
 
@@ -18,6 +18,10 @@ export default function EditEventPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -125,6 +129,108 @@ export default function EditEventPage() {
           isSubmitting={isSubmitting}
           serverError={serverError}
         />
+
+        {/* Danger Zone: Event Cancellation (Module 7) */}
+        {event.status !== 'cancelled' && (
+          <div className="p-6 rounded-3xl bg-rose-500/5 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
+            <div>
+              <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                <AlertTriangle size={16} /> Danger Zone: Cancel Event
+              </h4>
+              <p className="text-xs text-zinc-400 mt-1 max-w-xl leading-relaxed">
+                Cancelling this event will invalidate all issued digital tickets, prevent further gate check-in, notify all registered attendees, and queue refund reviews for paid registrations. History and records are preserved.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setShowCancelModal(true)}
+              className="shrink-0"
+            >
+              Cancel Event
+            </Button>
+          </div>
+        )}
+
+        {/* Modal: Confirm Event Cancellation */}
+        <Modal
+          isOpen={showCancelModal}
+          onClose={() => {
+            if (!isCancelling) {
+              setShowCancelModal(false)
+              setCancelError(null)
+            }
+          }}
+          title="Confirm Event Cancellation"
+          size="md"
+        >
+          <div className="flex flex-col gap-4 text-left">
+            <ModalBody>
+              <div className="flex flex-col gap-3">
+                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 leading-relaxed">
+                  <strong className="block text-white mb-0.5">Irreversible Action</strong>
+                  This action marks <strong>{event.title}</strong> as cancelled. Tickets will be invalidated immediately.
+                </div>
+
+                {cancelError && (
+                  <Alert variant="error" className="text-xs">
+                    {cancelError}
+                  </Alert>
+                )}
+
+                <div className="flex flex-col gap-1.5 text-xs">
+                  <label className="text-zinc-300 font-semibold">
+                    Reason for Cancellation <span className="text-rose-400">*</span>
+                  </label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Provide a clear explanation for registered attendees..."
+                    rows={3}
+                    disabled={isCancelling}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 resize-none"
+                  />
+                </div>
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={isCancelling}
+                onClick={() => setShowCancelModal(false)}
+              >
+                Keep Event Active
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                isLoading={isCancelling}
+                onClick={async () => {
+                  if (!cancelReason.trim()) {
+                    setCancelError('Please specify the reason for event cancellation.')
+                    return
+                  }
+                  setIsCancelling(true)
+                  setCancelError(null)
+                  const res = await cancelEventByOrganizer({
+                    eventId: event.id,
+                    cancellationReason: cancelReason.trim(),
+                  })
+                  setIsCancelling(false)
+                  if (res.success) {
+                    setShowCancelModal(false)
+                    navigate('/club/events', { replace: true })
+                  } else {
+                    setCancelError(res.message || 'Failed to cancel event.')
+                  }
+                }}
+              >
+                Confirm Cancellation
+              </Button>
+            </ModalFooter>
+          </div>
+        </Modal>
       </div>
     </PageShell>
   )

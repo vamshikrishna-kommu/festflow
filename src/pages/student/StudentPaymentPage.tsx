@@ -23,7 +23,7 @@ import {
   X,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
-import { Button, Card, Badge, PageHeader, Alert } from '@/components/ui'
+import { Button, Card, Badge, PageHeader, Alert, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 import { isProduction } from '@/lib/supabase'
 import { getRegistrationById } from '@/lib/registrations'
@@ -32,6 +32,7 @@ import {
   getStudentPaymentSubmission,
   submitPaymentProof,
   uploadPaymentScreenshot,
+  requestPaymentReview,
 } from '@/lib/payments'
 import { validateCoupon, redeemCoupon } from '@/lib/coupons'
 import { extractUtrFromImageFile } from '@/lib/ocrUtrExtractor'
@@ -88,6 +89,38 @@ export default function StudentPaymentPage() {
   const initialLoadDone = useRef(false)
 
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
+
+  // Payment Dispute Review Modal State (Module 8)
+  const [disputeModalOpen, setDisputeModalOpen] = useState(false)
+  const [disputeNotes, setDisputeNotes] = useState('')
+  const [disputeLoading, setDisputeLoading] = useState(false)
+  const [disputeSuccess, setDisputeSuccess] = useState(false)
+  const [disputeError, setDisputeError] = useState<string | null>(null)
+
+  const handleDisputeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!submission?.id || !disputeNotes.trim()) return
+    setDisputeLoading(true)
+    setDisputeError(null)
+
+    const res = await requestPaymentReview({
+      submissionId: submission.id,
+      studentNotes: disputeNotes.trim(),
+      studentId: user?.id,
+    })
+
+    setDisputeLoading(false)
+    if (res.success) {
+      setDisputeSuccess(true)
+      setTimeout(() => {
+        setDisputeSuccess(false)
+        setDisputeModalOpen(false)
+        loadData(true)
+      }, 1500)
+    } else {
+      setDisputeError(res.message || 'Failed to submit payment review request.')
+    }
+  }
 
   const loadData = async (isBackground = false) => {
     if (!registrationId) return
@@ -576,6 +609,17 @@ export default function StudentPaymentPage() {
                 <p className="text-[11px] text-rose-300/70">
                   Please verify your UPI transaction history in Google Pay, PhonePe, Paytm, or BHIM, copy the correct 12-digit UTR/RRN number, and resubmit below.
                 </p>
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDisputeModalOpen(true)}
+                    className="text-xs border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
+                  >
+                    Request Dispute Review
+                  </Button>
+                </div>
               </motion.div>
             ) : isPaymentPendingSubmission ? (
               <motion.div
@@ -1216,6 +1260,48 @@ export default function StudentPaymentPage() {
               )
             )}
           </div>
+        )}
+
+        {/* Payment Dispute Review Modal (Module 8) */}
+        {disputeModalOpen && (
+          <Modal
+            isOpen={disputeModalOpen}
+            onClose={() => setDisputeModalOpen(false)}
+            title="Request Payment Review"
+            size="md"
+          >
+            <form onSubmit={handleDisputeSubmit}>
+              <ModalBody>
+                <div className="flex flex-col gap-3 text-left">
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    If you believe your payment of <strong className="text-white">{effectiveCurrency} {effectiveAmount}</strong> was incorrectly rejected, provide transaction details for the organizing committee to re-examine against bank records.
+                  </p>
+                  {disputeError && <Alert variant="error" className="text-xs">{disputeError}</Alert>}
+                  {disputeSuccess && <Alert variant="success" className="text-xs">Review request submitted! The organizer has been notified.</Alert>}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-zinc-300">Explanation for Organizer</label>
+                    <textarea
+                      value={disputeNotes}
+                      onChange={(e) => setDisputeNotes(e.target.value)}
+                      placeholder="e.g., Amount was debited from bank, account holder name is X, transaction timestamp..."
+                      rows={3}
+                      required
+                      disabled={disputeLoading || disputeSuccess}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC] resize-none"
+                    />
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="ghost" size="sm" type="button" disabled={disputeLoading} onClick={() => setDisputeModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" size="sm" type="submit" isLoading={disputeLoading} disabled={disputeSuccess}>
+                  Submit Dispute
+                </Button>
+              </ModalFooter>
+            </form>
+          </Modal>
         )}
       </div>
     </PageShell>
