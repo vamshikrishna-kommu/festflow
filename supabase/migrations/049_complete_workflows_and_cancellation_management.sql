@@ -1122,6 +1122,70 @@ AS $$
   SELECT p_reg_status = 'confirmed' AND (p_cancel_status IS NULL OR p_cancel_status <> 'approved');
 $$;
 
+-- ── 17. Deprecate and Guard Legacy Direct Cancellation RPCs ──────────────────
+-- Direct student cancellation is strictly prohibited across FestFlow.
+-- Any direct call by an attendee is redirected to request_registration_cancellation.
+CREATE OR REPLACE FUNCTION public.cancel_registration_with_policy(
+    p_registration_id UUID,
+    p_reason TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions, pg_temp
+AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+    v_reg RECORD;
+    v_event RECORD;
+    v_is_organizer BOOLEAN := false;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error_code', 'UNAUTHENTICATED', 'message', 'Sign in required.');
+    END IF;
+
+    SELECT * INTO v_reg FROM public.registrations WHERE id = p_registration_id;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error_code', 'NOT_FOUND', 'message', 'Registration not found.');
+    END IF;
+
+    SELECT * INTO v_event FROM public.events WHERE id = v_reg.event_id;
+    v_is_organizer := (v_event.club_id = v_user_id) OR public.check_is_event_organizer(v_event.id, v_user_id);
+
+    -- If caller is a regular attendee (not club organizer), direct cancellation is strictly prohibited!
+    -- Automatically forward into request_registration_cancellation
+    IF NOT v_is_organizer THEN
+        RETURN public.request_registration_cancellation(
+            p_registration_id,
+            COALESCE(NULLIF(TRIM(p_reason), ''), 'unable_to_attend'),
+            p_reason
+        );
+    END IF;
+
+    -- If organizer, cancel directly
+    UPDATE public.registrations
+    SET status = 'cancelled',
+        cancelled_at = NOW(),
+        ticket_issued_at = NULL,
+        cancellation_request_status = 'approved',
+        updated_at = NOW()
+    WHERE id = p_registration_id;
+
+    RETURN jsonb_build_object('success', true, 'message', 'Registration cancelled by organizer.');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.cancel_registration(p_registration_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions, pg_temp
+AS $$
+BEGIN
+    RETURN public.cancel_registration_with_policy(p_registration_id, 'Direct cancellation requested');
+END;
+$$;
+
 -- Grant execute permissions to authenticated
 GRANT EXECUTE ON FUNCTION public.request_registration_cancellation(UUID, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.review_registration_cancellation(UUID, TEXT, TEXT, TEXT, NUMERIC, TEXT) TO authenticated;
@@ -1131,4 +1195,6 @@ GRANT EXECUTE ON FUNCTION public.offer_waitlist_slot(UUID, INT) TO authenticated
 GRANT EXECUTE ON FUNCTION public.claim_waitlist_offer(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_event_by_organizer(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.request_payment_review(UUID, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_registration_with_policy(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_registration(UUID) TO authenticated;
 

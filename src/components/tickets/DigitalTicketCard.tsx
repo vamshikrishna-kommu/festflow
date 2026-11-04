@@ -734,6 +734,11 @@ export function DigitalTicketCard({
                 <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 w-full sm:w-auto text-center">
                   Event started (cancellation closed)
                 </span>
+              ) : (registration as any)?.cancellation_request_status === 'pending' ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
+                  <Clock size={13} className="text-amber-400 shrink-0" />
+                  <span>Cancellation Requested (Pending Club Approval)</span>
+                </div>
               ) : (
                 <Button
                   variant="ghost"
@@ -741,7 +746,7 @@ export function DigitalTicketCard({
                   onClick={onCancel}
                   className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 w-full sm:w-auto justify-center min-h-[44px]"
                 >
-                  Cancel Registration
+                  Request Cancellation
                 </Button>
               )
             )}

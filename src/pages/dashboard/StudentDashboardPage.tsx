@@ -1200,7 +1200,7 @@ export default function StudentDashboardPage() {
                               onClick={() => setCancellationModalReg(reg)}
                               className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
                             >
-                              Cancel Pass
+                              Request Cancellation
                             </Button>
                           )}
                         </div>

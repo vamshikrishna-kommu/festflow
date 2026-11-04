@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   AlertTriangle,
   AlertCircle,
+  XCircle,
   Compass,
   CheckCircle2,
   Ticket,
@@ -34,9 +35,10 @@ import {
   Trophy,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
-import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
+import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { getEventBySlug, CATEGORY_POSTERS, mapRecordToUiEvent } from '@/lib/events'
-import { checkStudentRegistrationForEvent, cancelRegistration, registerForEvent } from '@/lib/registrations'
+import { checkStudentRegistrationForEvent, registerForEvent } from '@/lib/registrations'
+import { RequestCancellationModal } from '@/components/registration/RequestCancellationModal'
 import { subscribeToStatusChanges } from '@/lib/sync'
 import { useAuth } from '@/context/AuthContext'
 import { fadeIn } from '@/lib/animations'
@@ -117,10 +119,6 @@ export default function EventDetailPage() {
 
   // Student Cancellation state
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
-  const [cancelling, setCancelling] = useState(false)
-  const [cancelError, setCancelError] = useState<string | null>(null)
-  const [cancelSuccess, setCancelSuccess] = useState<string | null>(null)
 
   // Phase 6 Experience States
   const [ticketTiers, setTicketTiers] = useState<EventTicketTier[]>([])
@@ -259,25 +257,6 @@ export default function EventDetailPage() {
     if (!user?.id || !event) return
     const res = await toggleWishlist(user.id, event.id)
     setIsSaved(res.saved)
-  }
-
-  const handleCancelRegistration = async () => {
-    if (!existingReg) return
-    setCancelling(true)
-    setCancelError(null)
-
-    const res = await cancelRegistration(existingReg.id, cancelReason)
-    setCancelling(false)
-
-    if (res.success) {
-      setExistingReg(null)
-      setShowCancelModal(false)
-      setCancelReason('')
-      setCancelSuccess('Your registration has been cancelled and seat returned to capacity.')
-      setTimeout(() => setCancelSuccess(null), 6000)
-    } else {
-      setCancelError(res.message || 'Failed to cancel registration.')
-    }
   }
 
   const handleShare = () => {
@@ -457,9 +436,12 @@ export default function EventDetailPage() {
     startDate.getTime() - Date.now() < cutoffHours * 3600 * 1000
   )
   const isCheckedIn = (existingReg as any)?.attendance_status === 'checked_in' || (existingReg as any)?.attendance_status === 'checked_out'
-  const canCancelRegistration = Boolean(
+  const isCancellationPending = existingReg?.cancellation_request_status === 'pending'
+  const isRegCancelled = existingReg?.status === 'cancelled'
+  const canRequestCancellation = Boolean(
     existingReg &&
-    existingReg.status !== 'cancelled' &&
+    !isRegCancelled &&
+    !isCancellationPending &&
     !isStarted &&
     !isCutoffPassed &&
     !isCheckedIn
@@ -1201,37 +1183,45 @@ export default function EventDetailPage() {
                     </Button>
                   </Link>
 
-                  {existingReg.status !== 'cancelled' && (
-                    canCancelRegistration ? (
+                  {isCancellationPending ? (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-start gap-2.5 shadow-sm text-left">
+                      <Clock size={16} className="shrink-0 text-amber-400 mt-0.5" />
+                      <div>
+                        <div className="font-semibold text-amber-200">Cancellation Request Pending Club Approval</div>
+                        <div className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                          Your request to cancel has been submitted to the club organizers. Your ticket remains active until the club reviews and accepts your request.
+                        </div>
+                      </div>
+                    </div>
+                  ) : isRegCancelled ? (
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2">
+                      <XCircle size={16} className="shrink-0" />
+                      <span>This registration was cancelled by the event organizers.</span>
+                    </div>
+                  ) : canRequestCancellation ? (
+                    <div className="flex flex-col gap-1 w-full">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setCancelError(null)
-                          setShowCancelModal(true)
-                        }}
+                        onClick={() => setShowCancelModal(true)}
                         className="w-full text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 py-2 border border-rose-500/20 justify-center min-h-[40px]"
                       >
-                        {existingReg.team_id ? 'Leave Event / Cancel Pass' : 'Cancel Registration'}
+                        Request Ticket Cancellation
                       </Button>
-                    ) : (
-                      <div className="text-[11px] text-center text-zinc-500 bg-[#14141A] p-2.5 rounded-xl border border-white/[0.06] leading-relaxed">
-                        {isCheckedIn ? (
-                          <span>Gate check-in recorded • Ticket cannot be cancelled after physical entry</span>
-                        ) : isStarted ? (
-                          <span>Event has started • Registration cancellation is closed</span>
-                        ) : isCutoffPassed ? (
-                          <span>Cancellation deadline passed ({cutoffHours}h cutoff before event start)</span>
-                        ) : null}
-                      </div>
-                    )
-                  )}
-
-                  {cancelSuccess && (
-                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2">
-                      <CheckCircle2 size={16} className="shrink-0" />
-                      <span>{cancelSuccess}</span>
+                      <span className="text-[10px] text-zinc-500 text-center">
+                        Requires approval from the club organizer
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-center text-zinc-500 bg-[#14141A] p-2.5 rounded-xl border border-white/[0.06] leading-relaxed">
+                      {isCheckedIn ? (
+                        <span>Gate check-in recorded • Ticket cannot be cancelled after physical entry</span>
+                      ) : isStarted ? (
+                        <span>Event has started • Registration cancellation is closed</span>
+                      ) : isCutoffPassed ? (
+                        <span>Cancellation deadline passed ({cutoffHours}h cutoff before event start)</span>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -1531,94 +1521,22 @@ export default function EventDetailPage() {
           />
         )}
 
-        {/* ── Student Cancellation Confirmation Modal ──────────────────────── */}
-        {event && (
-          <Modal
+        {/* ── Request Cancellation Modal (Club Review Workflow) ─────────── */}
+        {existingReg && (
+          <RequestCancellationModal
             isOpen={showCancelModal}
-            onClose={() => {
-              if (!cancelling) {
-                setShowCancelModal(false)
-                setCancelError(null)
+            onClose={() => setShowCancelModal(false)}
+            registrationId={existingReg.id}
+            eventTitle={event?.title || 'this event'}
+            onSubmitted={() => {
+              setShowCancelModal(false)
+              if (user?.id && event?.id) {
+                checkStudentRegistrationForEvent(user.id, event.id).then((res) => {
+                  if (res.registration) setExistingReg(res.registration)
+                })
               }
             }}
-            title={existingReg?.team_id ? 'Leave Event / Cancel Pass' : 'Cancel Event Registration'}
-            size="sm"
-          >
-            <ModalBody>
-              <div className="flex flex-col gap-3.5 text-left">
-                <div className="flex items-center gap-3 text-rose-400">
-                  <div className="p-2.5 rounded-xl bg-rose-500/15 shrink-0">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
-                      Relinquish Registration Pass
-                    </h4>
-                    <p className="text-xs text-[var(--color-text-muted)]">
-                      This action will immediately void your digital ticket.
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  Are you sure you want to cancel your entry pass for{' '}
-                  <strong className="text-[var(--color-text-primary)]">{event.title}</strong>? Your seat will be returned to the event's public capacity for other campus students.
-                </p>
-
-                {!displayIsFree && (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300 flex flex-col gap-1">
-                    <strong className="font-semibold flex items-center gap-1.5 text-amber-200">
-                      <AlertCircle size={14} /> Campus Payment & Refund Policy
-                    </strong>
-                    <p className="text-[11px] text-amber-300/90 leading-relaxed">
-                      FestFlow releases your seat reservation, but automated payment refunds are not processed. Any refund eligibility is strictly determined by the organizing club ({clubName}). Please contact event organizers directly for refund requests.
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-[var(--color-text-muted)] block">
-                    Reason for Cancellation (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={cancelReason}
-                    onChange={(e) => setCancelReason(e.target.value)}
-                    placeholder="e.g. Schedule conflict, academic exam, personal reason…"
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)]"
-                  />
-                </div>
-
-                {cancelError && (
-                  <Alert variant="error" className="text-xs">
-                    {cancelError}
-                  </Alert>
-                )}
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={cancelling}
-                onClick={() => {
-                  setShowCancelModal(false)
-                  setCancelError(null)
-                }}
-              >
-                Keep My Registration
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={cancelling}
-                isLoading={cancelling}
-                onClick={handleCancelRegistration}
-              >
-                Confirm Cancellation
-              </Button>
-            </ModalFooter>
-          </Modal>
+          />
         )}
 
         {/* ── Organizer Experience Manager Hub Modal (Phase 6) ─────────────── */}

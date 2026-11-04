@@ -12,12 +12,12 @@ import {
   sendRegistrationConfirmedEmail,
   sendApplicationSubmittedEmail,
   sendPaymentRejectedEmail,
-  sendRegistrationCancelledEmail,
   resendPassEmail,
 } from '@/lib/emails'
 import { createTeam, getLocalTeamMembers, saveLocalTeamMembers, getLocalTeams } from '@/lib/teams'
 import { broadcastStatusChange } from '@/lib/sync'
 import { generateSecureQrToken, hashQrTokenSync } from '@/lib/qrCrypto'
+import { requestRegistrationCancellation } from '@/lib/cancellations'
 
 export { resendPassEmail }
 
@@ -593,132 +593,29 @@ export async function reviewRegistrationApplication(
 }
 
 // ── Cancel Registration ──────────────────────────────────────────────────────
+// ── Cancel Registration (Redirected to Club Approval Request) ───────────────
 export async function cancelRegistration(
   registrationId: string,
   reason?: string
 ): Promise<{ success: boolean; message: string }> {
-  if (isSupabaseConfigured) {
-    try {
-      // First try enhanced RPC cancel_registration_with_policy
-      let res: any = null
-      const { data, error } = await (supabase.rpc as any)('cancel_registration_with_policy', {
-        p_registration_id: registrationId,
-        p_reason: reason || null,
-      })
+  // Direct student cancellation is strictly prohibited across FestFlow.
+  // All cancellations must be submitted as a formal request for organizer approval.
+  const reqRes = await requestRegistrationCancellation({
+    registrationId,
+    reason: (reason as any) || 'unable_to_attend',
+    explanation: reason,
+  })
 
-      if (error) {
-        // Fallback to legacy cancel_registration RPC if needed
-        const fallback = await (supabase.rpc as any)('cancel_registration', {
-          p_registration_id: registrationId,
-        })
-        if (fallback.error) {
-          return { success: false, message: fallback.error.message || error.message }
-        }
-        res = fallback.data
-      } else {
-        res = data
-      }
-
-      if (res && res.success) {
-        broadcastStatusChange({
-          type: 'registration_updated',
-          registrationId,
-        })
-      }
-      return res as { success: boolean; message: string }
-    } catch (err) {
-      return {
-        success: false,
-        message: err instanceof Error ? err.message : 'Cancellation failed.',
-      }
+  if (reqRes.success) {
+    return {
+      success: true,
+      message: 'Cancellation request submitted to the club organizer. Your ticket remains active until the club reviews and approves your request.',
     }
-  } else {
-    await new Promise((r) => setTimeout(r, 100))
-    const current = getInitialLocalRegistrations()
-    const idx = current.findIndex((r) => r.id === registrationId)
-    if (idx === -1) {
-      return { success: false, message: 'Registration not found.' }
-    }
+  }
 
-    const reg = current[idx]
-    if (reg.status === 'cancelled') {
-      return { success: false, message: 'Registration is already cancelled.' }
-    }
-
-    // 1. Gate Check: Cannot cancel if ticket has already been used for check-in
-    try {
-      const rawCheckins = localStorage.getItem('festflow_local_checkins')
-      if (rawCheckins) {
-        const checkins = JSON.parse(rawCheckins)
-        const hasCheckin = checkins.some((c: any) => c.registration_id === registrationId)
-        if (hasCheckin) {
-          return {
-            success: false,
-            message: 'Cannot cancel a pass that has already been verified at the entry gate.',
-          }
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    // 2. Policy Check: Cannot cancel if event already started
-    const eventRes = await getEventById(reg.event_id)
-    const event = eventRes.event
-    if (event) {
-      if (new Date(event.start_date) <= new Date()) {
-        return { success: false, message: 'Pass cannot be cancelled because the event has already started.' }
-      }
-
-      // 3. Cutoff Check: Cannot cancel if cutoff deadline passed
-      const cutoffHours = (event as any).cancellation_cutoff_hours
-      if (cutoffHours && cutoffHours > 0) {
-        const cutoffMs = cutoffHours * 3600000
-        const eventStartMs = new Date(event.start_date).getTime()
-        if (Date.now() >= eventStartMs - cutoffMs) {
-          return {
-            success: false,
-            message: `Cancellation deadline has passed. Registrations cannot be cancelled within ${cutoffHours} hours of event start.`,
-          }
-        }
-      }
-    }
-
-    current[idx] = {
-      ...current[idx],
-      status: 'cancelled',
-      cancelled_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-    saveLocalRegistrations(current)
-
-    broadcastStatusChange({
-      type: 'registration_updated',
-      registrationId: reg.id,
-      eventId: reg.event_id,
-    })
-
-    if (eventRes.event) {
-      const recipientEmail =
-        reg.participant_details?.email ||
-        (reg as any).student?.email ||
-        'student@campus.edu'
-      const recipientName =
-        reg.participant_details?.student_name ||
-        (reg as any).student?.display_name ||
-        'Attendee'
-
-      sendRegistrationCancelledEmail({
-        to: recipientEmail,
-        name: recipientName,
-        eventTitle: eventRes.event.title,
-        ticketCode: reg.ticket_code,
-        registrationId: reg.id,
-        eventId: reg.event_id,
-      }).catch(() => {})
-    }
-
-    return { success: true, message: 'Registration cancelled successfully. Your seat has been released.' }
+  return {
+    success: false,
+    message: reqRes.message || 'Failed to submit cancellation request.',
   }
 }
 
