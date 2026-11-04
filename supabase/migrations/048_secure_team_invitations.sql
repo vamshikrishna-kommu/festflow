@@ -278,7 +278,7 @@ DECLARE
     v_college TEXT;
     v_phone TEXT;
     v_student_id TEXT;
-    v_target_status TEXT;
+    v_target_status public.registration_status := 'confirmed'::public.registration_status;
     v_target_issued_at TIMESTAMPTZ;
     v_member_reg RECORD;
     v_member_idx INT;
@@ -536,19 +536,19 @@ BEGIN
 
     -- 12. Determine member pass status based on event & leader payment state
     IF v_event.is_free = true OR COALESCE(v_event.price, 0) <= 0 THEN
-        IF v_event.approval_type = 'manual' AND COALESCE(v_leader_reg.status, '') = 'pending_approval' THEN
-            v_target_status := 'pending_approval';
+        IF v_event.approval_type = 'manual' AND COALESCE(v_leader_reg.status::text, '') = 'pending_approval' THEN
+            v_target_status := 'pending_approval'::public.registration_status;
             v_target_issued_at := NULL;
         ELSE
-            v_target_status := 'confirmed';
+            v_target_status := 'confirmed'::public.registration_status;
             v_target_issued_at := v_now;
         END IF;
     ELSE
-        IF v_leader_reg.id IS NOT NULL AND v_leader_reg.status = 'confirmed' AND v_leader_reg.ticket_issued_at IS NOT NULL THEN
-            v_target_status := 'confirmed';
+        IF v_leader_reg.id IS NOT NULL AND v_leader_reg.status::text = 'confirmed' AND v_leader_reg.ticket_issued_at IS NOT NULL THEN
+            v_target_status := 'confirmed'::public.registration_status;
             v_target_issued_at := v_now;
         ELSE
-            v_target_status := 'pending_payment';
+            v_target_status := 'pending_payment'::public.registration_status;
             v_target_issued_at := NULL;
         END IF;
     END IF;
@@ -584,7 +584,7 @@ BEGIN
             qr_token = COALESCE(NULLIF(qr_token, ''), v_member_qr_token),
             qr_token_hash = COALESCE(qr_token_hash, v_member_qr_hash),
             participant_details = CASE WHEN p_participant_details <> '{}'::jsonb THEN p_participant_details ELSE participant_details END,
-            rejection_reason = CASE WHEN v_target_status = 'confirmed' THEN NULL ELSE rejection_reason END,
+            rejection_reason = CASE WHEN v_target_status::text = 'confirmed' THEN NULL ELSE rejection_reason END,
             updated_at = v_now
         WHERE id = v_member_reg.id
         RETURNING * INTO v_member_reg;
@@ -616,7 +616,7 @@ BEGIN
             v_team.id,
             'member',
             p_participant_details,
-            CASE WHEN v_target_status = 'confirmed' THEN 'approved' ELSE 'pending' END,
+            CASE WHEN v_target_status::text = 'confirmed' THEN 'approved' ELSE 'pending' END,
             v_now,
             v_now
         ) RETURNING * INTO v_member_reg;

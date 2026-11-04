@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Button, Badge, Alert, Card, Modal } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
+import { CollegeSearchCombobox } from '@/components/colleges/CollegeSearchCombobox'
 import {
   getTeamPreview,
   getTeamInvitationPreview,
@@ -54,6 +55,7 @@ export default function JoinTeamPage() {
   // Participant form fields
   const [studentName, setStudentName] = useState('')
   const [collegeName, setCollegeName] = useState('')
+  const [collegeId, setCollegeId] = useState<string | null>(null)
   const [phone, setPhone] = useState('')
   const [idCardNumber, setIdCardNumber] = useState('')
 
@@ -125,6 +127,7 @@ export default function JoinTeamPage() {
   useEffect(() => {
     setStudentName(profile?.display_name || user?.user_metadata?.display_name || '')
     setCollegeName(studentProfile?.college_name || user?.user_metadata?.college || '')
+    setCollegeId((studentProfile as any)?.college_id || (user?.user_metadata as any)?.college_id || null)
     setPhone(user?.user_metadata?.phone || '')
 
     if (tokenParam) {
@@ -202,6 +205,7 @@ export default function JoinTeamPage() {
     const participantDetails = {
       student_name: studentName.trim(),
       college_name: collegeName.trim() || undefined,
+      college_id: collegeId || undefined,
       phone: phone.trim() || undefined,
       id_card_number: idCardNumber.trim() || undefined,
     }
@@ -707,21 +711,28 @@ export default function JoinTeamPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-[var(--color-text-secondary)] font-medium mb-1 block">
-                          College / Institute
-                        </label>
-                        <input
-                          type="text"
-                          value={collegeName}
-                          onChange={(e) => setCollegeName(e.target.value)}
-                          placeholder="College name"
-                          disabled={hasEmailMismatch}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] disabled:opacity-50"
-                        />
-                      </div>
+                    <div>
+                      <CollegeSearchCombobox
+                        label="College / Institute"
+                        placeholder="Search verified college (e.g. Anurag, CBIT, VNR, JNTUH)..."
+                        selectedCollegeId={collegeId}
+                        selectedCollegeName={collegeName}
+                        disabled={hasEmailMismatch}
+                        required={false}
+                        onSelect={(col, rawName) => {
+                          if (col) {
+                            setCollegeId(col.id)
+                            setCollegeName(col.official_name || col.name)
+                          } else {
+                            setCollegeId(null)
+                            setCollegeName(rawName || '')
+                          }
+                        }}
+                        helperText="Search from verified Telangana higher education directory or enter custom"
+                      />
+                    </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs text-[var(--color-text-secondary)] font-medium mb-1 block">
                           Contact Phone
@@ -735,20 +746,20 @@ export default function JoinTeamPage() {
                           className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] disabled:opacity-50"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="text-xs text-[var(--color-text-secondary)] font-medium mb-1 block">
-                        Student ID / Roll Number
-                      </label>
-                      <input
-                        type="text"
-                        value={idCardNumber}
-                        onChange={(e) => setIdCardNumber(e.target.value)}
-                        placeholder="Campus ID / Roll number"
-                        disabled={hasEmailMismatch}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] disabled:opacity-50"
-                      />
+                      <div>
+                        <label className="text-xs text-[var(--color-text-secondary)] font-medium mb-1 block">
+                          Student ID / Roll Number
+                        </label>
+                        <input
+                          type="text"
+                          value={idCardNumber}
+                          onChange={(e) => setIdCardNumber(e.target.value)}
+                          placeholder="Campus ID / Roll number"
+                          disabled={hasEmailMismatch}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] disabled:opacity-50"
+                        />
+                      </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
