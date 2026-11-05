@@ -105,8 +105,24 @@ BEGIN
     ''
   );
 
-  -- Upsert leader into team_members
-  IF v_leader_email <> '' THEN
+  -- Upsert leader into team_members:
+  -- If leader already has a member record for this event (from an older team), migrate them to this team as leader!
+  IF EXISTS (
+    SELECT 1 FROM public.team_members
+    WHERE event_id = NEW.event_id AND user_id = NEW.leader_id
+  ) THEN
+    UPDATE public.team_members
+    SET team_id = NEW.id,
+        role = 'leader',
+        status = 'accepted',
+        registration_id = COALESCE(v_leader_reg.id, public.team_members.registration_id),
+        name = v_leader_name,
+        email = lower(trim(v_leader_email)),
+        college = COALESCE(NULLIF(v_leader_college, ''), public.team_members.college),
+        phone = COALESCE(NULLIF(v_leader_phone, ''), public.team_members.phone),
+        updated_at = now()
+    WHERE event_id = NEW.event_id AND user_id = NEW.leader_id;
+  ELSIF v_leader_email <> '' THEN
     INSERT INTO public.team_members (
       team_id,
       event_id,
@@ -212,7 +228,23 @@ BEGIN
       ''
     );
 
-    IF v_leader_email <> '' THEN
+    -- If leader already has a member row for this event (from an older team), move them to this team as leader!
+    IF EXISTS (
+      SELECT 1 FROM public.team_members
+      WHERE event_id = v_team.event_id AND user_id = v_team.leader_id
+    ) THEN
+      UPDATE public.team_members
+      SET team_id = v_team.id,
+          role = 'leader',
+          status = 'accepted',
+          registration_id = COALESCE(v_leader_reg.id, public.team_members.registration_id),
+          name = v_leader_name,
+          email = lower(trim(v_leader_email)),
+          college = COALESCE(NULLIF(v_leader_college, ''), public.team_members.college),
+          phone = COALESCE(NULLIF(v_leader_phone, ''), public.team_members.phone),
+          updated_at = now()
+      WHERE event_id = v_team.event_id AND user_id = v_team.leader_id;
+    ELSIF v_leader_email <> '' THEN
       INSERT INTO public.team_members (
         team_id,
         event_id,

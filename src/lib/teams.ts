@@ -193,20 +193,40 @@ export async function createTeam(params: {
 
       // Upsert leader into team_members
       try {
-        await (supabase.from('team_members') as any).upsert(
-          {
-            team_id: team.id,
-            event_id: params.eventId,
-            user_id: params.leaderId,
-            registration_id: params.registrationId || null,
-            name: params.leaderName,
-            email: params.leaderEmail.toLowerCase().trim(),
-            role: 'leader',
-            status: 'accepted',
-            joined_at: new Date().toISOString(),
-          },
-          { onConflict: 'team_id,email' }
-        )
+        const { data: existingMember } = await (supabase.from('team_members') as any)
+          .select('id')
+          .eq('event_id', params.eventId)
+          .eq('user_id', params.leaderId)
+          .maybeSingle()
+
+        if (existingMember?.id) {
+          await (supabase.from('team_members') as any)
+            .update({
+              team_id: team.id,
+              registration_id: params.registrationId || null,
+              name: params.leaderName,
+              email: params.leaderEmail.toLowerCase().trim(),
+              role: 'leader',
+              status: 'accepted',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingMember.id)
+        } else {
+          await (supabase.from('team_members') as any).upsert(
+            {
+              team_id: team.id,
+              event_id: params.eventId,
+              user_id: params.leaderId,
+              registration_id: params.registrationId || null,
+              name: params.leaderName,
+              email: params.leaderEmail.toLowerCase().trim(),
+              role: 'leader',
+              status: 'accepted',
+              joined_at: new Date().toISOString(),
+            },
+            { onConflict: 'team_id,email' }
+          )
+        }
       } catch (memErr) {
         console.warn('[FestFlow Teams] Leader team_members upsert notice:', memErr)
       }

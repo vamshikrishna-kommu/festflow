@@ -288,40 +288,52 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM public.team_members WHERE team_id = v_team.id AND (user_id = v_team.leader_id OR role = 'leader')
     ) THEN
-        INSERT INTO public.team_members (
-            team_id,
-            event_id,
-            user_id,
-            registration_id,
-            name,
-            email,
-            role,
-            status,
-            college,
-            phone,
-            joined_at,
-            created_at,
-            updated_at
-        )
-        SELECT
-            v_team.id,
-            v_team.event_id,
-            v_team.leader_id,
-            v_leader_reg.id,
-            COALESCE(v_leader_reg.participant_details->>'student_name', p.display_name, 'Team Leader'),
-            COALESCE(lower(trim(v_leader_reg.participant_details->>'email')), lower(trim(p.email)), ''),
-            'leader',
-            'accepted',
-            COALESCE(v_leader_reg.participant_details->>'college_name', sp.college_name, ''),
-            COALESCE(v_leader_reg.participant_details->>'phone', ''),
-            v_team.created_at,
-            v_team.created_at,
-            v_team.created_at
-        FROM public.profiles p
-        LEFT JOIN public.student_profiles sp ON sp.profile_id = p.id
-        WHERE p.id = v_team.leader_id
-        ON CONFLICT (team_id, email) DO UPDATE
-        SET role = 'leader', status = 'accepted';
+        IF EXISTS (
+            SELECT 1 FROM public.team_members WHERE event_id = v_team.event_id AND user_id = v_team.leader_id
+        ) THEN
+            UPDATE public.team_members
+            SET team_id = v_team.id,
+                role = 'leader',
+                status = 'accepted',
+                registration_id = COALESCE(v_leader_reg.id, public.team_members.registration_id),
+                updated_at = v_now
+            WHERE event_id = v_team.event_id AND user_id = v_team.leader_id;
+        ELSE
+            INSERT INTO public.team_members (
+                team_id,
+                event_id,
+                user_id,
+                registration_id,
+                name,
+                email,
+                role,
+                status,
+                college,
+                phone,
+                joined_at,
+                created_at,
+                updated_at
+            )
+            SELECT
+                v_team.id,
+                v_team.event_id,
+                v_team.leader_id,
+                v_leader_reg.id,
+                COALESCE(v_leader_reg.participant_details->>'student_name', p.display_name, 'Team Leader'),
+                COALESCE(lower(trim(v_leader_reg.participant_details->>'email')), lower(trim(p.email)), ''),
+                'leader',
+                'accepted',
+                COALESCE(v_leader_reg.participant_details->>'college_name', sp.college_name, ''),
+                COALESCE(v_leader_reg.participant_details->>'phone', ''),
+                v_team.created_at,
+                v_team.created_at,
+                v_team.created_at
+            FROM public.profiles p
+            LEFT JOIN public.student_profiles sp ON sp.profile_id = p.id
+            WHERE p.id = v_team.leader_id
+            ON CONFLICT (team_id, email) DO UPDATE
+            SET role = 'leader', status = 'accepted';
+        END IF;
     END IF;
 
     -- 12. Determine member pass status based on event & leader payment state
