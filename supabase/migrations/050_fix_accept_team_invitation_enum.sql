@@ -312,12 +312,13 @@ BEGIN
             COALESCE(lower(trim(v_leader_reg.participant_details->>'email')), lower(trim(p.email)), ''),
             'leader',
             'accepted',
-            COALESCE(v_leader_reg.participant_details->>'college_name', p.college, ''),
-            COALESCE(v_leader_reg.participant_details->>'phone', p.phone, ''),
+            COALESCE(v_leader_reg.participant_details->>'college_name', sp.college_name, ''),
+            COALESCE(v_leader_reg.participant_details->>'phone', ''),
             v_team.created_at,
             v_team.created_at,
             v_team.created_at
         FROM public.profiles p
+        LEFT JOIN public.student_profiles sp ON sp.profile_id = p.id
         WHERE p.id = v_team.leader_id
         ON CONFLICT (team_id, email) DO UPDATE
         SET role = 'leader', status = 'accepted';

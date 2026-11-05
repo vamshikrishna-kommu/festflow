@@ -56,6 +56,7 @@ SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
   v_leader_profile RECORD;
+  v_student_profile RECORD;
   v_leader_reg RECORD;
   v_leader_name TEXT;
   v_leader_email TEXT;
@@ -64,6 +65,7 @@ DECLARE
 BEGIN
   -- Fetch leader profile
   SELECT * INTO v_leader_profile FROM public.profiles WHERE id = NEW.leader_id;
+  SELECT * INTO v_student_profile FROM public.student_profiles WHERE profile_id = NEW.leader_id;
   
   -- Fetch leader registration if linked or by event
   IF NEW.registration_id IS NOT NULL THEN
@@ -95,12 +97,11 @@ BEGIN
   );
   v_leader_college := COALESCE(
     v_leader_reg.participant_details->>'college_name',
-    v_leader_profile.college,
+    v_student_profile.college_name,
     ''
   );
   v_leader_phone := COALESCE(
     v_leader_reg.participant_details->>'phone',
-    v_leader_profile.phone,
     ''
   );
 
@@ -161,6 +162,7 @@ DO $$
 DECLARE
   v_team RECORD;
   v_leader_profile RECORD;
+  v_student_profile RECORD;
   v_leader_reg RECORD;
   v_leader_name TEXT;
   v_leader_email TEXT;
@@ -170,6 +172,7 @@ BEGIN
   FOR v_team IN SELECT * FROM public.teams LOOP
     -- Fetch leader profile
     SELECT * INTO v_leader_profile FROM public.profiles WHERE id = v_team.leader_id;
+    SELECT * INTO v_student_profile FROM public.student_profiles WHERE profile_id = v_team.leader_id;
 
     -- Fetch leader registration
     IF v_team.registration_id IS NOT NULL THEN
@@ -201,12 +204,11 @@ BEGIN
     );
     v_leader_college := COALESCE(
       v_leader_reg.participant_details->>'college_name',
-      v_leader_profile.college,
+      v_student_profile.college_name,
       ''
     );
     v_leader_phone := COALESCE(
       v_leader_reg.participant_details->>'phone',
-      v_leader_profile.phone,
       ''
     );
 
@@ -252,3 +254,4 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
