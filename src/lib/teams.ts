@@ -176,18 +176,40 @@ export async function createTeam(params: {
 
       const team = teamData as TeamRecord
 
-      // Insert leader into team_members
-      await (supabase.from('team_members') as any).insert({
-        team_id: team.id,
-        event_id: params.eventId,
-        user_id: params.leaderId,
-        registration_id: params.registrationId || null,
-        name: params.leaderName,
-        email: params.leaderEmail.toLowerCase().trim(),
-        role: 'leader',
-        status: 'accepted',
-        joined_at: new Date().toISOString(),
-      })
+      // Bind leader's registration record with team_id
+      if (params.registrationId) {
+        try {
+          await (supabase.from('registrations') as any)
+            .update({
+              team_id: team.id,
+              team_name: cleanTeamName,
+              team_role: 'leader',
+            })
+            .eq('id', params.registrationId)
+        } catch {
+          // ignore
+        }
+      }
+
+      // Upsert leader into team_members
+      try {
+        await (supabase.from('team_members') as any).upsert(
+          {
+            team_id: team.id,
+            event_id: params.eventId,
+            user_id: params.leaderId,
+            registration_id: params.registrationId || null,
+            name: params.leaderName,
+            email: params.leaderEmail.toLowerCase().trim(),
+            role: 'leader',
+            status: 'accepted',
+            joined_at: new Date().toISOString(),
+          },
+          { onConflict: 'team_id,email' }
+        )
+      } catch (memErr) {
+        console.warn('[FestFlow Teams] Leader team_members upsert notice:', memErr)
+      }
 
       // Add initial pending members if provided
       if (params.initialMembers && params.initialMembers.length > 0) {
@@ -1835,88 +1857,93 @@ export async function getTeamDetails(
         // Fallback to registrations reconstruction below
       }
 
-      // If team_members is empty or errored (e.g. 500 RLS recursion),
-      // recover squad roster from registrations & profiles!
-      if (memberList.length === 0) {
+      // 2. Fetch all confirmed registrations linked to this team to ensure complete roster
+      try {
+        const { data: teamRegs } = await (supabase.from('registrations') as any)
+          .select('id, student_id, participant_details, status, created_at')
+          .eq('team_id', teamId)
+          .eq('status', 'confirmed')
+
+        if (teamRegs && teamRegs.length > 0) {
+          for (const reg of teamRegs) {
+            const email = reg.participant_details?.email?.toLowerCase().trim()
+            const sId = reg.student_id
+            const isAlreadyPresent = memberList.some(
+              (m) => (sId && m.user_id === sId) || (email && m.email?.toLowerCase().trim() === email)
+            )
+            if (!isAlreadyPresent) {
+              const isLeaderUser = sId === teamRec.leader_id
+              memberList.push({
+                id: reg.id,
+                team_id: teamId,
+                event_id: teamRec.event_id,
+                user_id: sId,
+                name: reg.participant_details?.student_name || (isLeaderUser ? 'Team Leader' : 'Confirmed Member'),
+                email: email || '',
+                role: isLeaderUser ? 'leader' : 'member',
+                status: 'accepted',
+                college: reg.participant_details?.college_name || '',
+                phone: reg.participant_details?.phone || '',
+                joined_at: reg.created_at,
+                created_at: reg.created_at,
+              })
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // 3. Guarantee that the team leader is ALWAYS present in memberList
+      const leaderInList = memberList.some((m) => m.role === 'leader' || m.user_id === teamRec.leader_id)
+      if (!leaderInList && teamRec.leader_id) {
+        let leaderName = 'Team Leader'
+        let leaderEmail = ''
+        let leaderCollege = ''
+        let leaderRegId = null
+
         try {
-          const { data: regList } = await (supabase.from('registrations') as any)
-            .select('id, user_id, student_name, student_email, student_college, student_phone, student_id_card, team_role, team_members, created_at')
-            .eq('team_id', teamId)
+          // Fetch leader registration
+          const { data: leaderReg } = await (supabase.from('registrations') as any)
+            .select('id, participant_details, ticket_code')
+            .eq('event_id', teamRec.event_id)
+            .eq('student_id', teamRec.leader_id)
+            .maybeSingle()
 
-          const leaderReg = regList?.find((r: any) => r.team_role === 'leader' || r.user_id === teamRec.leader_id)
+          if (leaderReg?.participant_details) {
+            leaderRegId = leaderReg.id
+            leaderName = leaderReg.participant_details.student_name || leaderName
+            leaderEmail = leaderReg.participant_details.email || leaderEmail
+            leaderCollege = leaderReg.participant_details.college_name || leaderCollege
+          }
 
-          let leaderName = leaderReg?.student_name
-          let leaderEmail = leaderReg?.student_email
-          let leaderCollege = leaderReg?.student_college
-
-          if (!leaderName && teamRec.leader_id) {
+          if (leaderName === 'Team Leader' || !leaderEmail) {
             const { data: leaderProfile } = await (supabase.from('profiles') as any)
               .select('display_name, email, college')
               .eq('id', teamRec.leader_id)
               .maybeSingle()
-            leaderName = leaderProfile?.display_name || 'Team Leader'
-            leaderEmail = leaderProfile?.email || ''
-            leaderCollege = leaderProfile?.college || ''
+            if (leaderProfile) {
+              leaderName = leaderProfile.display_name || leaderName
+              leaderEmail = leaderProfile.email || leaderEmail
+              leaderCollege = leaderProfile.college || leaderCollege
+            }
           }
 
-          // Always add the confirmed team leader
-          memberList.push({
-            id: leaderReg?.id || `leader_${teamRec.id}`,
+          memberList.unshift({
+            id: leaderRegId || `leader_${teamRec.id}`,
             team_id: teamId,
             event_id: teamRec.event_id,
             user_id: teamRec.leader_id,
-            name: leaderName || 'Team Leader',
-            email: leaderEmail || '',
+            name: leaderName,
+            email: leaderEmail,
             role: 'leader',
             status: 'accepted',
-            college: leaderCollege || '',
+            college: leaderCollege,
             joined_at: teamRec.created_at || new Date().toISOString(),
             created_at: teamRec.created_at || new Date().toISOString(),
           })
-
-          // Add any member registrations
-          if (regList) {
-            for (const reg of regList) {
-              if (reg.user_id !== teamRec.leader_id && reg.team_role !== 'leader') {
-                memberList.push({
-                  id: reg.id,
-                  team_id: teamId,
-                  event_id: teamRec.event_id,
-                  user_id: reg.user_id,
-                  name: reg.student_name,
-                  email: reg.student_email,
-                  role: 'member',
-                  status: 'accepted',
-                  college: reg.student_college,
-                  joined_at: reg.created_at,
-                  created_at: reg.created_at,
-                })
-              }
-            }
-          }
-
-          // Add any team_members array items from leader's registration JSON
-          if (leaderReg?.team_members && Array.isArray(leaderReg.team_members)) {
-            for (const m of leaderReg.team_members) {
-              if (m.email && !memberList.some((existing) => existing.email?.toLowerCase() === m.email?.toLowerCase())) {
-                memberList.push({
-                  id: `json_${m.email}`,
-                  team_id: teamId,
-                  event_id: teamRec.event_id,
-                  user_id: m.user_id || null,
-                  name: m.name || m.email.split('@')[0],
-                  email: m.email,
-                  role: 'member',
-                  status: m.status || 'accepted',
-                  college: m.college || '',
-                  joined_at: m.joined_at || new Date().toISOString(),
-                  created_at: new Date().toISOString(),
-                })
-              }
-            }
-          }
-        } catch (recoverErr) {
-          console.warn('[FestFlow Teams] Roster recovery fallback failed:', recoverErr)
+        } catch {
+          // ignore
         }
       }
 

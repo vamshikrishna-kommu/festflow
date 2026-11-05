@@ -284,6 +284,45 @@ BEGIN
         ORDER BY created_at DESC LIMIT 1;
     END IF;
 
+    -- Ensure leader is present in team_members
+    IF NOT EXISTS (
+        SELECT 1 FROM public.team_members WHERE team_id = v_team.id AND (user_id = v_team.leader_id OR role = 'leader')
+    ) THEN
+        INSERT INTO public.team_members (
+            team_id,
+            event_id,
+            user_id,
+            registration_id,
+            name,
+            email,
+            role,
+            status,
+            college,
+            phone,
+            joined_at,
+            created_at,
+            updated_at
+        )
+        SELECT
+            v_team.id,
+            v_team.event_id,
+            v_team.leader_id,
+            v_leader_reg.id,
+            COALESCE(v_leader_reg.participant_details->>'student_name', p.display_name, 'Team Leader'),
+            COALESCE(lower(trim(v_leader_reg.participant_details->>'email')), lower(trim(p.email)), ''),
+            'leader',
+            'accepted',
+            COALESCE(v_leader_reg.participant_details->>'college_name', p.college, ''),
+            COALESCE(v_leader_reg.participant_details->>'phone', p.phone, ''),
+            v_team.created_at,
+            v_team.created_at,
+            v_team.created_at
+        FROM public.profiles p
+        WHERE p.id = v_team.leader_id
+        ON CONFLICT (team_id, email) DO UPDATE
+        SET role = 'leader', status = 'accepted';
+    END IF;
+
     -- 12. Determine member pass status based on event & leader payment state
     -- Uses explicit enum type and text cast to prevent enum coercion errors
     IF v_event.is_free = true OR COALESCE(v_event.price, 0) <= 0 THEN
@@ -443,8 +482,12 @@ BEGIN
         ) RETURNING * INTO v_member_rec;
     END IF;
 
-    -- 16. Update team status if full
-    IF v_accepted_count + 1 >= v_max_size THEN
+    -- 16. Recalculate accepted count and update team status if full
+    SELECT count(*) INTO v_accepted_count
+    FROM public.team_members
+    WHERE team_id = v_team.id AND status = 'accepted';
+
+    IF v_accepted_count >= v_max_size THEN
         UPDATE public.teams SET status = 'complete', updated_at = v_now WHERE id = v_team.id;
     END IF;
 
@@ -456,7 +499,7 @@ BEGIN
         'registration_id', v_member_reg.id,
         'ticket_code', v_member_reg.ticket_code,
         'status', v_target_status,
-        'member_count', v_accepted_count + 1,
+        'member_count', v_accepted_count,
         'max_size', v_max_size
     );
 END;
