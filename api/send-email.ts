@@ -222,8 +222,15 @@ function generateEmailContent(
 export default async function handler(req: any, res?: any): Promise<Response | void> {
   const isNode = res && typeof res.status === 'function'
 
+  // Restrict CORS to festflow.online only — prevents open email relay abuse
+  const allowedOrigins = ['https://festflow.online', 'https://www.festflow.online']
+  const reqOrigin = (typeof req.headers?.get === 'function'
+    ? req.headers.get('origin')
+    : req.headers?.origin) || ''
+  const origin = allowedOrigins.includes(reqOrigin) ? reqOrigin : allowedOrigins[0]
+
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
@@ -231,7 +238,7 @@ export default async function handler(req: any, res?: any): Promise<Response | v
 
   const sendResponse = (status: number, data: any) => {
     if (isNode) {
-      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Access-Control-Allow-Origin', origin)
       res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type')
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
       res.setHeader('Content-Type', 'application/json')
@@ -245,7 +252,7 @@ export default async function handler(req: any, res?: any): Promise<Response | v
 
   if (req.method === 'OPTIONS') {
     if (isNode) {
-      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Access-Control-Allow-Origin', origin)
       res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type')
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
       return res.status(200).send('ok')

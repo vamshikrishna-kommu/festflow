@@ -24,13 +24,10 @@ export default defineConfig({
           if (id.includes('node_modules/exceljs')) {
             return 'vendor-excel'
           }
-          if (id.includes('node_modules/html5-qrcode')) {
-            return 'vendor-qrcode'
-          }
+          // html5-qrcode is now dynamically imported in QrCameraScanner.tsx
+          // — do NOT force it into a manual chunk so it lazy-loads on demand.
           if (
-            id.includes('node_modules/motion') ||
-            id.includes('node_modules/@gsap') ||
-            id.includes('node_modules/gsap')
+            id.includes('node_modules/motion')
           ) {
             return 'vendor-animations'
           }

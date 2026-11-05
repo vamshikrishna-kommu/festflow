@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+// html5-qrcode is loaded dynamically to avoid bundling 368 KB on every page.
+// Types only are imported at build time.
+import type { Html5Qrcode as Html5QrcodeType } from 'html5-qrcode'
+
+/** Dynamically load html5-qrcode and return the named exports. */
+async function loadHtml5Qrcode() {
+  const mod = await import('html5-qrcode')
+  return { Html5Qrcode: mod.Html5Qrcode, Html5QrcodeSupportedFormats: mod.Html5QrcodeSupportedFormats }
+}
+
 import {
   Camera,
   CameraOff,
@@ -33,7 +42,7 @@ export function QrCameraScanner({
   const [hasTorch, setHasTorch] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
 
-  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const scannerRef = useRef<Html5QrcodeType | null>(null)
   const isProcessingRef = useRef(isProcessing)
   isProcessingRef.current = isProcessing
 
@@ -50,7 +59,8 @@ export function QrCameraScanner({
         return
       }
 
-      const devices = await Html5Qrcode.getCameras()
+      const { Html5Qrcode: H } = await loadHtml5Qrcode()
+      const devices = await H.getCameras()
       if (devices && devices.length > 0) {
         setCameras(devices)
         // Prefer rear camera on mobile if detected in label
@@ -122,8 +132,9 @@ export function QrCameraScanner({
       const targetId = cameraIdToUse || selectedCameraId
 
       if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode('festflow-qr-reader', {
-          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        const { Html5Qrcode: H, Html5QrcodeSupportedFormats: Formats } = await loadHtml5Qrcode()
+        scannerRef.current = new H('festflow-qr-reader', {
+          formatsToSupport: [Formats.QR_CODE],
           verbose: false,
         })
       }

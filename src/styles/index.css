@@ -1,5 +1,8 @@
-/* ─── Google Fonts ──────────────────────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap");
+/* ─── Google Fonts ───────────────────────────────────────────────────────
+   NOTE: Fonts are loaded asynchronously via index.html (preconnect + media="print" trick).
+   The @import below is intentionally REMOVED to prevent render-blocking CSS waterfall.
+   Do NOT re-add an @import url(fonts.googleapis.com/...) here.
+   ─────────────────────────────────────────────────────────────────────── */
 
 @import "tailwindcss";
 
