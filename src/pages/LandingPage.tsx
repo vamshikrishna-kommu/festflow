@@ -21,7 +21,7 @@ import { EventGrid } from '@/components/sections/EventGrid'
 import { Button, EmptyState, KineticHeading } from '@/components/ui'
 import { SEOHead } from '@/components/seo/SEOHead'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
+import { listPublishedEvents, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import type { Event as UiEvent } from '@/types'
 
 const CLUB_COMMUNITIES = [
@@ -332,7 +332,10 @@ export default function LandingPage() {
     listPublishedEvents({ limit: 6 }).then((res) => {
       if (!mounted) return
       setLoading(false)
-      setEvents(res.events?.length ? res.events.map(mapRecordToUiEvent) : [])
+      const activeEvents = (res.events || [])
+        .filter((e) => !isEventCompleted(e))
+        .map(mapRecordToUiEvent)
+      setEvents(activeEvents)
     })
     return () => {
       mounted = false

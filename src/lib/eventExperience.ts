@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { isEventCompleted } from '@/lib/events'
 import type {
   EventTicketTier,
   EventScheduleItem,
@@ -756,28 +757,33 @@ export async function getRelatedEvents(
 ): Promise<RelatedEventSummary[]> {
   if (isSupabaseConfigured) {
     try {
+      const nowIso = new Date().toISOString()
       const { data, error } = await db.from('events')
-        .select('id, slug, title, category, poster_url, cover_url, start_date, venue_name, is_free, price, participation_type')
+        .select('id, slug, title, category, poster_url, cover_url, start_date, end_date, status, venue_name, is_free, price, participation_type')
         .eq('status', 'published')
         .neq('id', currentEventId)
         .eq('category', category)
+        .or(`start_date.gte.${nowIso},end_date.gte.${nowIso}`)
         .order('start_date', { ascending: true })
         .limit(limit)
 
       if (!error && Array.isArray(data) && data.length > 0) {
-        return data as RelatedEventSummary[]
+        const filtered = data.filter((e: any) => !isEventCompleted(e))
+        if (filtered.length > 0) return filtered as RelatedEventSummary[]
       }
 
       // If not enough events in same category, query general upcoming events
       const { data: generalData } = await db.from('events')
-        .select('id, slug, title, category, poster_url, cover_url, start_date, venue_name, is_free, price, participation_type')
+        .select('id, slug, title, category, poster_url, cover_url, start_date, end_date, status, venue_name, is_free, price, participation_type')
         .eq('status', 'published')
         .neq('id', currentEventId)
+        .or(`start_date.gte.${nowIso},end_date.gte.${nowIso}`)
         .order('start_date', { ascending: true })
         .limit(limit)
 
       if (Array.isArray(generalData) && generalData.length > 0) {
-        return generalData as RelatedEventSummary[]
+        const filteredGeneral = generalData.filter((e: any) => !isEventCompleted(e))
+        return filteredGeneral as RelatedEventSummary[]
       }
     } catch {
       // fallback

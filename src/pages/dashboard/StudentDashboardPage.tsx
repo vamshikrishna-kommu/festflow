@@ -43,7 +43,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Link, useSearchParams, useNavigate } from 'react-router'
 import { fadeIn, staggerContainer, metricItem } from '@/lib/animations'
 import { getStudentRegistrations } from '@/lib/registrations'
-import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
+import { listPublishedEvents, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import { getSmartRecommendations, type RecommendedEvent } from '@/lib/recommendations'
 import { calculateTrendingEvents, type TrendingEvent } from '@/lib/trending'
 import { getStudentWishlistEvents, getStudentWishlistIds } from '@/lib/wishlist'
@@ -131,7 +131,11 @@ export default function StudentDashboardPage() {
         setRegistrations(regRes.registrations)
       }
       if (!eventsRes.error && eventsRes.events) {
-        setPublishedEvents(eventsRes.events.map(mapRecordToUiEvent))
+        setPublishedEvents(
+          eventsRes.events
+            .filter((e) => !isEventCompleted(e))
+            .map(mapRecordToUiEvent)
+        )
       }
       setWishlistEvents(wEvents)
       setWishlistIds(wIds)

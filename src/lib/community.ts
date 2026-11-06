@@ -7,7 +7,7 @@ import type {
   StudentBadgeRecord,
 } from '@/types'
 import { getStudentBadges } from '@/lib/badges'
-import { listClubEvents, listPublishedEvents } from '@/lib/events'
+import { listClubEvents, listPublishedEvents, isEventCompleted } from '@/lib/events'
 
 const LOCAL_STORAGE_FOLLOWERS = 'festflow_local_club_followers'
 const LOCAL_STORAGE_ANNOUNCEMENTS = 'festflow_local_club_announcements'
@@ -520,7 +520,8 @@ export async function getCampusActivityFeed(options: {
     // 1. Fetch Events
     if (filter === 'all' || filter === 'events') {
       const eventsRes = await listPublishedEvents({ limit: 10 })
-      for (const ev of eventsRes.events || []) {
+      const activeEvents = (eventsRes.events || []).filter((e) => !isEventCompleted(e))
+      for (const ev of activeEvents) {
         feedItems.push({
           id: `feed_evt_${ev.id}`,
           type: 'event',

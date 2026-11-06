@@ -36,7 +36,7 @@ import {
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter } from '@/components/ui'
-import { getEventBySlug, CATEGORY_POSTERS, mapRecordToUiEvent } from '@/lib/events'
+import { getEventBySlug, CATEGORY_POSTERS, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import { checkStudentRegistrationForEvent, registerForEvent } from '@/lib/registrations'
 import { RequestCancellationModal } from '@/components/registration/RequestCancellationModal'
 import { subscribeToStatusChanges } from '@/lib/sync'
@@ -425,7 +425,7 @@ export default function EventDetailPage() {
   const isCancelled = event.status === 'cancelled'
   const isDraft = event.status === 'draft'
   const isRegClosedStatus = event.status === 'registration_closed'
-  const isCompleted = event.status === 'completed'
+  const isCompleted = event.status === 'completed' || isEventCompleted(event)
 
   const canRegister = !isCancelled && !isDraft && !isRegClosedStatus && !isCompleted && isRegOpenYet && !isRegDeadlinePassed && !isStarted
 

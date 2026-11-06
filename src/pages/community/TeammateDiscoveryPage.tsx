@@ -27,7 +27,7 @@ import {
   withdrawTeammateRequest,
   getStudentTeammateRequests,
 } from '@/lib/teammates'
-import { listPublishedEvents } from '@/lib/events'
+import { listPublishedEvents, isEventCompleted } from '@/lib/events'
 
 const POPULAR_SKILLS = [
   'React',
@@ -90,7 +90,8 @@ export default function TeammateDiscoveryPage() {
   useEffect(() => {
     async function loadInitialContext() {
       const eventsRes = await listPublishedEvents({ limit: 15 })
-      setAvailableEvents(eventsRes.events || [])
+      const activeEvents = (eventsRes.events || []).filter((e) => !isEventCompleted(e))
+      setAvailableEvents(activeEvents)
 
       if (studentId) {
         const [myProfileRes, requestsRes] = await Promise.all([

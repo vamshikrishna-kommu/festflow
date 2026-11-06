@@ -32,6 +32,44 @@ export function generateSlug(title: string): string {
   return `${base || 'event'}-${randomSuffix}`
 }
 
+/**
+ * Helper to determine if an event has concluded or has been marked completed/cancelled.
+ * An event is completed if:
+ * 1. Its status is explicitly 'completed' or 'cancelled'.
+ * 2. Its end_date has elapsed (is before current timestamp).
+ * 3. Or, if no end_date is specified, its start_date has elapsed.
+ */
+export function isEventCompleted(event: {
+  status?: string | null
+  end_date?: string | null
+  start_date?: string | null
+  startDate?: string | null
+  endDate?: string | null
+}): boolean {
+  if (event.status === 'completed' || event.status === 'cancelled') {
+    return true
+  }
+
+  const now = Date.now()
+  const endIso = event.end_date || event.endDate
+  if (endIso) {
+    const endMs = new Date(endIso).getTime()
+    if (!isNaN(endMs) && endMs < now) {
+      return true
+    }
+  } else {
+    const startIso = event.start_date || event.startDate
+    if (startIso) {
+      const startMs = new Date(startIso).getTime()
+      if (!isNaN(startMs) && startMs < now) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 // ── Local Storage Helper for Offline / Fallback ──────────────────────────────
 function getInitialLocalEvents(): EventRecord[] {
   try {
@@ -476,6 +514,7 @@ export async function listPublishedEvents(params?: {
   search?: string
   limit?: number
   offset?: number
+  includeCompleted?: boolean
 }): Promise<{ events: EventWithClub[]; count: number; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
@@ -485,6 +524,12 @@ export async function listPublishedEvents(params?: {
           .select(selectClause, { count: 'exact' })
           .eq('status', 'published')
           .order('start_date', { ascending: true })
+
+        // Unless explicitly requested, exclude events whose date has passed
+        if (!params?.includeCompleted) {
+          const nowIso = new Date().toISOString()
+          q = q.or(`start_date.gte.${nowIso},end_date.gte.${nowIso}`)
+        }
 
         if (params?.category && params.category !== 'all') {
           q = q.eq('category', params.category)
@@ -531,7 +576,12 @@ export async function listPublishedEvents(params?: {
         return { events: [], count: 0, error: error.message }
       }
 
-      const rawEvents = (data as unknown as Record<string, unknown>[]) || []
+      let rawEvents = (data as unknown as Record<string, unknown>[]) || []
+
+      // Defensive filtering: Ensure no concluded or completed events remain
+      if (!params?.includeCompleted) {
+        rawEvents = rawEvents.filter((row) => !isEventCompleted(row as any))
+      }
 
       // If any clubs don't have club_profile populated, batch fetch them directly by profile_id
       const missingClubIds = Array.from(
@@ -584,14 +634,18 @@ export async function listPublishedEvents(params?: {
         }
       })
 
-      return { events: mapped, count: count || 0, error: null }
+      return { events: mapped, count: count || mapped.length, error: null }
     } catch (err) {
       return { events: [], count: 0, error: err instanceof Error ? err.message : 'Failed to query events' }
     }
   } else {
     // Local simulation search & filter
     const current = getInitialLocalEvents()
-    let filtered = current.filter((e) => e.status === 'published')
+    let filtered = current.filter((e) => {
+      if (e.status !== 'published') return false
+      if (!params?.includeCompleted && isEventCompleted(e)) return false
+      return true
+    })
 
     if (params?.category && params.category !== 'all') {
       filtered = filtered.filter((e) => e.category === params.category)

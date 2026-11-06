@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { Button, Badge, KineticHeading } from '@/components/ui'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
+import { listPublishedEvents, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import type { Event as UiEvent } from '@/types'
 
 export function HorizontalEventJourney() {
@@ -26,7 +26,10 @@ export function HorizontalEventJourney() {
     listPublishedEvents({ limit: 8 }).then((res) => {
       if (!mounted) return
       setLoading(false)
-      setEvents(res.events?.length ? res.events.map(mapRecordToUiEvent) : [])
+      const activeEvents = (res.events || [])
+        .filter((e) => !isEventCompleted(e))
+        .map(mapRecordToUiEvent)
+      setEvents(activeEvents)
     })
     return () => {
       mounted = false

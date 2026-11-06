@@ -19,7 +19,7 @@ import { staggerContainer, fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EVENT_CATEGORIES, type CategoryFilter } from '@/lib/mock-data'
-import { listPublishedEvents, mapRecordToUiEvent } from '@/lib/events'
+import { listPublishedEvents, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import type { Event } from '@/types'
 
 const PAGE_SIZE = 12
@@ -84,9 +84,12 @@ export default function DiscoverPage() {
     fetchEvents(true, next)
   }
 
-  // Client-side refinement for participation type and pricing filter
+  // Client-side refinement for completed status, participation type and pricing filter
   const displayedEvents = useMemo(() => {
     return rawEvents.filter((evt) => {
+      if (isEventCompleted(evt)) {
+        return false
+      }
       if (participationFilter === 'individual' && evt.participationType !== 'individual') {
         return false
       }
@@ -339,7 +342,7 @@ export default function DiscoverPage() {
         {/* ── Campus Radar Map View ──────────────────────────────────────── */}
         {viewMode === 'map' && (
           <div className="mb-8">
-            <EventDiscoveryMap events={rawEvents} />
+            <EventDiscoveryMap events={displayedEvents} />
           </div>
         )}
 
