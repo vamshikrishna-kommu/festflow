@@ -611,7 +611,7 @@ export default function ClubPaymentsPage() {
                           size="sm"
                           onClick={() => setApprovingSub(sub)}
                           leftIcon={<CheckCircle2 size={14} />}
-                          className="flex-1 lg:flex-initial justify-center bg-emerald-600 hover:bg-emerald-500 border-none text-white min-h-[40px]"
+                          className="flex-1 lg:flex-initial justify-center bg-emerald-600 hover:bg-emerald-500 border-none text-white min-h-[44px]"
                         >
                           Approve
                         </Button>
@@ -624,7 +624,7 @@ export default function ClubPaymentsPage() {
                             setRejectError(null)
                           }}
                           leftIcon={<XCircle size={14} />}
-                          className="flex-1 lg:flex-initial justify-center text-rose-400 hover:text-rose-300 hover:border-rose-500/30 min-h-[40px]"
+                          className="flex-1 lg:flex-initial justify-center text-rose-400 hover:text-rose-300 hover:border-rose-500/30 min-h-[44px]"
                         >
                           Reject
                         </Button>

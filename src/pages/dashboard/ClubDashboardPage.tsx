@@ -23,6 +23,7 @@ import {
   Layers,
   ShieldCheck,
   Settings,
+  ChevronDown,
 } from 'lucide-react'
 import { Button, Badge, EmptyState } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
@@ -74,6 +75,7 @@ export default function ClubDashboardPage() {
   // Filter States
   const [dateRange, setDateRange] = useState<DateRangeFilter>('all')
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all')
+  const [showAllMetrics, setShowAllMetrics] = useState(false)
 
   // Modals
   const [couponsModalOpen, setCouponsModalOpen] = useState(false)
@@ -390,9 +392,9 @@ export default function ClubDashboardPage() {
 
             {/* Primary Action Button */}
             {(!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
-              <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
-                <Link to="/club/events/new" className="shrink-0">
-                  <Button variant="primary" size="sm" leftIcon={<Plus size={15} />} className="whitespace-nowrap shadow-lg shadow-[#18CFFC]/20">
+              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <Link to="/club/events/new" className="w-full sm:w-auto shrink-0">
+                  <Button variant="primary" size="sm" leftIcon={<Plus size={15} />} className="w-full sm:w-auto min-h-[44px] justify-center whitespace-nowrap shadow-lg shadow-[#18CFFC]/20 font-bold">
                     Create Event
                   </Button>
                 </Link>
@@ -400,8 +402,54 @@ export default function ClubDashboardPage() {
             )}
           </div>
 
-          {/* Row 2: Comprehensive Action Toolbar with Responsive Wrapping */}
-          <div className="relative flex flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-white/[0.08] w-full">
+          {/* Mobile Quick Actions Grid (sm:hidden) */}
+          <div className="sm:hidden grid grid-cols-2 gap-2 pt-3 border-t border-white/[0.08]">
+            {(!activeClubRole || hasPermission(activeClubRole, 'review_payments')) && (
+              <Link to="/club/payments" className="w-full">
+                <Button
+                  variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
+                  size="sm"
+                  leftIcon={<CreditCard size={15} />}
+                  className="w-full min-h-[44px] justify-center text-xs"
+                >
+                  Payments {pendingPaymentsCount > 0 && `(${pendingPaymentsCount})`}
+                </Button>
+              </Link>
+            )}
+            <Link to="/club/events" className="w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Calendar size={15} />}
+                className="w-full min-h-[44px] justify-center text-xs"
+              >
+                Events ({publishedCount})
+              </Button>
+            </Link>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCouponsModalOpen(true)}
+              leftIcon={<Tag size={14} className="text-amber-400" />}
+              className="w-full min-h-[44px] justify-center text-xs"
+            >
+              Coupons
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setBrandingModalOpen(true)}
+              leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
+              className="w-full min-h-[44px] justify-center text-xs"
+            >
+              Brand & Profile
+            </Button>
+          </div>
+
+          {/* Row 2: Comprehensive Action Toolbar with Responsive Wrapping (Desktop) */}
+          <div className="hidden sm:flex relative flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-white/[0.08] w-full">
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               {(!activeClubRole || hasPermission(activeClubRole, 'review_payments')) && (
                 <Link to="/club/payments" className="shrink-0">
@@ -711,16 +759,28 @@ export default function ClubDashboardPage() {
             )
 
             return stat.link ? (
-              <Link to={stat.link} key={i} className="block h-full">
+              <Link to={stat.link} key={i} className={`${!showAllMetrics && i >= 4 ? 'hidden sm:block' : 'block'} h-full`}>
                 {cardContent}
               </Link>
             ) : (
-              <div key={i} className="h-full">
+              <div key={i} className={`${!showAllMetrics && i >= 4 ? 'hidden sm:block' : 'block'} h-full`}>
                 {cardContent}
               </div>
             )
           })}
         </motion.div>
+
+        {/* Toggle secondary metrics on mobile */}
+        <div className="sm:hidden flex justify-center -mt-2">
+          <button
+            type="button"
+            onClick={() => setShowAllMetrics(!showAllMetrics)}
+            className="px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <span>{showAllMetrics ? 'Show Fewer Statistics' : 'Show All Statistics (+4 more)'}</span>
+            <ChevronDown size={14} className={`transition-transform duration-200 ${showAllMetrics ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
 
         {/* ── Live Analytics & Velocity Trends (Part 3) ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

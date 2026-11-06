@@ -338,9 +338,128 @@ export function EventForm({
     await onSubmit(payload, action)
   }
 
+  // Mobile Multi-Step Form Stepper (Steps 1 to 5)
+  // Step 1: Basic Information
+  // Step 2: Date, Time & Venue
+  // Step 3: Poster & Description
+  // Step 4: Ticket & Registration Settings
+  // Step 5: Review & Publish
+  const [mobileStep, setMobileStep] = useState<number>(1)
+
+  const validateMobileStep = (s: number): boolean => {
+    const newErrors: Record<string, string> = {}
+    if (s === 1) {
+      if (!title.trim()) newErrors.title = 'Event title is required'
+      if (!summary.trim()) newErrors.summary = 'Short summary is required'
+    } else if (s === 2) {
+      if (!startDate) newErrors.startDate = 'Event start date & time is required'
+      if (!endDate) newErrors.endDate = 'Event end date & time is required'
+      if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
+        newErrors.endDate = 'End date must be strictly after start date'
+      }
+      if ((eventType === 'offline' || eventType === 'hybrid') && !venueName.trim()) {
+        newErrors.venueName = 'Campus venue name is required'
+      }
+      if (eventType === 'online' && !onlineMeetingUrl.trim()) {
+        newErrors.onlineMeetingUrl = 'Online meeting link is required for virtual sessions'
+      }
+    } else if (s === 4) {
+      if (Number(capacity) < 1) newErrors.capacity = 'Capacity must be at least 1'
+      if (!isFree && (Number(price) <= 0 || isNaN(Number(price)))) {
+        newErrors.price = 'Ticket price must be greater than 0'
+      }
+      if (participationType === 'team' && Number(minTeamSize) > Number(maxTeamSize)) {
+        newErrors.teamSize = 'Min team size cannot exceed max team size'
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...newErrors }))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return false
+    }
+    return true
+  }
+
+  const renderPosterSection = () => (
+    <div className="flex flex-col gap-4">
+      {/* Banner Image Upload */}
+      <div className="flex flex-col gap-2">
+        <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
+          Event Banner Poster <span className="text-[var(--color-text-muted)]">(optional, auto-fallback provided)</span>
+        </label>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="relative w-full sm:w-48 h-28 rounded-xl overflow-hidden bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] shrink-0 flex items-center justify-center">
+            {posterUrl ? (
+              <>
+                <img src={posterUrl} alt="Banner Preview" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPosterUrl('')}
+                  className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-rose-600 transition-colors"
+                  title="Remove custom image"
+                >
+                  <X size={12} />
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-1 text-[var(--color-text-muted)]">
+                <ImageIcon size={22} />
+                <span className="text-[10px]">Default Poster</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPoster}
+              leftIcon={<Upload size={14} />}
+              className="min-h-[44px]"
+            >
+              {uploadingPoster ? 'Uploading…' : 'Upload Banner (Max 5MB)'}
+            </Button>
+            <p className="text-[11px] text-[var(--color-text-muted)]">
+              Supports JPEG, PNG, WEBP up to 5MB. 16:9 ratio recommended.
+            </p>
+            {posterError && <p className="text-xs text-rose-400">{posterError}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Panoramic Cover Image URL (Phase 2) */}
+      <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-surface-3)]">
+        <div className="flex items-center justify-between">
+          <label htmlFor="cover-url" className="text-xs font-semibold text-[var(--color-text-secondary)]">
+            Panoramic Cover Banner URL <span className="text-[var(--color-text-muted)]">(optional wide backdrop)</span>
+          </label>
+          <span className="text-[11px] text-[var(--color-text-muted)]">21:9 or 16:9 ultra-wide banner</span>
+        </div>
+        <input
+          id="cover-url"
+          type="url"
+          placeholder="https://images.unsplash.com/... or hosted image URL"
+          value={coverUrl}
+          onChange={(e) => setCoverUrl(e.target.value)}
+          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none min-h-[44px]"
+        />
+      </div>
+    </div>
+  )
+
   return (
     <>
-      <form className="flex flex-col gap-8 w-full max-w-4xl mx-auto text-left" noValidate>
+      <form className="flex flex-col gap-6 sm:gap-8 w-full max-w-4xl mx-auto text-left pb-24 md:pb-8" noValidate>
         {serverError && (
           <motion.div
             initial={{ opacity: 0, y: -6 }}
@@ -352,8 +471,53 @@ export function EventForm({
           </motion.div>
         )}
 
+        {/* ── Mobile Multi-Step Stepper Header (md:hidden) ─────────────────────── */}
+        <div className="md:hidden flex flex-col gap-2.5 p-4 rounded-2xl bg-[#0E0E12] border border-white/10 shadow-lg mb-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#18CFFC] to-[#7F1AFB] text-white text-xs font-bold flex items-center justify-center shadow-sm">
+                {mobileStep}
+              </span>
+              <span className="text-xs font-bold text-white font-heading">
+                {mobileStep === 1 && '1. Basic Information'}
+                {mobileStep === 2 && '2. Date, Time & Venue'}
+                {mobileStep === 3 && '3. Poster & Description'}
+                {mobileStep === 4 && '4. Tickets & Settings'}
+                {mobileStep === 5 && '5. Review & Publish'}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-400">
+              Step {mobileStep} of 5
+            </span>
+          </div>
+
+          {/* Stepper Bar */}
+          <div className="grid grid-cols-5 gap-1.5 pt-1">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  if (s < mobileStep || validateMobileStep(mobileStep)) {
+                    setMobileStep(s)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }
+                }}
+                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                  s === mobileStep
+                    ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] shadow-[0_0_12px_rgba(24,207,252,0.5)]'
+                    : s < mobileStep
+                    ? 'bg-emerald-400'
+                    : 'bg-white/10'
+                }`}
+                aria-label={`Step ${s}`}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* ── Section 1: Basic Information & Poster ───────────────────────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 1 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC]">
@@ -453,75 +617,9 @@ export function EventForm({
             {errors.summary && <p className="text-xs text-rose-400">{errors.summary}</p>}
           </div>
 
-          {/* Banner Image Upload */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Event Banner Poster <span className="text-[var(--color-text-muted)]">(optional, auto-fallback provided)</span>
-            </label>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="relative w-full sm:w-48 h-28 rounded-xl overflow-hidden bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] shrink-0 flex items-center justify-center">
-                {posterUrl ? (
-                  <>
-                    <img src={posterUrl} alt="Banner Preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setPosterUrl('')}
-                      className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-rose-600 transition-colors"
-                      title="Remove custom image"
-                    >
-                      <X size={12} />
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center gap-1 text-[var(--color-text-muted)]">
-                    <ImageIcon size={22} />
-                    <span className="text-[10px]">Default Poster</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPoster}
-                  leftIcon={<Upload size={14} />}
-                >
-                  {uploadingPoster ? 'Uploading…' : 'Upload Banner (Max 5MB)'}
-                </Button>
-                <p className="text-[11px] text-[var(--color-text-muted)]">
-                  Supports JPEG, PNG, WEBP up to 5MB. 16:9 ratio recommended.
-                </p>
-                {posterError && <p className="text-xs text-rose-400">{posterError}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Panoramic Cover Image URL (Phase 2) */}
-          <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-surface-3)]">
-            <div className="flex items-center justify-between">
-              <label htmlFor="cover-url" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Panoramic Cover Banner URL <span className="text-[var(--color-text-muted)]">(optional wide backdrop)</span>
-              </label>
-              <span className="text-[11px] text-[var(--color-text-muted)]">21:9 or 16:9 ultra-wide banner</span>
-            </div>
-            <input
-              id="cover-url"
-              type="url"
-              placeholder="https://images.unsplash.com/... or hosted image URL"
-              value={coverUrl}
-              onChange={(e) => setCoverUrl(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
-            />
+          {/* Banner Image & Cover URL: shown in Section 1 on desktop, in Step 3 on mobile */}
+          <div className="hidden md:block">
+            {renderPosterSection()}
           </div>
 
           {/* Contact Information */}
@@ -563,7 +661,7 @@ export function EventForm({
         </div>
 
         {/* ── Section 2: Format & Location ─────────────────────────────────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 2 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-cyan-500/15 text-cyan-400">
@@ -689,7 +787,7 @@ export function EventForm({
         </div>
 
         {/* ── Section 3: Schedule, Timezone & Deadlines ────────────────────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 2 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-amber-500/15 text-amber-400">
@@ -818,7 +916,7 @@ export function EventForm({
         </div>
 
         {/* ── Section 4: Participation & Team Configuration ───────────────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-[#ED47FC]/15 text-[#ED47FC]">
@@ -1069,7 +1167,7 @@ export function EventForm({
         </div>
 
         {/* ── Section 5: Capacity, Pricing & Approval ──────────────────────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400">
@@ -1270,7 +1368,7 @@ export function EventForm({
         </div>
 
         {/* ── Section 6: Custom Registration Questions Form Builder ────────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-[#7F1AFB]/15 text-[#C084FC]">
@@ -1442,8 +1540,22 @@ export function EventForm({
           )}
         </div>
 
+        {/* Step 3 Mobile Poster Card */}
+        <div className={`${mobileStep === 3 ? 'flex' : 'hidden'} md:hidden glass p-5 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-4 shadow-lg`}>
+          <div className="flex items-center gap-2 pb-3 border-b border-[var(--color-surface-3)]">
+            <span className="p-2 rounded-xl bg-[#ED47FC]/15 text-[#ED47FC]">
+              <ImageIcon size={18} />
+            </span>
+            <div>
+              <h3 className="text-sm font-bold text-white font-heading">Event Media & Poster</h3>
+              <p className="text-[11px] text-zinc-400">Visual artwork for discover feeds and digital passes</p>
+            </div>
+          </div>
+          {renderPosterSection()}
+        </div>
+
         {/* ── Section 7: Description, Rules & Guidelines ───────────────────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 3 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-[#7F1AFB]/15 text-[#C084FC]">
@@ -1569,7 +1681,7 @@ export function EventForm({
         </div>
 
         {/* ── Section 8: Interactive Event Page Customizer (Drag & Drop) ────── */}
-        <div className="glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-6 shadow-lg">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC]">
@@ -1590,8 +1702,106 @@ export function EventForm({
           <EventPageBuilder layout={pageLayout} onChange={setPageLayout} />
         </div>
 
-        {/* ── Form Actions Bar (Sticky) ────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl glass border border-[oklch(100%_0_0_/_0.1)] sticky bottom-16 sm:bottom-4 md:bottom-4 shadow-2xl z-20 backdrop-blur-md">
+        {/* ── Step 5: Mobile Review & Publish Screen (md:hidden) ─────────── */}
+        {mobileStep === 5 && (
+          <div className="md:hidden flex flex-col gap-4">
+            <div className="glass p-5 rounded-2xl border border-white/10 flex flex-col gap-4 shadow-xl">
+              <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 shadow-md">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white font-heading">Review & Publish Event</h3>
+                  <p className="text-[11px] text-zinc-400">Verify your event setup before making it live to campus.</p>
+                </div>
+              </div>
+
+              {/* Event Summary Preview Card */}
+              <div className="rounded-xl overflow-hidden border border-white/10 bg-[#08080A]">
+                <div className="relative h-36 w-full bg-zinc-900">
+                  <img
+                    src={posterUrl || getDefaultPoster(category)}
+                    alt={title || 'Event poster'}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    <Badge variant="purple" className="text-[10px]">{category.toUpperCase()}</Badge>
+                    <Badge variant="cyan" className="text-[10px]">{eventType.toUpperCase()}</Badge>
+                  </div>
+                  <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md text-xs font-bold text-white shadow-md">
+                    {isFree ? <span className="text-emerald-400">Free Pass</span> : `₹${price}`}
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-2.5">
+                  <h4 className="text-sm font-bold text-white font-heading">{title || 'Untitled Event'}</h4>
+                  <p className="text-xs text-zinc-400 line-clamp-2">{summary || 'No summary provided.'}</p>
+
+                  <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-[11px] text-zinc-300 font-sans">
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Start Date</span>
+                      <span>{startDate ? new Date(startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Not set'}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Venue</span>
+                      <span className="truncate block">{eventType === 'online' ? (onlineMeetingUrl || 'Virtual URL') : (venueName || 'Campus Venue')}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Format</span>
+                      <span>{participationType === 'team' ? `Squad (${minTeamSize}–${maxTeamSize})` : 'Individual Solo'}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Capacity</span>
+                      <span>{capacity} Seats</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pre-flight Validation Checklist */}
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-2 text-xs">
+                <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider block">Pre-flight Checklist</span>
+                <div className="flex items-center gap-2">
+                  {title.trim() && summary.trim() ? (
+                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertCircle size={14} className="text-rose-400 shrink-0" />
+                  )}
+                  <span className={title.trim() && summary.trim() ? 'text-zinc-300' : 'text-rose-400 font-semibold'}>
+                    Title & Short Summary
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {startDate && endDate ? (
+                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertCircle size={14} className="text-rose-400 shrink-0" />
+                  )}
+                  <span className={startDate && endDate ? 'text-zinc-300' : 'text-rose-400 font-semibold'}>
+                    Schedule & Timeframe
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(eventType === 'online' && onlineMeetingUrl) || ((eventType === 'offline' || eventType === 'hybrid') && venueName.trim()) ? (
+                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertCircle size={14} className="text-amber-400 shrink-0" />
+                  )}
+                  <span className="text-zinc-300">Venue & Access Link</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                  <span className="text-zinc-300">
+                    Ticketing: {isFree ? 'Free Campus Admission' : `₹${price} UPI Fee`} ({capacity} max)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Form Actions Bar (Desktop Sticky) ─────────────────────────────── */}
+        <div className="hidden md:flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl glass border border-[oklch(100%_0_0_/_0.1)] sticky bottom-4 shadow-2xl z-20 backdrop-blur-md">
           <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
             <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
             <span className="text-[11px] sm:text-xs">
@@ -1640,6 +1850,75 @@ export function EventForm({
               {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
             </Button>
           </div>
+        </div>
+
+        {/* ── Sticky Mobile Action Dock (< md) ─────────────────────────────────── */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3.5 py-2.5 bg-[#08080A]/95 backdrop-blur-2xl border-t border-white/10 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-2 shadow-[0_-8px_32px_rgba(0,0,0,0.8)]">
+          {mobileStep > 1 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setMobileStep(mobileStep - 1)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              disabled={isSubmitting}
+              className="min-h-[44px] text-xs px-3 border-white/15"
+            >
+              Back
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPreview(true)}
+              className="min-h-[44px] text-xs px-2.5 text-zinc-400"
+            >
+              Preview
+            </Button>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => handleSubmit(e, 'save_draft')}
+            disabled={isSubmitting}
+            className="min-h-[44px] text-xs px-3 border-white/15"
+          >
+            Save Draft
+          </Button>
+
+          {mobileStep < 5 ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (validateMobileStep(mobileStep)) {
+                  setMobileStep(mobileStep + 1)
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }
+              }}
+              className="min-h-[44px] text-xs font-bold px-4 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white"
+            >
+              Next Step →
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={(e) => handleSubmit(e, 'publish')}
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+              className="min-h-[44px] text-xs font-bold px-4 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white shadow-lg shadow-[#18CFFC]/25"
+            >
+              {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
+            </Button>
+          )}
         </div>
       </form>
 

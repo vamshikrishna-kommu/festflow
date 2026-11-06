@@ -20,6 +20,7 @@ export default function TicketDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
   const [isOffline, setIsOffline] = useState(false)
@@ -120,6 +121,21 @@ export default function TicketDetailPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-6">
+            {actionError && (
+              <div className="w-full max-w-md p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-2">
+                  <XCircle size={16} className="text-rose-400 shrink-0" />
+                  <span>{actionError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionError(null)}
+                  className="text-xs text-rose-300 hover:text-white"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
             {isOffline && (
               <div className="w-full max-w-md p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3 shadow-md">
                 <div className="flex items-center gap-2">

@@ -68,6 +68,48 @@
   --shadow-modal:        0 24px 80px rgba(0, 0, 0, 0.85);
 }
 
+/* ─── Touch & Mobile Safe-Area Utilities ─────────────────────────────────── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar for clean horizontal chip carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile-first touch target enforcement (minimum 44x44 CSS pixels) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Native bottom-sheet grab handle pill */
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 0 auto 12px auto;
+  flex-shrink: 0;
+}
+
+/* Mobile hardware-accelerated momentum scrolling */
+.touch-momentum {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
 /* ─── Global Base ───────────────────────────────────────────────────────── */
 @layer base {
   *,

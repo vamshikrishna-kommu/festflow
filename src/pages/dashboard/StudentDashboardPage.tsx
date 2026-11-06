@@ -505,31 +505,39 @@ export default function StudentDashboardPage() {
             </div>
           </div>
 
-          <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.08] shrink-0">
+          {/* Desktop & Mobile Responsive Action Bar */}
+          <div className="relative flex flex-wrap items-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.08] shrink-0">
+            <Link to="/discover" className="w-full sm:w-auto">
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full sm:w-auto justify-center bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-bold shadow-md shadow-[#18CFFC]/20 touch-target sm:min-h-0"
+                leftIcon={<Compass size={16} />}
+              >
+                Discover Events
+              </Button>
+            </Link>
+
             <Button
               variant="outline"
               size="sm"
               onClick={() => loadAllStudentData()}
               disabled={loading}
-              className="justify-center"
+              className="flex-1 sm:flex-initial justify-center touch-target sm:min-h-0"
               leftIcon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
               title="Refresh passes and event data"
             >
               Refresh
             </Button>
-            <Link to="/discover">
-              <Button variant="outline" size="sm" className="justify-center" leftIcon={<Compass size={15} />}>
-                Discover Events
-              </Button>
-            </Link>
+
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowInterestsEditor(!showInterestsEditor)}
               leftIcon={<Sparkles size={14} className="text-[#18CFFC]" />}
-              className="justify-center text-zinc-300 hover:text-white"
+              className="flex-1 sm:flex-initial justify-center text-zinc-300 hover:text-white touch-target sm:min-h-0"
             >
-              My Interests
+              Interests
             </Button>
 
             {isDualEligible && (
@@ -538,7 +546,7 @@ export default function StudentDashboardPage() {
                 size="sm"
                 onClick={() => switchWorkspace('club', navigate)}
                 leftIcon={<Building2 size={15} />}
-                className="text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10 justify-center"
+                className="text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10 justify-center touch-target sm:min-h-0"
               >
                 Club Space
               </Button>
@@ -549,7 +557,7 @@ export default function StudentDashboardPage() {
               size="sm"
               onClick={() => setSettingsOpen(true)}
               leftIcon={<Settings size={15} />}
-              className="justify-center text-zinc-300 hover:text-white"
+              className="hidden sm:inline-flex justify-center text-zinc-300 hover:text-white"
             >
               Settings
             </Button>
@@ -558,7 +566,7 @@ export default function StudentDashboardPage() {
               size="sm"
               onClick={() => signOut()}
               leftIcon={<LogOut size={15} />}
-              className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30 justify-center"
+              className="hidden sm:inline-flex text-rose-400 hover:text-rose-300 hover:border-rose-500/30 justify-center"
             >
               Sign Out
             </Button>

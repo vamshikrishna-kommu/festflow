@@ -15,6 +15,7 @@ import {
   QrCode,
   CheckCircle2,
   X,
+  User,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { getInAppNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/payments'
@@ -30,8 +31,9 @@ export function BottomNav() {
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false)
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
 
-  // Don't show bottom nav on full-screen flows like QR scanner or check-in camera
+  // Don't show bottom nav on full-screen flows like QR scanner, check-in camera, or multi-step event wizard
   const isScannerRoute = location.pathname.includes('/check-in') || location.pathname.includes('/checkin')
+  const isFormRoute = location.pathname.includes('/club/events/new') || (location.pathname.includes('/club/events/') && location.pathname.includes('/edit'))
 
   // Load unread count for notification badge
   useEffect(() => {
@@ -55,7 +57,7 @@ export function BottomNav() {
     }
   }, [user?.id])
 
-  if (isScannerRoute) {
+  if (isScannerRoute || isFormRoute) {
     return null
   }
 
@@ -67,26 +69,35 @@ export function BottomNav() {
     <>
       <nav
         aria-label="Mobile bottom navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden glass border-t border-white/10 bg-[#08080A]/95 backdrop-blur-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.6)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1 px-1.5 transition-all"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-white/10 bg-[#08080A]/95 backdrop-blur-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.75)] pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-1 px-1 transition-all select-none"
       >
-        <div className="flex items-center justify-around max-w-lg mx-auto">
+        <div className="flex items-center justify-around max-w-md mx-auto">
           {!isLoading && session && isClub ? (
-            // ── Club Organizer Navigation (Overview, Events, Payments, Check-in, Settings) ──
+            // ── Club Organizer Navigation (Dashboard, Events, Payments, Check-In, Settings) ──
             <>
-              {/* 1. Overview */}
+              {/* 1. Dashboard / Overview */}
               <NavLink
                 to="/club/dashboard"
                 end
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-cyan)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#18CFFC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <LayoutDashboard size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Overview</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <LayoutDashboard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Overview</span>
+                  </>
+                )}
               </NavLink>
 
               {/* 2. Events */}
@@ -94,204 +105,313 @@ export function BottomNav() {
                 to="/club/events"
                 end
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-violet)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#7F1AFB] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <Calendar size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Events</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <Calendar size={20} className={isActive ? 'text-[#7F1AFB]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Events</span>
+                  </>
+                )}
               </NavLink>
 
               {/* 3. Payments */}
               <NavLink
                 to="/club/payments"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-cyan)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#18CFFC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <CreditCard size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Payments</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <CreditCard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Payments</span>
+                  </>
+                )}
               </NavLink>
 
-              {/* 4. Check-in */}
+              {/* 4. Check-In Scanner */}
               <NavLink
                 to="/club/events"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive || location.pathname.includes('check-in') || location.pathname.includes('checkin')
-                      ? 'text-[var(--color-brand-cyan)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#18CFFC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <QrCode size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Check-In</span>
+                {({ isActive }) => {
+                  const active = isActive || location.pathname.includes('check-in') || location.pathname.includes('checkin')
+                  return (
+                    <>
+                      <div className="relative flex items-center justify-center">
+                        <QrCode size={20} className={active ? 'text-[#18CFFC]' : ''} />
+                        {active && (
+                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Check-In</span>
+                    </>
+                  )
+                }}
               </NavLink>
 
-              {/* 5. Settings */}
+              {/* 5. Settings / Profile */}
               <NavLink
                 to="/club/settings"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-magenta)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#ED47FC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <Settings size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Settings</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <Settings size={20} className={isActive ? 'text-[#ED47FC]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#ED47FC] shadow-[0_0_8px_#ED47FC]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Settings</span>
+                  </>
+                )}
               </NavLink>
             </>
           ) : !isLoading && session && isStudent ? (
-            // ── Student Navigation (Discover, My Tickets, Dashboard, Notifications, Profile/Settings) ──
+            // ── Student Navigation (Home, Explore, My Passes, Alerts, Profile) ──
             <>
-              {/* 1. Discover */}
+              {/* 1. Home / Dashboard */}
               <NavLink
-                to="/discover"
+                to="/student/dashboard"
+                end
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
-                    isActive
-                      ? 'text-[var(--color-brand-cyan)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                    isActive && !location.search.includes('tab=upcoming')
+                      ? 'text-[#7F1AFB] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <Compass size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Discover</span>
+                {({ isActive }) => {
+                  const active = isActive && !location.search.includes('tab=upcoming')
+                  return (
+                    <>
+                      <div className="relative flex items-center justify-center">
+                        <Home size={20} className={active ? 'text-[#7F1AFB]' : ''} />
+                        {active && (
+                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Home</span>
+                    </>
+                  )
+                }}
               </NavLink>
 
-              {/* 2. My Tickets */}
+              {/* 2. Explore / Discover */}
+              <NavLink
+                to="/discover"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                    isActive
+                      ? 'text-[#18CFFC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <Compass size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Explore</span>
+                  </>
+                )}
+              </NavLink>
+
+              {/* 3. My Passes / Tickets */}
               <NavLink
                 to="/student/dashboard"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive && location.search.includes('tab=upcoming')
-                      ? 'text-[var(--color-brand-violet)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#18CFFC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
                 onClick={() => {
-                  // If on dashboard, navigate cleanly to tickets
                   if (location.pathname === '/student/dashboard') {
                     window.dispatchEvent(new CustomEvent('festflow:select-tab', { detail: 'upcoming' }))
                   }
                 }}
               >
-                <Ticket size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">My Passes</span>
+                {({ isActive }) => {
+                  const active = isActive && location.search.includes('tab=upcoming')
+                  return (
+                    <>
+                      <div className="relative flex items-center justify-center">
+                        <Ticket size={20} className={active ? 'text-[#18CFFC]' : ''} />
+                        {active && (
+                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight">My Passes</span>
+                    </>
+                  )
+                }}
               </NavLink>
 
-              {/* 3. My Dashboard */}
-              <NavLink
-                to="/student/dashboard"
-                end
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-all ${
-                    isActive && !location.search.includes('tab=upcoming')
-                      ? 'text-[var(--color-brand-violet)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
-                  }`
-                }
-              >
-                <LayoutDashboard size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Dashboard</span>
-              </NavLink>
-
-              {/* 4. Notifications */}
+              {/* 4. Notifications / Alerts */}
               <button
                 type="button"
                 onClick={() => setNotifDrawerOpen(true)}
-                className="relative flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-all cursor-pointer"
+                className="relative flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all active:scale-90 cursor-pointer"
                 aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
               >
-                <div className="relative">
-                  <Bell size={20} className="mb-0.5" />
+                <div className="relative flex items-center justify-center">
+                  <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
+                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-md animate-pulse">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] leading-tight">Alerts</span>
+                <span className="text-[10px] leading-tight mt-1 tracking-tight">Alerts</span>
               </button>
 
-              {/* 5. Profile/Settings */}
+              {/* 5. Profile & Settings */}
               <button
                 type="button"
                 onClick={() => setSettingsOpen(true)}
-                className="flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-all cursor-pointer"
+                className="flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all active:scale-90 cursor-pointer"
                 aria-label="Profile and Settings"
               >
-                <Settings size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Settings</span>
+                <div className="relative flex items-center justify-center">
+                  <User size={20} />
+                </div>
+                <span className="text-[10px] leading-tight mt-1 tracking-tight">Profile</span>
               </button>
             </>
           ) : (
-            // ── Guest Navigation (Home, Discover, For Clubs, Log In) ──
+            // ── Guest Navigation (Home, Explore, Start Club, Sign In) ──
             <>
               <NavLink
                 to="/"
                 end
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-violet)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#7F1AFB] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <Home size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Home</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <Home size={20} className={isActive ? 'text-[#7F1AFB]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Home</span>
+                  </>
+                )}
               </NavLink>
 
               <NavLink
                 to="/discover"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-cyan)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#18CFFC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <Compass size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Discover</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <Compass size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Explore</span>
+                  </>
+                )}
               </NavLink>
 
               <NavLink
                 to="/club/signup"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-pink)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#ED47FC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <Building2 size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">For Clubs</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <Building2 size={20} className={isActive ? 'text-[#ED47FC]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#ED47FC] shadow-[0_0_8px_#ED47FC]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">For Clubs</span>
+                  </>
+                )}
               </NavLink>
 
               <NavLink
                 to="/student/login"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-all ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive
-                      ? 'text-[var(--color-brand-cyan)] font-semibold'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      ? 'text-[#18CFFC] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`
                 }
               >
-                <LogIn size={20} className="mb-0.5" />
-                <span className="text-[10px] leading-tight">Sign In</span>
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <LogIn size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
+                      {isActive && (
+                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Sign In</span>
+                  </>
+                )}
               </NavLink>
             </>
           )}
