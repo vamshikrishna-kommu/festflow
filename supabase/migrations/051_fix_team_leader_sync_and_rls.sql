@@ -95,6 +95,7 @@ BEGIN
     v_leader_profile.email,
     ''
   );
+  -- Fix: use v_student_profile.college_name (not v_leader_profile.college which doesn't exist)
   v_leader_college := COALESCE(
     v_leader_reg.participant_details->>'college_name',
     v_student_profile.college_name,
@@ -105,12 +106,14 @@ BEGIN
     ''
   );
 
-  -- Upsert leader into team_members:
-  -- If leader already has a member record for this event (from an older team), migrate them to this team as leader!
+  -- Upsert leader into team_members.
+  -- Check by (event_id, user_id) to respect the partial unique index
+  -- idx_unique_accepted_user_per_event (event_id, user_id) WHERE status = 'accepted'.
   IF EXISTS (
     SELECT 1 FROM public.team_members
     WHERE event_id = NEW.event_id AND user_id = NEW.leader_id
   ) THEN
+    -- Row already exists for this (event_id, user_id) — just update it
     UPDATE public.team_members
     SET team_id = NEW.id,
         role = 'leader',
@@ -188,6 +191,7 @@ BEGIN
   FOR v_team IN SELECT * FROM public.teams LOOP
     -- Fetch leader profile
     SELECT * INTO v_leader_profile FROM public.profiles WHERE id = v_team.leader_id;
+    -- Fix: use student_profiles for college_name (profiles table has no college column)
     SELECT * INTO v_student_profile FROM public.student_profiles WHERE profile_id = v_team.leader_id;
 
     -- Fetch leader registration
@@ -218,6 +222,7 @@ BEGIN
       v_leader_profile.email,
       ''
     );
+    -- Fix: use v_student_profile.college_name (not v_leader_profile.college)
     v_leader_college := COALESCE(
       v_leader_reg.participant_details->>'college_name',
       v_student_profile.college_name,
@@ -228,11 +233,14 @@ BEGIN
       ''
     );
 
-    -- If leader already has a member row for this event (from an older team), move them to this team as leader!
+    -- Fix: check by (event_id, user_id) first to avoid violating
+    -- the partial unique index idx_unique_accepted_user_per_event.
+    -- A leader may already be an 'accepted' member from a previous team for the same event.
     IF EXISTS (
       SELECT 1 FROM public.team_members
       WHERE event_id = v_team.event_id AND user_id = v_team.leader_id
     ) THEN
+      -- Row already exists — update it to point to the current team
       UPDATE public.team_members
       SET team_id = v_team.id,
           role = 'leader',
@@ -286,4 +294,3 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
-

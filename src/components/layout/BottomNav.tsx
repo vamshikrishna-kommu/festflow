@@ -257,7 +257,7 @@ export function BottomNav() {
 
               {/* 3. My Passes / Tickets */}
               <NavLink
-                to="/student/dashboard"
+                to="/student/dashboard?tab=upcoming"
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
                     isActive && location.search.includes('tab=upcoming')
@@ -266,9 +266,7 @@ export function BottomNav() {
                   }`
                 }
                 onClick={() => {
-                  if (location.pathname === '/student/dashboard') {
-                    window.dispatchEvent(new CustomEvent('festflow:select-tab', { detail: 'upcoming' }))
-                  }
+                  window.dispatchEvent(new CustomEvent('festflow:select-tab', { detail: 'upcoming' }))
                 }}
               >
                 {({ isActive }) => {
@@ -519,6 +517,21 @@ export function BottomNav() {
                     </div>
                   ))
                 )}
+              </div>
+
+              {/* Drawer Footer: Link to Full Center */}
+              <div className="pt-2.5 mt-1 border-t border-[var(--color-surface-3)] flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNotifDrawerOpen(false)
+                    navigate('/notifications')
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-[#18CFFC] flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
+                >
+                  <span>Open Full Notification Center</span>
+                  <span className="text-[10px]">→</span>
+                </button>
               </div>
             </motion.div>
           </div>

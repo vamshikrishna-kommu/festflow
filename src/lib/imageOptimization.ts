@@ -103,3 +103,45 @@ export function getAspectRatioStyle(width: number, height: number): React.CSSPro
   }
 }
 
+/**
+ * Optimizes an image URL for mobile delivery:
+ * - Detects Unsplash URLs and applies width, format=auto (delivering WebP/AVIF), quality=75
+ * - Strips unnecessary resolution bloat on mobile screens
+ */
+export function getOptimizedImageUrl(
+  url: string | null | undefined,
+  targetWidth: number = 800,
+  quality: number = 75
+): string {
+  if (!url) return ''
+  // Handle Unsplash images
+  if (url.includes('images.unsplash.com')) {
+    try {
+      const u = new URL(url)
+      u.searchParams.set('w', String(targetWidth))
+      u.searchParams.set('auto', 'format')
+      u.searchParams.set('fit', 'crop')
+      u.searchParams.set('q', String(quality))
+      return u.toString()
+    } catch {
+      return url
+    }
+  }
+  return url
+}
+
+/**
+ * Generates a responsive srcset string for Unsplash event poster images.
+ */
+export function getImageSrcSet(url: string | null | undefined): string | undefined {
+  if (!url || !url.includes('images.unsplash.com')) return undefined
+  try {
+    const widths = [360, 640, 800, 1080]
+    return widths
+      .map((w) => `${getOptimizedImageUrl(url, w)} ${w}w`)
+      .join(', ')
+  } catch {
+    return undefined
+  }
+}
+

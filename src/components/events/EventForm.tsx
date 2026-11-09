@@ -1,4 +1,4 @@
-import { useState, useRef, type FormEvent, type ChangeEvent } from 'react'
+import { useState, useRef, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { motion } from 'motion/react'
 import {
   Sparkles,
@@ -193,6 +193,19 @@ export function EventForm({
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Prevent accidental data loss if user attempts to reload or navigate away while editing
+  const isDirty = Boolean(title.trim() || summary.trim() || description.trim() || venueName.trim())
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && !isSubmitting) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty, isSubmitting])
 
   // Handle poster upload
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {

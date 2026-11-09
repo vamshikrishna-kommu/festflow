@@ -53,6 +53,7 @@ export function Button({
       whileHover={isInactive ? undefined : buttonHover}
       whileTap={isInactive ? undefined : buttonTap}
       disabled={isInactive}
+      aria-busy={isLoading ? true : undefined}
       className={`${base} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     >

@@ -86,6 +86,8 @@ export function Modal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 32, scale: 0.98 }}
             transition={{ type: 'spring', damping: 28, stiffness: 340 }}
+            aria-labelledby={title ? 'modal-dialog-title' : undefined}
+            aria-describedby={description ? 'modal-dialog-description' : undefined}
             className={`relative w-full ${sizeClasses[size]} max-h-[94dvh] sm:max-h-[92dvh] flex flex-col rounded-t-[28px] sm:rounded-3xl bg-[#0E0E12] border-t sm:border border-white/10 shadow-[0_-8px_40px_rgba(0,0,0,0.85)] sm:shadow-[0_24px_80px_rgba(0,0,0,0.85)] text-left overflow-hidden z-10 pb-safe sm:pb-0 ${className}`}
           >
             {/* Mobile Sheet Handle Pill */}
@@ -97,12 +99,12 @@ export function Modal({
               <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/10 bg-[#14141A]/80 shrink-0">
                 <div className="min-w-0 pr-2">
                   {title && (
-                    <h2 className="font-display font-bold text-base sm:text-lg text-[var(--color-text-primary)] truncate">
+                    <h2 id="modal-dialog-title" className="font-display font-bold text-base sm:text-lg text-[var(--color-text-primary)] truncate">
                       {title}
                     </h2>
                   )}
                   {description && (
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">
+                    <p id="modal-dialog-description" className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">
                       {description}
                     </p>
                   )}

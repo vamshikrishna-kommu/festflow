@@ -19,6 +19,7 @@ import {
   BarChart3,
   Filter,
   CheckCircle2,
+  AlertTriangle,
   Sparkles,
   Layers,
   ShieldCheck,
@@ -109,7 +110,7 @@ export default function ClubDashboardPage() {
     if (isSupabaseConfigured && eventIds.length > 0) {
       try {
         const { data: regData } = await (supabase.from('registrations') as any)
-          .select('id, event_id, status, created_at, ticket_code')
+          .select('id, event_id, status, created_at, ticket_code, cancellation_request_status')
           .in('event_id', eventIds)
           .order('created_at', { ascending: false })
 
@@ -206,6 +207,20 @@ export default function ClubDashboardPage() {
     () => approvedPayments.reduce((sum, s) => sum + (s.amount || 0), 0),
     [approvedPayments]
   )
+
+  // Pending Cancellation Requests
+  const pendingCancellations = useMemo(
+    () => filteredRegistrations.filter((r) => (r as any).cancellation_request_status === 'pending'),
+    [filteredRegistrations]
+  )
+  const pendingCancellationsCount = pendingCancellations.length
+
+  // Upcoming Published Events
+  const upcomingEventsList = useMemo(() => {
+    return events
+      .filter((e) => e.status === 'published' && Boolean(e.start_date))
+      .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+  }, [events])
 
   // ── Daily Registration Velocity for Interactive Area Chart (Part 3) ───────
   const chartData = useMemo(() => {
@@ -549,6 +564,70 @@ export default function ClubDashboardPage() {
           </div>
         </motion.div>
 
+        {/* ── Pending Tasks & Actionable Items ───────────────────────────────── */}
+        {(pendingPaymentsCount > 0 || pendingCancellationsCount > 0 || draftCount > 0) && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-3 shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase font-bold tracking-wider text-amber-300 flex items-center gap-1.5">
+                <AlertTriangle size={15} /> Action Items Requiring Attention
+              </span>
+              <span className="text-[11px] font-mono text-amber-200/80">
+                {(pendingPaymentsCount > 0 ? 1 : 0) + (pendingCancellationsCount > 0 ? 1 : 0) + (draftCount > 0 ? 1 : 0)} pending task categories
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {pendingPaymentsCount > 0 && (
+                <Link to="/club/payments" className="flex-1 sm:flex-initial">
+                  <div className="p-3 rounded-xl bg-[#0E0E12] border border-amber-500/40 hover:border-amber-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                    <div className="flex items-center gap-2">
+                      <CreditCard size={16} className="text-amber-400 shrink-0" />
+                      <span className="text-white font-semibold">
+                        {pendingPaymentsCount} Payment{pendingPaymentsCount > 1 ? 's' : ''} Awaiting Review
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 shrink-0">
+                      Verify UTR →
+                    </span>
+                  </div>
+                </Link>
+              )}
+
+              {pendingCancellationsCount > 0 && (
+                <Link to="/club/events" className="flex-1 sm:flex-initial">
+                  <div className="p-3 rounded-xl bg-[#0E0E12] border border-rose-500/40 hover:border-rose-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Users size={16} className="text-rose-400 shrink-0" />
+                      <span className="text-white font-semibold">
+                        {pendingCancellationsCount} Cancellation Request{pendingCancellationsCount > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 shrink-0">
+                      Review →
+                    </span>
+                  </div>
+                </Link>
+              )}
+
+              {draftCount > 0 && (
+                <Link to="/club/events" className="flex-1 sm:flex-initial">
+                  <div className="p-3 rounded-xl bg-[#0E0E12] border border-purple-500/40 hover:border-purple-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Layers size={16} className="text-purple-400 shrink-0" />
+                      <span className="text-white font-semibold">
+                        {draftCount} Draft Event{draftCount > 1 ? 's' : ''} Unpublished
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 shrink-0">
+                      Publish →
+                    </span>
+                  </div>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Spotlight Next Action Banner ─────────────────────────────────── */}
         <motion.div
           variants={fadeIn}
@@ -711,13 +790,11 @@ export default function ClubDashboardPage() {
               badgeStyle: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
             },
             {
-              label: 'Upcoming (30 Days)',
+              label: 'Upcoming Events',
               value: loading
                 ? '…'
-                : publishedEvents
-                    .filter((e) => e.start_date && new Date(e.start_date) >= now)
-                    .length.toString(),
-              subtitle: 'Events scheduled this month',
+                : upcomingEventsList.length.toString(),
+              subtitle: 'Published events scheduled',
               icon: Clock,
               color: 'text-zinc-300',
               badgeStyle: 'bg-white/10 border-white/15 text-zinc-300',
@@ -992,6 +1069,16 @@ export default function ClubDashboardPage() {
                       >
                         <Star size={14} />
                       </button>
+
+                      <Link to={`/club/events/${evt.id}/reports`}>
+                        <button
+                          type="button"
+                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-sky-400 hover:text-white transition-colors cursor-pointer"
+                          title="Event Reports & Analytics"
+                        >
+                          <BarChart3 size={14} />
+                        </button>
+                      </Link>
 
                       <Link to={`/club/events/${evt.id}/edit`}>
                         <button

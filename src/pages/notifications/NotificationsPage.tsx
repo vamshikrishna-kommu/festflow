@@ -28,6 +28,8 @@ import {
   archiveNotification,
   subscribeToRealtimeNotifications,
 } from '@/lib/notifications'
+import { PageShell } from '@/components/layout/PageShell'
+import { SEOHead } from '@/components/seo/SEOHead'
 import { NotificationPreferencesModal } from '@/components/notifications/NotificationPreferencesModal'
 import type { InAppNotification, NotificationCategory } from '@/types'
 
@@ -172,8 +174,13 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-0)] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <PageShell>
+      <SEOHead
+        title="Notifications & Activity"
+        description="Real-time campus alerts, payment receipts, pass issuance, and team notifications."
+        canonicalPath="/notifications"
+      />
+      <div className="max-w-5xl mx-auto space-y-6 pt-4 sm:pt-8 pb-24 px-4 sm:px-6 lg:px-8 text-left">
         {/* Header Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[var(--color-surface-1)] to-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#18CFFC]/5 rounded-full blur-3xl pointer-events-none" />
@@ -436,6 +443,6 @@ export default function NotificationsPage() {
         isOpen={isPrefsOpen}
         onClose={() => setIsPrefsOpen(false)}
       />
-    </div>
+    </PageShell>
   )
 }

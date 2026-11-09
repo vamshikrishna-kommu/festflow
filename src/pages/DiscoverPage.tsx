@@ -42,7 +42,25 @@ export default function DiscoverPage() {
   const [category, setCategory]           = useState<CategoryFilter>('all')
   const [participationFilter, setParticipationFilter] = useState<'all' | 'individual' | 'team'>('all')
   const [pricingFilter, setPricingFilter] = useState<'all' | 'free' | 'paid'>('all')
+  const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'closing_soon' | 'this_week'>('all')
+  const [collegeFilter, setCollegeFilter] = useState<string>('all')
   const [offset, setOffset]               = useState(0)
+
+  // Derive unique college / campus venues from verified events
+  const availableColleges = useMemo(() => {
+    const set = new Set<string>()
+    for (const evt of rawEvents) {
+      if (evt.venue && evt.venue !== 'Campus Venue' && evt.venue !== 'Online') {
+        set.add(evt.venue)
+      }
+      if (Array.isArray(evt.allowedColleges)) {
+        evt.allowedColleges.forEach((c) => {
+          if (c && c.trim()) set.add(c.trim())
+        })
+      }
+    }
+    return Array.from(set).sort()
+  }, [rawEvents])
 
   const fetchEvents = useCallback(async (isLoadMore = false, newOffset = 0) => {
     const reqId = ++activeRequestId.current
@@ -84,8 +102,12 @@ export default function DiscoverPage() {
     fetchEvents(true, next)
   }
 
-  // Client-side refinement for completed status, participation type and pricing filter
+  // Client-side refinement for completed status, participation type, pricing, college, and closing-soon filters
   const displayedEvents = useMemo(() => {
+    const now = Date.now()
+    const fiveDaysMs = 5 * 24 * 60 * 60 * 1000
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+
     return rawEvents.filter((evt) => {
       if (isEventCompleted(evt)) {
         return false
@@ -102,18 +124,38 @@ export default function DiscoverPage() {
       if (pricingFilter === 'paid' && evt.isFree) {
         return false
       }
+      if (collegeFilter !== 'all') {
+        const matchesVenue = evt.venue?.toLowerCase().includes(collegeFilter.toLowerCase())
+        const matchesAllowed = Array.isArray(evt.allowedColleges) && evt.allowedColleges.some((c) => c.toLowerCase().includes(collegeFilter.toLowerCase()))
+        if (!matchesVenue && !matchesAllowed) return false
+      }
+      if (urgencyFilter === 'closing_soon') {
+        const deadline = evt.registrationDeadline ? new Date(evt.registrationDeadline).getTime() : null
+        const eventStart = evt.date ? new Date(evt.date).getTime() : null
+        const targetTime = deadline || eventStart
+        if (!targetTime || targetTime < now || (targetTime - now) > fiveDaysMs) {
+          return false
+        }
+      } else if (urgencyFilter === 'this_week') {
+        const eventStart = evt.date ? new Date(evt.date).getTime() : null
+        if (!eventStart || eventStart < now || (eventStart - now) > sevenDaysMs) {
+          return false
+        }
+      }
       return true
     })
-  }, [rawEvents, participationFilter, pricingFilter])
+  }, [rawEvents, participationFilter, pricingFilter, collegeFilter, urgencyFilter])
 
   const hasMore = rawEvents.length < totalCount
-  const hasFilters = search.trim() || category !== 'all' || participationFilter !== 'all' || pricingFilter !== 'all'
+  const hasFilters = search.trim() || category !== 'all' || participationFilter !== 'all' || pricingFilter !== 'all' || collegeFilter !== 'all' || urgencyFilter !== 'all'
 
   const clearAllFilters = () => {
     setSearch('')
     setCategory('all')
     setParticipationFilter('all')
     setPricingFilter('all')
+    setCollegeFilter('all')
+    setUrgencyFilter('all')
   }
 
   return (
@@ -243,6 +285,48 @@ export default function DiscoverPage() {
                   ))}
                 </div>
 
+                {/* Urgency & Registration Deadlines filter */}
+                <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs">
+                  {([
+                    { id: 'all', label: 'All Dates' },
+                    { id: 'closing_soon', label: 'Closing Soon' },
+                    { id: 'this_week', label: 'This Week' },
+                  ] as const).map(({ id, label }) => (
+                    <motion.button
+                      key={id}
+                      type="button"
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => setUrgencyFilter(id)}
+                      className={`px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer text-xs ${
+                        urgencyFilter === id
+                          ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10 text-amber-300'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* Campus / College filter */}
+                {availableColleges.length > 0 && (
+                  <div className="flex items-center rounded-xl bg-[#14141A] px-2.5 py-1 border border-white/[0.08] text-xs shrink-0">
+                    <select
+                      value={collegeFilter}
+                      onChange={(e) => setCollegeFilter(e.target.value)}
+                      className="bg-transparent text-xs text-zinc-300 focus:outline-none cursor-pointer py-1 max-w-[150px] truncate"
+                      aria-label="Filter events by campus or college"
+                    >
+                      <option value="all" className="bg-[#14141A] text-white">All Campuses</option>
+                      {availableColleges.map((col) => (
+                        <option key={col} value={col} className="bg-[#14141A] text-white">
+                          {col}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* View Mode Toggle: Grid vs Map */}
                 <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs shrink-0">
                   <button
@@ -365,9 +449,9 @@ export default function DiscoverPage() {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
               role="list"
             >
-              {displayedEvents.map((event) => (
+              {displayedEvents.map((event, idx) => (
                 <li key={event.id} className="h-full">
-                  <EventCard event={event} animated />
+                  <EventCard event={event} animated priority={idx < 2} />
                 </li>
               ))}
             </motion.ul>

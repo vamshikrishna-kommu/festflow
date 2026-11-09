@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
 import { ArrowRight, Sparkles, QrCode, Zap, Users } from 'lucide-react'
@@ -20,6 +20,16 @@ const CAPABILITIES = [
 
 export function HeroSection() {
   const reduced = useReducedMotion()
+  const [shouldLoad3D, setShouldLoad3D] = useState(false)
+
+  useEffect(() => {
+    // Only load heavy Three.js WebGL bundle on desktop screens without data-saver and without reduced motion
+    const isSaveData = (navigator as any)?.connection?.saveData === true
+    const isDesktop = window.innerWidth >= 1024
+    if (isDesktop && !reduced && !isSaveData) {
+      setShouldLoad3D(true)
+    }
+  }, [reduced])
 
   return (
     <section
@@ -149,9 +159,13 @@ export function HeroSection() {
                 filter: 'blur(35px)',
               }}
             />
-            <Suspense fallback={<CharacterDuoFallback />}>
-              <HeroScene3D />
-            </Suspense>
+            {shouldLoad3D ? (
+              <Suspense fallback={<CharacterDuoFallback />}>
+                <HeroScene3D />
+              </Suspense>
+            ) : (
+              <CharacterDuoFallback />
+            )}
           </div>
         </div>
       </div>

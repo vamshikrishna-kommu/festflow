@@ -10,6 +10,9 @@ import {
   Save,
   CheckCircle2,
   X,
+  HelpCircle,
+  Mail,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
@@ -18,7 +21,7 @@ import { CollegeSearchCombobox } from '@/components/colleges/CollegeSearchCombob
 interface StudentSettingsModalProps {
   isOpen: boolean
   onClose: () => void
-  initialSection?: 'profile' | 'notifications' | 'sound' | 'appearance' | 'security'
+  initialSection?: 'profile' | 'notifications' | 'sound' | 'appearance' | 'security' | 'help'
 }
 
 export function StudentSettingsModal({
@@ -28,7 +31,8 @@ export function StudentSettingsModal({
 }: StudentSettingsModalProps) {
   const { user, profile, studentProfile, signOut, updateProfile } = useAuth()
 
-  const [activeSection, setActiveSection] = useState<'profile' | 'notifications' | 'sound' | 'appearance' | 'security'>(initialSection)
+  const [activeSection, setActiveSection] = useState<'profile' | 'notifications' | 'sound' | 'appearance' | 'security' | 'help'>(initialSection)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   
   // Profile form state
   const [displayName, setDisplayName] = useState(profile?.display_name || user?.user_metadata?.display_name || '')
@@ -159,10 +163,11 @@ export function StudentSettingsModal({
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'sound', label: 'Sound & Haptics', icon: soundEnabled ? Volume2 : VolumeX },
+    { id: 'notifications', label: 'Alerts', icon: Bell },
+    { id: 'sound', label: 'Haptics', icon: soundEnabled ? Volume2 : VolumeX },
     { id: 'appearance', label: 'Display', icon: Moon },
     { id: 'security', label: 'Security', icon: Shield },
+    { id: 'help', label: 'Help', icon: HelpCircle },
   ] as const
 
   return (
@@ -427,21 +432,107 @@ export function StudentSettingsModal({
                   Secured with password and magic link email authorization via Supabase.
                 </p>
                 <div className="text-[11px] font-mono text-[var(--color-brand-cyan)]">
-                  ID: {user?.id}
+                  Account ID: {user?.id}
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  onClose()
-                  signOut()
-                }}
-                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold border border-rose-500/30 transition-all min-h-[44px] cursor-pointer"
-              >
-                <LogOut size={16} />
-                <span>Sign Out from Device</span>
-              </button>
+              {!showLogoutConfirm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold border border-rose-500/30 transition-all min-h-[44px] cursor-pointer"
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out from Device</span>
+                </button>
+              ) : (
+                <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 space-y-3">
+                  <div className="flex items-center gap-2 text-rose-300 font-semibold">
+                    <AlertTriangle size={18} className="text-rose-400 shrink-0" />
+                    <span>Are you sure you want to sign out?</span>
+                  </div>
+                  <p className="text-[11px] text-rose-200/80">
+                    Your offline cached tickets will remain stored securely on this device, but you will need to log in again to register for new campus events.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowLogoutConfirm(false)}
+                      className="flex-1 min-h-[44px]"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => {
+                        onClose()
+                        signOut()
+                      }}
+                      className="flex-1 min-h-[44px]"
+                      leftIcon={<LogOut size={15} />}
+                    >
+                      Yes, Sign Out
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── 6. Help & Support Section ── */}
+          {activeSection === 'help' && (
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] space-y-2">
+                <span className="font-semibold text-[var(--color-text-primary)] block">
+                  Frequently Asked Questions
+                </span>
+                <div className="space-y-2 text-[11px] text-[var(--color-text-muted)]">
+                  <div>
+                    <strong className="text-[var(--color-text-primary)] block">How do I enter an event with my ticket?</strong>
+                    Open "My Passes", tap on the event, and show the digital QR code at the campus entry gate. You can enable High-Contrast mode for bright sunlight.
+                  </div>
+                  <div>
+                    <strong className="text-[var(--color-text-primary)] block">How are UPI payments verified?</strong>
+                    After transferring to the club's official UPI ID, submit your 12-digit UTR reference number and receipt screenshot. The organizer reconciles it against their records.
+                  </div>
+                  <div>
+                    <strong className="text-[var(--color-text-primary)] block">Can I access my passes offline?</strong>
+                    Yes. Once opened, confirmed passes are securely cached in local storage on your device.
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-[var(--color-text-primary)] block">
+                    Campus Student Helpdesk
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-muted)]">
+                    Need assistance with payments or registration?
+                  </span>
+                </div>
+                <a
+                  href="mailto:support@festflow.online"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--color-brand-cyan)]/10 text-[var(--color-brand-cyan)] border border-[var(--color-brand-cyan)]/25 font-semibold text-xs min-h-[44px]"
+                >
+                  <Mail size={14} />
+                  <span>Email Support</span>
+                </a>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] px-1 text-[var(--color-text-muted)]">
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white underline">
+                  Terms of Service
+                </a>
+                <span>•</span>
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white underline">
+                  Privacy Policy
+                </a>
+                <span>•</span>
+                <span className="font-mono text-[10px]">FestFlow v2.0</span>
+              </div>
             </div>
           )}
         </div>

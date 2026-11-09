@@ -8,11 +8,13 @@ import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useAuth } from '@/context/AuthContext'
 import { isEventSavedSync, toggleWishlist } from '@/lib/wishlist'
 import { EventStatusBadge } from '@/components/events/EventStatusBadge'
+import { getOptimizedImageUrl, getImageSrcSet } from '@/lib/imageOptimization'
 import type { Event } from '@/types'
 
 interface EventCardProps {
   event: Event
   animated?: boolean
+  priority?: boolean
 }
 
 function formatDate(iso: string): string {
@@ -30,7 +32,7 @@ function formatDate(iso: string): string {
   }
 }
 
-export function EventCard({ event, animated = false }: EventCardProps) {
+export function EventCard({ event, animated = false, priority = false }: EventCardProps) {
   const { user } = useAuth()
   const reduced = useReducedMotion()
   const [imgError, setImgError] = useState(false)
@@ -89,9 +91,13 @@ export function EventCard({ event, animated = false }: EventCardProps) {
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#14141A] shrink-0">
           {!imgError && event.coverImage ? (
             <img
-              src={event.coverImage}
+              src={getOptimizedImageUrl(event.coverImage, 640)}
+              srcSet={getImageSrcSet(event.coverImage)}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
               alt={`${event.title} cover`}
-              loading="lazy"
+              loading={priority ? 'eager' : 'lazy'}
+              fetchPriority={priority ? 'high' : 'auto'}
+              decoding="async"
               onError={() => setImgError(true)}
               className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />

@@ -25,6 +25,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Check,
+  Calendar,
   CalendarPlus,
   Download,
   Smartphone,
@@ -129,6 +130,11 @@ export default function StudentDashboardPage() {
 
       if (regRes.registrations) {
         setRegistrations(regRes.registrations)
+        try {
+          localStorage.setItem(`festflow_cached_passes_${user.id}`, JSON.stringify(regRes.registrations))
+        } catch {
+          // ignore localstorage quota
+        }
       }
       if (!eventsRes.error && eventsRes.events) {
         setPublishedEvents(
@@ -143,6 +149,16 @@ export default function StudentDashboardPage() {
       setNotifications(notifs)
     } catch (err) {
       console.warn('[FestFlow Student] Data load notice:', err)
+      // Attempt to load cached passes if offline or network drops
+      try {
+        const cached = localStorage.getItem(`festflow_cached_passes_${user.id}`)
+        if (cached) {
+          setRegistrations(JSON.parse(cached))
+          setNotice({ message: 'Loaded saved passes from offline storage.', isError: false })
+        }
+      } catch {
+        // ignore
+      }
     } finally {
       if (!silent) setLoading(false)
     }
@@ -172,10 +188,23 @@ export default function StudentDashboardPage() {
     window.addEventListener('festflow:wishlist-updated', onWishlistUpdated)
     window.addEventListener('festflow:interests-updated', onInterestsUpdated)
 
+    // Listen for tab switch from bottom navigation
+    const onSelectTab = (e: any) => {
+      const tab = e?.detail
+      if (tab === 'upcoming' || tab === 'passes') {
+        setMainTab('passes')
+        setPassTab('upcoming')
+      } else if (['overview', 'passes', 'recommended', 'trending', 'wishlist', 'history', 'notifications'].includes(tab)) {
+        setMainTab(tab as MainDashboardTab)
+      }
+    }
+    window.addEventListener('festflow:select-tab', onSelectTab)
+
     return () => {
       unsubscribe()
       window.removeEventListener('festflow:wishlist-updated', onWishlistUpdated)
       window.removeEventListener('festflow:interests-updated', onInterestsUpdated)
+      window.removeEventListener('festflow:select-tab', onSelectTab)
     }
   }, [user, loadAllStudentData])
 
@@ -216,6 +245,37 @@ export default function StudentDashboardPage() {
   // ── Trending Events Calculation (Part 5) ──────────────────────────────────
   const trendingEvents: TrendingEvent[] = useMemo(() => {
     return calculateTrendingEvents(publishedEvents, 6)
+  }, [publishedEvents])
+
+  // ── Upcoming Registered Events ───────────────────────────────────────────
+  const upcomingRegisteredEvents = useMemo(() => {
+    return registrations
+      .filter((r) => r.status === 'confirmed' && Boolean(r.event?.start_date) && new Date(r.event!.start_date) >= now)
+      .sort((a, b) => new Date(a.event!.start_date).getTime() - new Date(b.event!.start_date).getTime())
+  }, [registrations, now])
+
+  // ── Registration Deadlines Closing Soon ───────────────────────────────────
+  const closingSoonEvents = useMemo(() => {
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+    const nowTime = now.getTime()
+    return publishedEvents
+      .filter((evt) => {
+        const deadline = evt.registrationDeadline ? new Date(evt.registrationDeadline).getTime() : null
+        const eventStart = evt.date ? new Date(evt.date).getTime() : null
+        const targetTime = deadline || eventStart
+        return targetTime && targetTime >= nowTime && (targetTime - nowTime) <= sevenDaysMs
+      })
+      .sort((a, b) => {
+        const timeA = (a.registrationDeadline ? new Date(a.registrationDeadline).getTime() : new Date(a.date).getTime()) || 0
+        const timeB = (b.registrationDeadline ? new Date(b.registrationDeadline).getTime() : new Date(b.date).getTime()) || 0
+        return timeA - timeB
+      })
+      .slice(0, 4)
+  }, [publishedEvents, now])
+
+  // ── Recently Added Events ────────────────────────────────────────────────
+  const recentlyAddedEvents = useMemo(() => {
+    return publishedEvents.slice(0, 4)
   }, [publishedEvents])
 
   // ── Filtered Passes List ──────────────────────────────────────────────────
@@ -802,6 +862,117 @@ export default function StudentDashboardPage() {
         {/* ── TAB CONTENT: OVERVIEW ────────────────────────────────────────── */}
         {mainTab === 'overview' && (
           <div className="flex flex-col gap-10">
+            {/* 1. Upcoming Registered Events Section */}
+            {upcomingRegisteredEvents.length > 0 && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                      <Ticket size={18} className="text-emerald-400" />
+                      Upcoming Registered Passes ({upcomingRegisteredEvents.length})
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Confirmed entries ready for QR scan at entrance gates
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMainTab('passes')
+                      setPassTab('upcoming')
+                    }}
+                    className="text-xs text-[#18CFFC] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                  >
+                    View All Passes <ChevronRight size={13} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {upcomingRegisteredEvents.slice(0, 2).map((reg) => {
+                    const evt = reg.event
+                    const startDate = evt?.start_date ? new Date(evt.start_date) : null
+                    const formattedDate = startDate
+                      ? startDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+                      : 'Date TBA'
+                    return (
+                      <div
+                        key={reg.id}
+                        className="p-5 rounded-3xl bg-[#0E0E12] border border-emerald-500/20 flex flex-col justify-between gap-4 shadow-xl hover:border-emerald-500/40 transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                              Confirmed Entry
+                            </span>
+                            <h4 className="text-base font-bold font-heading text-white truncate mt-0.5">
+                              {evt?.title || 'Campus Event'}
+                            </h4>
+                            <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1 flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Clock size={12} className="text-zinc-500" />
+                                {formattedDate}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MapPin size={12} className="text-zinc-500" />
+                                {evt?.venue_name || 'Campus Venue'}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10 shrink-0">
+                            #{reg.ticket_code}
+                          </span>
+                        </div>
+
+                        {evt?.start_date && (
+                          <div className="p-2.5 rounded-xl bg-[#14141A] border border-white/5 flex items-center justify-between">
+                            <span className="text-[11px] text-zinc-400">Gate countdown:</span>
+                            <EventCountdown targetDate={evt.start_date} endDate={evt.end_date} size="sm" />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">
+                          <Link to={`/student/tickets/${reg.id}`} className="w-full">
+                            <Button size="sm" variant="primary" className="w-full justify-center" leftIcon={<Ticket size={14} />}>
+                              Open Digital QR Pass
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Registration Deadlines Closing Soon */}
+            {closingSoonEvents.length > 0 && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                      <Clock size={18} className="text-amber-400" />
+                      Registration Closing Soon
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Seats filling fast — secure your pass before registration windows close
+                    </p>
+                  </div>
+                  <Link
+                    to="/discover"
+                    className="text-xs text-amber-400 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    Browse Directory <ChevronRight size={13} />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {closingSoonEvents.map((evt) => (
+                    <EventCard key={evt.id} event={evt} animated />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 3. Recommended Events Feed (Part 4) */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -863,6 +1034,35 @@ export default function StudentDashboardPage() {
                 ))}
               </div>
             </div>
+
+            {/* 5. Recently Added Events */}
+            {recentlyAddedEvents.length > 0 && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                      <Calendar size={18} className="text-[#18CFFC]" />
+                      Recently Added Events
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Newest hackathons, symposiums, and cultural fests published by campus clubs
+                    </p>
+                  </div>
+                  <Link
+                    to="/discover"
+                    className="text-xs text-[#18CFFC] hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    See All <ChevronRight size={13} />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {recentlyAddedEvents.map((evt) => (
+                    <EventCard key={evt.id} event={evt} animated />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 12. Student Achievements Summary (Part 3 & 11) */}
             <div className="flex flex-col gap-4 p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.08]">
