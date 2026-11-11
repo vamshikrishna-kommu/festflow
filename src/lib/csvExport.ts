@@ -160,7 +160,7 @@ export function exportPaymentReconciliationCsv(
   downloadCsv(filename, rows)
 }
 
-// ── 4. Attendance & Check-In Report Export ───────────────────────────────────
+// ── 4. Historical Attendance Archive Export ──────────────────────────────────
 export function exportAttendanceReportCsv(
   event: EventRecord,
   attendees: RegistrationWithCheckIn[]
@@ -170,9 +170,9 @@ export function exportAttendanceReportCsv(
     'Attendee Name',
     'Attendee Email',
     'Registration Status',
-    'Gate Admitted',
-    'Check-In Timestamp',
-    'Check-In Notes',
+    'Historical Attendance',
+    'Attendance Recorded At',
+    'Attendance Notes',
   ]
 
   const rows: string[][] = [headers]
@@ -187,11 +187,11 @@ export function exportAttendanceReportCsv(
       isCheckedIn ? 'YES' : 'NO',
       att.check_in?.checked_in_at
         ? new Date(att.check_in.checked_in_at).toLocaleString()
-        : 'Not Admitted',
+        : 'Not Recorded',
       att.check_in?.checkin_notes || '',
     ])
   })
 
-  const filename = `festflow-${event.slug}-attendance-checkin-${getTodayString()}.csv`
+  const filename = `festflow-${event.slug}-historical-attendance-${getTodayString()}.csv`
   downloadCsv(filename, rows)
 }

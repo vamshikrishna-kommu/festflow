@@ -1,5 +1,6 @@
 import { PageShell } from '@/components/layout/PageShell'
 import { Card, Badge } from '@/components/ui'
+import { OFFICIAL_CONTACT_EMAIL, OFFICIAL_SUPPORT_MAILTO } from '@/lib/brandConfig'
 import { FileText } from 'lucide-react'
 
 export default function TermsPage() {
@@ -43,7 +44,7 @@ export default function TermsPage() {
               3. Ticketing, Direct UPI & Entry
             </h2>
             <p>
-              FestFlow facilitates direct peer-to-club manual UPI transactions. Tickets are issued as digital passes with unique QR validation codes. FestFlow is not a payment gateway and does not hold user funds in escrow; 100% of event proceeds transfer directly to the hosting club. Refunds and event cancellations are governed by the hosting club's published event policy.
+              FestFlow facilitates direct peer-to-club manual UPI transactions. Registrations are confirmed with verifiable digital passes. FestFlow is not a payment gateway and does not hold user funds in escrow; 100% of event proceeds transfer directly to the hosting club. Refunds and event cancellations are governed by the hosting club's published event policy.
             </p>
           </section>
 
@@ -52,7 +53,7 @@ export default function TermsPage() {
               4. Code of Conduct
             </h2>
             <p>
-              Users agree not to disrupt platform operations, submit counterfeit payment reference numbers, or attempt unauthorized entry with voided or cancelled passes. Violation may result in account termination.
+              Users agree not to disrupt platform operations, submit counterfeit payment reference numbers, or misuse cancelled or voided registration passes. Violation may result in account termination.
             </p>
           </section>
 
@@ -62,8 +63,8 @@ export default function TermsPage() {
             </h2>
             <p>
               Questions regarding these terms should be directed to{' '}
-              <a href="mailto:terms@festflow.online" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
-                terms@festflow.online
+              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
+                {OFFICIAL_CONTACT_EMAIL}
               </a>.
             </p>
           </section>

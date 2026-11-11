@@ -34,25 +34,23 @@ console.log('================================================================\n'
 const viteConfigPath = path.resolve('vite.config.ts');
 assert(fs.existsSync(viteConfigPath), 'vite.config.ts exists');
 const viteContent = fs.readFileSync(viteConfigPath, 'utf8');
-assert(viteContent.includes('vendor-three'), 'vite.config.ts configures vendor-three chunk');
+assert(!viteContent.includes('vendor-three'), 'vite.config.ts removed heavy Three.js chunk overhead');
 assert(viteContent.includes('vendor-excel'), 'vite.config.ts configures vendor-excel chunk');
-assert(viteContent.includes('vendor-qrcode'), 'vite.config.ts configures vendor-qrcode chunk');
 assert(viteContent.includes('vendor-animations'), 'vite.config.ts configures vendor-animations chunk');
 assert(viteContent.includes('vendor-supabase'), 'vite.config.ts configures vendor-supabase chunk');
 assert(viteContent.includes('vendor-react'), 'vite.config.ts configures vendor-react chunk');
 
-// 2. 3D Scene optimization
-const heroSectionPath = path.resolve('src/components/sections/HeroSection.tsx');
-assert(fs.existsSync(heroSectionPath), 'HeroSection.tsx exists');
-const heroSectionContent = fs.readFileSync(heroSectionPath, 'utf8');
-assert(heroSectionContent.includes('React.lazy') || heroSectionContent.includes('lazy('), 'HeroSection lazy-loads HeroScene3D');
-assert(heroSectionContent.includes('CharacterDuoFallback'), 'HeroSection uses CharacterDuoFallback placeholder');
+// 2. Cinematic Landing optimization (replaced heavy WebGL 3D scene)
+const landingPath = path.resolve('src/pages/LandingPage.tsx');
+assert(fs.existsSync(landingPath), 'LandingPage.tsx exists');
+const landingContent = fs.readFileSync(landingPath, 'utf8');
+assert(landingContent.includes('CinematicLanding'), 'LandingPage renders lightweight CinematicLanding');
 
-const heroScenePath = path.resolve('src/components/sections/HeroScene3D.tsx');
-assert(fs.existsSync(heroScenePath), 'HeroScene3D.tsx exists');
-const heroSceneContent = fs.readFileSync(heroScenePath, 'utf8');
-assert(heroSceneContent.includes('IntersectionObserver'), 'HeroScene3D utilizes IntersectionObserver for viewport tracking');
-assert(heroSceneContent.includes('cancelAnimationFrame'), 'HeroScene3D pauses render loop when offscreen');
+const cinematicPath = path.resolve('src/components/cinematic/CinematicLanding.tsx');
+assert(fs.existsSync(cinematicPath), 'CinematicLanding.tsx exists');
+const cinematicContent = fs.readFileSync(cinematicPath, 'utf8');
+assert(cinematicContent.includes('useReducedMotion'), 'CinematicLanding respects reduced motion preference');
+assert(cinematicContent.includes('ScrollTrigger'), 'CinematicLanding integrates bidirectional GSAP ScrollTrigger');
 
 // 3. Dynamic import of ExcelJS
 const eventReportsPath = path.resolve('src/pages/club/EventReportsPage.tsx');

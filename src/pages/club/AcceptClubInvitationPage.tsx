@@ -22,28 +22,18 @@ import {
   acceptClubInvitation,
   ROLE_LABELS,
   ROLE_DESCRIPTIONS,
-  ROLE_PERMISSIONS,
 } from '@/lib/clubMembers'
+import { getRolePermissions, PERMISSION_DESCRIPTIONS } from '@/lib/rbac'
 import { formatExcelDateTime } from '@/lib/excelExport'
 import { fadeIn } from '@/lib/animations'
-import type { ClubInvitationRecord, ClubPermission } from '@/types'
+import type { ClubInvitationRecord } from '@/types'
 
 const PENDING_TOKEN_STORAGE_KEY = 'festflow_pending_club_invitation_token'
-
-const PERMISSION_LABELS: Record<ClubPermission, string> = {
-  manage_club: 'Organization profile and general settings',
-  manage_members: 'Invite and manage club staff members',
-  manage_events: 'Create, edit, and publish club events',
-  view_attendees: 'Inspect registrant rosters and attendee profiles',
-  gate_checkin: 'Gate check-in and QR ticket scanner access',
-  review_payments: 'Review UPI payment submissions and verify UTRs',
-  view_reports: 'Download analytics spreadsheets and attendee reports',
-}
 
 export default function AcceptClubInvitationPage() {
   const { token: routeToken } = useParams<{ token: string }>()
   const navigate = useNavigate()
-  const { user, profile, refreshProfile, signOut } = useAuth()
+  const { user, profile, refreshProfile, refreshMemberships, switchActiveClub, signOut } = useAuth()
 
   // Token resolution with sessionStorage backup
   const activeToken = useMemo(() => {
@@ -118,11 +108,15 @@ export default function AcceptClubInvitationPage() {
 
       setAcceptedSuccess(true)
 
-      // Refresh auth profile to synchronize user role (transitioning from student to club_member)
+      // Refresh auth profile and active club memberships immediately
       try {
         await refreshProfile()
+        await refreshMemberships()
+        if (invitation.club_id) {
+          await switchActiveClub(invitation.club_id)
+        }
       } catch (err) {
-        console.warn('[FestFlow] Failed to refresh profile after acceptance:', err)
+        console.warn('[FestFlow] Failed to refresh profile/memberships after acceptance:', err)
       }
 
       setTimeout(() => {
@@ -197,7 +191,7 @@ export default function AcceptClubInvitationPage() {
       (Boolean(invitation.email && !invitation.email.includes('*')) &&
         user?.email?.trim().toLowerCase() === invitation.email?.trim().toLowerCase()))
 
-  const permissionsList = ROLE_PERMISSIONS[invitation.role] || []
+  const permissionsList = getRolePermissions(invitation.role)
   const clubDisplayName = invitation.club_name || 'Organization'
 
   return (
@@ -350,7 +344,7 @@ export default function AcceptClubInvitationPage() {
                     {permissionsList.map((perm) => (
                       <div key={perm} className="flex items-center gap-2 text-[var(--color-text-secondary)]">
                         <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                        <span>{PERMISSION_LABELS[perm]}</span>
+                        <span>{PERMISSION_DESCRIPTIONS[perm] || perm}</span>
                       </div>
                     ))}
                   </div>

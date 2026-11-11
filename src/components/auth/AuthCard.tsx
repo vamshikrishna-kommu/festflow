@@ -65,7 +65,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
                   </h2>
                   <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
                     {isClub
-                      ? 'Create events, manage registrations, verify UPI transactions, and admit attendees with real-time QR scanning.'
+                      ? 'Create events, manage registrations, coordinate team roles, and verify UPI transactions directly.'
                       : 'Discover campus hackathons, symposiums, and cultural fests with automated digital passes.'}
                   </p>
                 </div>

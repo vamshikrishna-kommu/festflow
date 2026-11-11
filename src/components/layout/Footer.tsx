@@ -1,16 +1,17 @@
 import { Link } from 'react-router'
-import { Globe, Share2, Rss, Heart } from 'lucide-react'
+import { Globe, Share2, Rss, Heart, Mail } from 'lucide-react'
 import { Logo } from '@/components/ui'
+import { OFFICIAL_CONTACT_EMAIL, OFFICIAL_SUPPORT_MAILTO } from '@/lib/brandConfig'
 
 const FOOTER_LINKS = {
   Platform: [
     { label: 'Discover Events', href: '/discover' },
     { label: 'For College Clubs', href: '/club/signup' },
-    { label: 'Features', href: '/#features' },
+    { label: 'Features', href: '/#scene-03-journey' },
     { label: 'Club Login', href: '/club/login' },
   ],
   Community: [
-    { label: 'About FestFlow', href: '/#features' },
+    { label: 'About FestFlow', href: '/#scene-05-final' },
     { label: 'Student Login', href: '/student/login' },
     { label: 'Help & Support', href: '/contact' },
     { label: 'Contact Team', href: '/contact' },
@@ -25,7 +26,7 @@ const FOOTER_LINKS = {
 const SOCIALS = [
   { icon: Globe,  label: 'Discover Events', href: '/discover' },
   { icon: Share2, label: 'Contact Support', href: '/contact' },
-  { icon: Rss,    label: 'Platform Features', href: '/#features' },
+  { icon: Rss,    label: 'Platform Features', href: '/#scene-03-journey' },
 ]
 
 export function Footer() {
@@ -60,23 +61,41 @@ export function Footer() {
             >
               <Logo variant="footer" />
             </Link>
-            <p className="text-sm text-[var(--color-text-muted)] leading-relaxed max-w-[230px] mb-6">
+            <p className="text-sm text-[var(--color-text-muted)] leading-relaxed max-w-[230px] mb-4">
               The 100% free event platform built for college clubs and their student communities.
             </p>
+            <a
+              href={OFFICIAL_SUPPORT_MAILTO}
+              className="inline-flex items-center gap-2 text-xs font-medium text-[#18CFFC] hover:text-white transition-colors mb-5"
+            >
+              <Mail size={13} />
+              <span>{OFFICIAL_CONTACT_EMAIL}</span>
+            </a>
             {/* Socials */}
             <div className="flex gap-2.5">
-              {SOCIALS.map(({ icon: Icon, label, href }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  target={href.startsWith('http') ? '_blank' : undefined}
-                  rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--color-surface-3)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)] hover:scale-105 transition-all duration-200"
-                >
-                  <Icon size={15} />
-                </a>
-              ))}
+              {SOCIALS.map(({ icon: Icon, label, href }) =>
+                href.startsWith('http') ? (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--color-surface-3)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)] hover:scale-105 transition-all duration-200"
+                  >
+                    <Icon size={15} />
+                  </a>
+                ) : (
+                  <Link
+                    key={label}
+                    to={href}
+                    aria-label={label}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--color-surface-3)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)] hover:scale-105 transition-all duration-200"
+                  >
+                    <Icon size={15} />
+                  </Link>
+                )
+              )}
             </div>
           </div>
 

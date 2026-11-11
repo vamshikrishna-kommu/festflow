@@ -138,7 +138,7 @@ export const CANCELLATION_REASONS: { value: CancellationReasonType; label: strin
   { value: 'other', label: 'Other' },
 ]
 
-// ── Club Members & Permissions (Phase 6) ────────────────────────────────────
+// ── Club Members & Permissions (Phase 6 + RBAC Repair) ────────────────────────
 export type ClubRole =
   | 'owner'
   | 'admin'
@@ -147,7 +147,34 @@ export type ClubRole =
   | 'checkin_staff'
   | 'viewer'
 
-export type ClubPermission =
+export type AssignableClubRole =
+  | 'admin'
+  | 'event_manager'
+  | 'payment_reviewer'
+  | 'viewer'
+
+export type CanonicalClubPermission =
+  | 'club.view'
+  | 'club.manage'
+  | 'club.transfer_ownership'
+  | 'members.view'
+  | 'members.invite'
+  | 'members.manage'
+  | 'roles.assign'
+  | 'events.view'
+  | 'events.create'
+  | 'events.edit'
+  | 'events.publish'
+  | 'events.cancel'
+  | 'registrations.view'
+  | 'registrations.manage'
+  | 'payments.view'
+  | 'payments.verify'
+  | 'payments.settings'
+  | 'reports.view'
+  | 'reports.export'
+
+export type LegacyClubPermission =
   | 'manage_club'
   | 'manage_members'
   | 'manage_events'
@@ -155,6 +182,8 @@ export type ClubPermission =
   | 'gate_checkin'
   | 'review_payments'
   | 'view_reports'
+
+export type ClubPermission = CanonicalClubPermission | LegacyClubPermission
 
 export interface ClubMemberRecord {
   id: string
@@ -479,6 +508,7 @@ export type DynamicEventStatus =
   | 'registration_closed'
   | 'upcoming'
   | 'live'
+  | 'draft'
   | 'completed'
   | 'cancelled'
 
@@ -576,12 +606,15 @@ export interface CouponValidationResult {
   error?: string
 }
 
-export type EventAssignmentRole =
+export type AssignableEventAssignmentRole =
   | 'event_manager'
   | 'registration_manager'
   | 'finance_manager'
-  | 'checkin_staff'
   | 'content_manager'
+
+export type EventAssignmentRole =
+  | AssignableEventAssignmentRole
+  | 'checkin_staff'
 
 export interface EventAssignmentRecord {
   id: string

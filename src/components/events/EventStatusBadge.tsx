@@ -12,6 +12,7 @@ interface EventStatusBadgeProps {
     registration_closes_at?: string | null
     start_date?: string
     end_date?: string
+    timezone?: string | null
     capacity?: number
     registeredCount?: number
   }
@@ -37,6 +38,7 @@ export function EventStatusBadge({ event, showIcon = true, className = '' }: Eve
         return <Radio size={11} className="animate-pulse text-emerald-400" />
       case 'filling_fast':
       case 'almost_full':
+      case 'draft':
         return <Flame size={11} className="text-amber-400" />
       case 'upcoming':
         return <Clock size={11} className="text-[#18CFFC]" />

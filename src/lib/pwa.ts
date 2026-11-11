@@ -78,10 +78,15 @@ export function isPwaInstalled(): boolean {
 // Allows students to view previously issued passes offline in campus basements/venues.
 // Does NOT store passwords, tokens, or allow unauthorized check-in bypass.
 
-const OFFLINE_PASS_STORAGE_KEY = 'festflow_offline_cached_passes'
+import {
+  OFFLINE_PASS_STORAGE_KEY,
+  reconcileTicketCacheOwner,
+  clearAllUserTicketCaches,
+} from '@/lib/ticketCache'
 
 export interface CachedOfflinePass {
   id: string
+  user_id?: string
   event_id: string
   event_title: string
   event_venue: string
@@ -94,13 +99,20 @@ export interface CachedOfflinePass {
 
 export function cacheDigitalPassOffline(pass: CachedOfflinePass): void {
   try {
+    if (pass.user_id) {
+      reconcileTicketCacheOwner(pass.user_id)
+    }
+    const { qr_token: _rawQr, qr_token_hash: _rawHash, ...sanitizedPass } = pass as CachedOfflinePass & {
+      qr_token?: unknown
+      qr_token_hash?: unknown
+    }
     const raw = localStorage.getItem(OFFLINE_PASS_STORAGE_KEY)
     const list: CachedOfflinePass[] = raw ? JSON.parse(raw) : []
-    const index = list.findIndex((p) => p.id === pass.id)
+    const index = list.findIndex((p) => p.id === sanitizedPass.id)
     if (index >= 0) {
-      list[index] = pass
+      list[index] = sanitizedPass
     } else {
-      list.push(pass)
+      list.push(sanitizedPass)
     }
     localStorage.setItem(OFFLINE_PASS_STORAGE_KEY, JSON.stringify(list))
   } catch {
@@ -108,13 +120,26 @@ export function cacheDigitalPassOffline(pass: CachedOfflinePass): void {
   }
 }
 
-export function getOfflineCachedPasses(): CachedOfflinePass[] {
+export function getOfflineCachedPasses(activeUserId?: string): CachedOfflinePass[] {
   try {
+    if (activeUserId) {
+      reconcileTicketCacheOwner(activeUserId)
+    }
     const raw = localStorage.getItem(OFFLINE_PASS_STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const list = JSON.parse(raw)
+      if (!Array.isArray(list)) return []
+      return activeUserId
+        ? list.filter((p) => p && (!p.user_id || p.user_id === activeUserId))
+        : list
+    }
   } catch {
     // ignore
   }
   return []
+}
+
+export function clearOfflineCachedPasses(): void {
+  clearAllUserTicketCaches()
 }
 

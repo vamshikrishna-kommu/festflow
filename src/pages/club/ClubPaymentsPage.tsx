@@ -21,62 +21,50 @@ import {
   reviewPaymentSubmission,
   getPaymentProofSignedUrl,
 } from '@/lib/payments'
-import { listClubEvents } from '@/lib/events'
+import { listClubEvents, isEventConcludedOrCancelled } from '@/lib/events'
 import { subscribeToStatusChanges } from '@/lib/sync'
-import {
-  ROLE_LABELS,
-  hasPermission,
-  getUserClubRole,
-} from '@/lib/clubMembers'
-import type { ClubRole } from '@/types'
+import { ROLE_LABELS } from '@/lib/clubMembers'
 import type { PaymentSubmissionWithDetails, PaymentStatus, EventRecord } from '@/types'
 
 export default function ClubPaymentsPage() {
   const {
-    user,
     profile,
     clubProfile,
     activeClubId,
     activeClubMembership,
     activeClubProfile,
+    activeClubRole,
     clubMemberships,
+    eventAssignments,
+    hasClubPermission,
+    hasEventPermission,
+    isRoleLoading,
+    role,
   } = useAuth()
   const [searchParams] = useSearchParams()
   const eventIdParam = searchParams.get('eventId')
 
-  // Resolve selected club strictly from authorized owner profile or active membership - NEVER fallback to user.id
-  const clubId = activeClubId || clubProfile?.profile_id || activeClubMembership?.club_id || null
-  const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Organization'
+  const isPlatformAdmin = role === 'platform_admin'
+  const clubId = activeClubId || null
+  const clubName =
+    activeClubProfile?.club_name ||
+    activeClubMembership?.club_name ||
+    clubProfile?.club_name ||
+    profile?.display_name ||
+    'Organization'
 
-  const initialClubRole: ClubRole | null =
-    clubProfile?.profile_id === user?.id
-      ? 'owner'
-      : (activeClubMembership?.role as ClubRole) || null
-
-  const [userClubRole, setUserClubRole] = useState<ClubRole | null>(initialClubRole)
-  const [roleLoading, setRoleLoading] = useState(true)
-
-  useEffect(() => {
-    let mounted = true
-    if (!clubId || !user) {
-      setUserClubRole(null)
-      setRoleLoading(false)
-      return
-    }
-
-    getUserClubRole(clubId, user.id).then((r) => {
-      if (!mounted) return
-      setUserClubRole(r || (clubProfile?.profile_id === user.id ? 'owner' : (activeClubMembership?.role as ClubRole) || null))
-      setRoleLoading(false)
-    })
-
-    return () => {
-      mounted = false
-    }
-  }, [clubId, user?.id, clubProfile?.profile_id, activeClubMembership?.role])
-
-  const canReviewPayments = Boolean(userClubRole && hasPermission(userClubRole, 'review_payments'))
-  const canManagePayments = Boolean(userClubRole && hasPermission(userClubRole, 'manage_club'))
+  const hasEventFinanceViewAccess = Boolean(
+    clubId &&
+      eventAssignments.some(
+        (ea) => ea.club_id === clubId && ea.role === 'finance_manager'
+      )
+  )
+  const canViewPayments =
+    isPlatformAdmin || hasClubPermission('payments.view') || hasEventFinanceViewAccess
+  const canVerifyAnyPayments =
+    isPlatformAdmin || hasClubPermission('payments.verify') || hasEventFinanceViewAccess
+  const canManagePaymentSettings =
+    isPlatformAdmin || hasClubPermission('payments.settings')
 
   const [submissions, setSubmissions] = useState<PaymentSubmissionWithDetails[]>([])
   const [events, setEvents] = useState<EventRecord[]>([])
@@ -98,7 +86,10 @@ export default function ClubPaymentsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const loadData = async (silent = false) => {
-    if (!clubId || !canReviewPayments) {
+    if (isRoleLoading) return
+    if (!clubId || !canViewPayments) {
+      setSubmissions([])
+      setEvents([])
       if (!silent) setLoading(false)
       return
     }
@@ -108,25 +99,41 @@ export default function ClubPaymentsPage() {
       listClubEvents(clubId),
     ])
     if (!silent) setLoading(false)
-    if (subsRes.submissions) setSubmissions(subsRes.submissions)
-    if (eventsRes.events) setEvents(eventsRes.events)
+    if (subsRes.submissions) {
+      const visibleSubs = isPlatformAdmin
+        ? subsRes.submissions
+        : subsRes.submissions.filter((sub) =>
+            hasEventPermission(sub.event_id, 'payments.view', sub.event?.club_id || clubId)
+          )
+      setSubmissions(visibleSubs)
+    }
+    if (eventsRes.events) {
+      const visibleEvents = isPlatformAdmin
+        ? eventsRes.events
+        : eventsRes.events.filter(
+            (evt) =>
+              hasClubPermission('payments.view') ||
+              hasEventPermission(evt.id, 'payments.view', evt.club_id || clubId)
+          )
+      setEvents(visibleEvents)
+    }
   }
 
   useEffect(() => {
-    if (!roleLoading) {
+    if (!isRoleLoading) {
       loadData()
     }
 
     const unsubscribe = subscribeToStatusChanges(
       ['payment_submitted', 'payment_reviewed'],
       () => {
-        if (!roleLoading && canReviewPayments && clubId) {
+        if (!isRoleLoading && canViewPayments && clubId) {
           loadData(true)
         }
       }
     )
     return () => unsubscribe()
-  }, [clubId, canReviewPayments, roleLoading])
+  }, [clubId, canViewPayments, isRoleLoading, activeClubRole, eventAssignments])
 
   // Copy helper
   const handleCopy = (text: string, id: string) => {
@@ -136,8 +143,29 @@ export default function ClubPaymentsPage() {
   }
 
   // Review Actions
+  const eventById = new Map(events.map((e) => [e.id, e]))
+  const canVerifySubmission = (sub: PaymentSubmissionWithDetails): boolean =>
+    isPlatformAdmin ||
+    hasEventPermission(sub.event_id, 'payments.verify', sub.event?.club_id || clubId)
+
   const handleApprove = async () => {
-    if (!approvingSub || !canReviewPayments) return
+    if (!approvingSub || !canVerifySubmission(approvingSub)) {
+      setApprovingSub(null)
+      setNotice({
+        message: 'You do not have permission to verify or approve this payment submission.',
+        isError: true,
+      })
+      return
+    }
+    const targetEvent = eventById.get(approvingSub.event_id) || (approvingSub.event as any)
+    if (targetEvent && isEventConcludedOrCancelled(targetEvent) && !isPlatformAdmin) {
+      setApprovingSub(null)
+      setNotice({
+        message: 'Payment approvals are locked once an event has concluded or been cancelled.',
+        isError: true,
+      })
+      return
+    }
     setActionLoading(true)
     setNotice(null)
     const res = await reviewPaymentSubmission({
@@ -157,7 +185,23 @@ export default function ClubPaymentsPage() {
   }
 
   const handleReject = async () => {
-    if (!rejectingSub || !canReviewPayments) return
+    if (!rejectingSub || !canVerifySubmission(rejectingSub)) {
+      setRejectingSub(null)
+      setNotice({
+        message: 'You do not have permission to reject this payment submission.',
+        isError: true,
+      })
+      return
+    }
+    const targetEvent = eventById.get(rejectingSub.event_id) || (rejectingSub.event as any)
+    if (targetEvent && isEventConcludedOrCancelled(targetEvent) && !isPlatformAdmin) {
+      setRejectingSub(null)
+      setNotice({
+        message: 'Payment rejections are locked once an event has concluded or been cancelled.',
+        isError: true,
+      })
+      return
+    }
     const cleanReason = rejectionReason.trim()
     if (!cleanReason) {
       setRejectError('Please provide a mandatory reason for rejecting this payment.')
@@ -241,7 +285,7 @@ export default function ClubPaymentsPage() {
     )
   }
 
-  if (!roleLoading && !canReviewPayments) {
+  if (!isRoleLoading && !canViewPayments) {
     return (
       <PageShell>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
@@ -258,7 +302,7 @@ export default function ClubPaymentsPage() {
           <EmptyState
             icon={AlertTriangle}
             title="Role Permission Required"
-            description={`Your current role (${userClubRole ? ROLE_LABELS[userClubRole] : 'Staff Member'}) in ${clubName} does not have permission to view or verify payment submissions. Only Club Owners, Administrators, and Payment Reviewers can access this page.`}
+            description={`Your current role (${activeClubRole ? ROLE_LABELS[activeClubRole] : 'Staff Member'}) in ${clubName} does not have permission to view or verify payment submissions. Only Club Owners, Administrators, Payment Reviewers, or assigned Event Finance Managers can access this page.`}
             action={
               <Link to="/club/dashboard">
                 <Button variant="primary" size="sm">
@@ -295,9 +339,9 @@ export default function ClubPaymentsPage() {
                 Payment Verification
               </h1>
               <Badge variant="purple">{clubName}</Badge>
-              {userClubRole && (
+              {activeClubRole && (
                 <Badge variant="outline" className="text-xs">
-                  {ROLE_LABELS[userClubRole]}
+                  {ROLE_LABELS[activeClubRole]}
                 </Badge>
               )}
               {clubMemberships.length > 1 && (
@@ -317,7 +361,7 @@ export default function ClubPaymentsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {canManagePayments && (
+            {canManagePaymentSettings && (
               <Link to="/club/settings/payments">
                 <Button variant="outline" size="sm" leftIcon={<Settings size={14} />}>
                   UPI Settings
@@ -605,30 +649,42 @@ export default function ClubPaymentsPage() {
                   {/* Actions Right Section */}
                   <div className="flex items-center gap-2 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-[var(--color-surface-3)] w-full lg:w-auto">
                     {isPending ? (
-                      <>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => setApprovingSub(sub)}
-                          leftIcon={<CheckCircle2 size={14} />}
-                          className="flex-1 lg:flex-initial justify-center bg-emerald-600 hover:bg-emerald-500 border-none text-white min-h-[44px]"
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setRejectingSub(sub)
-                            setRejectionReason('')
-                            setRejectError(null)
-                          }}
-                          leftIcon={<XCircle size={14} />}
-                          className="flex-1 lg:flex-initial justify-center text-rose-400 hover:text-rose-300 hover:border-rose-500/30 min-h-[44px]"
-                        >
-                          Reject
-                        </Button>
-                      </>
+                      (eventById.get(sub.event_id) || (sub.event as any)) &&
+                      isEventConcludedOrCancelled(eventById.get(sub.event_id) || (sub.event as any)) &&
+                      !isPlatformAdmin ? (
+                        <Badge variant="default" className="text-[10px]">
+                          Event Archived — Review Locked
+                        </Badge>
+                      ) : !canVerifySubmission(sub) || !canVerifyAnyPayments ? (
+                        <Badge variant="default" className="text-[10px]">
+                          View Only
+                        </Badge>
+                      ) : (
+                        <>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setApprovingSub(sub)}
+                            leftIcon={<CheckCircle2 size={14} />}
+                            className="flex-1 lg:flex-initial justify-center bg-emerald-600 hover:bg-emerald-500 border-none text-white min-h-[44px]"
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setRejectingSub(sub)
+                              setRejectionReason('')
+                              setRejectError(null)
+                            }}
+                            leftIcon={<XCircle size={14} />}
+                            className="flex-1 lg:flex-initial justify-center text-rose-400 hover:text-rose-300 hover:border-rose-500/30 min-h-[44px]"
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )
                     ) : (
                       <span className="text-xs text-[var(--color-text-muted)]">
                         {isApproved
@@ -696,7 +752,7 @@ export default function ClubPaymentsPage() {
                       Verify & Issue Pass
                     </h4>
                     <p className="text-xs text-[var(--color-text-muted)]">
-                      Atomically confirms registration and QR ticket.
+                      Atomically confirms registration and activates entry pass.
                     </p>
                   </div>
                 </div>
@@ -718,7 +774,7 @@ export default function ClubPaymentsPage() {
                   <strong className="text-white">
                     {approvingSub.student?.display_name || 'student'}
                   </strong>
-                  's pass and send their gate QR credential.
+                  &apos;s registration and activate their official entry pass.
                 </p>
               </div>
             )}

@@ -10,16 +10,22 @@ import {
   RefreshCw,
   AlertTriangle,
   History,
+  Crown,
 } from 'lucide-react'
 import { Button, Badge, Card, PageHeader, Modal, ModalBody, ModalFooter, EmptyState, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 import {
+  ASSIGNABLE_CLUB_ROLES,
+  canAssignRole,
+  canManageMember,
+  canTransferOwnership,
+  getAssignableRoles,
+} from '@/lib/rbac'
+import {
   ROLE_LABELS,
   ROLE_DESCRIPTIONS,
-  hasPermission,
-  canAssignRole,
   getClubMembers,
   getClubInvitations,
   getClubAuditLogs,
@@ -29,6 +35,7 @@ import {
   resendClubInvitation,
   updateClubMemberRole,
   removeClubMember,
+  transferClubOwnership,
 } from '@/lib/clubMembers'
 import { formatExcelDateTime } from '@/lib/excelExport'
 import { ResourceOwnerGuard } from '@/components/auth/ResourceOwnerGuard'
@@ -41,9 +48,19 @@ import type {
 } from '@/types'
 
 export default function ClubMembersPage() {
-  const { user, profile, clubProfile, activeClubMembership, activeClubProfile, role: globalRole } = useAuth()
-  const clubId = clubProfile?.profile_id || activeClubMembership?.club_id || user?.id || ''
-  const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Organization'
+  const {
+    user,
+    profile,
+    activeClubId,
+    activeClubRole,
+    activeClubProfile,
+    isRoleLoading,
+    hasClubPermission,
+    refreshMemberships,
+    role: globalRole,
+  } = useAuth()
+  const clubId = activeClubId || ''
+  const clubName = activeClubProfile?.club_name || profile?.display_name || 'Organization'
 
   const [members, setMembers] = useState<ClubMemberRecord[]>([])
   const [invitations, setInvitations] = useState<ClubInvitationRecord[]>([])
@@ -70,6 +87,10 @@ export default function ClubMembersPage() {
   const [selectedNewRole, setSelectedNewRole] = useState<ClubRole>('event_manager')
   const [updatingRole, setUpdatingRole] = useState(false)
 
+  // Transfer Ownership State
+  const [transferTarget, setTransferTarget] = useState<ClubMemberRecord | null>(null)
+  const [transferring, setTransferring] = useState(false)
+
   // Clipboard Notification
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
   const [notice, setNotice] = useState<{
@@ -78,40 +99,106 @@ export default function ClubMembersPage() {
     variant?: 'info' | 'success' | 'warning' | 'error' | 'neutral'
   } | null>(null)
 
+  const effectiveUserRole: ClubRole | null =
+    userRole ?? activeClubRole ?? (globalRole === 'platform_admin' ? 'owner' : null)
+
+  const canViewMembers = useMemo(
+    () => globalRole === 'platform_admin' || hasClubPermission('members.view'),
+    [globalRole, hasClubPermission]
+  )
+
+  const canInviteMembers = useMemo(
+    () => globalRole === 'platform_admin' || hasClubPermission('members.invite'),
+    [globalRole, hasClubPermission]
+  )
+
+  const canManageMembers = useMemo(
+    () => globalRole === 'platform_admin' || hasClubPermission('members.manage'),
+    [globalRole, hasClubPermission]
+  )
+
+  const canAssignRoles = useMemo(
+    () => globalRole === 'platform_admin' || hasClubPermission('roles.assign'),
+    [globalRole, hasClubPermission]
+  )
+
+  const canTransfer = useMemo(
+    () => canTransferOwnership(userRole ?? activeClubRole),
+    [userRole, activeClubRole]
+  )
+
+  const assignableRoles = useMemo(
+    () =>
+      globalRole === 'platform_admin'
+        ? ASSIGNABLE_CLUB_ROLES
+        : getAssignableRoles(effectiveUserRole),
+    [globalRole, effectiveUserRole]
+  )
+
   const loadData = async (silent = false) => {
-    if (!clubId || !user) return
+    if (isRoleLoading) return
+    if (!clubId || !user || !canViewMembers) {
+      setUserRole(activeClubRole)
+      setMembers([])
+      setInvitations([])
+      setAuditLogs([])
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
     if (!silent) setLoading(true)
     else setRefreshing(true)
 
-    const [roleRes, membersRes, invitesRes, logsRes] = await Promise.all([
-      getUserClubRole(clubId, user.id),
+    const roleRes = await getUserClubRole(clubId, user.id)
+    const resolvedRole = roleRes || activeClubRole || (globalRole === 'platform_admin' ? 'owner' : null)
+    setUserRole(resolvedRole)
+
+    if (!resolvedRole && globalRole !== 'platform_admin') {
+      setMembers([])
+      setInvitations([])
+      setAuditLogs([])
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
+
+    const [membersRes, invitesRes, logsRes] = await Promise.all([
       getClubMembers(clubId),
-      getClubInvitations(clubId),
+      canInviteMembers ? getClubInvitations(clubId) : Promise.resolve({ invitations: [] }),
       getClubAuditLogs(clubId),
     ])
 
     if (!silent) setLoading(false)
     else setRefreshing(false)
 
-    setUserRole(roleRes || (globalRole === 'platform_admin' ? 'owner' : null))
     setMembers(membersRes.members)
     setInvitations(invitesRes.invitations)
     setAuditLogs(logsRes.logs)
   }
 
   useEffect(() => {
+    if (isRoleLoading) return
     loadData()
-  }, [clubId, user])
+  }, [clubId, user?.id, isRoleLoading, canViewMembers, canInviteMembers, activeClubRole, globalRole])
 
-  const canManageMembers = useMemo(() => {
-    if (globalRole === 'platform_admin') return true
-    return hasPermission(userRole, 'manage_members')
-  }, [userRole, globalRole])
+  useEffect(() => {
+    if (!canInviteMembers && activeTab === 'invitations') {
+      setActiveTab('members')
+    }
+  }, [canInviteMembers, activeTab])
 
   // Handle Send Invite
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !clubId) return
+    if (!user || !clubId || !canInviteMembers || !effectiveUserRole) return
+    if (globalRole !== 'platform_admin' && !canAssignRole(effectiveUserRole, inviteRole)) {
+      setNotice({
+        message: 'You are not authorized to invite a member with the selected role.',
+        isError: true,
+        variant: 'error',
+      })
+      return
+    }
     setInviting(true)
     setNotice(null)
 
@@ -120,7 +207,7 @@ export default function ClubMembersPage() {
       email: inviteEmail.trim(),
       role: inviteRole,
       inviterId: user.id,
-      inviterRole: userRole || 'owner',
+      inviterRole: effectiveUserRole,
       clubName,
       inviterName: profile?.display_name || 'Administrator',
     })
@@ -143,7 +230,19 @@ export default function ClubMembersPage() {
 
   // Handle Remove Member
   const handleRemoveMember = async () => {
-    if (!removingMember || !user || !clubId) return
+    if (!removingMember || !user || !clubId || !canManageMembers) return
+    if (
+      globalRole !== 'platform_admin' &&
+      !canManageMember(effectiveUserRole, user.id, removingMember)
+    ) {
+      setNotice({
+        message: 'You cannot remove a member with an equal or higher role.',
+        isError: true,
+        variant: 'error',
+      })
+      setRemovingMember(null)
+      return
+    }
     setRemoving(true)
     const res = await removeClubMember(removingMember.id, user.id, clubId)
     setRemoving(false)
@@ -151,7 +250,8 @@ export default function ClubMembersPage() {
 
     if (res.success) {
       setNotice({ message: res.message, isError: false })
-      loadData(true)
+      await refreshMemberships()
+      await loadData(true)
     } else {
       setNotice({ message: res.message, isError: true })
     }
@@ -159,7 +259,19 @@ export default function ClubMembersPage() {
 
   // Handle Update Role
   const handleUpdateRole = async () => {
-    if (!editingMember || !user || !clubId) return
+    if (!editingMember || !user || !clubId || !canAssignRoles) return
+    if (
+      globalRole !== 'platform_admin' &&
+      !canManageMember(effectiveUserRole, user.id, editingMember, selectedNewRole)
+    ) {
+      setNotice({
+        message: 'You are not authorized to perform this role assignment.',
+        isError: true,
+        variant: 'error',
+      })
+      setEditingMember(null)
+      return
+    }
     setUpdatingRole(true)
     const res = await updateClubMemberRole(editingMember.id, selectedNewRole, user.id, clubId)
     setUpdatingRole(false)
@@ -167,15 +279,42 @@ export default function ClubMembersPage() {
 
     if (res.success) {
       setNotice({ message: res.message, isError: false })
-      loadData(true)
+      await refreshMemberships()
+      await loadData(true)
     } else {
       setNotice({ message: res.message, isError: true })
     }
   }
 
+  // Handle Ownership Transfer
+  const handleTransferOwnership = async () => {
+    if (
+      !transferTarget ||
+      !user ||
+      !clubId ||
+      !canTransfer ||
+      transferTarget.status !== 'active' ||
+      transferTarget.user_id === user.id
+    ) {
+      return
+    }
+    setTransferring(true)
+    const res = await transferClubOwnership(clubId, transferTarget.user_id, user.id)
+    setTransferring(false)
+    setTransferTarget(null)
+
+    if (res.success) {
+      setNotice({ message: res.message, isError: false, variant: 'success' })
+      await refreshMemberships()
+      await loadData(true)
+    } else {
+      setNotice({ message: res.message, isError: true, variant: 'error' })
+    }
+  }
+
   // Handle Revoke Invite
   const handleRevokeInvite = async (invitationId: string) => {
-    if (!user || !clubId) return
+    if (!user || !clubId || !canInviteMembers) return
     const res = await revokeClubInvitation(invitationId, user.id, clubId)
     if (res.success) {
       setNotice({ message: res.message, isError: false })
@@ -187,7 +326,7 @@ export default function ClubMembersPage() {
 
   // Handle Resend Invite
   const handleResendInvite = async (invitationId: string) => {
-    if (!user || !clubId) return
+    if (!user || !clubId || !canInviteMembers) return
     const res = await resendClubInvitation(invitationId, user.id, clubId, clubName)
     if (res.success) {
       const emailFailed = res.emailDelivery && !res.emailDelivery.success
@@ -203,6 +342,7 @@ export default function ClubMembersPage() {
   }
 
   const handleCopyLink = (token: string) => {
+    if (!canInviteMembers) return
     const origin = getFrontendBaseUrl()
     const url = `${origin}/club/invitations/${token}`
     navigator.clipboard.writeText(url)
@@ -210,7 +350,7 @@ export default function ClubMembersPage() {
     setTimeout(() => setCopiedToken(null), 2000)
   }
 
-  if (loading) {
+  if (loading || isRoleLoading) {
     return (
       <PageShell>
         <div className="py-24 flex flex-col items-center justify-center text-center">
@@ -224,7 +364,9 @@ export default function ClubMembersPage() {
   }
 
   // Authorization check
-  const isAuthorized = Boolean(userRole || globalRole === 'platform_admin')
+  const isAuthorized = Boolean(
+    clubId && canViewMembers && (effectiveUserRole || globalRole === 'platform_admin')
+  )
   if (!isAuthorized) {
     return (
       <PageShell>
@@ -241,7 +383,11 @@ export default function ClubMembersPage() {
     )
   }
 
-  const pendingCount = invitations.filter((i) => i.status === 'pending').length
+  const pendingCount = canInviteMembers
+    ? invitations.filter((i) => i.status === 'pending').length
+    : 0
+  const actorRoleForChecks: ClubRole | null =
+    globalRole === 'platform_admin' ? 'owner' : effectiveUserRole
 
   const getRoleBadgeVariant = (role: ClubRole): 'purple' | 'cyan' | 'pink' | 'amber' | 'success' | 'outline' => {
     switch (role) {
@@ -264,8 +410,8 @@ export default function ClubMembersPage() {
             { label: 'Team & Staff' },
           ]}
           title="Organization Staff & Team Management"
-          badge={ROLE_LABELS[userRole || 'owner']}
-          badgeVariant={getRoleBadgeVariant(userRole || 'owner')}
+          badge={effectiveUserRole ? ROLE_LABELS[effectiveUserRole] : 'Restricted'}
+          badgeVariant={effectiveUserRole ? getRoleBadgeVariant(effectiveUserRole) : 'outline'}
           subtitle={`Manage team roles, staff invitations, and security access controls for ${clubName}.`}
           actions={
             <div className="flex items-center gap-2 flex-wrap">
@@ -278,13 +424,17 @@ export default function ClubMembersPage() {
               >
                 Refresh
               </Button>
-              {canManageMembers && (
+              {canInviteMembers && assignableRoles.length > 0 && (
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => {
                     setInviteEmail('')
-                    setInviteRole('event_manager')
+                    setInviteRole(
+                      assignableRoles.includes('event_manager')
+                        ? 'event_manager'
+                        : assignableRoles[0] || 'viewer'
+                    )
                     setInviteModalOpen(true)
                   }}
                   leftIcon={<UserPlus size={14} />}
@@ -355,12 +505,14 @@ export default function ClubMembersPage() {
             </span>
             <div className="flex items-baseline justify-between">
               <span className="text-xl sm:text-2xl font-bold font-display text-[#18CFFC] truncate">
-                {ROLE_LABELS[userRole || 'owner']}
+                {effectiveUserRole ? ROLE_LABELS[effectiveUserRole] : 'Restricted'}
               </span>
               <ShieldCheck size={18} className="text-[#18CFFC] shrink-0" />
             </div>
             <span className="text-[11px] text-[var(--color-text-muted)] mt-2 truncate">
-              {ROLE_DESCRIPTIONS[userRole || 'owner']}
+              {effectiveUserRole
+                ? ROLE_DESCRIPTIONS[effectiveUserRole]
+                : 'No active organization role assigned.'}
             </span>
           </Card>
         </motion.div>
@@ -380,21 +532,23 @@ export default function ClubMembersPage() {
             <span>Active Staff ({members.length})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('invitations')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
-              activeTab === 'invitations'
-                ? 'bg-[var(--color-surface-3)] text-white font-semibold shadow-sm'
-                : 'text-[var(--color-text-secondary)] hover:text-white'
-            }`}
-          >
-            <Mail size={14} />
-            <span>Invitations ({invitations.length})</span>
-            {pendingCount > 0 && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            )}
-          </button>
+          {canInviteMembers && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('invitations')}
+              className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
+                activeTab === 'invitations'
+                  ? 'bg-[var(--color-surface-3)] text-white font-semibold shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-white'
+              }`}
+            >
+              <Mail size={14} />
+              <span>Invitations ({invitations.length})</span>
+              {pendingCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              )}
+            </button>
+          )}
 
           <button
             type="button"
@@ -417,13 +571,21 @@ export default function ClubMembersPage() {
               <EmptyState
                 icon={Users}
                 title="No Team Members Found"
-                description="Your organization has no additional staff members yet. Send an invitation to collaborate on event management, turnstile scanning, or payment reviews."
+                description="Your organization has no additional staff members yet. Send an invitation to collaborate on event management, attendee coordination, or payment reviews."
                 action={
-                  canManageMembers ? (
+                  canInviteMembers && assignableRoles.length > 0 ? (
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => setInviteModalOpen(true)}
+                      onClick={() => {
+                        setInviteEmail('')
+                        setInviteRole(
+                          assignableRoles.includes('event_manager')
+                            ? 'event_manager'
+                            : assignableRoles[0] || 'viewer'
+                        )
+                        setInviteModalOpen(true)
+                      }}
                       leftIcon={<UserPlus size={14} />}
                     >
                       Invite Staff Member
@@ -477,29 +639,53 @@ export default function ClubMembersPage() {
                         <p>{ROLE_DESCRIPTIONS[member.role]}</p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-[var(--color-surface-3)] text-[11px] text-[var(--color-text-muted)]">
+                      <div className="flex items-center justify-between pt-2 border-t border-[var(--color-surface-3)] text-[11px] text-[var(--color-text-muted)] gap-2">
                         <span>Joined: {formatExcelDateTime(member.created_at)}</span>
 
-                        {canManageMembers && !isSelf && (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingMember(member)
-                                setSelectedNewRole(member.role)
-                              }}
-                              className="text-[var(--color-text-secondary)] hover:text-white px-2 py-1 rounded hover:bg-[var(--color-surface-3)] transition-colors"
-                            >
-                              Edit Role
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setRemovingMember(member)}
-                              className="text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors"
-                              title="Revoke access and remove from team"
-                            >
-                              Remove
-                            </button>
+                        {!isSelf && (
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            {canTransfer && member.status === 'active' && member.role !== 'owner' && (
+                              <button
+                                type="button"
+                                onClick={() => setTransferTarget(member)}
+                                className="text-amber-300 hover:text-amber-200 px-2 py-1 rounded hover:bg-amber-500/10 transition-colors flex items-center gap-1"
+                                title="Transfer primary club ownership to this staff member"
+                              >
+                                <Crown size={11} />
+                                <span>Make Owner</span>
+                              </button>
+                            )}
+                            {canAssignRoles &&
+                              (globalRole === 'platform_admin' ||
+                                canManageMember(actorRoleForChecks, user?.id, member)) &&
+                              assignableRoles.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingMember(member)
+                                    setSelectedNewRole(
+                                      (assignableRoles as readonly ClubRole[]).includes(member.role)
+                                        ? member.role
+                                        : assignableRoles[0] || 'viewer'
+                                    )
+                                  }}
+                                  className="text-[var(--color-text-secondary)] hover:text-white px-2 py-1 rounded hover:bg-[var(--color-surface-3)] transition-colors"
+                                >
+                                  Edit Role
+                                </button>
+                              )}
+                            {canManageMembers &&
+                              (globalRole === 'platform_admin' ||
+                                canManageMember(actorRoleForChecks, user?.id, member)) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRemovingMember(member)}
+                                  className="text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors"
+                                  title="Revoke access and remove from team"
+                                >
+                                  Remove
+                                </button>
+                              )}
                           </div>
                         )}
                       </div>
@@ -512,7 +698,7 @@ export default function ClubMembersPage() {
         )}
 
         {/* ── Tab 2: Invitations ────────────────────────────────────────────── */}
-        {activeTab === 'invitations' && (
+        {activeTab === 'invitations' && canInviteMembers && (
           <div className="flex flex-col gap-3">
             {invitations.length === 0 ? (
               <EmptyState
@@ -520,11 +706,19 @@ export default function ClubMembersPage() {
                 title="No Invitations Sent"
                 description="You haven't sent any invitations yet. Invite your colleagues and event managers to collaborate securely."
                 action={
-                  canManageMembers ? (
+                  canInviteMembers && assignableRoles.length > 0 ? (
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => setInviteModalOpen(true)}
+                      onClick={() => {
+                        setInviteEmail('')
+                        setInviteRole(
+                          assignableRoles.includes('event_manager')
+                            ? 'event_manager'
+                            : assignableRoles[0] || 'viewer'
+                        )
+                        setInviteModalOpen(true)
+                      }}
                       leftIcon={<UserPlus size={14} />}
                     >
                       Invite Staff Member
@@ -591,7 +785,7 @@ export default function ClubMembersPage() {
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {isPending && (
+                                {isPending && canInviteMembers && (
                                   <>
                                     <button
                                       type="button"
@@ -612,28 +806,24 @@ export default function ClubMembersPage() {
                                       )}
                                     </button>
 
-                                    {canManageMembers && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleResendInvite(inv.id)}
-                                          className="text-[11px] text-[#18CFFC] hover:text-[#18CFFC] hover:underline px-2 py-1 transition-colors"
-                                        >
-                                          Resend
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRevokeInvite(inv.id)}
-                                          className="text-[11px] text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors"
-                                        >
-                                          Revoke
-                                        </button>
-                                      </>
-                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleResendInvite(inv.id)}
+                                      className="text-[11px] text-[#18CFFC] hover:text-[#18CFFC] hover:underline px-2 py-1 transition-colors"
+                                    >
+                                      Resend
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRevokeInvite(inv.id)}
+                                      className="text-[11px] text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors"
+                                    >
+                                      Revoke
+                                    </button>
                                   </>
                                 )}
 
-                                {(isExpired || isRevoked) && canManageMembers && (
+                                {(isExpired || isRevoked) && canInviteMembers && (
                                   <button
                                     type="button"
                                     onClick={() => handleResendInvite(inv.id)}
@@ -748,14 +938,9 @@ export default function ClubMembersPage() {
                     Designated Least-Privilege Role
                   </label>
                   <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto pr-1">
-                    {([
-                      'admin',
-                      'event_manager',
-                      'payment_reviewer',
-                      'checkin_staff',
-                      'viewer',
-                    ] as ClubRole[]).map((r) => {
-                      const allowed = canAssignRole(userRole, r)
+                    {ASSIGNABLE_CLUB_ROLES.map((r) => {
+                      const allowed =
+                        globalRole === 'platform_admin' || canAssignRole(actorRoleForChecks, r)
                       const isSelected = inviteRole === r
 
                       return (
@@ -841,7 +1026,7 @@ export default function ClubMembersPage() {
                     onChange={(e) => setSelectedNewRole(e.target.value as ClubRole)}
                     className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] outline-none"
                   >
-                    {(['admin', 'event_manager', 'payment_reviewer', 'checkin_staff', 'viewer'] as ClubRole[]).map((r) => (
+                    {assignableRoles.map((r) => (
                       <option key={r} value={r}>
                         {ROLE_LABELS[r]}
                       </option>
@@ -901,7 +1086,7 @@ export default function ClubMembersPage() {
                   {removingMember?.profile?.display_name || removingMember?.profile?.email}
                 </strong>{' '}
                 (Role: {removingMember && ROLE_LABELS[removingMember.role]})?
-                They will no longer be able to manage events, scan attendee tickets, or inspect financial records.
+                They will no longer be able to manage events, view attendee rosters, or inspect financial records.
               </p>
             </div>
           </ModalBody>
@@ -922,6 +1107,60 @@ export default function ClubMembersPage() {
               onClick={handleRemoveMember}
             >
               Confirm Removal
+            </Button>
+          </ModalFooter>
+        </Modal>
+
+        {/* ── Modal: Transfer Ownership Confirmation ───────────────────────── */}
+        <Modal
+          isOpen={Boolean(transferTarget)}
+          onClose={() => setTransferTarget(null)}
+          title="Transfer Club Ownership"
+          size="sm"
+        >
+          <ModalBody>
+            <div className="flex flex-col gap-3 text-left">
+              <div className="flex items-center gap-3 text-amber-300">
+                <div className="p-2.5 rounded-xl bg-amber-500/15">
+                  <Crown size={24} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Promote New Club Owner
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Reassigns primary ownership for {clubName}.
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
+                Are you sure you want to transfer primary club ownership to{' '}
+                <strong className="text-[var(--color-text-primary)]">
+                  {transferTarget?.profile?.display_name || transferTarget?.profile?.email}
+                </strong>
+                ? Your role will be updated to <strong>{ROLE_LABELS.admin}</strong>, and only the new owner can assign administrators or transfer ownership again.
+              </p>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={transferring}
+              onClick={() => setTransferTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={transferring}
+              isLoading={transferring}
+              onClick={handleTransferOwnership}
+              className="bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+            >
+              Confirm Transfer
             </Button>
           </ModalFooter>
         </Modal>

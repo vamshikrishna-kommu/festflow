@@ -12,7 +12,6 @@ import {
   LogIn,
   Bell,
   Settings,
-  QrCode,
   CheckCircle2,
   X,
   User,
@@ -23,7 +22,7 @@ import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
 import type { InAppNotification } from '@/types'
 
 export function BottomNav() {
-  const { session, user, isLoading, activeWorkspace } = useAuth()
+  const { session, user, isLoading, activeWorkspace, hasClubPermission } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -31,8 +30,7 @@ export function BottomNav() {
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false)
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
 
-  // Don't show bottom nav on full-screen flows like QR scanner, check-in camera, or multi-step event wizard
-  const isScannerRoute = location.pathname.includes('/check-in') || location.pathname.includes('/checkin')
+  // Don't show bottom nav on full-screen flows like the multi-step event wizard
   const isFormRoute = location.pathname.includes('/club/events/new') || (location.pathname.includes('/club/events/') && location.pathname.includes('/edit'))
 
   // Load unread count for notification badge
@@ -57,7 +55,7 @@ export function BottomNav() {
     }
   }, [user?.id])
 
-  if (isScannerRoute || isFormRoute) {
+  if (isFormRoute) {
     return null
   }
 
@@ -73,132 +71,113 @@ export function BottomNav() {
       >
         <div className="flex items-center justify-around max-w-md mx-auto">
           {!isLoading && session && isClub ? (
-            // ── Club Organizer Navigation (Dashboard, Events, Payments, Check-In, Settings) ──
+            // ── Club Organizer Navigation (Gated by Active RBAC Permissions) ──
             <>
               {/* 1. Dashboard / Overview */}
-              <NavLink
-                to="/club/dashboard"
-                end
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
-                    isActive
-                      ? 'text-[#18CFFC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <div className="relative flex items-center justify-center">
-                      <LayoutDashboard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                      )}
-                    </div>
-                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Overview</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* 2. Events */}
-              <NavLink
-                to="/club/events"
-                end
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
-                    isActive
-                      ? 'text-[#7F1AFB] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <div className="relative flex items-center justify-center">
-                      <Calendar size={20} className={isActive ? 'text-[#7F1AFB]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
-                      )}
-                    </div>
-                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Events</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* 3. Payments */}
-              <NavLink
-                to="/club/payments"
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
-                    isActive
-                      ? 'text-[#18CFFC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <div className="relative flex items-center justify-center">
-                      <CreditCard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                      )}
-                    </div>
-                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Payments</span>
-                  </>
-                )}
-              </NavLink>
-
-              {/* 4. Check-In Scanner */}
-              <NavLink
-                to="/club/events"
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
-                    isActive || location.pathname.includes('check-in') || location.pathname.includes('checkin')
-                      ? 'text-[#18CFFC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`
-                }
-              >
-                {({ isActive }) => {
-                  const active = isActive || location.pathname.includes('check-in') || location.pathname.includes('checkin')
-                  return (
+              {hasClubPermission('club.view') && (
+                <NavLink
+                  to="/club/dashboard"
+                  end
+                  className={({ isActive }) =>
+                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                      isActive
+                        ? 'text-[#18CFFC] font-bold'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
                     <>
                       <div className="relative flex items-center justify-center">
-                        <QrCode size={20} className={active ? 'text-[#18CFFC]' : ''} />
-                        {active && (
+                        <LayoutDashboard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
+                        {isActive && (
                           <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
                         )}
                       </div>
-                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Check-In</span>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Overview</span>
                     </>
-                  )
-                }}
-              </NavLink>
+                  )}
+                </NavLink>
+              )}
 
-              {/* 5. Settings / Profile */}
-              <NavLink
-                to="/club/settings"
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
-                    isActive
-                      ? 'text-[#ED47FC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <div className="relative flex items-center justify-center">
-                      <Settings size={20} className={isActive ? 'text-[#ED47FC]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#ED47FC] shadow-[0_0_8px_#ED47FC]" />
-                      )}
-                    </div>
-                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Settings</span>
-                  </>
-                )}
-              </NavLink>
+              {/* 2. Events */}
+              {hasClubPermission('events.view') && (
+                <NavLink
+                  to="/club/events"
+                  end
+                  className={({ isActive }) =>
+                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                      isActive
+                        ? 'text-[#7F1AFB] font-bold'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className="relative flex items-center justify-center">
+                        <Calendar size={20} className={isActive ? 'text-[#7F1AFB]' : ''} />
+                        {isActive && (
+                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Events</span>
+                    </>
+                  )}
+                </NavLink>
+              )}
+
+              {/* 3. Payments */}
+              {hasClubPermission('payments.view') && (
+                <NavLink
+                  to="/club/payments"
+                  className={({ isActive }) =>
+                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                      isActive
+                        ? 'text-[#18CFFC] font-bold'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className="relative flex items-center justify-center">
+                        <CreditCard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
+                        {isActive && (
+                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Payments</span>
+                    </>
+                  )}
+                </NavLink>
+              )}
+
+              {/* 4. Settings / Profile */}
+              {(hasClubPermission('club.manage') || hasClubPermission('payments.settings')) && (
+                <NavLink
+                  to="/club/settings"
+                  className={({ isActive }) =>
+                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                      isActive
+                        ? 'text-[#ED47FC] font-bold'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className="relative flex items-center justify-center">
+                        <Settings size={20} className={isActive ? 'text-[#ED47FC]' : ''} />
+                        {isActive && (
+                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#ED47FC] shadow-[0_0_8px_#ED47FC]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Settings</span>
+                    </>
+                  )}
+                </NavLink>
+              )}
             </>
           ) : !isLoading && session && isStudent ? (
             // ── Student Navigation (Home, Explore, My Passes, Alerts, Profile) ──

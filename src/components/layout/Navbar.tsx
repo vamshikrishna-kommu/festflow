@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'motion/react'
 import {
@@ -23,14 +23,26 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Button, Badge, Logo } from '@/components/ui'
-import { NotificationBell } from '@/components/notifications/NotificationBell'
-import { StudentSettingsModal } from '@/components/student/StudentSettingsModal'
-import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { navbarSlide, dropdownMenu } from '@/lib/animations'
 import { useScrollProgress } from '@/hooks/useScrollProgress'
 import { useAuth } from '@/context/AuthContext'
-import { hasPermission } from '@/lib/clubMembers'
 import { isSupabaseConfigured, isProduction } from '@/lib/supabase'
+
+const NotificationBell = lazy(() =>
+  import('@/components/notifications/NotificationBell').then((m) => ({
+    default: m.NotificationBell,
+  }))
+)
+const StudentSettingsModal = lazy(() =>
+  import('@/components/student/StudentSettingsModal').then((m) => ({
+    default: m.StudentSettingsModal,
+  }))
+)
+const WorkspaceSwitcher = lazy(() =>
+  import('@/components/workspace/WorkspaceSwitcher').then((m) => ({
+    default: m.WorkspaceSwitcher,
+  }))
+)
 
 interface NavItem {
   label: string
@@ -40,7 +52,7 @@ interface NavItem {
 const PUBLIC_NAV_LINKS: NavItem[] = [
   { label: 'Discover', href: '/discover' },
   { label: 'Community', href: '/community' },
-  { label: 'Features', href: '/#features' },
+  { label: 'Features', href: '/#scene-03-journey' },
   { label: 'For Clubs', href: '/club/signup' },
   { label: 'Contact', href: '/contact' },
 ]
@@ -73,6 +85,7 @@ export function Navbar() {
     activeWorkspace,
     isDualEligible,
     activeClubRole,
+    hasClubPermission,
     role,
     switchWorkspace,
   } = useAuth()
@@ -123,22 +136,24 @@ export function Navbar() {
     if (isClubWorkspace) {
       const links: NavItem[] = [
         { label: 'Discover Events', href: '/discover' },
-        { label: 'Club Dashboard', href: '/club/dashboard' },
       ]
-      if (!activeClubRole || hasPermission(activeClubRole, 'manage_events')) {
+      if (hasClubPermission('club.view')) {
+        links.push({ label: 'Club Dashboard', href: '/club/dashboard' })
+      }
+      if (hasClubPermission('events.view')) {
         links.push({ label: 'Manage Events', href: '/club/events' })
       }
-      if (!activeClubRole || hasPermission(activeClubRole, 'manage_members')) {
+      if (hasClubPermission('members.view')) {
         links.push({ label: 'Team', href: '/club/members' })
       }
-      if (!activeClubRole || hasPermission(activeClubRole, 'review_payments')) {
+      if (hasClubPermission('payments.view')) {
         links.push({ label: 'Payments', href: '/club/payments' })
       }
       return links
     }
     if (isStudentWorkspace) return STUDENT_NAV_LINKS
     return UNRESOLVED_NAV_LINKS
-  }, [isLoading, session, isClubWorkspace, isStudentWorkspace, activeClubRole])
+  }, [isLoading, session, isClubWorkspace, isStudentWorkspace, hasClubPermission])
 
   const userInitial = (
     profile?.display_name?.charAt(0) ||
@@ -237,11 +252,12 @@ export function Navbar() {
               ) : session ? (
                 <div className="flex items-center gap-2">
                   {/* Premium Dual Workspace Switcher */}
-                  <WorkspaceSwitcher variant="desktop" />
+                  <Suspense fallback={null}>
+                    <WorkspaceSwitcher variant="desktop" />
+                    <NotificationBell />
+                  </Suspense>
 
-                  <NotificationBell />
-
-                  {isClubWorkspace && (!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
+                  {isClubWorkspace && hasClubPermission('events.create') && (
                     <Link to="/club/events/new">
                       <Button
                         variant="primary"
@@ -365,46 +381,56 @@ export function Navbar() {
                           {/* Role-Specific Navigation Links */}
                           {isClubWorkspace ? (
                             <>
-                              <Link
-                                to="/club/dashboard"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
-                              >
-                                <LayoutDashboard size={14} className="text-[var(--color-brand-violet)]" />
-                                <span>Club Dashboard</span>
-                              </Link>
-                              <Link
-                                to="/club/events"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
-                              >
-                                <Calendar size={14} className="text-[var(--color-brand-purple)]" />
-                                <span>Manage Events</span>
-                              </Link>
-                              <Link
-                                to="/club/payments"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
-                              >
-                                <CreditCard size={14} className="text-[var(--color-brand-cyan)]" />
-                                <span>Payments & UPI</span>
-                              </Link>
-                              <Link
-                                to="/club/members"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
-                              >
-                                <Users size={14} className="text-[var(--color-brand-violet)]" />
-                                <span>Team & Roles</span>
-                              </Link>
-                              <Link
-                                to="/club/settings"
-                                onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
-                              >
-                                <Settings size={14} className="text-[var(--color-brand-pink)]" />
-                                <span>Club Settings</span>
-                              </Link>
+                              {hasClubPermission('club.view') && (
+                                <Link
+                                  to="/club/dashboard"
+                                  onClick={() => setUserMenuOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                >
+                                  <LayoutDashboard size={14} className="text-[var(--color-brand-violet)]" />
+                                  <span>Club Dashboard</span>
+                                </Link>
+                              )}
+                              {hasClubPermission('events.view') && (
+                                <Link
+                                  to="/club/events"
+                                  onClick={() => setUserMenuOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                >
+                                  <Calendar size={14} className="text-[var(--color-brand-purple)]" />
+                                  <span>Manage Events</span>
+                                </Link>
+                              )}
+                              {hasClubPermission('payments.view') && (
+                                <Link
+                                  to="/club/payments"
+                                  onClick={() => setUserMenuOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                >
+                                  <CreditCard size={14} className="text-[var(--color-brand-cyan)]" />
+                                  <span>Payments & UPI</span>
+                                </Link>
+                              )}
+                              {hasClubPermission('members.view') && (
+                                <Link
+                                  to="/club/members"
+                                  onClick={() => setUserMenuOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                >
+                                  <Users size={14} className="text-[var(--color-brand-violet)]" />
+                                  <span>Team & Roles</span>
+                                </Link>
+                              )}
+                              {(hasClubPermission('club.manage') || hasClubPermission('payments.settings')) && (
+                                <Link
+                                  to="/club/settings"
+                                  onClick={() => setUserMenuOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                >
+                                  <Settings size={14} className="text-[var(--color-brand-pink)]" />
+                                  <span>Club Settings</span>
+                                </Link>
+                              )}
                               <Link
                                 to="/messages"
                                 onClick={() => setUserMenuOpen(false)}
@@ -586,7 +612,11 @@ export function Navbar() {
                   {userInitial}
                 </span>
               )}
-              {session && <NotificationBell />}
+              {session && (
+                <Suspense fallback={null}>
+                  <NotificationBell />
+                </Suspense>
+              )}
               <button
                 id="mobile-menu-toggle"
                 type="button"
@@ -670,7 +700,9 @@ export function Navbar() {
 
               {/* Mobile Dual Workspace Switcher */}
               {session && (
-                <WorkspaceSwitcher variant="mobile" onNavigate={() => setMobileOpen(false)} />
+                <Suspense fallback={null}>
+                  <WorkspaceSwitcher variant="mobile" onNavigate={() => setMobileOpen(false)} />
+                </Suspense>
               )}
 
               {/* Role-Aware Nav links */}
@@ -684,7 +716,10 @@ export function Navbar() {
                   >
                     <NavLink
                       to={link.href}
-                      onClick={() => setMobileOpen(false)}
+                      onClick={() => {
+                        document.body.style.overflow = ''
+                        setMobileOpen(false)
+                      }}
                       className="flex items-center justify-between px-4 py-3.5 min-h-[52px] rounded-2xl text-lg font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] active:bg-[var(--color-surface-3)] transition-colors"
                     >
                       {link.label}
@@ -712,19 +747,21 @@ export function Navbar() {
                     )}
                     {isClubWorkspace ? (
                       <>
-                        <Link to="/club/dashboard" onClick={() => setMobileOpen(false)}>
-                          <Button variant="primary" size="lg" className="w-full" leftIcon={<LayoutDashboard size={16} />}>
-                            Club Dashboard
-                          </Button>
-                        </Link>
-                        {(!activeClubRole || hasPermission(activeClubRole, 'manage_members')) && (
+                        {hasClubPermission('club.view') && (
+                          <Link to="/club/dashboard" onClick={() => setMobileOpen(false)}>
+                            <Button variant="primary" size="lg" className="w-full" leftIcon={<LayoutDashboard size={16} />}>
+                              Club Dashboard
+                            </Button>
+                          </Link>
+                        )}
+                        {hasClubPermission('members.view') && (
                           <Link to="/club/members" onClick={() => setMobileOpen(false)}>
                             <Button variant="outline" size="lg" className="w-full" leftIcon={<Users size={16} />}>
                               Team & Permissions
                             </Button>
                           </Link>
                         )}
-                        {(!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
+                        {hasClubPermission('events.create') && (
                           <Link to="/club/events/new" onClick={() => setMobileOpen(false)}>
                             <Button variant="outline" size="lg" className="w-full" leftIcon={<Plus size={16} />}>
                               Create New Event
@@ -782,11 +819,15 @@ export function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Student Settings Modal */}
-      <StudentSettingsModal
-        isOpen={studentSettingsOpen}
-        onClose={() => setStudentSettingsOpen(false)}
-      />
+      {/* Student Settings Modal (loaded on demand when opened) */}
+      {studentSettingsOpen && (
+        <Suspense fallback={null}>
+          <StudentSettingsModal
+            isOpen={studentSettingsOpen}
+            onClose={() => setStudentSettingsOpen(false)}
+          />
+        </Suspense>
+      )}
     </>
   )
 }

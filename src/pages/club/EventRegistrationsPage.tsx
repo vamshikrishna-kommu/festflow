@@ -5,7 +5,7 @@ import {
   Users,
   Search,
   AlertTriangle,
-  QrCode,
+  Ticket,
   MapPin,
   CreditCard,
   FileSpreadsheet,
@@ -16,23 +16,31 @@ import {
   Download,
   Filter,
   ArrowUpDown,
-  LogOut,
   Copy,
   CheckCheck,
   Upload,
   Tag,
   Star,
   UserCheck,
+  Lock,
 } from 'lucide-react'
 import { Button, Badge, Card, Breadcrumbs, Modal, ModalBody, ModalFooter, EmptyState, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
-import { getEventById } from '@/lib/events'
+import {
+  getEventById,
+  getEventLifecyclePhase,
+  isEventConcludedOrCancelled,
+  LIFECYCLE_BADGE_META,
+  formatEventDate,
+  formatEventTime,
+  resolveEventTimezone,
+} from '@/lib/events'
 import {
   cancelRegistration,
   reviewRegistrationApplication,
   registerForEvent,
 } from '@/lib/registrations'
-import { getEventRegistrationsWithCheckIn, checkInTicket } from '@/lib/checkin'
+import { getEventRegistrationsWithCheckIn } from '@/lib/checkin'
 import { getClubPaymentSubmissions } from '@/lib/payments'
 import { promoteWaitlistStudent, autoPromoteWaitlist, offerWaitlistSlot } from '@/lib/waitlist'
 import { getEventCancellationRequests } from '@/lib/cancellations'
@@ -66,7 +74,15 @@ import type {
 
 export default function EventRegistrationsPage() {
   const { id } = useParams<{ id: string }>()
-  const { user, role } = useAuth()
+  const {
+    user,
+    role,
+    activeClubId,
+    activeClubRole,
+    eventAssignments,
+    hasEventPermission,
+    isRoleLoading,
+  } = useAuth()
 
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [registrations, setRegistrations] = useState<RegistrationWithCheckIn[]>([])
@@ -81,12 +97,39 @@ export default function EventRegistrationsPage() {
   const [loading, setLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
 
+  const isPlatformAdmin = role === 'platform_admin'
+  const canViewRegistrations = event
+    ? isPlatformAdmin || hasEventPermission(event.id, 'registrations.view', event.club_id)
+    : Boolean(isAuthorized)
+  const canManageRegistrations = event
+    ? isPlatformAdmin || hasEventPermission(event.id, 'registrations.manage', event.club_id)
+    : false
+  const canExportReports = event
+    ? isPlatformAdmin || hasEventPermission(event.id, 'reports.export', event.club_id)
+    : false
+  const canViewReports = event
+    ? isPlatformAdmin || hasEventPermission(event.id, 'reports.view', event.club_id)
+    : false
+  const canViewPayments = event
+    ? isPlatformAdmin || hasEventPermission(event.id, 'payments.view', event.club_id)
+    : false
+  const canManageCoupons = event
+    ? isPlatformAdmin ||
+      hasEventPermission(event.id, 'club.manage', event.club_id) ||
+      hasEventPermission(event.id, 'events.edit', event.club_id)
+    : false
+  const canAssignRoles = event
+    ? isPlatformAdmin || hasEventPermission(event.id, 'roles.assign', event.club_id)
+    : false
+  const canViewFeedback = event
+    ? canViewReports || hasEventPermission(event.id, 'events.edit', event.club_id)
+    : false
+
   // Search & Multi-Filters (using React 19 useDeferredValue for 0ms typing latency)
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus | 'edit_requests'>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'pending_review' | 'unpaid'>('all')
-  const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'checked_in' | 'checked_out' | 'not_checked_in'>('all')
   const [participationFilter, setParticipationFilter] = useState<'all' | 'individual' | 'team'>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'ticket_code'>('newest')
 
@@ -134,46 +177,70 @@ export default function EventRegistrationsPage() {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
 
   const loadData = async (silent = false) => {
-    if (!id) return
+    if (!id || isRoleLoading) return
     if (!silent) setLoading(true)
-    const [eventRes, checkInRes, payRes, cancelRes, editRes] = await Promise.all([
-      getEventById(id),
+
+    const eventRes = await getEventById(id)
+    if (!eventRes.event) {
+      setIsAuthorized(false)
+      setEvent(null)
+      if (!silent) setLoading(false)
+      return
+    }
+
+    const authorized =
+      role === 'platform_admin' ||
+      hasEventPermission(eventRes.event.id, 'registrations.view', eventRes.event.club_id)
+
+    setIsAuthorized(authorized)
+    if (!authorized) {
+      setEvent(null)
+      setRegistrations([])
+      setCheckIns([])
+      setPayments([])
+      setCancellationRequests([])
+      setEditRequests([])
+      if (!silent) setLoading(false)
+      return
+    }
+
+    const canFetchPayments =
+      role === 'platform_admin' ||
+      hasEventPermission(eventRes.event.id, 'payments.view', eventRes.event.club_id)
+
+    const [checkInRes, payRes, cancelRes, editRes] = await Promise.all([
       getEventRegistrationsWithCheckIn(id),
-      getClubPaymentSubmissions(user?.id, id),
+      canFetchPayments
+        ? getClubPaymentSubmissions(eventRes.event.club_id || activeClubId || undefined, id)
+        : Promise.resolve({ submissions: [], error: null }),
       getEventCancellationRequests(id),
       getEventEditRequests(id),
     ])
     if (!silent) setLoading(false)
 
-    if (eventRes.event) {
-      const authorized = (user && eventRes.event.club_id === user.id) || role === 'platform_admin'
-      setIsAuthorized(authorized)
-      if (authorized) {
-        setEvent(eventRes.event)
-        if (checkInRes.registrations) setRegistrations(checkInRes.registrations)
-        if (checkInRes.checkIns) setCheckIns(checkInRes.checkIns)
-        if (payRes.submissions) setPayments(payRes.submissions)
-        if (cancelRes.requests) setCancellationRequests(cancelRes.requests)
-        if (editRes.requests) setEditRequests(editRes.requests)
-      }
-    } else {
-      setIsAuthorized(false)
-    }
+    setEvent(eventRes.event)
+    if (checkInRes.registrations) setRegistrations(checkInRes.registrations)
+    if (checkInRes.checkIns) setCheckIns(checkInRes.checkIns)
+    setPayments(canFetchPayments && payRes.submissions ? payRes.submissions : [])
+    if (cancelRes.requests) setCancellationRequests(cancelRes.requests)
+    if (editRes.requests) setEditRequests(editRes.requests)
   }
 
   useEffect(() => {
-    loadData()
+    if (!isRoleLoading) {
+      loadData()
+    }
 
     const unsubscribe = subscribeToStatusChanges(
-      ['registration_updated', 'team_updated', 'checkin_recorded', 'payment_reviewed'],
+      ['registration_updated', 'team_updated', 'payment_reviewed'],
       (e) => {
-        if (!e.eventId || e.eventId === id) {
+        if (!isRoleLoading && (!e.eventId || e.eventId === id)) {
           loadData(true)
         }
       }
     )
     return () => unsubscribe()
-  }, [id, user, role])
+  }, [id, role, isRoleLoading, activeClubId, activeClubRole, eventAssignments])
 
   // Payment Lookup Map by Registration ID
   const paymentMap = useMemo(() => {
@@ -203,8 +270,6 @@ export default function EventRegistrationsPage() {
   const pendingPaymentCount = registrations.filter((r) => r.status === 'pending_payment').length
   const cancelledCount = registrations.filter((r) => r.status === 'cancelled' || r.status === 'rejected').length
   const waitlistCount = registrations.filter((r) => r.status === 'waitlisted').length
-  const insideCount = registrations.filter((r) => r.attendance_status === 'checked_in').length
-  const checkedOutCount = registrations.filter((r) => r.attendance_status === 'checked_out').length
 
   const cancellationPendingCount = registrations.filter(
     (r) => r.cancellation_request_status === 'pending' || r.status === 'cancellation_requested'
@@ -236,7 +301,7 @@ export default function EventRegistrationsPage() {
   // Reset pagination to page 1 whenever filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, statusFilter, paymentFilter, attendanceFilter, participationFilter, sortBy, pageSize])
+  }, [search, statusFilter, paymentFilter, participationFilter, sortBy, pageSize])
 
   // Filtering Logic
   const filteredRegistrations = useMemo(() => {
@@ -268,21 +333,14 @@ export default function EventRegistrationsPage() {
         }
       }
 
-      // 3. Attendance Filter
-      if (attendanceFilter !== 'all') {
-        if (attendanceFilter === 'checked_in' && r.attendance_status !== 'checked_in') return false
-        if (attendanceFilter === 'checked_out' && r.attendance_status !== 'checked_out') return false
-        if (attendanceFilter === 'not_checked_in' && r.attendance_status !== 'not_checked_in') return false
-      }
-
-      // 4. Participation Mode Filter
+      // 3. Participation Mode Filter
       if (participationFilter !== 'all') {
         const hasTeam = Boolean(r.team_name || (r as any).team_id)
         if (participationFilter === 'team' && !hasTeam) return false
         if (participationFilter === 'individual' && hasTeam) return false
       }
 
-      // 5. Text Search (Name, email, team, registration ID, ticket code, squad member names)
+      // 4. Text Search (Name, email, team, registration ID, ticket code, squad member names)
       const q = deferredSearch.trim().toLowerCase()
       if (q !== '') {
         const studentName = r.student?.display_name || (r.team_name ? `Team ${r.team_name}` : 'Student Attendee')
@@ -312,7 +370,7 @@ export default function EventRegistrationsPage() {
 
       return true
     })
-  }, [registrations, deferredSearch, statusFilter, paymentFilter, attendanceFilter, participationFilter, paymentMap, event])
+  }, [registrations, deferredSearch, statusFilter, paymentFilter, participationFilter, paymentMap, event, editRequests])
 
   // Sorting Logic
   const sortedRegistrations = useMemo(() => {
@@ -357,21 +415,41 @@ export default function EventRegistrationsPage() {
     search !== '' ||
     statusFilter !== 'all' ||
     paymentFilter !== 'all' ||
-    attendanceFilter !== 'all' ||
     participationFilter !== 'all'
 
   const clearAllFilters = () => {
     setSearch('')
     setStatusFilter('all')
     setPaymentFilter('all')
-    setAttendanceFilter('all')
     setParticipationFilter('all')
     setSortBy('newest')
+  }
+
+  const ensureMutableArchive = (): boolean => {
+    if (!canManageRegistrations) {
+      setNotice({
+        message: 'Your role has read-only access to the roster. Modifying registrations is restricted.',
+        isError: true,
+      })
+      return false
+    }
+    if (event && isEventConcludedOrCancelled(event) && !isPlatformAdmin) {
+      setNotice({
+        message: 'Registrations are read-only once an event has concluded or been cancelled.',
+        isError: true,
+      })
+      return false
+    }
+    return true
   }
 
   // Application Review Handler
   const handleReviewApplication = async () => {
     if (!selectedAttendee) return
+    if (!ensureMutableArchive()) {
+      setSelectedAttendee(null)
+      return
+    }
     setIsReviewing(true)
     const res = await reviewRegistrationApplication(
       selectedAttendee.id,
@@ -393,6 +471,10 @@ export default function EventRegistrationsPage() {
   // Cancel Registration Handler
   const handleOrganizerCancel = async () => {
     if (!cancellingAttendee) return
+    if (!ensureMutableArchive()) {
+      setCancellingAttendee(null)
+      return
+    }
     setActionLoading(true)
     const res = await cancelRegistration(cancellingAttendee.id)
     setActionLoading(false)
@@ -414,6 +496,7 @@ export default function EventRegistrationsPage() {
 
   // Waitlist Slot Offer Handler
   const handleOfferSlot = async (regId: string) => {
+    if (!ensureMutableArchive()) return
     setActionLoading(true)
     const res = await offerWaitlistSlot({ registrationId: regId, expiresHours: 24 })
     setActionLoading(false)
@@ -427,7 +510,14 @@ export default function EventRegistrationsPage() {
 
   // Excel Export Triggers
   const handleExport = async (type: 'full' | 'attendance' | 'teams' | 'payments') => {
-    if (!event) return
+    if (!event || !canExportReports) {
+      setNotice({ message: 'You do not have permission to export event reports.', isError: true })
+      return
+    }
+    if (type === 'payments' && !canViewPayments) {
+      setNotice({ message: 'You do not have permission to export payment reconciliation data.', isError: true })
+      return
+    }
     try {
       setExportingType(type)
       if (type === 'full') {
@@ -435,8 +525,8 @@ export default function EventRegistrationsPage() {
           event,
           registrations,
           checkIns,
-          payments,
-          isAuthorized: Boolean(isAuthorized),
+          payments: canViewPayments ? payments : [],
+          isAuthorized: Boolean(isAuthorized && canExportReports && canViewPayments),
         })
       } else if (type === 'attendance') {
         await exportAttendanceReportXlsx({
@@ -453,7 +543,7 @@ export default function EventRegistrationsPage() {
         await exportPaymentsReportXlsx({
           event,
           payments,
-          isAuthorized: Boolean(isAuthorized),
+          isAuthorized: Boolean(isAuthorized && canExportReports && canViewPayments),
         })
       }
       setNotice({
@@ -489,25 +579,8 @@ export default function EventRegistrationsPage() {
   }
 
   // ── Bulk Actions ────────────────────────────────────────────────────────────
-  const handleBulkCheckIn = async () => {
-    if (selectedRegIds.length === 0) return
-    setActionLoading(true)
-    let checkedCount = 0
-    for (const regId of selectedRegIds) {
-      const reg = registrations.find((r) => r.id === regId)
-      if (reg?.ticket_code) {
-        await checkInTicket(reg.event_id || id || event?.id || '', reg.ticket_code, 'Bulk admin turnstile check-in')
-        checkedCount++
-      }
-    }
-    setActionLoading(false)
-    setSelectedRegIds([])
-    setNotice({ message: `Successfully recorded turnstile check-in for ${checkedCount} attendees.` })
-    loadData(true)
-  }
-
   const handleBulkApprove = async () => {
-    if (selectedRegIds.length === 0) return
+    if (selectedRegIds.length === 0 || !ensureMutableArchive()) return
     setActionLoading(true)
     let approvedCount = 0
     for (const regId of selectedRegIds) {
@@ -516,12 +589,12 @@ export default function EventRegistrationsPage() {
     }
     setActionLoading(false)
     setSelectedRegIds([])
-    setNotice({ message: `Approved ${approvedCount} attendee applications and released official QR entry passes.` })
+    setNotice({ message: `Approved ${approvedCount} attendee applications and issued official entry passes.` })
     loadData(true)
   }
 
   const handleBulkCancel = async () => {
-    if (selectedRegIds.length === 0) return
+    if (selectedRegIds.length === 0 || !ensureMutableArchive()) return
     if (!window.confirm(`Are you sure you want to cancel and void passes for ${selectedRegIds.length} selected attendees?`)) return
     setActionLoading(true)
     let cancelledCount = 0
@@ -536,15 +609,20 @@ export default function EventRegistrationsPage() {
   }
 
   const handleBulkExport = async () => {
-    if (!event || selectedRegIds.length === 0) return
+    if (!event || selectedRegIds.length === 0 || !canExportReports) {
+      if (!canExportReports) {
+        setNotice({ message: 'You do not have permission to export attendee records.', isError: true })
+      }
+      return
+    }
     const selectedRegistrations = registrations.filter((r) => selectedRegIds.includes(r.id))
     try {
       await exportFullAttendeesXlsx({
         event,
         registrations: selectedRegistrations,
         checkIns,
-        payments,
-        isAuthorized: Boolean(isAuthorized),
+        payments: canViewPayments ? payments : [],
+        isAuthorized: Boolean(isAuthorized && canExportReports && canViewPayments),
       })
       setNotice({ message: `Exported ${selectedRegistrations.length} selected attendee records to Excel.` })
     } catch (e: any) {
@@ -605,7 +683,7 @@ export default function EventRegistrationsPage() {
   }
 
   const handleExecuteCsvImport = async () => {
-    if (!event) return
+    if (!event || !ensureMutableArchive()) return
     const validRows = csvPreviewRows.filter((r) => r.isValid)
     if (validRows.length === 0) {
       setNotice({ message: 'No valid rows to import.', isError: true })
@@ -641,7 +719,7 @@ export default function EventRegistrationsPage() {
 
   // ── Waitlist Promotion Handlers ─────────────────────────────────────────────
   const handlePromoteWaitlisted = async (regId: string) => {
-    if (!event) return
+    if (!event || !ensureMutableArchive()) return
     setActionLoading(true)
     const res = await promoteWaitlistStudent(regId, event.is_free, 24)
     setActionLoading(false)
@@ -654,7 +732,7 @@ export default function EventRegistrationsPage() {
   }
 
   const handleAutoPromoteAllWaitlisted = async () => {
-    if (!event) return
+    if (!event || !ensureMutableArchive()) return
     const availableSlots = Math.max(0, event.capacity - confirmedCount)
     if (availableSlots <= 0) {
       setNotice({
@@ -670,20 +748,20 @@ export default function EventRegistrationsPage() {
     loadData(true)
   }
 
-  if (loading) {
+  if (loading || isRoleLoading) {
     return (
       <PageShell>
         <div className="min-h-[60vh] flex flex-col items-center justify-center">
           <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
           <span className="text-xs text-[var(--color-text-muted)]">
-            Loading attendee directory & gate turnstile records…
+            Loading attendee directory…
           </span>
         </div>
       </PageShell>
     )
   }
 
-  if (isAuthorized === false || !event) {
+  if (isAuthorized === false || !canViewRegistrations || !event) {
     return (
       <PageShell>
         <ResourceOwnerGuard
@@ -700,8 +778,15 @@ export default function EventRegistrationsPage() {
   }
 
   const fillPercent = Math.min(Math.round((confirmedCount / event.capacity) * 100), 100)
-  const reviewingPayment = selectedAttendee ? paymentMap.get(selectedAttendee.id) : null
-  const reviewingCheckIn = selectedAttendee?.check_in || null
+  const reviewingPayment = canViewPayments && selectedAttendee ? paymentMap.get(selectedAttendee.id) : null
+  const lifecyclePhase = getEventLifecyclePhase(event)
+  const isReadOnlyArchive = isEventConcludedOrCancelled(event) && !isPlatformAdmin
+  const isRosterReadOnly = isReadOnlyArchive || !canManageRegistrations
+  const lifecycleMeta = LIFECYCLE_BADGE_META[lifecyclePhase]
+  const eventTz = resolveEventTimezone(event.timezone)
+  const formattedEventSchedule = event.start_date
+    ? `${formatEventDate(event.start_date, eventTz, { day: 'numeric', month: 'short', year: 'numeric' })} at ${formatEventTime(event.start_date, eventTz, { hour: 'numeric', minute: '2-digit', hour12: true })}`
+    : 'Date TBA'
 
   return (
     <PageShell>
@@ -734,10 +819,10 @@ export default function EventRegistrationsPage() {
                 {event.category}
               </span>
               <Badge
-                variant={event.status === 'published' ? 'success' : 'amber'}
-                className="capitalize text-[10px]"
+                variant={lifecycleMeta.variant}
+                className="text-[10px]"
               >
-                {event.status}
+                {lifecycleMeta.label}
               </Badge>
               {event.participation_type === 'team' && (
                 <Badge variant="pink" className="text-[10px]">
@@ -757,71 +842,79 @@ export default function EventRegistrationsPage() {
                 <MapPin size={13} className="text-[#18CFFC]" /> {event.venue_name || 'Campus Venue'}
               </span>
               <span className="text-zinc-600">•</span>
+              <span>{formattedEventSchedule}</span>
+              <span className="text-zinc-600">•</span>
               <span className="font-semibold text-white font-mono">
                 {event.is_free ? 'Free Admission' : `₹${event.price} Pass`}
-              </span>
-              <span className="text-zinc-600">•</span>
-              <span className="text-[#18CFFC] font-medium font-mono">
-                {insideCount} admitted inside ({checkedOutCount} exited)
               </span>
             </p>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-white/[0.08] relative">
-            {/* CSV Attendee Import Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setImportModalOpen(true)}
-              leftIcon={<Upload size={14} className="text-[#18CFFC]" />}
-              className="border-[#18CFFC]/30 hover:border-[#18CFFC] hover:bg-[#18CFFC]/10 text-white font-semibold shadow-sm"
-            >
-              Import CSV
-            </Button>
+            {/* CSV Attendee Import Button (locked for concluded/cancelled events or read-only roles) */}
+            {!isRosterReadOnly && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setImportModalOpen(true)}
+                leftIcon={<Upload size={14} className="text-[#18CFFC]" />}
+                className="border-[#18CFFC]/30 hover:border-[#18CFFC] hover:bg-[#18CFFC]/10 text-white font-semibold shadow-sm"
+              >
+                Import CSV
+              </Button>
+            )}
 
             {/* Excel Export Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExportModalOpen(true)}
-              leftIcon={<Download size={14} className="text-emerald-400" />}
-              className="border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-300 font-semibold shadow-sm"
-            >
-              Export Excel
-            </Button>
+            {canExportReports && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExportModalOpen(true)}
+                leftIcon={<Download size={14} className="text-emerald-400" />}
+                className="border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-300 font-semibold shadow-sm"
+              >
+                Export Excel
+              </Button>
+            )}
 
             {/* Coupons Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCouponsModalOpen(true)}
-              leftIcon={<Tag size={13} className="text-amber-400" />}
-            >
-              Coupons
-            </Button>
+            {canManageCoupons && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCouponsModalOpen(true)}
+                leftIcon={<Tag size={13} className="text-amber-400" />}
+              >
+                Coupons
+              </Button>
+            )}
 
             {/* Team Roles Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTeamModalOpen(true)}
-              leftIcon={<Users size={13} className="text-purple-400" />}
-            >
-              Staff Roles
-            </Button>
+            {canAssignRoles && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTeamModalOpen(true)}
+                leftIcon={<Users size={13} className="text-purple-400" />}
+              >
+                Staff Roles
+              </Button>
+            )}
 
             {/* Feedback Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFeedbackModalOpen(true)}
-              leftIcon={<Star size={13} className="text-amber-400" />}
-            >
-              Feedback
-            </Button>
+            {canViewFeedback && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFeedbackModalOpen(true)}
+                leftIcon={<Star size={13} className="text-amber-400" />}
+              >
+                Feedback
+              </Button>
+            )}
 
             {/* Auto-Promote Waitlist if available slots and waitlist count > 0 */}
-            {filterCounts.waitlisted > 0 && (
+            {filterCounts.waitlisted > 0 && !isRosterReadOnly && (
               <Button
                 variant="primary"
                 size="sm"
@@ -834,20 +927,7 @@ export default function EventRegistrationsPage() {
               </Button>
             )}
 
-            {event.status === 'published' && (
-              <Link to={`/club/events/${event.id}/check-in`}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<QrCode size={13} />}
-                  className="shadow-sm"
-                >
-                  Gate Check-In
-                </Button>
-              </Link>
-            )}
-
-            {!event.is_free && (
+            {!event.is_free && canViewPayments && (
               <Link to={`/club/payments?eventId=${event.id}`}>
                 <Button
                   variant="primary"
@@ -860,13 +940,35 @@ export default function EventRegistrationsPage() {
               </Link>
             )}
 
-            <Link to={`/club/events/${event.id}/reports`}>
-              <Button variant="outline" size="sm" leftIcon={<FileSpreadsheet size={13} />}>
-                Reports
-              </Button>
-            </Link>
+            {canViewReports && (
+              <Link to={`/club/events/${event.id}/reports`}>
+                <Button variant="outline" size="sm" leftIcon={<FileSpreadsheet size={13} />}>
+                  Reports
+                </Button>
+              </Link>
+            )}
           </div>
         </motion.div>
+
+        {isReadOnlyArchive ? (
+          <Alert variant="warning">
+            <span className="flex items-center gap-2 text-xs">
+              <Lock size={14} className="shrink-0" />
+              <span>
+                This event has {lifecyclePhase === 'cancelled' ? 'been cancelled' : 'concluded'}. Attendee lists, payment history, and exports remain available in read-only archive mode; registration mutations are locked.
+              </span>
+            </span>
+          </Alert>
+        ) : !canManageRegistrations ? (
+          <Alert variant="info">
+            <span className="flex items-center gap-2 text-xs">
+              <Lock size={14} className="shrink-0" />
+              <span>
+                View-only roster access is active for your role. Approving applications, promoting waitlist entries, and cancelling passes require registration management permission.
+              </span>
+            </span>
+          </Alert>
+        ) : null}
 
         {/* Temporary Notice */}
         {notice && (
@@ -925,18 +1027,18 @@ export default function EventRegistrationsPage() {
 
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
             <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
-              Gate Admitted Inside
+              Waitlist & Cancelled
             </span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-brand-cyan)]">
-                {insideCount}
+                {waitlistCount}
               </span>
               <span className="text-xs text-[var(--color-text-muted)]">
-                {checkedOutCount > 0 ? `${checkedOutCount} exited` : 'Present inside'}
+                {cancelledCount} cancelled / rejected
               </span>
             </div>
             <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
-              Real-time gate check-ins
+              Queue & revoked entries
             </span>
           </Card>
 
@@ -1035,18 +1137,6 @@ export default function EventRegistrationsPage() {
                 <span className="text-[11px] font-semibold text-[var(--color-text-muted)] flex items-center gap-1 mr-1">
                   <Filter size={12} /> Filters:
                 </span>
-
-                {/* Gate Attendance Filter */}
-                <select
-                  value={attendanceFilter}
-                  onChange={(e) => setAttendanceFilter(e.target.value as any)}
-                  className="px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] outline-none text-xs"
-                >
-                  <option value="all">Turnstile: All</option>
-                  <option value="checked_in">Inside Venue (Checked In)</option>
-                  <option value="checked_out">Exited (Checked Out)</option>
-                  <option value="not_checked_in">Not Yet Arrived</option>
-                </select>
 
                 {/* Payment Status Filter */}
                 {!event.is_free && (
@@ -1155,8 +1245,6 @@ export default function EventRegistrationsPage() {
                   const isPendingApproval = reg.status === 'pending_approval'
                   const isPendingPayment = reg.status === 'pending_payment'
                   const isRejected = reg.status === 'rejected'
-                  const isInside = reg.attendance_status === 'checked_in'
-                  const isCheckedOut = reg.attendance_status === 'checked_out'
 
                   return (
                     <Card key={reg.id} className="p-4 flex flex-col gap-3 border border-[oklch(100%_0_0_/_0.08)]">
@@ -1198,18 +1286,6 @@ export default function EventRegistrationsPage() {
                               ? 'Rejected'
                               : 'Cancelled'}
                           </Badge>
-
-                          {/* Gate Attendance Indicator */}
-                          {isInside ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              Inside
-                            </span>
-                          ) : isCheckedOut ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 font-medium">
-                              <LogOut size={10} /> Exited
-                            </span>
-                          ) : null}
                         </div>
                       </div>
 
@@ -1227,14 +1303,14 @@ export default function EventRegistrationsPage() {
 
                       <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] pt-1">
                         <span className="flex items-center gap-1 font-mono text-[11px] text-[var(--color-brand-cyan)]">
-                          <QrCode size={12} />
+                          <Ticket size={12} />
                           {reg.ticket_code}
                         </span>
                         <span>{formatExcelDateTime(reg.created_at)}</span>
                       </div>
 
                       <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-surface-3)] flex-wrap">
-                        {reg.cancellation_request_status === 'pending' ? (
+                        {reg.cancellation_request_status === 'pending' && !isRosterReadOnly ? (
                           <Button
                             variant="primary"
                             size="sm"
@@ -1265,7 +1341,7 @@ export default function EventRegistrationsPage() {
                           >
                             Review Cancellation
                           </Button>
-                        ) : isPendingApproval ? (
+                        ) : isPendingApproval && !isRosterReadOnly ? (
                           <Button
                             variant="primary"
                             size="sm"
@@ -1293,7 +1369,7 @@ export default function EventRegistrationsPage() {
                           </Button>
                         )}
 
-                        {editRequests.some((e) => e.registration_id === reg.id && e.status === 'pending') && (
+                        {editRequests.some((e) => e.registration_id === reg.id && e.status === 'pending') && !isRosterReadOnly && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1308,7 +1384,7 @@ export default function EventRegistrationsPage() {
                           </Button>
                         )}
 
-                        {reg.status === 'waitlisted' && (
+                        {reg.status === 'waitlisted' && !isRosterReadOnly && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1320,7 +1396,7 @@ export default function EventRegistrationsPage() {
                           </Button>
                         )}
 
-                        {reg.status !== 'cancelled' && reg.status !== 'rejected' && reg.cancellation_request_status !== 'pending' && (
+                        {reg.status !== 'cancelled' && reg.status !== 'rejected' && reg.cancellation_request_status !== 'pending' && !isRosterReadOnly && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1378,7 +1454,6 @@ export default function EventRegistrationsPage() {
                         <th className="py-3.5 px-4 font-semibold">Attendee / Team</th>
                         <th className="py-3.5 px-4 font-semibold">Email</th>
                         <th className="py-3.5 px-4 font-semibold">Ticket Code</th>
-                        <th className="py-3.5 px-4 font-semibold">Gate Status</th>
                         <th className="py-3.5 px-4 font-semibold">Pass Status</th>
                         <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
                       </tr>
@@ -1390,8 +1465,6 @@ export default function EventRegistrationsPage() {
                         const isPendingPayment = reg.status === 'pending_payment'
                         const isWaitlisted = reg.status === 'waitlisted'
                         const isRejected = reg.status === 'rejected'
-                        const isInside = reg.attendance_status === 'checked_in'
-                        const isCheckedOut = reg.attendance_status === 'checked_out'
 
                         return (
                           <tr
@@ -1437,25 +1510,9 @@ export default function EventRegistrationsPage() {
                             </td>
                             <td className="py-3.5 px-4 font-mono font-bold text-[var(--color-text-primary)]">
                               <span className="flex items-center gap-1 text-[11px]">
-                                <QrCode size={13} className="text-[var(--color-brand-cyan)]" />
+                                <Ticket size={13} className="text-[var(--color-brand-cyan)]" />
                                 {reg.ticket_code}
                               </span>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              {isInside ? (
-                                <Badge variant="success" className="text-[10px] inline-flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                                  Admitted Inside
-                                </Badge>
-                              ) : isCheckedOut ? (
-                                <Badge variant="amber" className="text-[10px] inline-flex items-center gap-1">
-                                  <LogOut size={10} /> Checked Out
-                                </Badge>
-                              ) : (
-                                <span className="text-[11px] text-[var(--color-text-muted)]">
-                                  Not Arrived
-                                </span>
-                              )}
                             </td>
                             <td className="py-3.5 px-4">
                               <Badge
@@ -1487,7 +1544,7 @@ export default function EventRegistrationsPage() {
                             </td>
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {isWaitlisted && (
+                                {isWaitlisted && !isRosterReadOnly && (
                                   <Button
                                     variant="primary"
                                     size="sm"
@@ -1499,7 +1556,7 @@ export default function EventRegistrationsPage() {
                                   </Button>
                                 )}
 
-                                 {reg.cancellation_request_status === 'pending' ? (
+                                 {reg.cancellation_request_status === 'pending' && !isRosterReadOnly ? (
                                   <Button
                                     variant="primary"
                                     size="sm"
@@ -1530,7 +1587,7 @@ export default function EventRegistrationsPage() {
                                   >
                                     Review Cancellation
                                   </Button>
-                                ) : isPendingApproval ? (
+                                ) : isPendingApproval && !isRosterReadOnly ? (
                                   <Button
                                     variant="primary"
                                     size="sm"
@@ -1557,7 +1614,7 @@ export default function EventRegistrationsPage() {
                                   </button>
                                 )}
 
-                                {editRequests.some((e) => e.registration_id === reg.id && e.status === 'pending') && (
+                                {editRequests.some((e) => e.registration_id === reg.id && e.status === 'pending') && !isRosterReadOnly && (
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1571,7 +1628,7 @@ export default function EventRegistrationsPage() {
                                   </button>
                                 )}
 
-                                {isWaitlisted && (
+                                {isWaitlisted && !isRosterReadOnly && (
                                   <button
                                     type="button"
                                     onClick={() => handleOfferSlot(reg.id)}
@@ -1582,7 +1639,7 @@ export default function EventRegistrationsPage() {
                                   </button>
                                 )}
 
-                                {reg.status !== 'cancelled' && reg.status !== 'rejected' && reg.cancellation_request_status !== 'pending' && (
+                                {reg.status !== 'cancelled' && reg.status !== 'rejected' && reg.cancellation_request_status !== 'pending' && !isRosterReadOnly && (
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1633,47 +1690,43 @@ export default function EventRegistrationsPage() {
                   <div className="h-4 w-px bg-white/20 hidden sm:block" />
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={handleBulkCheckIn}
-                      disabled={actionLoading}
-                      leftIcon={<QrCode size={13} />}
-                    >
-                      Bulk Check-In
-                    </Button>
+                    {!isRosterReadOnly && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBulkApprove}
+                        disabled={actionLoading}
+                        leftIcon={<Check size={13} />}
+                        className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                      >
+                        Bulk Approve
+                      </Button>
+                    )}
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleBulkApprove}
-                      disabled={actionLoading}
-                      leftIcon={<Check size={13} />}
-                      className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                    >
-                      Bulk Approve
-                    </Button>
+                    {canExportReports && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBulkExport}
+                        leftIcon={<Download size={13} />}
+                        className="text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/10"
+                      >
+                        Export Selected
+                      </Button>
+                    )}
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleBulkExport}
-                      leftIcon={<Download size={13} />}
-                      className="text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/10"
-                    >
-                      Export Selected
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleBulkCancel}
-                      disabled={actionLoading}
-                      leftIcon={<X size={13} />}
-                      className="text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
-                    >
-                      Bulk Cancel
-                    </Button>
+                    {!isRosterReadOnly && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBulkCancel}
+                        disabled={actionLoading}
+                        leftIcon={<X size={13} />}
+                        className="text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                      >
+                        Bulk Cancel
+                      </Button>
+                    )}
 
                     <Button
                       size="sm"
@@ -1923,57 +1976,6 @@ export default function EventRegistrationsPage() {
                   </div>
                 )}
 
-                {/* Gate Attendance & Turnstile Record */}
-                <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
-                      Gate Attendance & Turnstile Record
-                    </span>
-                    <Badge
-                      variant={
-                        reviewingCheckIn?.status === 'checked_out'
-                          ? 'amber'
-                          : reviewingCheckIn
-                          ? 'success'
-                          : 'default'
-                      }
-                      className="text-[10px]"
-                    >
-                      {reviewingCheckIn?.status === 'checked_out'
-                        ? 'Checked Out'
-                        : reviewingCheckIn
-                        ? 'Admitted Inside'
-                        : 'Not Yet Arrived'}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[var(--color-text-secondary)]">
-                    <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">First Gate Entry:</span>
-                      <strong className="text-[var(--color-text-primary)] font-medium">
-                        {reviewingCheckIn?.checked_in_at ? formatExcelDateTime(reviewingCheckIn.checked_in_at) : '—'}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">Last Gate Exit:</span>
-                      <strong className="text-[var(--color-text-primary)] font-medium">
-                        {reviewingCheckIn?.checked_out_at ? formatExcelDateTime(reviewingCheckIn.checked_out_at) : '—'}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">Total Admissions:</span>
-                      <strong className="text-[var(--color-text-primary)] font-medium">
-                        {reviewingCheckIn?.entry_count || (reviewingCheckIn ? 1 : 0)} entry scan(s)
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">Operator ID:</span>
-                      <span className="text-[var(--color-text-primary)] font-mono text-[11px]">
-                        {reviewingCheckIn?.staff_id || '—'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Custom Registration-Question Responses (Actual Labels & Values) */}
                 {selectedAttendee.custom_responses && Object.keys(selectedAttendee.custom_responses).length > 0 && (
                   <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-3">
@@ -2073,7 +2075,7 @@ export default function EventRegistrationsPage() {
                 )}
 
                 {/* Review Controls for pending_approval */}
-                {selectedAttendee.status === 'pending_approval' && (
+                {selectedAttendee.status === 'pending_approval' && !isRosterReadOnly && (
                   <div className="space-y-3 pt-3 border-t border-[var(--color-surface-3)]">
                     <div className="flex items-center gap-4 text-xs">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -2125,7 +2127,7 @@ export default function EventRegistrationsPage() {
             )}
           </ModalBody>
           <ModalFooter>
-            {selectedAttendee?.status === 'pending_approval' ? (
+            {selectedAttendee?.status === 'pending_approval' && !isRosterReadOnly ? (
               <>
                 <Button
                   variant="ghost"
@@ -2195,28 +2197,30 @@ export default function EventRegistrationsPage() {
                   </Button>
                 </div>
 
-                {/* 2. Gate Attendance Report */}
-                <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <strong className="text-sm text-[var(--color-text-primary)] block font-semibold">
-                      Gate Attendance & Turnstile Log
-                    </strong>
-                    <span className="text-xs text-[var(--color-text-muted)] block">
-                      Exact entry/exit timestamps, gate operator IDs, and turnstile statuses ({checkIns.length} scan records).
-                    </span>
+                {/* 2. Historical Attendance Archive (if prior session records exist) */}
+                {checkIns.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <strong className="text-sm text-[var(--color-text-primary)] block font-semibold">
+                        Historical Attendance Archive
+                      </strong>
+                      <span className="text-xs text-[var(--color-text-muted)] block">
+                        Archived check-in timestamps recorded for prior sessions ({checkIns.length} records).
+                      </span>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleExport('attendance')}
+                      disabled={Boolean(exportingType) || registrations.length === 0}
+                      isLoading={exportingType === 'attendance'}
+                      leftIcon={<Download size={14} />}
+                      className="shrink-0 bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black font-semibold"
+                    >
+                      Download
+                    </Button>
                   </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleExport('attendance')}
-                    disabled={Boolean(exportingType) || registrations.length === 0}
-                    isLoading={exportingType === 'attendance'}
-                    leftIcon={<Download size={14} />}
-                    className="shrink-0 bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black font-semibold"
-                  >
-                    Download
-                  </Button>
-                </div>
+                )}
 
                 {/* 3. Squads & Team Rosters (If Team Event) */}
                 {event.participation_type === 'team' && (
@@ -2244,7 +2248,7 @@ export default function EventRegistrationsPage() {
                 )}
 
                 {/* 4. Payment Reconciliation (Authorized Organizers on Paid Events) */}
-                {!event.is_free && isAuthorized && (
+                {!event.is_free && canViewPayments && (
                   <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <strong className="text-sm text-[var(--color-text-primary)] block font-semibold">
@@ -2299,7 +2303,7 @@ export default function EventRegistrationsPage() {
                     Revoke Entry Pass
                   </h4>
                   <p className="text-xs text-[var(--color-text-muted)]">
-                    This invalidates the student's QR gate credential.
+                    This invalidates the student&apos;s official registration pass.
                   </p>
                 </div>
               </div>
@@ -2311,7 +2315,7 @@ export default function EventRegistrationsPage() {
                     (cancellingAttendee?.team_name ? `Team ${cancellingAttendee?.team_name}` : 'Attendee')}
                 </strong>{' '}
                 (Ticket Code: <code className="text-white font-mono">{cancellingAttendee?.ticket_code}</code>)?
-                Their seat will be released and their QR token will be rejected at the gate desk.
+                Their seat will be released and their registration pass will be voided.
               </p>
             </div>
           </ModalBody>
@@ -2337,59 +2341,63 @@ export default function EventRegistrationsPage() {
         </Modal>
 
         {/* ── Modal: Review Cancellation Request (Module 2) ────────────────── */}
-        <ReviewCancellationModal
-          isOpen={Boolean(selectedCancellationReq)}
-          onClose={() => {
-            setSelectedCancellationReq(null)
-            setSelectedCancellationAttendee(null)
-          }}
-          request={selectedCancellationReq}
-          registration={selectedCancellationAttendee}
-          studentName={
-            selectedCancellationAttendee?.student?.display_name ||
-            selectedCancellationAttendee?.participant_details?.student_name ||
-            (selectedCancellationAttendee?.team_name ? `Team ${selectedCancellationAttendee?.team_name}` : 'Attendee')
-          }
-          studentEmail={
-            selectedCancellationAttendee?.student?.email ||
-            selectedCancellationAttendee?.participant_details?.email ||
-            ''
-          }
-          eventTitle={event?.title || 'Event'}
-          isPaidEvent={!event?.is_free}
-          price={Number(event?.price || 0)}
-          onReviewed={() => {
-            setSelectedCancellationReq(null)
-            setSelectedCancellationAttendee(null)
-            loadData(true)
-          }}
-        />
+        {!isRosterReadOnly && (
+          <ReviewCancellationModal
+            isOpen={Boolean(selectedCancellationReq)}
+            onClose={() => {
+              setSelectedCancellationReq(null)
+              setSelectedCancellationAttendee(null)
+            }}
+            request={selectedCancellationReq}
+            registration={selectedCancellationAttendee}
+            studentName={
+              selectedCancellationAttendee?.student?.display_name ||
+              selectedCancellationAttendee?.participant_details?.student_name ||
+              (selectedCancellationAttendee?.team_name ? `Team ${selectedCancellationAttendee?.team_name}` : 'Attendee')
+            }
+            studentEmail={
+              selectedCancellationAttendee?.student?.email ||
+              selectedCancellationAttendee?.participant_details?.email ||
+              ''
+            }
+            eventTitle={event?.title || 'Event'}
+            isPaidEvent={!event?.is_free}
+            price={Number(event?.price || 0)}
+            onReviewed={() => {
+              setSelectedCancellationReq(null)
+              setSelectedCancellationAttendee(null)
+              loadData(true)
+            }}
+          />
+        )}
 
         {/* ── Modal: Review Details Edit Request (Module 4) ────────────────── */}
-        <ReviewEditModal
-          isOpen={Boolean(selectedEditReq)}
-          onClose={() => {
-            setSelectedEditReq(null)
-            setSelectedEditAttendee(null)
-          }}
-          request={selectedEditReq}
-          registration={selectedEditAttendee}
-          studentName={
-            selectedEditAttendee?.student?.display_name ||
-            selectedEditAttendee?.participant_details?.student_name ||
-            'Attendee'
-          }
-          studentEmail={
-            selectedEditAttendee?.student?.email ||
-            selectedEditAttendee?.participant_details?.email ||
-            ''
-          }
-          onReviewed={() => {
-            setSelectedEditReq(null)
-            setSelectedEditAttendee(null)
-            loadData(true)
-          }}
-        />
+        {!isRosterReadOnly && (
+          <ReviewEditModal
+            isOpen={Boolean(selectedEditReq)}
+            onClose={() => {
+              setSelectedEditReq(null)
+              setSelectedEditAttendee(null)
+            }}
+            request={selectedEditReq}
+            registration={selectedEditAttendee}
+            studentName={
+              selectedEditAttendee?.student?.display_name ||
+              selectedEditAttendee?.participant_details?.student_name ||
+              'Attendee'
+            }
+            studentEmail={
+              selectedEditAttendee?.student?.email ||
+              selectedEditAttendee?.participant_details?.email ||
+              ''
+            }
+            onReviewed={() => {
+              setSelectedEditReq(null)
+              setSelectedEditAttendee(null)
+              loadData(true)
+            }}
+          />
+        )}
 
         {/* ── Modal: Validated CSV Attendee Import (Part 9) ────────────────── */}
         <Modal
@@ -2492,31 +2500,37 @@ export default function EventRegistrationsPage() {
         </Modal>
 
         {/* ── Modal: Club Coupons (Part 13) ────────────────────────────────── */}
-        <ClubCouponsModal
-          isOpen={couponsModalOpen}
-          onClose={() => setCouponsModalOpen(false)}
-          clubId={event.club_id}
-          eventId={event.id}
-          eventTitle={event.title}
-        />
+        {canManageCoupons && (
+          <ClubCouponsModal
+            isOpen={couponsModalOpen}
+            onClose={() => setCouponsModalOpen(false)}
+            clubId={event.club_id}
+            eventId={event.id}
+            eventTitle={event.title}
+          />
+        )}
 
         {/* ── Modal: Event Team Staff Delegation (Part 7) ──────────────────── */}
-        <EventTeamDelegationModal
-          isOpen={teamModalOpen}
-          onClose={() => setTeamModalOpen(false)}
-          eventId={event.id}
-          clubId={event.club_id}
-          eventTitle={event.title}
-          currentUserId={user?.id || ''}
-        />
+        {canAssignRoles && (
+          <EventTeamDelegationModal
+            isOpen={teamModalOpen}
+            onClose={() => setTeamModalOpen(false)}
+            eventId={event.id}
+            clubId={event.club_id}
+            eventTitle={event.title}
+            currentUserId={user?.id || ''}
+          />
+        )}
 
         {/* ── Modal: Attendee Feedback Dashboard (Part 14) ─────────────────── */}
-        <EventFeedbackDashboardModal
-          isOpen={feedbackModalOpen}
-          onClose={() => setFeedbackModalOpen(false)}
-          eventId={event.id}
-          eventTitle={event.title}
-        />
+        {canViewFeedback && (
+          <EventFeedbackDashboardModal
+            isOpen={feedbackModalOpen}
+            onClose={() => setFeedbackModalOpen(false)}
+            eventId={event.id}
+            eventTitle={event.title}
+          />
+        )}
       </div>
     </PageShell>
   )

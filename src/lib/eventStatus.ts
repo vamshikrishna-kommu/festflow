@@ -1,4 +1,5 @@
 import type { DynamicEventStatus } from '@/types'
+import { getEventLifecyclePhase } from '@/lib/events'
 
 export interface EventStatusDetails {
   status: DynamicEventStatus
@@ -11,9 +12,9 @@ export interface EventStatusDetails {
 
 /**
  * Calculates accurate real-time dynamic event status based on:
- * - Published state / draft / cancelled / completed
+ * - Published state / draft / cancelled / completed / ongoing (timezone-aware)
  * - Capacity vs real-time registeredCount
- * - Event start & end dates
+ * - Event start & end dates (including null end_date day-end fallback)
  * - Registration open and close deadlines
  */
 export function calculateEventStatus(event: {
@@ -21,6 +22,7 @@ export function calculateEventStatus(event: {
   startDate?: string
   endDate?: string
   date?: string
+  timezone?: string | null
   registrationDeadline?: string | null
   registration_opens_at?: string | null
   registration_closes_at?: string | null
@@ -29,10 +31,16 @@ export function calculateEventStatus(event: {
   capacity?: number
   registeredCount?: number
 }): EventStatusDetails {
-  const rawStatus = (event.status || 'published').toLowerCase()
+  const phase = getEventLifecyclePhase(event)
+
+  // Capacity calculations
+  const capacity = typeof event.capacity === 'number' && event.capacity > 0 ? event.capacity : 0
+  const registered = typeof event.registeredCount === 'number' ? event.registeredCount : 0
+  const remaining = capacity > 0 ? Math.max(capacity - registered, 0) : null
+  const fillPct = capacity > 0 ? Math.min(Math.round((registered / capacity) * 100), 100) : 0
 
   // 1. Explicit cancellation or draft
-  if (rawStatus === 'cancelled') {
+  if (phase === 'cancelled') {
     return {
       status: 'cancelled',
       label: 'Cancelled',
@@ -43,46 +51,60 @@ export function calculateEventStatus(event: {
     }
   }
 
-  const now = new Date()
-  const startIso = event.startDate || event.start_date || event.date
-  const endIso = event.endDate || event.end_date
-  const regCloseIso = event.registrationDeadline || event.registration_closes_at
-  const regOpenIso = event.registration_opens_at
+  if (phase === 'draft') {
+    return {
+      status: 'draft',
+      label: 'Draft',
+      color: 'amber',
+      isRegisterable: false,
+      remainingSpots: remaining,
+      fillPercentage: fillPct,
+    }
+  }
 
-  const startDate = startIso ? new Date(startIso) : null
-  const endDate = endIso ? new Date(endIso) : null
-  const regCloseDate = regCloseIso ? new Date(regCloseIso) : null
-  const regOpenDate = regOpenIso ? new Date(regOpenIso) : null
-
-  // 2. Completed / Past
-  if (rawStatus === 'completed' || (endDate && endDate < now)) {
+  // 2. Completed / Past (timezone-aware)
+  if (phase === 'completed') {
     return {
       status: 'completed',
       label: 'Completed',
       color: 'zinc',
       isRegisterable: false,
       remainingSpots: 0,
-      fillPercentage: 100,
+      fillPercentage: fillPct,
     }
   }
 
-  // 3. Live now
-  if (startDate && startDate <= now && (!endDate || endDate >= now)) {
+  // 3. Live now (started, before effective end boundary)
+  if (phase === 'ongoing') {
     return {
       status: 'live',
       label: 'Live Now',
       color: 'emerald',
       isRegisterable: false,
       remainingSpots: 0,
-      fillPercentage: 100,
+      fillPercentage: fillPct,
     }
   }
 
-  // Capacity calculations
-  const capacity = typeof event.capacity === 'number' && event.capacity > 0 ? event.capacity : 0
-  const registered = typeof event.registeredCount === 'number' ? event.registeredCount : 0
-  const remaining = capacity > 0 ? Math.max(capacity - registered, 0) : null
-  const fillPct = capacity > 0 ? Math.min(Math.round((registered / capacity) * 100), 100) : 0
+  if (phase === 'registration_closed') {
+    return {
+      status: 'registration_closed',
+      label: 'Registration Closed',
+      color: 'zinc',
+      isRegisterable: false,
+      remainingSpots: remaining,
+      fillPercentage: fillPct,
+    }
+  }
+
+  const now = new Date()
+  const startIso = event.startDate || event.start_date || event.date
+  const regCloseIso = event.registrationDeadline || event.registration_closes_at
+  const regOpenIso = event.registration_opens_at
+
+  const startDate = startIso ? new Date(startIso) : null
+  const regCloseDate = regCloseIso ? new Date(regCloseIso) : null
+  const regOpenDate = regOpenIso ? new Date(regOpenIso) : null
 
   // 4. Registration not open yet
   if (regOpenDate && regOpenDate > now) {

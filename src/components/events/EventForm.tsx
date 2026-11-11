@@ -29,10 +29,19 @@ import {
   ArrowDown,
   EyeOff,
   Layout,
+  Lock,
 } from 'lucide-react'
 import { Button, Badge } from '@/components/ui'
 import { EVENT_CATEGORIES } from '@/lib/mock-data'
-import { uploadEventPoster, getDefaultPoster, generateSlug, validateEventConfig } from '@/lib/events'
+import {
+  uploadEventPoster,
+  getDefaultPoster,
+  generateSlug,
+  validateEventConfig,
+  resolveEventTimezone,
+  zonedDatetimeInputToIso,
+  isoToZonedDatetimeInput,
+} from '@/lib/events'
 import { EventPreviewModal } from './EventPreviewModal'
 import { EventPageBuilder } from './EventPageBuilder'
 import { useAuth } from '@/context/AuthContext'
@@ -60,22 +69,9 @@ interface EventFormProps {
   isSubmitting: boolean
   serverError: string | null
   mode: 'create' | 'edit'
-}
-
-// Convert ISO string to format suitable for datetime-local input (YYYY-MM-DDTHH:mm)
-function toLocalDatetimeInput(isoStr?: string | null): string {
-  if (!isoStr) return ''
-  const d = new Date(isoStr)
-  if (isNaN(d.getTime())) return ''
-  const offset = d.getTimezoneOffset() * 60000
-  const local = new Date(d.getTime() - offset)
-  return local.toISOString().slice(0, 16)
-}
-
-// Convert datetime-local value to ISO UTC string
-function fromLocalDatetimeInput(val: string): string {
-  if (!val) return ''
-  return new Date(val).toISOString()
+  readOnly?: boolean
+  allowAdminStatusEdit?: boolean
+  canPublish?: boolean
 }
 
 export function EventForm({
@@ -84,8 +80,30 @@ export function EventForm({
   isSubmitting,
   serverError,
   mode,
+  readOnly = false,
+  allowAdminStatusEdit = false,
+  canPublish,
 }: EventFormProps) {
-  const { user, clubProfile } = useAuth()
+  const {
+    user,
+    clubProfile,
+    activeClubId,
+    activeClubProfile,
+    hasClubPermission,
+    hasEventPermission,
+  } = useAuth()
+
+  const targetClubId =
+    mode === 'edit'
+      ? (initialData?.club_id || activeClubId || clubProfile?.profile_id || '')
+      : (activeClubId || clubProfile?.profile_id || '')
+
+  const effectiveCanPublish =
+    canPublish !== undefined
+      ? canPublish
+      : mode === 'edit' && initialData?.id
+        ? hasEventPermission(initialData.id, 'events.publish', initialData.club_id)
+        : hasClubPermission('events.publish')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // System timezones
@@ -113,15 +131,16 @@ export function EventForm({
   const [onlineMeetingUrl, setOnlineMeetingUrl] = useState(initialData?.online_meeting_url || '')
 
   // Section 3: Schedule & Timezone
-  const [startDate, setStartDate] = useState(toLocalDatetimeInput(initialData?.start_date))
-  const [endDate, setEndDate] = useState(toLocalDatetimeInput(initialData?.end_date))
+  const initialTimezone = resolveEventTimezone(initialData?.timezone)
+  const [timezone, setTimezone] = useState(initialTimezone)
+  const [startDate, setStartDate] = useState(isoToZonedDatetimeInput(initialData?.start_date, initialTimezone))
+  const [endDate, setEndDate] = useState(isoToZonedDatetimeInput(initialData?.end_date, initialTimezone))
   const [registrationStart, setRegistrationStart] = useState(
-    toLocalDatetimeInput(initialData?.registration_start_date || initialData?.registration_opens_at)
+    isoToZonedDatetimeInput(initialData?.registration_start_date || initialData?.registration_opens_at, initialTimezone)
   )
   const [registrationClose, setRegistrationClose] = useState(
-    toLocalDatetimeInput(initialData?.registration_closes_at)
+    isoToZonedDatetimeInput(initialData?.registration_closes_at, initialTimezone)
   )
-  const [timezone, setTimezone] = useState(initialData?.timezone || 'Asia/Kolkata')
 
   // Section 4: Participation & Team Configuration
   const [participationType, setParticipationType] = useState<ParticipationType>(
@@ -212,11 +231,15 @@ export function EventForm({
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (!targetClubId) {
+      setPosterError('No active club workspace selected for poster upload.')
+      return
+    }
+
     setUploadingPoster(true)
     setPosterError(null)
 
-    const clubId = user?.id || 'demo_club'
-    const res = await uploadEventPoster(file, clubId)
+    const res = await uploadEventPoster(file, targetClubId)
     setUploadingPoster(false)
 
     if (res.error) {
@@ -271,10 +294,10 @@ export function EventForm({
   const buildPayload = (
     action: 'save_draft' | 'publish'
   ): Omit<EventInsert, 'id' | 'created_at' | 'updated_at'> => {
-    const startIso = fromLocalDatetimeInput(startDate)
-    const endIso = fromLocalDatetimeInput(endDate)
-    const regStartIso = registrationStart ? fromLocalDatetimeInput(registrationStart) : null
-    const regCloseIso = registrationClose ? fromLocalDatetimeInput(registrationClose) : null
+    const startIso = zonedDatetimeInputToIso(startDate, timezone)
+    const endIso = zonedDatetimeInputToIso(endDate, timezone)
+    const regStartIso = registrationStart ? zonedDatetimeInputToIso(registrationStart, timezone) : null
+    const regCloseIso = registrationClose ? zonedDatetimeInputToIso(registrationClose, timezone) : null
     const finalSlug = initialData?.slug || generateSlug(title)
     const finalPoster = posterUrl || getDefaultPoster(category)
 
@@ -285,7 +308,7 @@ export function EventForm({
 
     return {
       slug: finalSlug,
-      club_id: user?.id || '',
+      club_id: targetClubId,
       title: title.trim(),
       summary: summary.trim(),
       description: description.trim(),
@@ -332,8 +355,18 @@ export function EventForm({
   const handleSubmit = async (e: FormEvent, action: 'save_draft' | 'publish') => {
     e.preventDefault()
 
-    if (!user?.id) {
-      setErrors({ title: 'You must be signed in as an organizer to save or publish an event.' })
+    if (readOnly) {
+      return
+    }
+
+    if (action === 'publish' && !effectiveCanPublish) {
+      setErrors({ title: 'You do not have permission to publish events for this club.' })
+      window.scrollTo({ top: 120, behavior: 'smooth' })
+      return
+    }
+
+    if (!user?.id || !targetClubId) {
+      setErrors({ title: 'You must be signed in with an active club workspace to save or publish an event.' })
       window.scrollTo({ top: 120, behavior: 'smooth' })
       return
     }
@@ -345,6 +378,20 @@ export function EventForm({
       setErrors(validation.errors)
       window.scrollTo({ top: 120, behavior: 'smooth' })
       return
+    }
+
+    if (!allowAdminStatusEdit && action === 'publish') {
+      if (initialData?.status === 'cancelled') {
+        setErrors({ title: 'Cancelled events cannot be re-published. Create a new event instead.' })
+        window.scrollTo({ top: 120, behavior: 'smooth' })
+        return
+      }
+      const endMs = payload.end_date ? new Date(payload.end_date).getTime() : NaN
+      if (!isNaN(endMs) && endMs <= Date.now()) {
+        setErrors({ end_date: 'Cannot publish an event whose end date has already passed. Set a future schedule first.' })
+        window.scrollTo({ top: 120, behavior: 'smooth' })
+        return
+      }
     }
 
     setErrors({})
@@ -360,6 +407,7 @@ export function EventForm({
   const [mobileStep, setMobileStep] = useState<number>(1)
 
   const validateMobileStep = (s: number): boolean => {
+    if (readOnly) return true
     const newErrors: Record<string, string> = {}
     if (s === 1) {
       if (!title.trim()) newErrors.title = 'Event title is required'
@@ -367,7 +415,9 @@ export function EventForm({
     } else if (s === 2) {
       if (!startDate) newErrors.startDate = 'Event start date & time is required'
       if (!endDate) newErrors.endDate = 'Event end date & time is required'
-      if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
+      const startIso = zonedDatetimeInputToIso(startDate, timezone)
+      const endIso = zonedDatetimeInputToIso(endDate, timezone)
+      if (startIso && endIso && new Date(startIso).getTime() >= new Date(endIso).getTime()) {
         newErrors.endDate = 'End date must be strictly after start date'
       }
       if ((eventType === 'offline' || eventType === 'hybrid') && !venueName.trim()) {
@@ -529,6 +579,7 @@ export function EventForm({
           </div>
         </div>
 
+        <fieldset disabled={readOnly} className="flex flex-col gap-6 sm:gap-8 border-0 p-0 m-0 min-w-0">
         {/* ── Section 1: Basic Information & Poster ───────────────────────── */}
         <div className={`${mobileStep === 1 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
           <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
@@ -1367,12 +1418,19 @@ export function EventForm({
               <select
                 id="event-status"
                 value={status}
+                disabled={readOnly}
                 onChange={(e) => setStatus(e.target.value as EventStatus)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <option value="draft">Draft (Hidden from discover)</option>
-                <option value="published">Published (Discoverable & open for registration)</option>
-                <option value="registration_closed">Registration Closed (Visible, but registrations locked)</option>
+                <option value="draft" disabled={!allowAdminStatusEdit && (initialData?.status === 'cancelled' || initialData?.status === 'completed')}>
+                  Draft (Hidden from discover)
+                </option>
+                <option value="published" disabled={!allowAdminStatusEdit && (initialData?.status === 'cancelled' || initialData?.status === 'completed')}>
+                  Published (Discoverable & open for registration)
+                </option>
+                <option value="registration_closed" disabled={!allowAdminStatusEdit && (initialData?.status === 'cancelled' || initialData?.status === 'completed')}>
+                  Registration Closed (Visible, but registrations locked)
+                </option>
                 <option value="completed">Completed (Event has concluded)</option>
                 <option value="cancelled">Cancelled (Void tickets)</option>
               </select>
@@ -1812,13 +1870,20 @@ export function EventForm({
             </div>
           </div>
         )}
+        </fieldset>
 
         {/* ── Form Actions Bar (Desktop Sticky) ─────────────────────────────── */}
         <div className="hidden md:flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl glass border border-[oklch(100%_0_0_/_0.1)] sticky bottom-4 shadow-2xl z-20 backdrop-blur-md">
           <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-            <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+            {readOnly ? (
+              <Lock size={16} className="text-zinc-400 shrink-0" />
+            ) : (
+              <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+            )}
             <span className="text-[11px] sm:text-xs">
-              {mode === 'create'
+              {readOnly
+                ? 'Archive Mode (Read-Only): Concluded or cancelled event details cannot be edited by clubs.'
+                : mode === 'create'
                 ? 'Drafts are private to your club. Publishing makes the event discoverable immediately.'
                 : 'Updates are validated and saved directly.'}
             </span>
@@ -1837,31 +1902,37 @@ export function EventForm({
               Preview
             </Button>
 
-            {/* Save Draft Button */}
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              onClick={(e) => handleSubmit(e, 'save_draft')}
-              disabled={isSubmitting}
-              className="flex-1 sm:flex-initial min-h-[44px] justify-center"
-            >
-              Save Draft
-            </Button>
+            {!readOnly && (
+              <>
+                {/* Save Draft Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={(e) => handleSubmit(e, 'save_draft')}
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-initial min-h-[44px] justify-center"
+                >
+                  {mode === 'edit' && !effectiveCanPublish ? 'Save Changes' : 'Save Draft'}
+                </Button>
 
-            {/* Final Publish Button */}
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              onClick={(e) => handleSubmit(e, 'publish')}
-              disabled={isSubmitting}
-              isLoading={isSubmitting}
-              leftIcon={<CheckCircle2 size={16} />}
-              className="bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)] w-full sm:w-auto min-h-[44px] justify-center"
-            >
-              {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
-            </Button>
+                {/* Final Publish Button */}
+                {effectiveCanPublish && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    onClick={(e) => handleSubmit(e, 'publish')}
+                    disabled={isSubmitting}
+                    isLoading={isSubmitting}
+                    leftIcon={<CheckCircle2 size={16} />}
+                    className="bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)] w-full sm:w-auto min-h-[44px] justify-center"
+                  >
+                    {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -1893,16 +1964,22 @@ export function EventForm({
             </Button>
           )}
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={(e) => handleSubmit(e, 'save_draft')}
-            disabled={isSubmitting}
-            className="min-h-[44px] text-xs px-3 border-white/15"
-          >
-            Save Draft
-          </Button>
+          {!readOnly ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={(e) => handleSubmit(e, 'save_draft')}
+              disabled={isSubmitting}
+              className="min-h-[44px] text-xs px-3 border-white/15"
+            >
+              {mode === 'edit' && !effectiveCanPublish ? 'Save Changes' : 'Save Draft'}
+            </Button>
+          ) : (
+            <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1">
+              <Lock size={12} /> Archive View
+            </span>
+          )}
 
           {mobileStep < 5 ? (
             <Button
@@ -1919,7 +1996,7 @@ export function EventForm({
             >
               Next Step →
             </Button>
-          ) : (
+          ) : !readOnly && effectiveCanPublish ? (
             <Button
               type="button"
               variant="primary"
@@ -1931,6 +2008,17 @@ export function EventForm({
             >
               {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
             </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreview(true)}
+              leftIcon={<Eye size={14} />}
+              className="min-h-[44px] text-xs px-3 border-white/15"
+            >
+              Preview
+            </Button>
           )}
         </div>
       </form>
@@ -1940,7 +2028,7 @@ export function EventForm({
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
         data={buildPayload('publish')}
-        clubName={clubProfile?.club_name || user?.user_metadata?.club_name || 'Campus Club'}
+        clubName={activeClubProfile?.club_name || clubProfile?.club_name || 'Campus Club'}
       />
     </>
   )

@@ -12,7 +12,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { getEventById } from '@/lib/events'
+import { getEventById, isEventConcludedOrCancelled, getEventLifecyclePhase } from '@/lib/events'
 import {
   getClubEventAutomations,
   saveClubEventAutomation,
@@ -22,35 +22,64 @@ import type { ClubEventAutomationRecord, EventWithClub } from '@/types'
 
 export default function ClubAutomationPage() {
   const { id: eventId } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { role, activeClubRole, eventAssignments, hasEventPermission, isRoleLoading } = useAuth()
 
   const [event, setEvent] = useState<EventWithClub | null>(null)
   const [automations, setAutomations] = useState<ClubEventAutomationRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [authorized, setAuthorized] = useState<boolean | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [previewRule, setPreviewRule] = useState<ClubEventAutomationRecord | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
 
+  const canManageAutomation = event
+    ? role === 'platform_admin' ||
+      hasEventPermission(event.id, 'events.edit', event.club_id) ||
+      hasEventPermission(event.id, 'club.manage', event.club_id)
+    : Boolean(authorized)
+
   useEffect(() => {
+    let mounted = true
     async function load() {
-      if (!eventId) return
+      if (!eventId || isRoleLoading) return
       setLoading(true)
       try {
         const res = await getEventById(eventId)
+        if (!mounted) return
         if (res.event) {
-          setEvent(res.event as any)
-          const clubId = (res.event as any).club_id || user?.id || 'default_club'
-          const rules = await getClubEventAutomations(eventId, clubId)
-          setAutomations(rules)
+          const allowed =
+            role === 'platform_admin' ||
+            hasEventPermission(res.event.id, 'events.edit', res.event.club_id) ||
+            hasEventPermission(res.event.id, 'club.manage', res.event.club_id)
+          setAuthorized(allowed)
+          if (allowed && res.event.club_id) {
+            setEvent(res.event as any)
+            const rules = await getClubEventAutomations(eventId, res.event.club_id)
+            if (mounted) setAutomations(rules)
+          } else {
+            setEvent(null)
+            setAutomations([])
+          }
+        } else {
+          setAuthorized(false)
+          setEvent(null)
+          setAutomations([])
         }
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
     load()
-  }, [eventId, user])
+    return () => {
+      mounted = false
+    }
+  }, [eventId, role, isRoleLoading, activeClubRole, eventAssignments])
+
+  const isLockedArchive = event ? isEventConcludedOrCancelled(event) : false
+  const lifecyclePhase = event ? getEventLifecyclePhase(event) : 'published'
 
   const handleToggle = async (rule: ClubEventAutomationRecord) => {
+    if (isLockedArchive || !canManageAutomation) return
     const updated = { ...rule, is_enabled: !rule.is_enabled }
     setAutomations((prev) => prev.map((r) => (r.id === rule.id ? updated : r)))
     setSavingId(rule.id)
@@ -59,12 +88,14 @@ export default function ClubAutomationPage() {
   }
 
   const handleTemplateChange = (id: string, newText: string) => {
+    if (isLockedArchive || !canManageAutomation) return
     setAutomations((prev) =>
       prev.map((r) => (r.id === id ? { ...r, message_template: newText } : r))
     )
   }
 
   const handleSaveRule = async (rule: ClubEventAutomationRecord) => {
+    if (isLockedArchive || !canManageAutomation) return
     setSavingId(rule.id)
     const res = await saveClubEventAutomation(rule)
     setSavingId(null)
@@ -116,7 +147,7 @@ export default function ClubAutomationPage() {
               Event Automations
             </h1>
             <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
-              Configure automatic turnstile calls, countdown alerts, and post-event surveys
+              Configure registration confirmations, countdown alerts, and post-event surveys
             </p>
           </div>
 
@@ -144,10 +175,23 @@ export default function ClubAutomationPage() {
         </div>
 
         {/* Automation Rules List */}
-        {loading ? (
+        {loading || isRoleLoading ? (
           <div className="py-20 text-center space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-[#18CFFC] mx-auto" />
             <p className="text-xs text-[var(--color-text-muted)]">Loading event automation rules...</p>
+          </div>
+        ) : authorized === false || !canManageAutomation ? (
+          <div className="p-6 sm:p-8 rounded-2xl bg-[var(--color-surface-1)] border border-rose-500/20 text-center space-y-3">
+            <h2 className="text-base font-bold text-white">Event Automation Access Restricted</h2>
+            <p className="text-xs text-[var(--color-text-secondary)] max-w-md mx-auto">
+              You do not have permission to view or modify automation templates for this event.
+            </p>
+            <Link
+              to="/club/events"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition-colors"
+            >
+              Return to Club Events
+            </Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -198,10 +242,10 @@ export default function ClubAutomationPage() {
                       <button
                         type="button"
                         onClick={() => handleToggle(rule)}
-                        disabled={isSaving}
-                        className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                          rule.is_enabled ? 'bg-[#18CFFC]' : 'bg-[var(--color-surface-3)]'
-                        }`}
+                        disabled={isSaving || isLockedArchive}
+                        className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
+                          isLockedArchive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        } ${rule.is_enabled ? 'bg-[#18CFFC]' : 'bg-[var(--color-surface-3)]'}`}
                       >
                         <div
                           className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -227,16 +271,21 @@ export default function ClubAutomationPage() {
                       rows={2}
                       value={rule.message_template}
                       onChange={(e) => handleTemplateChange(rule.id, e.target.value)}
-                      disabled={!rule.is_enabled}
+                      disabled={!rule.is_enabled || isLockedArchive}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[#18CFFC] transition-colors resize-none disabled:opacity-50"
                     />
 
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-between gap-2">
+                      {isLockedArchive && (
+                        <span className="text-[11px] text-amber-300">
+                          Read-only archive: Event is {lifecyclePhase === 'cancelled' ? 'cancelled' : 'completed'}.
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleSaveRule(rule)}
-                        disabled={isSaving || !rule.is_enabled}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        disabled={isSaving || !rule.is_enabled || isLockedArchive}
+                        className="ml-auto px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                         Save Template

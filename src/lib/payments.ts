@@ -887,13 +887,20 @@ export async function getClubPaymentSubmissions(
         `)
         .order('submitted_at', { ascending: false })
 
-      if (eventId) {
-        query = query.eq('event_id', eventId)
-      } else if (clubId) {
-        const { data: clubEvents } = await supabase
+      if (clubId) {
+        let clubEventsQuery = supabase
           .from('events')
           .select('id')
           .eq('club_id', clubId)
+
+        if (eventId) {
+          clubEventsQuery = clubEventsQuery.eq('id', eventId)
+        }
+
+        const { data: clubEvents, error: clubEventsError } = await clubEventsQuery
+        if (clubEventsError) {
+          return { submissions: [], error: clubEventsError.message }
+        }
 
         const eventsList = (clubEvents || []) as Array<{ id: string }>
         if (eventsList.length === 0) {
@@ -901,6 +908,8 @@ export async function getClubPaymentSubmissions(
         }
         const eventIds = eventsList.map((e) => e.id)
         query = query.in('event_id', eventIds)
+      } else if (eventId) {
+        query = query.eq('event_id', eventId)
       }
 
       const { data, error } = await query
@@ -935,7 +944,7 @@ export async function getClubPaymentSubmissions(
     })
   )
 
-  const finalSubmissions = clubId && !eventId
+  const finalSubmissions = clubId
     ? enriched.filter((s) => s.event?.club_id === clubId)
     : enriched
 
@@ -1325,6 +1334,63 @@ export async function reviewPaymentDispute(params: {
   reviewerId?: string
 }): Promise<{ success: boolean; message: string; error_code?: string }> {
   const { reviewId, decision, decisionNotes, reviewerId } = params
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data: updatedDispute, error: disputeError } = await (
+        supabase.from('payment_dispute_reviews') as any
+      )
+        .update({
+          status: decision,
+          reviewed_by: reviewerId || null,
+          reviewed_at: new Date().toISOString(),
+          decision_notes: decisionNotes || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reviewId)
+        .select('*')
+        .maybeSingle()
+
+      if (disputeError) {
+        return {
+          success: false,
+          error_code: 'DISPUTE_UPDATE_FAILED',
+          message: disputeError.message,
+        }
+      }
+
+      if (!updatedDispute) {
+        return {
+          success: false,
+          error_code: 'NOT_FOUND_OR_UNAUTHORIZED',
+          message: 'Dispute review record not found or unauthorized.',
+        }
+      }
+
+      if (decision === 'approved' && updatedDispute.payment_submission_id) {
+        const payRes = await reviewPaymentSubmission({
+          paymentId: updatedDispute.payment_submission_id,
+          decision: 'approved',
+          notes: decisionNotes || 'Approved via payment dispute review.',
+        })
+        if (!payRes.success) {
+          return payRes
+        }
+      }
+
+      return {
+        success: true,
+        message: `Payment dispute review marked as ${decision}.`,
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error_code: 'RPC_EXCEPTION',
+        message:
+          err instanceof Error ? err.message : 'Failed to update dispute review.',
+      }
+    }
+  }
 
   const disputes = getLocalPaymentDisputes()
   const disp = disputes.find((d) => d.id === reviewId)

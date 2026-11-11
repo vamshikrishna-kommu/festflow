@@ -108,6 +108,7 @@ Apply the SQL migration scripts in numerical sequence via the **Supabase Dashboa
    npx supabase secrets set RESEND_FROM_NAME="FestFlow"
    npx supabase secrets set RESEND_REPLY_TO="festflow.events@gmail.com"
    ```
+   > **Note:** Resend requires a verified custom domain (`festflow.online`) in `From` (`RESEND_FROM_EMAIL`). Support & reply emails route directly to `festflow.events@gmail.com`.
 
 ### Step 2: Deploy Frontend on Vercel
 FestFlow includes pre-configured [`vercel.json`](file:///c:/FESTFLOW/vercel.json) with SPA route fallbacks, static asset caching, and security headers.
@@ -165,7 +166,6 @@ npx vercel --prod
 | `/club/events/new` | Create & publish new campus events | Protected (`club_member`, `platform_admin`) |
 | `/club/events/:id/edit`| Edit draft and published club events | Protected (`club_member`, `platform_admin`) |
 | `/club/events/:id/registrations` | Club attendee roster, filter & cancellation | Protected (`club_member`, `platform_admin`) |
-| `/club/events/:id/check-in` | Gate camera QR scanner & live attendance check-in | Protected (`club_member`, `platform_admin`) |
 | `/club/events/:id/reports` | Executive summary, CSV exports & bulk reminders | Protected (`club_member`, `platform_admin`) |
 | `/club/payments` | Organizer UPI payment review & ticket issuance | Protected (`club_member`, `platform_admin`) |
 | `/club/settings/payments` | Club official UPI ID & QR code configuration | Protected (`club_member`, `platform_admin`) |

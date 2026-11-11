@@ -197,7 +197,7 @@ export function MaintenanceScreen() {
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  placeholder="admin@festflow.com"
+                  placeholder="admin@festflow.online"
                   required
                   className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-xs focus:outline-none focus:border-[#18CFFC] transition-colors"
                 />

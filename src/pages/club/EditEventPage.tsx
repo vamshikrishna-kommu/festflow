@@ -1,17 +1,34 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
-import { AlertCircle, AlertTriangle } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Users, FileSpreadsheet, ShieldAlert, Lock } from 'lucide-react'
 import { Button, PageHeader, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { EventForm } from '@/components/events/EventForm'
-import { getEventById, updateEvent, cancelEventByOrganizer } from '@/lib/events'
+import {
+  getEventById,
+  updateEvent,
+  cancelEventByOrganizer,
+  getEventLifecyclePhase,
+  canClubMutateEvent,
+  LIFECYCLE_BADGE_META,
+  formatEventDate,
+  formatEventTime,
+  resolveEventTimezone,
+} from '@/lib/events'
 import { useAuth } from '@/context/AuthContext'
 import type { EventRecord, EventInsert, EventUpdate } from '@/types'
 
 export default function EditEventPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user, role } = useAuth()
+  const {
+    role,
+    activeClubId,
+    activeClubRole,
+    eventAssignments,
+    hasEventPermission,
+    isRoleLoading,
+  } = useAuth()
 
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [loading, setLoading] = useState(true)
@@ -24,8 +41,10 @@ export default function EditEventPage() {
   const [cancelError, setCancelError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!id) return
+    if (!id || isRoleLoading) return
     let mounted = true
+    setLoading(true)
+    setLoadError(null)
 
     getEventById(id).then((res) => {
       if (!mounted) return
@@ -33,9 +52,11 @@ export default function EditEventPage() {
       if (res.error || !res.event) {
         setLoadError(res.error || 'Event could not be found.')
       } else {
-        // Verify resource ownership
-        const isOwnerOrAdmin = (user && res.event.club_id === user.id) || role === 'platform_admin'
-        if (!isOwnerOrAdmin) {
+        const canEditFetchedEvent =
+          role === 'platform_admin' ||
+          hasEventPermission(res.event.id, 'events.edit', res.event.club_id)
+        if (!canEditFetchedEvent) {
+          setEvent(null)
           setLoadError('You do not have permission to edit this event.')
         } else {
           setEvent(res.event)
@@ -46,22 +67,51 @@ export default function EditEventPage() {
     return () => {
       mounted = false
     }
-  }, [id, user, role])
+  }, [id, role, isRoleLoading, activeClubId, activeClubRole, eventAssignments])
+
+  const isAdmin = role === 'platform_admin'
+  const canEditEvent = event ? (isAdmin || hasEventPermission(event.id, 'events.edit', event.club_id)) : false
+  const canPublishEvent = event ? (isAdmin || hasEventPermission(event.id, 'events.publish', event.club_id)) : false
+  const canCancelEvent = event ? (isAdmin || hasEventPermission(event.id, 'events.cancel', event.club_id)) : false
+  const canViewRegistrations = event
+    ? (isAdmin || hasEventPermission(event.id, 'registrations.view', event.club_id))
+    : false
+  const canViewReports = event
+    ? (isAdmin || hasEventPermission(event.id, 'reports.view', event.club_id))
+    : false
 
   const handleUpdate = async (
     data: Omit<EventInsert, 'id' | 'created_at' | 'updated_at'>,
     action: 'save_draft' | 'publish'
   ) => {
-    if (!id) return
+    if (!id || !event) return
+
+    if (!canEditEvent) {
+      setServerError('You do not have permission to edit this event.')
+      return
+    }
+
+    if (action === 'publish' && !canPublishEvent) {
+      setServerError('You do not have permission to publish events. Save your changes instead.')
+      return
+    }
+
+    const canMutate = canClubMutateEvent(event) || isAdmin
+    if (!canMutate) {
+      setServerError('Completed or cancelled events are archived and cannot be edited or re-published.')
+      return
+    }
+
     setIsSubmitting(true)
     setServerError(null)
 
     const updates: EventUpdate = {
       ...data,
-      status: action === 'publish' ? 'published' : data.status,
+      club_id: event.club_id,
+      status: action === 'publish' ? 'published' : isAdmin ? data.status : event.status,
     }
 
-    const res = await updateEvent(id, updates)
+    const res = await updateEvent(id, updates, event.club_id)
     setIsSubmitting(false)
 
     if (res.error) {
@@ -75,7 +125,7 @@ export default function EditEventPage() {
     }
   }
 
-  if (loading) {
+  if (loading || isRoleLoading) {
     return (
       <div className="min-h-screen pt-32 flex flex-col items-center justify-center bg-[var(--color-surface-0)]">
         <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
@@ -105,6 +155,13 @@ export default function EditEventPage() {
     )
   }
 
+  const lifecyclePhase = getEventLifecyclePhase(event)
+  const lifecycleMeta = LIFECYCLE_BADGE_META[lifecyclePhase]
+  const isCompleted = lifecyclePhase === 'completed'
+  const isConcludedOrCancelled = !canClubMutateEvent(event)
+  const isReadOnlyArchive = isConcludedOrCancelled && !isAdmin
+  const eventTz = resolveEventTimezone(event.timezone)
+
   return (
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
@@ -113,13 +170,68 @@ export default function EditEventPage() {
           breadcrumbs={[
             { label: 'Club Dashboard', href: '/club/dashboard' },
             { label: 'My Events', href: '/club/events' },
-            { label: `Edit: ${event.title}` },
+            { label: `${isReadOnlyArchive ? 'Archive' : 'Edit'}: ${event.title}` },
           ]}
-          title="Edit Event"
-          badge={event.status === 'published' ? 'Published' : event.status === 'cancelled' ? 'Cancelled' : 'Draft'}
-          badgeVariant={event.status === 'published' ? 'success' : event.status === 'cancelled' ? 'danger' : 'outline'}
-          subtitle={`Update event configuration, schedule, ticket pricing, and registration settings for "${event.title}".`}
+          title={isReadOnlyArchive ? 'Event Archive Record' : 'Edit Event'}
+          badge={lifecycleMeta.label}
+          badgeVariant={lifecycleMeta.variant}
+          subtitle={
+            isReadOnlyArchive
+              ? `Read-only lifecycle archive for "${event.title}". Registrations, payment logs, and reports remain preserved.`
+              : `Update event configuration, schedule, ticket pricing, and registration settings for "${event.title}".`
+          }
         />
+
+        {/* Completed / Cancelled Archive Banner */}
+        {isConcludedOrCancelled && (
+          <div
+            className={`p-5 rounded-3xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left ${
+              isCompleted
+                ? 'bg-emerald-500/5 border-emerald-500/20'
+                : 'bg-rose-500/5 border-rose-500/20'
+            }`}
+          >
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm font-bold text-white">
+                {isReadOnlyArchive ? (
+                  <Lock size={16} className={isCompleted ? 'text-emerald-400' : 'text-rose-400'} />
+                ) : (
+                  <ShieldAlert size={16} className="text-amber-400" />
+                )}
+                <span>
+                  {isCompleted
+                    ? isReadOnlyArchive
+                      ? 'Completed Event — Read-Only Archive'
+                      : 'Completed Event — Admin Override Active'
+                    : isReadOnlyArchive
+                    ? 'Cancelled Event — Read-Only Record'
+                    : 'Cancelled Event — Admin Override Active'}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed max-w-2xl">
+                {isCompleted
+                  ? `This event concluded on ${formatEventDate(event.end_date || event.start_date, eventTz)} at ${formatEventTime(event.end_date || event.start_date, eventTz)} (${eventTz}). Editing, re-publishing, and cancelling are disabled for organizers while attendee rosters, payment records, and analytics reports remain accessible.`
+                  : 'This event was cancelled. All issued passes are invalidated and event editing is locked while historical records and refund logs remain accessible.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {canViewRegistrations && (
+                <Link to={`/club/events/${event.id}/registrations`}>
+                  <Button variant="outline" size="sm" leftIcon={<Users size={14} />}>
+                    Registrations
+                  </Button>
+                </Link>
+              )}
+              {canViewReports && (
+                <Link to={`/club/events/${event.id}/reports`}>
+                  <Button variant="primary" size="sm" leftIcon={<FileSpreadsheet size={14} />}>
+                    Reports & Exports
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Multi-section Event Form */}
         <EventForm
@@ -128,17 +240,20 @@ export default function EditEventPage() {
           onSubmit={handleUpdate}
           isSubmitting={isSubmitting}
           serverError={serverError}
+          readOnly={isReadOnlyArchive || !canEditEvent}
+          allowAdminStatusEdit={isAdmin}
+          canPublish={canPublishEvent}
         />
 
-        {/* Danger Zone: Event Cancellation (Module 7) */}
-        {event.status !== 'cancelled' && (
+        {/* Danger Zone: Event Cancellation (Only active upcoming/ongoing/draft events) */}
+        {canClubMutateEvent(event) && canCancelEvent && (
           <div className="p-6 rounded-3xl bg-rose-500/5 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
             <div>
               <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">
                 <AlertTriangle size={16} /> Danger Zone: Cancel Event
               </h4>
               <p className="text-xs text-zinc-400 mt-1 max-w-xl leading-relaxed">
-                Cancelling this event will invalidate all issued digital tickets, prevent further gate check-in, notify all registered attendees, and queue refund reviews for paid registrations. History and records are preserved.
+                Cancelling this event will invalidate all issued digital passes, notify all registered attendees, and queue refund reviews for paid registrations. History and records are preserved.
               </p>
             </div>
             <Button
@@ -207,6 +322,10 @@ export default function EditEventPage() {
                 size="sm"
                 isLoading={isCancelling}
                 onClick={async () => {
+                  if (!canCancelEvent) {
+                    setCancelError('You do not have permission to cancel this event.')
+                    return
+                  }
                   if (!cancelReason.trim()) {
                     setCancelError('Please specify the reason for event cancellation.')
                     return

@@ -235,7 +235,7 @@ export default function StudentProfilePage() {
                 Verified Campus Badges ({profile.badges.length})
               </h3>
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                Earned through authenticated gate turnstiles and competitive event victories.
+                Earned through verified campus event participation and competitive victories.
               </p>
             </div>
           </div>

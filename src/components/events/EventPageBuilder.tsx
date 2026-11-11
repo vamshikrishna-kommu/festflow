@@ -57,7 +57,7 @@ const DEFAULT_SECTIONS: Array<{
     icon: Calendar,
     defaultContent: {
       items: [
-        { time: '09:00 AM', title: 'Gate Check-In & Welcome Kit', venue: 'Main Auditorium' },
+        { time: '09:00 AM', title: 'Registration Desk & Welcome Kit', venue: 'Main Auditorium' },
         { time: '10:30 AM', title: 'Opening Keynote & Challenge Reveal', venue: 'Stage A' },
         { time: '01:00 PM', title: 'Networking Lunch', venue: 'Student Center' },
         { time: '04:30 PM', title: 'Final Presentations & Awards', venue: 'Auditorium' },
@@ -99,7 +99,7 @@ const DEFAULT_SECTIONS: Array<{
     title: 'Registration Call to Action',
     description: 'High-contrast bottom banner urging students to secure their passes.',
     icon: Megaphone,
-    defaultContent: { ctaTitle: 'Seats are strictly limited!', ctaSubtitle: 'Claim your verified QR gate pass before capacity fills.' },
+    defaultContent: { ctaTitle: 'Seats are strictly limited!', ctaSubtitle: 'Claim your confirmed digital pass before capacity fills.' },
   },
 ]
 

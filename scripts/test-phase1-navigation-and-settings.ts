@@ -104,16 +104,20 @@ async function runPhase1Suite() {
   )
 
   assert(
-    appSource.includes('location.hash') && appSource.includes('scrollIntoView'),
+    appSource.includes('location.hash') &&
+      appSource.includes('document.getElementById(targetId)') &&
+      appSource.includes('window.scrollTo'),
     'Anchor Navigation',
-    'Intentional hash navigation (#anchor) scrolls target into view'
+    'Intentional hash navigation (#anchor) aligns target element into view accurately'
   )
 
   // --- SUITE 3: Button Default Attributes & Form Submissions ---
   console.log('\n--- 3. Button Defaults & Form Trigger Prevention ---')
   const buttonSource = fs.readFileSync(path.resolve('src/components/ui/Button.tsx'), 'utf-8')
-  const featuresSource = fs.readFileSync(path.resolve('src/components/sections/FeaturesSection.tsx'), 'utf-8')
-  const platformSource = fs.readFileSync(path.resolve('src/components/sections/PlatformCapabilitiesSection.tsx'), 'utf-8')
+  const scene03Source = fs.readFileSync(path.resolve('src/components/cinematic/Scene03StudentJourney.tsx'), 'utf-8')
+  const scene05Source = fs.readFileSync(path.resolve('src/components/cinematic/Scene05FinalReveal.tsx'), 'utf-8')
+  const phaseNavbarSource = fs.readFileSync(path.resolve('src/components/layout/Navbar.tsx'), 'utf-8')
+  const phaseFooterSource = fs.readFileSync(path.resolve('src/components/layout/Footer.tsx'), 'utf-8')
 
   assert(
     buttonSource.includes("type = 'button'"),
@@ -122,15 +126,15 @@ async function runPhase1Suite() {
   )
 
   assert(
-    featuresSource.includes('id="features-overview"'),
+    scene03Source.includes('id="scene-03-journey"') && scene05Source.includes('id="scene-05-final"'),
     'Anchor Integrity',
-    'FeaturesSection uses distinct id="features-overview" to avoid DOM collisions'
+    'Cinematic landing scenes declare distinct anchor IDs (#scene-03-journey, #scene-05-final) without collisions'
   )
 
   assert(
-    platformSource.includes('id="features"'),
+    phaseNavbarSource.includes('/#scene-03-journey') && phaseFooterSource.includes('/#scene-03-journey'),
     'Anchor Integrity',
-    'PlatformCapabilitiesSection declares primary id="features" with scroll-mt offset'
+    'Navbar and Footer link cleanly to live cinematic landing scene anchors'
   )
 
   // --- SUITE 4: Settings Persistence & AuthContext Contract ---

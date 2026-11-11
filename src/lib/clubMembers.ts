@@ -1,125 +1,84 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type {
-  ClubRole,
-  ClubPermission,
-  ClubMemberRecord,
-  ClubInvitationRecord,
   ClubAuditLogRecord,
+  ClubInvitationRecord,
+  ClubMemberRecord,
+  ClubRole,
 } from '@/types'
 import {
-  sendClubMemberInvitationEmail,
+  ALL_CLUB_ROLES,
+  ASSIGNABLE_CLUB_ROLES,
+  CANONICAL_CLUB_PERMISSIONS,
+  EVENT_ASSIGNMENT_PERMISSIONS,
+  PERMISSION_DESCRIPTIONS,
+  ROLE_DESCRIPTIONS,
+  ROLE_LABELS,
+  ROLE_PERMISSIONS,
+  ROLE_RANK,
+  canAssignRole,
+  canManageMember,
+  canTransferOwnership,
+  getAssignableRoles,
+  getRolePermissions,
+  hasAllPermissions,
+  hasAnyEventPermission,
+  hasAnyPermission,
+  hasEventPermission,
+  hasPermission,
+  isAssignableClubRole,
+  isValidClubRole,
+  normalizeClubPermission,
+  resolveClubId,
+  resolveEffectiveEventPermissions,
+} from '@/lib/rbac'
+import {
   sendClubInvitationAcceptedEmail,
+  sendClubMemberInvitationEmail,
   type EmailDispatchResult,
 } from '@/lib/emails'
 import { broadcastStatusChange } from '@/lib/sync'
 import { getFrontendBaseUrl } from '@/lib/canonicalUrl'
 
+export {
+  ALL_CLUB_ROLES,
+  ASSIGNABLE_CLUB_ROLES,
+  CANONICAL_CLUB_PERMISSIONS,
+  EVENT_ASSIGNMENT_PERMISSIONS,
+  PERMISSION_DESCRIPTIONS,
+  ROLE_DESCRIPTIONS,
+  ROLE_LABELS,
+  ROLE_PERMISSIONS,
+  ROLE_RANK,
+  canAssignRole,
+  canManageMember,
+  canTransferOwnership,
+  getAssignableRoles,
+  getRolePermissions,
+  hasAllPermissions,
+  hasAnyEventPermission,
+  hasAnyPermission,
+  hasEventPermission,
+  hasPermission,
+  isAssignableClubRole,
+  isValidClubRole,
+  normalizeClubPermission,
+  resolveClubId,
+  resolveEffectiveEventPermissions,
+}
+
 const LOCAL_STORAGE_MEMBERS_KEY = 'festflow_local_club_members'
 const LOCAL_STORAGE_INVITATIONS_KEY = 'festflow_local_club_invitations'
 const LOCAL_STORAGE_AUDIT_LOGS_KEY = 'festflow_local_club_audit_logs'
+const LOCAL_STORAGE_ASSIGNMENTS_KEY = 'festflow_local_event_assignments'
 
-// ── Least-Privilege Role Permission Matrix ──────────────────────────────────
-export const ROLE_PERMISSIONS: Record<ClubRole, ClubPermission[]> = {
-  owner: [
-    'manage_club',
-    'manage_members',
-    'manage_events',
-    'view_attendees',
-    'gate_checkin',
-    'review_payments',
-    'view_reports',
-  ],
-  admin: [
-    'manage_club',
-    'manage_members',
-    'manage_events',
-    'view_attendees',
-    'gate_checkin',
-    'review_payments',
-    'view_reports',
-  ],
-  event_manager: [
-    'manage_events',
-    'view_attendees',
-    'view_reports',
-  ],
-  payment_reviewer: [
-    'review_payments',
-    'view_reports',
-  ],
-  checkin_staff: [
-    'gate_checkin',
-    'view_attendees',
-  ],
-  viewer: [
-    'view_attendees',
-    'view_reports',
-  ],
-}
-
-export const ROLE_LABELS: Record<ClubRole, string> = {
-  owner: 'Club Owner',
-  admin: 'Administrator',
-  event_manager: 'Event Manager',
-  payment_reviewer: 'Payment Reviewer',
-  checkin_staff: 'Gate Staff (Check-In)',
-  viewer: 'Viewer / Reporter',
-}
-
-export const ROLE_DESCRIPTIONS: Record<ClubRole, string> = {
-  owner: 'Full authority over organization profile, settings, member roster, and all events.',
-  admin: 'Manages events, attendees, gate access, payments, and invites staff below Owner tier.',
-  event_manager: 'Creates and edits events, monitors registrant rosters, and downloads reports.',
-  payment_reviewer: 'Reviews student UPI payment submissions, inspects UTRs, and approves/rejects fees.',
-  checkin_staff: 'Gate admission operator: validates tickets, admits attendees, and logs turnstile entry/exit.',
-  viewer: 'Read-only access to published event details, attendee numbers, and basic reports.',
-}
-
-// Role hierarchy rank for escalation prevention
-const ROLE_RANK: Record<ClubRole, number> = {
-  owner: 6,
-  admin: 5,
-  event_manager: 4,
-  payment_reviewer: 3,
-  checkin_staff: 2,
-  viewer: 1,
-}
-
-/**
- * Checks if a specific role possesses the requested permission.
- */
-export function hasPermission(
-  role: ClubRole | null | undefined,
-  permission: ClubPermission
-): boolean {
-  if (!role) return false
-  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false
-}
-
-/**
- * Validates that an inviter cannot grant a role higher than their own hierarchy level.
- */
-export function canAssignRole(
-  inviterRole: ClubRole | null | undefined,
-  targetRole: ClubRole
-): boolean {
-  if (!inviterRole) return false
-  if (inviterRole === 'owner') return true
-  // Admin cannot assign 'owner'
-  if (inviterRole === 'admin') {
-    return targetRole !== 'owner'
-  }
-  return false
-}
-
-// ── Local Storage Simulation Helpers ────────────────────────────────────────
+// ── Local Storage Simulation Helpers (only used when Supabase is unconfigured) ─
 
 function getLocalMembers(): ClubMemberRecord[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_MEMBERS_KEY)
     if (raw) return JSON.parse(raw)
   } catch {
-    // ignore
+    // ignore storage parse failure
   }
   return []
 }
@@ -128,7 +87,7 @@ function saveLocalMembers(members: ClubMemberRecord[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_MEMBERS_KEY, JSON.stringify(members))
   } catch {
-    // ignore
+    // ignore storage quota failure
   }
 }
 
@@ -168,6 +127,26 @@ function saveLocalAuditLogs(logs: ClubAuditLogRecord[]) {
   }
 }
 
+function appendLocalAuditLog(entry: ClubAuditLogRecord) {
+  const logs = getLocalAuditLogs()
+  logs.unshift(entry)
+  saveLocalAuditLogs(logs)
+}
+
+function removeLocalAssignmentsForUser(clubId: string, userId: string) {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_ASSIGNMENTS_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as Array<{ club_id?: string; user_id?: string }>
+    const filtered = parsed.filter(
+      (a) => !(a.club_id === clubId && a.user_id === userId)
+    )
+    localStorage.setItem(LOCAL_STORAGE_ASSIGNMENTS_KEY, JSON.stringify(filtered))
+  } catch {
+    // ignore
+  }
+}
+
 function generateSecureToken(): string {
   try {
     if (typeof crypto !== 'undefined') {
@@ -185,7 +164,7 @@ function generateSecureToken(): string {
   } catch {
     // ignore
   }
-  return `inv_${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`
+  return `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`
 }
 
 // ── Query Members ───────────────────────────────────────────────────────────
@@ -198,26 +177,31 @@ export async function getClubMembers(
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await (supabase.from('club_members') as any)
-        .select(`
+        .select(
+          `
           *,
           profile:profiles!user_id (*)
-        `)
+        `
+        )
         .eq('club_id', clubId)
+        .eq('status', 'active')
         .order('created_at', { ascending: true })
 
       if (error) {
-        // Fallback to local storage if table not yet migrated
-        console.warn('[FestFlow ClubMembers] Supabase query fallback to local:', error.message)
-      } else if (data) {
-        return { members: data as ClubMemberRecord[] }
+        return { members: [], error: error.message }
       }
-    } catch {
-      // ignore
+      return { members: (data as ClubMemberRecord[]) || [] }
+    } catch (err) {
+      return {
+        members: [],
+        error: err instanceof Error ? err.message : 'Failed to load club members.',
+      }
     }
   }
 
-  // Simulation mode
-  const localMembers = getLocalMembers().filter((m) => m.club_id === clubId && m.status === 'active')
+  const localMembers = getLocalMembers().filter(
+    (m) => m.club_id === clubId && m.status === 'active'
+  )
   return { members: localMembers }
 }
 
@@ -231,32 +215,35 @@ export async function getClubInvitations(
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await (supabase.from('club_invitations') as any)
-        .select(`
+        .select(
+          `
           *,
           inviter:profiles!invited_by (*)
-        `)
+        `
+        )
         .eq('club_id', clubId)
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.warn('[FestFlow ClubMembers] Supabase query fallback to local:', error.message)
-      } else if (data) {
-        // Mark expired records on the fly
-        const now = new Date()
-        const resolved = (data as ClubInvitationRecord[]).map((inv) => {
-          if (inv.status === 'pending' && new Date(inv.expires_at) < now) {
-            return { ...inv, status: 'expired' as const }
-          }
-          return inv
-        })
-        return { invitations: resolved }
+        return { invitations: [], error: error.message }
       }
-    } catch {
-      // ignore
+
+      const now = new Date()
+      const resolved = ((data as ClubInvitationRecord[]) || []).map((inv) => {
+        if (inv.status === 'pending' && new Date(inv.expires_at) < now) {
+          return { ...inv, status: 'expired' as const }
+        }
+        return inv
+      })
+      return { invitations: resolved }
+    } catch (err) {
+      return {
+        invitations: [],
+        error: err instanceof Error ? err.message : 'Failed to load invitations.',
+      }
     }
   }
 
-  // Simulation mode
   const now = new Date()
   const localInvites = getLocalInvitations()
     .filter((inv) => inv.club_id === clubId)
@@ -280,25 +267,28 @@ export async function getClubAuditLogs(
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await (supabase.from('club_audit_logs') as any)
-        .select(`
+        .select(
+          `
           *,
           actor:profiles!actor_id (*)
-        `)
+        `
+        )
         .eq('club_id', clubId)
         .order('created_at', { ascending: false })
         .limit(50)
 
       if (error) {
-        console.warn('[FestFlow ClubMembers] Supabase audit log query fallback to local:', error.message)
-      } else if (data) {
-        return { logs: data as ClubAuditLogRecord[] }
+        return { logs: [], error: error.message }
       }
-    } catch {
-      // ignore
+      return { logs: (data as ClubAuditLogRecord[]) || [] }
+    } catch (err) {
+      return {
+        logs: [],
+        error: err instanceof Error ? err.message : 'Failed to load audit logs.',
+      }
     }
   }
 
-  // Simulation mode
   const localLogs = getLocalAuditLogs().filter((l) => l.club_id === clubId)
   return { logs: localLogs }
 }
@@ -311,33 +301,72 @@ export async function getUserClubRole(
 ): Promise<ClubRole | null> {
   if (!clubId || !userId) return null
 
-  // 1. Primary Owner check: clubId matches user's ID
-  if (clubId === userId) {
-    return 'owner'
-  }
-
   if (isSupabaseConfigured) {
     try {
+      // 1. Authoritative club_members lookup (honors role changes, suspensions, and ownership transfers)
       const { data, error } = await (supabase.from('club_members') as any)
-        .select('role')
+        .select('role, status')
         .eq('club_id', clubId)
         .eq('user_id', userId)
-        .eq('status', 'active')
         .maybeSingle()
 
-      if (!error && data?.role) {
-        return data.role as ClubRole
+      if (error) {
+        return null
       }
+
+      if (data) {
+        if (data.status !== 'active') return null
+        return isValidClubRole(data.role) ? data.role : null
+      }
+
+      // 2. Legacy compatibility ONLY when userId === clubId and club has no active owner row yet
+      if (clubId === userId) {
+        const [{ data: existingOwners, error: ownersErr }, { data: clubRow, error: clubErr }] =
+          await Promise.all([
+            (supabase.from('club_members') as any)
+              .select('id')
+              .eq('club_id', clubId)
+              .eq('role', 'owner')
+              .eq('status', 'active')
+              .limit(1),
+            (supabase.from('club_profiles') as any)
+              .select('profile_id')
+              .eq('profile_id', clubId)
+              .maybeSingle(),
+          ])
+
+        if (!ownersErr && !clubErr && clubRow && (!existingOwners || existingOwners.length === 0)) {
+          return 'owner'
+        }
+      }
+
+      return null
     } catch {
-      // ignore
+      return null
     }
   }
 
-  // Simulation mode
-  const member = getLocalMembers().find(
-    (m) => m.club_id === clubId && m.user_id === userId && m.status === 'active'
+  // Simulation mode: inspect local membership records first so demotions/transfers apply even if clubId === userId
+  const localMembers = getLocalMembers()
+  const existingRow = localMembers.find(
+    (m) => m.club_id === clubId && m.user_id === userId
   )
-  return member ? member.role : null
+  if (existingRow) {
+    return existingRow.status === 'active' && isValidClubRole(existingRow.role)
+      ? existingRow.role
+      : null
+  }
+
+  if (clubId === userId) {
+    const hasTransferredOwner = localMembers.some(
+      (m) => m.club_id === clubId && m.role === 'owner' && m.status === 'active'
+    )
+    if (!hasTransferredOwner) {
+      return 'owner'
+    }
+  }
+
+  return null
 }
 
 // ── Send Member Invitation ──────────────────────────────────────────────────
@@ -347,7 +376,7 @@ export async function inviteClubMember(params: {
   email: string
   role: ClubRole
   inviterId: string
-  inviterRole?: ClubRole
+  inviterRole?: ClubRole | null
   clubName?: string
   inviterName?: string
 }): Promise<{
@@ -357,134 +386,172 @@ export async function inviteClubMember(params: {
   error_code?: string
   emailDelivery?: EmailDispatchResult
 }> {
-  const { clubId, email, role, inviterId, inviterRole = 'owner', clubName = 'Campus Club', inviterName = 'Organizer' } = params
+  const {
+    clubId,
+    email,
+    role,
+    inviterId,
+    clubName = 'Campus Club',
+    inviterName = 'Organizer',
+  } = params
+
+  if (!clubId || !inviterId) {
+    return {
+      success: false,
+      message: 'Organization and authenticated inviter context are required.',
+      error_code: 'INVALID_CONTEXT',
+    }
+  }
 
   if (!email || !email.includes('@')) {
-    return { success: false, message: 'Please provide a valid recipient email address.', error_code: 'INVALID_EMAIL' }
+    return {
+      success: false,
+      message: 'Please provide a valid recipient email address.',
+      error_code: 'INVALID_EMAIL',
+    }
   }
 
   const cleanEmail = email.trim().toLowerCase()
 
-  // 1. Hierarchy & Escalation Check: Inviter cannot assign role higher than or equal to their rank (unless owner)
-  if (!canAssignRole(inviterRole, role)) {
+  // Resolve authoritative role without defaulting to 'owner'
+  let resolvedInviterRole: ClubRole | null = null
+  if (isSupabaseConfigured) {
+    resolvedInviterRole = (await getUserClubRole(clubId, inviterId)) ?? params.inviterRole ?? null
+  } else {
+    const memberRow = getLocalMembers().find(
+      (m) => m.club_id === clubId && m.user_id === inviterId
+    )
+    if (memberRow) {
+      resolvedInviterRole = memberRow.status === 'active' ? memberRow.role : null
+    } else if (params.inviterRole !== undefined) {
+      resolvedInviterRole = params.inviterRole
+    } else {
+      resolvedInviterRole = await getUserClubRole(clubId, inviterId)
+    }
+  }
+
+  if (!resolvedInviterRole || !hasPermission(resolvedInviterRole, 'members.invite')) {
     return {
       success: false,
-      message: `Unauthorized: Your role (${ROLE_LABELS[inviterRole]}) cannot assign the role of ${ROLE_LABELS[role]}.`,
+      message: `Unauthorized: Your current role${resolvedInviterRole ? ` (${ROLE_LABELS[resolvedInviterRole]})` : ''} cannot invite organization members.`,
+      error_code: 'INSUFFICIENT_PERMISSIONS',
+    }
+  }
+
+  if (!canAssignRole(resolvedInviterRole, role)) {
+    return {
+      success: false,
+      message: `Unauthorized: ${ROLE_LABELS[resolvedInviterRole]} cannot assign the role of ${ROLE_LABELS[role] || role}.`,
       error_code: 'ROLE_ESCALATION_DENIED',
     }
   }
 
-  // 2. Check for duplicate active membership
-  const membersRes = await getClubMembers(clubId)
-  const isAlreadyMember = membersRes.members.some(
-    (m) => m.profile?.email?.toLowerCase() === cleanEmail
-  )
-  if (isAlreadyMember) {
-    return {
-      success: false,
-      message: `The user (${cleanEmail}) is already an active member of this organization.`,
-      error_code: 'DUPLICATE_MEMBERSHIP',
-    }
-  }
+  let savedInvitation: ClubInvitationRecord
 
-  // 3. Check for existing active pending invitation
-  const invitesRes = await getClubInvitations(clubId)
-  const existingPending = invitesRes.invitations.find(
-    (inv) => inv.email.toLowerCase() === cleanEmail && inv.status === 'pending'
-  )
-  if (existingPending) {
-    return {
-      success: false,
-      message: `An active invitation has already been sent to ${cleanEmail}. You can resend or revoke it from the invitations list.`,
-      error_code: 'PENDING_INVITATION_EXISTS',
-    }
-  }
-
-  const token = generateSecureToken()
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days expiration
-  const origin = getFrontendBaseUrl()
-  const invitationUrl = `${origin}/club/invitations/${token}`
-
-  const newInvitation: ClubInvitationRecord = {
-    id: `cinv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    club_id: clubId,
-    email: cleanEmail,
-    role,
-    invited_by: inviterId,
-    token,
-    status: 'pending',
-    expires_at: expiresAt,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-
-  // Try Supabase RPC or insert if available
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await (supabase.from('club_invitations') as any)
-        .insert({
-          club_id: clubId,
-          email: cleanEmail,
-          role,
-          invited_by: inviterId,
-          token,
-          status: 'pending',
-          expires_at: expiresAt,
-        })
-        .select()
-        .single()
+      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
+        'invite_club_member',
+        {
+          p_club_id: clubId,
+          p_email: cleanEmail,
+          p_role: role,
+        }
+      )
 
-      if (error) {
-        console.error('[FestFlow ClubMembers] Failed to insert invitation:', error.message)
+      if (rpcErr) {
         return {
           success: false,
-          message: `Failed to save invitation: ${error.message}`,
-          error_code: 'DB_INSERT_FAILED',
+          message: `Failed to create invitation: ${rpcErr.message}`,
+          error_code: 'RPC_FAILED',
         }
       }
-      if (data) {
-        newInvitation.id = data.id
+
+      if (!rpcData?.success || !rpcData?.invitation) {
+        return {
+          success: false,
+          message: rpcData?.message || 'Unable to send club invitation.',
+          error_code: rpcData?.error_code || 'INVITE_REJECTED',
+        }
       }
-    } catch (insertErr) {
-      console.error('[FestFlow ClubMembers] Invitation insert exception:', insertErr)
+
+      savedInvitation = rpcData.invitation as ClubInvitationRecord
+    } catch (err) {
       return {
         success: false,
-        message: insertErr instanceof Error ? insertErr.message : 'Database error saving invitation.',
-        error_code: 'DB_INSERT_FAILED',
+        message: err instanceof Error ? err.message : 'Database error creating invitation.',
+        error_code: 'RPC_EXCEPTION',
       }
     }
+  } else {
+    const membersRes = await getClubMembers(clubId)
+    const isAlreadyMember = membersRes.members.some(
+      (m) => m.profile?.email?.toLowerCase() === cleanEmail
+    )
+    if (isAlreadyMember) {
+      return {
+        success: false,
+        message: `The user (${cleanEmail}) is already an active member of this organization.`,
+        error_code: 'DUPLICATE_MEMBERSHIP',
+      }
+    }
+
+    const invitesRes = await getClubInvitations(clubId)
+    const existingPending = invitesRes.invitations.find(
+      (inv) => inv.email.toLowerCase() === cleanEmail && inv.status === 'pending'
+    )
+    if (existingPending) {
+      return {
+        success: false,
+        message: `An active invitation has already been sent to ${cleanEmail}. You can resend or revoke it from the invitations list.`,
+        error_code: 'PENDING_INVITATION_EXISTS',
+      }
+    }
+
+    const token = generateSecureToken()
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
+    savedInvitation = {
+      id: `cinv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      club_id: clubId,
+      email: cleanEmail,
+      role,
+      invited_by: inviterId,
+      token,
+      status: 'pending',
+      expires_at: expiresAt,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    const localInvites = getLocalInvitations()
+    localInvites.unshift(savedInvitation)
+    saveLocalInvitations(localInvites)
+
+    appendLocalAuditLog({
+      id: `caudit_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+      club_id: clubId,
+      actor_id: inviterId,
+      action: 'member_invited',
+      target_email: cleanEmail,
+      new_value: role,
+      details: { role, invited_email: cleanEmail, expires_at: expiresAt },
+      created_at: new Date().toISOString(),
+    })
   }
 
-  // Persist local simulation
-  const localInvites = getLocalInvitations()
-  localInvites.unshift(newInvitation)
-  saveLocalInvitations(localInvites)
+  const origin = getFrontendBaseUrl()
+  const invitationUrl = `${origin}/club/invitations/${savedInvitation.token}`
 
-  // Record Audit Trail
-  const auditLog: ClubAuditLogRecord = {
-    id: `caudit_${Date.now()}`,
-    club_id: clubId,
-    actor_id: inviterId,
-    action: 'member_invited',
-    target_email: cleanEmail,
-    new_value: role,
-    details: { role, invited_email: cleanEmail, expires_at: expiresAt },
-    created_at: new Date().toISOString(),
-  }
-  const localLogs = getLocalAuditLogs()
-  localLogs.unshift(auditLog)
-  saveLocalAuditLogs(localLogs)
-
-  // Dispatch Transactional Email
   const emailRes = await sendClubMemberInvitationEmail({
     to: cleanEmail,
     clubName,
     inviterName,
     role: ROLE_LABELS[role],
     invitationUrl,
-    expiresAt,
+    expiresAt: savedInvitation.expires_at,
     clubId,
-    invitationToken: token,
+    invitationToken: savedInvitation.token,
   })
 
   broadcastStatusChange({
@@ -510,7 +577,7 @@ export async function inviteClubMember(params: {
   return {
     success: true,
     message: feedbackMessage,
-    invitation: newInvitation,
+    invitation: savedInvitation,
     emailDelivery: emailRes,
   }
 }
@@ -528,10 +595,18 @@ export async function acceptClubInvitation(
   error_code?: string
 }> {
   if (!token) {
-    return { success: false, message: 'Invalid or missing invitation token.', error_code: 'INVALID_TOKEN' }
+    return {
+      success: false,
+      message: 'Invalid or missing invitation token.',
+      error_code: 'INVALID_TOKEN',
+    }
   }
   if (!user || !user.email) {
-    return { success: false, message: 'Authentication required. Please sign in to accept this invitation.', error_code: 'UNAUTHENTICATED' }
+    return {
+      success: false,
+      message: 'Authentication required. Please sign in to accept this invitation.',
+      error_code: 'UNAUTHENTICATED',
+    }
   }
 
   const cleanToken = decodeURIComponent(token).trim()
@@ -544,63 +619,107 @@ export async function acceptClubInvitation(
         p_user_id: user.id,
       })
 
-      if (!error && data) {
-        if (!data.success) {
-          return {
-            success: false,
-            message: data.message || 'Failed to accept invitation.',
-            error_code: data.error_code || 'RPC_ERROR',
-          }
-        }
+      if (error) {
         return {
-          success: true,
-          message: data.message || 'Successfully joined organization team.',
-          clubId: data.club_id,
-          role: data.role as ClubRole,
+          success: false,
+          message: error.message || 'Failed to accept invitation.',
+          error_code: 'RPC_FAILED',
         }
       }
-    } catch {
-      // Fall through to client-side logic / simulation
+
+      if (!data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Failed to accept invitation.',
+          error_code: data?.error_code || 'RPC_REJECTED',
+        }
+      }
+
+      const clubId = data.club_id as string
+      const acceptedRole = data.role as ClubRole
+
+      broadcastStatusChange({
+        type: 'team_updated',
+        clubId,
+      })
+
+      try {
+        const [{ data: inviterProfile }, { data: clubProfile }] = await Promise.all([
+          data.invited_by
+            ? (supabase.from('profiles') as any)
+                .select('email, display_name')
+                .eq('id', data.invited_by)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+          (supabase.from('club_profiles') as any)
+            .select('club_name')
+            .eq('profile_id', clubId)
+            .maybeSingle(),
+        ])
+
+        const inviterEmail = inviterProfile?.email || ''
+        const resolvedClubName = clubProfile?.club_name || 'Campus Club'
+        if (inviterEmail) {
+          sendClubInvitationAcceptedEmail({
+            to: inviterEmail,
+            clubName: resolvedClubName,
+            memberName: user.display_name || cleanUserEmail.split('@')[0],
+            memberEmail: cleanUserEmail,
+            role: ROLE_LABELS[acceptedRole] || acceptedRole,
+            clubId,
+          }).catch(() => {})
+        }
+      } catch {
+        // non-blocking notification failure
+      }
+
+      return {
+        success: true,
+        message: data.message || 'Successfully joined organization team.',
+        clubId,
+        role: acceptedRole,
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Unable to accept invitation.',
+        error_code: 'RPC_EXCEPTION',
+      }
     }
   }
 
-  let invitation: ClubInvitationRecord | null = null
-
-  if (isSupabaseConfigured) {
-    try {
-      const { data } = await (supabase.from('club_invitations') as any)
-        .select('*')
-        .eq('token', cleanToken)
-        .maybeSingle()
-
-      if (data) invitation = data as ClubInvitationRecord
-    } catch {
-      // ignore
+  // Simulation mode fallback
+  const invitation = getLocalInvitations().find((i) => i.token === cleanToken) || null
+  if (!invitation) {
+    return {
+      success: false,
+      message: 'Invitation not found or invalid link.',
+      error_code: 'INVITATION_NOT_FOUND',
     }
   }
 
-  if (!invitation) {
-    invitation = getLocalInvitations().find((i) => i.token === cleanToken) || null
-  }
-
-  if (!invitation) {
-    return { success: false, message: 'Invitation not found or invalid link.', error_code: 'INVITATION_NOT_FOUND' }
-  }
-
-  // 1. Status checks
   if (invitation.status === 'revoked') {
-    return { success: false, message: 'This invitation has been revoked by the club organizer.', error_code: 'INVITATION_REVOKED' }
+    return {
+      success: false,
+      message: 'This invitation has been revoked by the club organizer.',
+      error_code: 'INVITATION_REVOKED',
+    }
   }
   if (invitation.status === 'accepted') {
-    return { success: false, message: 'This invitation has already been accepted.', error_code: 'ALREADY_ACCEPTED' }
+    return {
+      success: false,
+      message: 'This invitation has already been accepted.',
+      error_code: 'ALREADY_ACCEPTED',
+    }
   }
-
-  // 2. Expiration check
   if (new Date(invitation.expires_at) < new Date() || invitation.status === 'expired') {
-    return { success: false, message: 'This invitation has expired. Please ask the organizer to send a new invite.', error_code: 'INVITATION_EXPIRED' }
+    return {
+      success: false,
+      message:
+        'This invitation has expired. Please ask the organizer to send a new invite.',
+      error_code: 'INVITATION_EXPIRED',
+    }
   }
-
-  // 3. Verified Email Matching: Recipient must be authenticated as the invited email
   if (invitation.email.trim().toLowerCase() !== cleanUserEmail) {
     return {
       success: false,
@@ -609,7 +728,6 @@ export async function acceptClubInvitation(
     }
   }
 
-  // 4. Duplicate Membership Check
   const currentRole = await getUserClubRole(invitation.club_id, user.id)
   if (currentRole) {
     return {
@@ -619,7 +737,6 @@ export async function acceptClubInvitation(
     }
   }
 
-  // 5. Create active membership
   const newMember: ClubMemberRecord = {
     id: `cmbr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     club_id: invitation.club_id,
@@ -639,53 +756,23 @@ export async function acceptClubInvitation(
     },
   }
 
-  if (isSupabaseConfigured) {
-    try {
-      await (supabase.from('club_members') as any).insert({
-        club_id: invitation.club_id,
-        user_id: user.id,
-        role: invitation.role,
-        status: 'active',
-      })
-
-      await (supabase.from('club_invitations') as any)
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-          accepted_by: user.id,
-        })
-        .eq('id', invitation.id)
-
-      // Ensure user profile role is club_member so protected club routes grant access
-      await (supabase.from('profiles') as any)
-        .update({ role: 'club_member' })
-        .eq('id', user.id)
-        .eq('role', 'student')
-    } catch {
-      // ignore
-    }
-  }
-
-  // Update local storage simulation
   const localMembers = getLocalMembers()
   localMembers.push(newMember)
   saveLocalMembers(localMembers)
 
-  const localInvites = getLocalInvitations().map((inv) => {
-    if (inv.id === invitation!.id) {
-      return {
-        ...inv,
-        status: 'accepted' as const,
-        accepted_at: new Date().toISOString(),
-        accepted_by: user.id,
-      }
-    }
-    return inv
-  })
+  const localInvites = getLocalInvitations().map((inv) =>
+    inv.id === invitation.id
+      ? {
+          ...inv,
+          status: 'accepted' as const,
+          accepted_at: new Date().toISOString(),
+          accepted_by: user.id,
+        }
+      : inv
+  )
   saveLocalInvitations(localInvites)
 
-  // Audit Log
-  const auditLog: ClubAuditLogRecord = {
+  appendLocalAuditLog({
     id: `caudit_${Date.now()}`,
     club_id: invitation.club_id,
     actor_id: user.id,
@@ -695,49 +782,12 @@ export async function acceptClubInvitation(
     new_value: invitation.role,
     details: { accepted_at: new Date().toISOString() },
     created_at: new Date().toISOString(),
-  }
-  const localLogs = getLocalAuditLogs()
-  localLogs.unshift(auditLog)
-  saveLocalAuditLogs(localLogs)
+  })
 
   broadcastStatusChange({
     type: 'team_updated',
     clubId: invitation.club_id,
   })
-
-  // Trigger transactional notification to club administrator / owner
-  try {
-    let inviterEmail = ''
-    let clubName = 'Campus Club'
-    if (isSupabaseConfigured) {
-      const { data: clubProfile } = await (supabase.from('profiles') as any)
-        .select('email, display_name')
-        .eq('id', invitation.invited_by || invitation.club_id)
-        .maybeSingle()
-      inviterEmail = clubProfile?.email || ''
-      clubName = clubProfile?.display_name || 'Campus Club'
-    }
-    if (!inviterEmail) {
-      const rawClubs = localStorage.getItem('festflow_local_club_profiles')
-      const localClubs = rawClubs ? JSON.parse(rawClubs) : []
-      const c = localClubs.find((cl: any) => cl.id === invitation.club_id)
-      inviterEmail = c?.email || 'organizer@campus.edu'
-      clubName = c?.display_name || c?.name || 'Campus Club'
-    }
-
-    if (inviterEmail) {
-      sendClubInvitationAcceptedEmail({
-        to: inviterEmail,
-        clubName,
-        memberName: user.display_name || user.email.split('@')[0],
-        memberEmail: user.email,
-        role: ROLE_LABELS[invitation.role] || invitation.role,
-        clubId: invitation.club_id,
-      }).catch(() => {})
-    }
-  } catch {
-    // non-blocking
-  }
 
   return {
     success: true,
@@ -754,27 +804,56 @@ export async function revokeClubInvitation(
   actorId: string,
   clubId: string
 ): Promise<{ success: boolean; message: string }> {
+  if (!invitationId || !actorId || !clubId) {
+    return { success: false, message: 'Invalid invitation context.' }
+  }
+
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('club_invitations') as any)
-        .update({ status: 'revoked' })
-        .eq('id', invitationId)
-        .eq('club_id', clubId)
-    } catch {
-      // ignore
+      const { data, error } = await (supabase.rpc as any)('revoke_club_invitation', {
+        p_invitation_id: invitationId,
+        p_club_id: clubId,
+      })
+
+      if (error) {
+        return { success: false, message: error.message }
+      }
+      if (!data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Unable to revoke invitation.',
+        }
+      }
+
+      broadcastStatusChange({
+        type: 'team_updated',
+        clubId,
+      })
+      return { success: true, message: data.message || 'Invitation has been revoked.' }
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to revoke invitation.',
+      }
     }
   }
 
-  const localInvites = getLocalInvitations().map((inv) => {
-    if (inv.id === invitationId && inv.club_id === clubId) {
-      return { ...inv, status: 'revoked' as const }
+  const actorRole = await getUserClubRole(clubId, actorId)
+  if (!hasPermission(actorRole, 'members.invite')) {
+    return {
+      success: false,
+      message: 'Unauthorized: Permission to invite/manage invitations is required.',
     }
-    return inv
-  })
+  }
+
+  const localInvites = getLocalInvitations().map((inv) =>
+    inv.id === invitationId && inv.club_id === clubId
+      ? { ...inv, status: 'revoked' as const }
+      : inv
+  )
   saveLocalInvitations(localInvites)
 
-  // Audit log
-  const auditLog: ClubAuditLogRecord = {
+  appendLocalAuditLog({
     id: `caudit_${Date.now()}`,
     club_id: clubId,
     actor_id: actorId,
@@ -782,10 +861,12 @@ export async function revokeClubInvitation(
     target_id: invitationId,
     details: { revoked_at: new Date().toISOString() },
     created_at: new Date().toISOString(),
-  }
-  const localLogs = getLocalAuditLogs()
-  localLogs.unshift(auditLog)
-  saveLocalAuditLogs(localLogs)
+  })
+
+  broadcastStatusChange({
+    type: 'team_updated',
+    clubId,
+  })
 
   return { success: true, message: 'Invitation has been revoked.' }
 }
@@ -797,72 +878,111 @@ export async function resendClubInvitation(
   actorId: string,
   clubId: string,
   clubName = 'Campus Club'
-): Promise<{ success: boolean; message: string; invitation?: ClubInvitationRecord; emailDelivery?: EmailDispatchResult }> {
-  const invitesRes = await getClubInvitations(clubId)
-  const existing = invitesRes.invitations.find((i) => i.id === invitationId)
-
-  if (!existing) {
-    return { success: false, message: 'Invitation record not found.' }
+): Promise<{
+  success: boolean
+  message: string
+  invitation?: ClubInvitationRecord
+  emailDelivery?: EmailDispatchResult
+}> {
+  if (!invitationId || !actorId || !clubId) {
+    return { success: false, message: 'Invalid invitation context.' }
   }
 
-  const newToken = generateSecureToken()
-  const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  const origin = getFrontendBaseUrl()
-  const invitationUrl = `${origin}/club/invitations/${newToken}`
-
-  const updated: ClubInvitationRecord = {
-    ...existing,
-    token: newToken,
-    status: 'pending',
-    expires_at: newExpiresAt,
-    updated_at: new Date().toISOString(),
-  }
+  let updatedInvitation: ClubInvitationRecord
 
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('club_invitations') as any)
-        .update({
-          token: newToken,
-          status: 'pending',
-          expires_at: newExpiresAt,
-        })
-        .eq('id', invitationId)
-    } catch {
-      // ignore
+      const { data, error } = await (supabase.rpc as any)('resend_club_invitation', {
+        p_invitation_id: invitationId,
+        p_club_id: clubId,
+      })
+
+      if (error) {
+        return { success: false, message: error.message }
+      }
+      if (!data?.success || !data?.invitation) {
+        return {
+          success: false,
+          message: data?.message || 'Unable to renew invitation.',
+        }
+      }
+      updatedInvitation = data.invitation as ClubInvitationRecord
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to renew invitation.',
+      }
     }
+  } else {
+    const actorRole = await getUserClubRole(clubId, actorId)
+    if (!hasPermission(actorRole, 'members.invite')) {
+      return {
+        success: false,
+        message: 'Unauthorized: Permission to manage invitations is required.',
+      }
+    }
+
+    const invitesRes = await getClubInvitations(clubId)
+    const existing = invitesRes.invitations.find((i) => i.id === invitationId)
+    if (!existing) {
+      return { success: false, message: 'Invitation record not found.' }
+    }
+    if (!canAssignRole(actorRole, existing.role)) {
+      return {
+        success: false,
+        message: `Unauthorized: Your role cannot reissue invitations for ${ROLE_LABELS[existing.role]}.`,
+      }
+    }
+
+    const newToken = generateSecureToken()
+    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
+    updatedInvitation = {
+      ...existing,
+      token: newToken,
+      status: 'pending',
+      expires_at: newExpiresAt,
+      updated_at: new Date().toISOString(),
+    }
+
+    const localInvites = getLocalInvitations().map((inv) =>
+      inv.id === invitationId ? updatedInvitation : inv
+    )
+    saveLocalInvitations(localInvites)
+
+    appendLocalAuditLog({
+      id: `caudit_${Date.now()}`,
+      club_id: clubId,
+      actor_id: actorId,
+      action: 'invitation_resent',
+      target_id: invitationId,
+      target_email: existing.email,
+      details: { new_expires_at: newExpiresAt },
+      created_at: new Date().toISOString(),
+    })
   }
 
-  const localInvites = getLocalInvitations().map((inv) => (inv.id === invitationId ? updated : inv))
-  saveLocalInvitations(localInvites)
-
-  // Audit log
-  const auditLog: ClubAuditLogRecord = {
-    id: `caudit_${Date.now()}`,
-    club_id: clubId,
-    actor_id: actorId,
-    action: 'invitation_resent',
-    target_id: invitationId,
-    target_email: existing.email,
-    details: { new_expires_at: newExpiresAt },
-    created_at: new Date().toISOString(),
-  }
-  const localLogs = getLocalAuditLogs()
-  localLogs.unshift(auditLog)
-  saveLocalAuditLogs(localLogs)
+  const origin = getFrontendBaseUrl()
+  const invitationUrl = `${origin}/club/invitations/${updatedInvitation.token}`
 
   const emailRes = await sendClubMemberInvitationEmail({
-    to: existing.email,
+    to: updatedInvitation.email,
     clubName,
     inviterName: 'Club Administrator',
-    role: ROLE_LABELS[existing.role],
+    role: ROLE_LABELS[updatedInvitation.role],
     invitationUrl,
-    expiresAt: newExpiresAt,
+    expiresAt: updatedInvitation.expires_at,
     clubId,
     isResend: true,
-    invitationToken: newToken,
+    invitationToken: updatedInvitation.token,
   })
 
-  let feedbackMessage = `Invitation renewed and sent to ${existing.email}.`
+  broadcastStatusChange({
+    type: 'team_updated',
+    clubId,
+  })
+
+  let feedbackMessage = `Invitation renewed and sent to ${updatedInvitation.email}.`
   if (!emailRes.success) {
     if (emailRes.failureCategory === 'EDGE_FUNCTION_UNREACHABLE') {
       feedbackMessage = `Invitation renewed and active! However, automated email could not be sent because the send-email Edge Function is unreachable (not deployed to Supabase). Share the link directly.`
@@ -873,7 +993,12 @@ export async function resendClubInvitation(
     }
   }
 
-  return { success: true, message: feedbackMessage, invitation: updated, emailDelivery: emailRes }
+  return {
+    success: true,
+    message: feedbackMessage,
+    invitation: updatedInvitation,
+    emailDelivery: emailRes,
+  }
 }
 
 // ── Update Member Role ──────────────────────────────────────────────────────
@@ -885,54 +1010,99 @@ export async function updateClubMemberRole(
   clubId: string
 ): Promise<{ success: boolean; message: string }> {
   const membersRes = await getClubMembers(clubId)
+  if (membersRes.error) {
+    return { success: false, message: membersRes.error }
+  }
   const targetMember = membersRes.members.find((m) => m.id === memberId)
-
   if (!targetMember) {
     return { success: false, message: 'Member record not found.' }
   }
 
   const actorRole = await getUserClubRole(clubId, actorId)
-  if (!actorRole || !hasPermission(actorRole, 'manage_members')) {
-    return { success: false, message: 'Unauthorized: You do not have permission to manage team roles.' }
+  if (!actorRole || !hasPermission(actorRole, 'members.manage')) {
+    return {
+      success: false,
+      message: 'Unauthorized: You do not have permission to manage team roles.',
+    }
   }
 
-  // Safeguard: Cannot promote above own rank
-  if (ROLE_RANK[newRole] > ROLE_RANK[actorRole]) {
-    return { success: false, message: `You cannot assign a role higher than your own tier (${ROLE_LABELS[actorRole]}).` }
+  if (targetMember.user_id === actorId) {
+    return {
+      success: false,
+      message: 'You cannot modify your own organization role directly.',
+    }
   }
 
-  // Sole Owner Safeguard: Cannot demote the only remaining owner
   if (targetMember.role === 'owner' && newRole !== 'owner') {
-    const activeOwners = membersRes.members.filter((m) => m.role === 'owner' && m.status === 'active')
+    const activeOwners = membersRes.members.filter(
+      (m) => m.role === 'owner' && m.status === 'active'
+    )
     if (activeOwners.length <= 1) {
       return {
         success: false,
-        message: 'Cannot demote the sole club owner. You must transfer primary ownership first.',
+        message:
+          'Cannot demote the sole club owner. Transfer primary ownership first.',
       }
+    }
+  }
+
+  if (!canAssignRole(actorRole, newRole)) {
+    return {
+      success: false,
+      message: `Unauthorized: ${ROLE_LABELS[actorRole]} cannot assign the role of ${ROLE_LABELS[newRole] || newRole}.`,
+    }
+  }
+
+  if (!canManageMember(actorRole, actorId, targetMember, newRole)) {
+    return {
+      success: false,
+      message: `Unauthorized: ${ROLE_LABELS[actorRole]} cannot modify a member holding the ${ROLE_LABELS[targetMember.role]} role.`,
     }
   }
 
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('club_members') as any)
-        .update({ role: newRole })
-        .eq('id', memberId)
-        .eq('club_id', clubId)
-    } catch {
-      // ignore
+      const { data, error } = await (supabase.rpc as any)('update_club_member_role', {
+        p_member_id: memberId,
+        p_club_id: clubId,
+        p_new_role: newRole,
+      })
+
+      if (error) {
+        return { success: false, message: error.message }
+      }
+      if (!data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Unable to update member role.',
+        }
+      }
+
+      broadcastStatusChange({
+        type: 'team_updated',
+        clubId,
+      })
+
+      return {
+        success: true,
+        message: data.message || `Member role updated to ${ROLE_LABELS[newRole]}.`,
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to update member role.',
+      }
     }
   }
 
-  const localMembers = getLocalMembers().map((m) => {
-    if (m.id === memberId && m.club_id === clubId) {
-      return { ...m, role: newRole, updated_at: new Date().toISOString() }
-    }
-    return m
-  })
+  const localMembers = getLocalMembers().map((m) =>
+    m.id === memberId && m.club_id === clubId
+      ? { ...m, role: newRole, updated_at: new Date().toISOString() }
+      : m
+  )
   saveLocalMembers(localMembers)
 
-  // Audit log
-  const auditLog: ClubAuditLogRecord = {
+  appendLocalAuditLog({
     id: `caudit_${Date.now()}`,
     club_id: clubId,
     actor_id: actorId,
@@ -941,10 +1111,7 @@ export async function updateClubMemberRole(
     old_value: targetMember.role,
     new_value: newRole,
     created_at: new Date().toISOString(),
-  }
-  const localLogs = getLocalAuditLogs()
-  localLogs.unshift(auditLog)
-  saveLocalAuditLogs(localLogs)
+  })
 
   broadcastStatusChange({
     type: 'team_updated',
@@ -962,31 +1129,46 @@ export async function removeClubMember(
   clubId: string
 ): Promise<{ success: boolean; message: string; error_code?: string }> {
   const membersRes = await getClubMembers(clubId)
+  if (membersRes.error) {
+    return { success: false, message: membersRes.error }
+  }
   const targetMember = membersRes.members.find((m) => m.id === memberId)
-
   if (!targetMember) {
     return { success: false, message: 'Member record not found.' }
   }
 
   const actorRole = await getUserClubRole(clubId, actorId)
-  if (!actorRole || !hasPermission(actorRole, 'manage_members')) {
-    return { success: false, message: 'Unauthorized: Permission to manage members is required.' }
+  if (!actorRole || !hasPermission(actorRole, 'members.manage')) {
+    return {
+      success: false,
+      message: 'Unauthorized: Permission to manage members is required.',
+      error_code: 'INSUFFICIENT_PERMISSIONS',
+    }
   }
 
-  // Sole Owner Safeguard
   if (targetMember.role === 'owner') {
-    const activeOwners = membersRes.members.filter((m) => m.role === 'owner' && m.status === 'active')
+    const activeOwners = membersRes.members.filter(
+      (m) => m.role === 'owner' && m.status === 'active'
+    )
     if (activeOwners.length <= 1) {
       return {
         success: false,
-        message: 'Cannot remove the sole club owner. You must transfer primary ownership first.',
+        message:
+          'Cannot remove the sole club owner. You must transfer primary ownership first.',
         error_code: 'CANNOT_REMOVE_SOLE_OWNER',
       }
     }
   }
 
-  // Non-owner admin cannot remove another admin or owner
-  if (actorRole === 'admin' && (targetMember.role === 'admin' || targetMember.role === 'owner')) {
+  if (targetMember.user_id === actorId) {
+    return {
+      success: false,
+      message: 'You cannot remove your own membership from the roster.',
+      error_code: 'CANNOT_REMOVE_SELF',
+    }
+  }
+
+  if (!canManageMember(actorRole, actorId, targetMember)) {
     return {
       success: false,
       message: 'Administrators cannot remove other administrators or club owners.',
@@ -996,20 +1178,47 @@ export async function removeClubMember(
 
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('club_members') as any)
-        .delete()
-        .eq('id', memberId)
-        .eq('club_id', clubId)
-    } catch {
-      // ignore
+      const { data, error } = await (supabase.rpc as any)('remove_club_member', {
+        p_member_id: memberId,
+        p_actor_id: actorId,
+        p_club_id: clubId,
+      })
+
+      if (error) {
+        return { success: false, message: error.message, error_code: 'RPC_FAILED' }
+      }
+      if (!data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Unable to remove team member.',
+          error_code: data?.error_code || 'REMOVE_REJECTED',
+        }
+      }
+
+      broadcastStatusChange({
+        type: 'team_updated',
+        clubId,
+      })
+      return {
+        success: true,
+        message: data.message || 'Member access has been revoked and removed.',
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to remove member.',
+        error_code: 'RPC_EXCEPTION',
+      }
     }
   }
 
-  const localMembers = getLocalMembers().filter((m) => !(m.id === memberId && m.club_id === clubId))
+  const localMembers = getLocalMembers().filter(
+    (m) => !(m.id === memberId && m.club_id === clubId)
+  )
   saveLocalMembers(localMembers)
+  removeLocalAssignmentsForUser(clubId, targetMember.user_id)
 
-  // Audit log
-  const auditLog: ClubAuditLogRecord = {
+  appendLocalAuditLog({
     id: `caudit_${Date.now()}`,
     club_id: clubId,
     actor_id: actorId,
@@ -1018,10 +1227,7 @@ export async function removeClubMember(
     old_value: targetMember.role,
     details: { removed_user_id: targetMember.user_id },
     created_at: new Date().toISOString(),
-  }
-  const localLogs = getLocalAuditLogs()
-  localLogs.unshift(auditLog)
-  saveLocalAuditLogs(localLogs)
+  })
 
   broadcastStatusChange({
     type: 'team_updated',
@@ -1038,56 +1244,121 @@ export async function transferClubOwnership(
   newOwnerUserId: string,
   currentOwnerId: string
 ): Promise<{ success: boolean; message: string }> {
+  if (!clubId || !newOwnerUserId || !currentOwnerId) {
+    return { success: false, message: 'Invalid ownership transfer parameters.' }
+  }
+  if (newOwnerUserId === currentOwnerId) {
+    return {
+      success: false,
+      message: 'Selected member is already the current club owner.',
+    }
+  }
+
   const currentRole = await getUserClubRole(clubId, currentOwnerId)
-  if (currentRole !== 'owner') {
-    return { success: false, message: 'Only the current club owner can transfer primary ownership.' }
+  if (!canTransferOwnership(currentRole)) {
+    return {
+      success: false,
+      message: 'Only the current club owner can transfer primary ownership.',
+    }
   }
 
   const membersRes = await getClubMembers(clubId)
-  const target = membersRes.members.find((m) => m.user_id === newOwnerUserId && m.status === 'active')
+  if (membersRes.error) {
+    return { success: false, message: membersRes.error }
+  }
+  const target = membersRes.members.find(
+    (m) => m.user_id === newOwnerUserId && m.status === 'active'
+  )
   if (!target) {
-    return { success: false, message: 'The designated new owner must be an active member of this organization.' }
+    return {
+      success: false,
+      message:
+        'The designated new owner must be an active member of this organization.',
+    }
   }
 
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('club_members') as any)
-        .update({ role: 'owner' })
-        .eq('id', target.id)
+      const { data, error } = await (supabase.rpc as any)('transfer_club_ownership', {
+        p_club_id: clubId,
+        p_new_owner_id: newOwnerUserId,
+      })
 
-      await (supabase.from('club_members') as any)
-        .update({ role: 'admin' })
-        .eq('club_id', clubId)
-        .eq('user_id', currentOwnerId)
-    } catch {
-      // ignore
+      if (error) {
+        return { success: false, message: error.message }
+      }
+      if (!data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Unable to transfer club ownership.',
+        }
+      }
+
+      broadcastStatusChange({
+        type: 'team_updated',
+        clubId,
+      })
+
+      return {
+        success: true,
+        message:
+          data.message || 'Club ownership has been successfully transferred.',
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message:
+          err instanceof Error ? err.message : 'Failed to transfer ownership.',
+      }
     }
   }
 
+  const now = new Date().toISOString()
+  let updatedOldOwner = false
   const localMembers = getLocalMembers().map((m) => {
     if (m.club_id === clubId) {
-      if (m.user_id === newOwnerUserId) return { ...m, role: 'owner' as const }
-      if (m.user_id === currentOwnerId) return { ...m, role: 'admin' as const }
+      if (m.user_id === newOwnerUserId) {
+        return { ...m, role: 'owner' as const, updated_at: now }
+      }
+      if (m.user_id === currentOwnerId) {
+        updatedOldOwner = true
+        return { ...m, role: 'admin' as const, updated_at: now }
+      }
     }
     return m
   })
+  if (!updatedOldOwner) {
+    localMembers.push({
+      id: `cmbr_${Date.now()}_prev_owner`,
+      club_id: clubId,
+      user_id: currentOwnerId,
+      role: 'admin',
+      status: 'active',
+      created_at: now,
+      updated_at: now,
+    })
+  }
   saveLocalMembers(localMembers)
 
-  // Audit log
-  const auditLog: ClubAuditLogRecord = {
+  appendLocalAuditLog({
     id: `caudit_${Date.now()}`,
     club_id: clubId,
     actor_id: currentOwnerId,
     action: 'ownership_transferred',
     target_id: newOwnerUserId,
     details: { transferred_from: currentOwnerId, transferred_to: newOwnerUserId },
-    created_at: new Date().toISOString(),
-  }
-  const localLogs = getLocalAuditLogs()
-  localLogs.unshift(auditLog)
-  saveLocalAuditLogs(localLogs)
+    created_at: now,
+  })
 
-  return { success: true, message: 'Club ownership has been successfully transferred.' }
+  broadcastStatusChange({
+    type: 'team_updated',
+    clubId,
+  })
+
+  return {
+    success: true,
+    message: 'Club ownership has been successfully transferred.',
+  }
 }
 
 // ── Query Invitation by Token ───────────────────────────────────────────────
@@ -1099,66 +1370,31 @@ export async function getInvitationByToken(
   const cleanToken = decodeURIComponent(token).trim()
 
   if (isSupabaseConfigured) {
-    // 1. Try public RPC if available
     try {
-      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('get_club_invitation_preview', {
-        p_token: cleanToken,
-      })
-      if (!rpcErr && rpcData?.success && rpcData?.invitation) {
+      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
+        'get_club_invitation_preview',
+        { p_token: cleanToken }
+      )
+
+      if (rpcErr) {
+        return { invitation: null, error: rpcErr.message }
+      }
+      if (rpcData?.success && rpcData?.invitation) {
         return { invitation: rpcData.invitation as ClubInvitationRecord }
       }
-    } catch {
-      // ignore RPC error and fall through
-    }
-
-    // 2. Direct table query with safe columns (no broken join to club_profiles)
-    try {
-      const { data, error } = await (supabase.from('club_invitations') as any)
-        .select(`
-          id,
-          club_id,
-          email,
-          role,
-          invited_by,
-          token,
-          status,
-          expires_at,
-          accepted_at,
-          accepted_by,
-          created_at,
-          updated_at
-        `)
-        .eq('token', cleanToken)
-        .maybeSingle()
-
-      if (!error && data) {
-        const record: ClubInvitationRecord = { ...data }
-        try {
-          const { data: clubProfile } = await (supabase.from('club_profiles') as any)
-            .select('club_name, representative_name')
-            .eq('profile_id', data.club_id)
-            .maybeSingle()
-          if (clubProfile?.club_name) {
-            record.club_name = clubProfile.club_name
-          }
-          const { data: inviterProfile } = await (supabase.from('profiles') as any)
-            .select('display_name')
-            .eq('id', data.invited_by)
-            .maybeSingle()
-          if (inviterProfile?.display_name) {
-            record.inviter_name = inviterProfile.display_name
-          }
-        } catch {
-          // non-blocking
-        }
-        return { invitation: record }
+      return {
+        invitation: null,
+        error: rpcData?.message || 'Invitation not found or inaccessible.',
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      return {
+        invitation: null,
+        error:
+          err instanceof Error ? err.message : 'Unable to verify invitation token.',
+      }
     }
   }
 
-  // 3. Simulation mode fallback
   const localInvites = getLocalInvitations()
   const found = localInvites.find((i) => i.token === cleanToken)
   return { invitation: found || null }

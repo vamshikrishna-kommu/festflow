@@ -233,11 +233,11 @@ async function runPhase8Suite() {
     'StudentDashboardPage includes manual refresh action for live passes'
   )
 
-  const landingSource = fs.readFileSync(path.resolve('src/pages/LandingPage.tsx'), 'utf-8')
+  const cinematicLandingSource = fs.readFileSync(path.resolve('src/components/cinematic/CinematicLanding.tsx'), 'utf-8')
   assert(
-    landingSource.includes('sm:hidden') && landingSource.includes('Explore all campus events'),
+    cinematicLandingSource.includes('sm:hidden') && cinematicLandingSource.includes('Explore all campus events'),
     'Mobile UX',
-    'LandingPage includes mobile-specific discovery button below event grid'
+    'Landing experience includes mobile-specific discovery button below live event grid'
   )
 
   // --- SUITE 5: Summary & Report ---

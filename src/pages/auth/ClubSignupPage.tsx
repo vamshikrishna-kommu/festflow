@@ -108,7 +108,7 @@ export default function ClubSignupPage() {
   return (
     <AuthCard
       title="Register your club"
-      subtitle="Launch events, sell passes, and manage check-ins directly"
+      subtitle="Launch events, verify UPI payments, and manage campus passes directly"
       role="club_member"
       mode="signup"
     >

@@ -1,23 +1,21 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { EventAssignmentRecord, EventAssignmentRole } from '@/types'
+import {
+  ASSIGNABLE_EVENT_ASSIGNMENT_ROLES,
+  ASSIGNMENT_ROLE_DESCRIPTIONS,
+  ASSIGNMENT_ROLE_LABELS,
+  isAssignableEventAssignmentRole,
+} from '@/lib/rbac'
+import { broadcastStatusChange } from '@/lib/sync'
+
+export {
+  ASSIGNABLE_EVENT_ASSIGNMENT_ROLES,
+  ASSIGNMENT_ROLE_DESCRIPTIONS,
+  ASSIGNMENT_ROLE_LABELS,
+  isAssignableEventAssignmentRole,
+}
 
 const LOCAL_STORAGE_ASSIGNMENTS_KEY = 'festflow_local_event_assignments'
-
-export const ASSIGNMENT_ROLE_LABELS: Record<EventAssignmentRole, string> = {
-  event_manager: 'Event Manager',
-  registration_manager: 'Registration Manager',
-  finance_manager: 'Finance Manager',
-  checkin_staff: 'Check-In Lead',
-  content_manager: 'Content & Media Manager',
-}
-
-export const ASSIGNMENT_ROLE_DESCRIPTIONS: Record<EventAssignmentRole, string> = {
-  event_manager: 'Oversees schedule, venue setup, and overall execution of this event.',
-  registration_manager: 'Manages attendees, reviews custom application forms, and exports rosters.',
-  finance_manager: 'Verifies UPI receipts, tracks ticket revenues, and manages event coupons.',
-  checkin_staff: 'Directs gate operations, scans QR passes, and monitors live check-in turnstile.',
-  content_manager: 'Designs the visual event detail page, uploads photos/speakers, and manages FAQs.',
-}
 
 function getLocalAssignments(): EventAssignmentRecord[] {
   try {
@@ -38,15 +36,18 @@ function saveLocalAssignments(assignments: EventAssignmentRecord[]): void {
 }
 
 /**
- * Get all staff members assigned to an event
+ * Get all staff members assigned to a specific event
  */
 export async function getEventAssignments(
   eventId: string
 ): Promise<{ assignments: EventAssignmentRecord[]; error?: string }> {
+  if (!eventId) return { assignments: [] }
+
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await (supabase.from('event_assignments') as any)
-        .select(`
+        .select(
+          `
           *,
           user:user_id (
             id,
@@ -54,19 +55,62 @@ export async function getEventAssignments(
             email,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('event_id', eventId)
         .order('created_at', { ascending: true })
 
-      if (!error && data) {
-        return { assignments: data as EventAssignmentRecord[] }
+      if (error) {
+        return { assignments: [], error: error.message }
       }
-    } catch (e: any) {
-      console.warn('[FestFlow Assignments] Query note:', e.message)
+      return { assignments: (data as EventAssignmentRecord[]) || [] }
+    } catch (e) {
+      return {
+        assignments: [],
+        error: e instanceof Error ? e.message : 'Failed to load event assignments.',
+      }
     }
   }
 
   const local = getLocalAssignments().filter((a) => a.event_id === eventId)
+  return { assignments: local }
+}
+
+/**
+ * Load all active event-scoped assignments for a user (optionally scoped to one club)
+ */
+export async function getUserEventAssignments(
+  userId: string,
+  clubId?: string | null
+): Promise<{ assignments: EventAssignmentRecord[]; error?: string }> {
+  if (!userId) return { assignments: [] }
+
+  if (isSupabaseConfigured) {
+    try {
+      let query = (supabase.from('event_assignments') as any)
+        .select('*')
+        .eq('user_id', userId)
+
+      if (clubId) {
+        query = query.eq('club_id', clubId)
+      }
+
+      const { data, error } = await query
+      if (error) {
+        return { assignments: [], error: error.message }
+      }
+      return { assignments: (data as EventAssignmentRecord[]) || [] }
+    } catch (e) {
+      return {
+        assignments: [],
+        error: e instanceof Error ? e.message : 'Failed to load user event assignments.',
+      }
+    }
+  }
+
+  const local = getLocalAssignments().filter(
+    (a) => a.user_id === userId && (!clubId || a.club_id === clubId)
+  )
   return { assignments: local }
 }
 
@@ -81,6 +125,57 @@ export async function assignMemberToEvent(params: {
   assignedBy: string
   userProfile?: { display_name?: string; email?: string }
 }): Promise<{ assignment?: EventAssignmentRecord; error?: string }> {
+  if (!params.eventId || !params.clubId || !params.userId || !params.assignedBy) {
+    return { error: 'Missing required event assignment parameters.' }
+  }
+
+  if (!isAssignableEventAssignmentRole(params.role)) {
+    return {
+      error: `Role "${params.role}" is retired and cannot be used for new event delegations.`,
+    }
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.from('event_assignments') as any)
+        .insert({
+          event_id: params.eventId,
+          club_id: params.clubId,
+          user_id: params.userId,
+          role: params.role,
+          assigned_by: params.assignedBy,
+        })
+        .select(
+          `
+          *,
+          user:user_id (
+            id,
+            display_name,
+            email,
+            avatar_url
+          )
+        `
+        )
+        .single()
+
+      if (error) {
+        return { error: error.message }
+      }
+
+      broadcastStatusChange({
+        type: 'team_updated',
+        clubId: params.clubId,
+        eventId: params.eventId,
+      })
+
+      return { assignment: data as EventAssignmentRecord }
+    } catch (e) {
+      return {
+        error: e instanceof Error ? e.message : 'Failed to assign member to event.',
+      }
+    }
+  }
+
   const newRecord: EventAssignmentRecord = {
     id: `asg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     event_id: params.eventId,
@@ -102,39 +197,12 @@ export async function assignMemberToEvent(params: {
       : null,
   }
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await (supabase.from('event_assignments') as any)
-        .insert({
-          event_id: newRecord.event_id,
-          club_id: newRecord.club_id,
-          user_id: newRecord.user_id,
-          role: newRecord.role,
-          assigned_by: newRecord.assigned_by,
-        })
-        .select(`
-          *,
-          user:user_id (
-            id,
-            display_name,
-            email,
-            avatar_url
-          )
-        `)
-        .single()
-
-      if (!error && data) {
-        return { assignment: data as EventAssignmentRecord }
-      }
-    } catch (e: any) {
-      console.warn('[FestFlow Assignments] Insert note, persisting locally:', e.message)
-    }
-  }
-
   const local = getLocalAssignments()
-  // Replace if existing for same (event, user, role)
   const existingIdx = local.findIndex(
-    (a) => a.event_id === params.eventId && a.user_id === params.userId && a.role === params.role
+    (a) =>
+      a.event_id === params.eventId &&
+      a.user_id === params.userId &&
+      a.role === params.role
   )
   if (existingIdx >= 0) {
     local[existingIdx] = newRecord
@@ -143,6 +211,12 @@ export async function assignMemberToEvent(params: {
   }
   saveLocalAssignments(local)
 
+  broadcastStatusChange({
+    type: 'team_updated',
+    clubId: params.clubId,
+    eventId: params.eventId,
+  })
+
   return { assignment: newRecord }
 }
 
@@ -150,18 +224,45 @@ export async function assignMemberToEvent(params: {
  * Remove an event delegation assignment
  */
 export async function removeEventAssignment(
-  assignmentId: string
+  assignmentId: string,
+  clubId?: string
 ): Promise<{ success: boolean; error?: string }> {
+  if (!assignmentId) {
+    return { success: false, error: 'Missing assignment identifier.' }
+  }
+
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('event_assignments') as any).delete().eq('id', assignmentId)
-    } catch (e: any) {
-      console.warn('[FestFlow Assignments] Delete note:', e.message)
+      let query = (supabase.from('event_assignments') as any)
+        .delete()
+        .eq('id', assignmentId)
+      if (clubId) {
+        query = query.eq('club_id', clubId)
+      }
+      const { error } = await query
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      broadcastStatusChange({
+        type: 'team_updated',
+        clubId,
+      })
+
+      return { success: true }
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : 'Failed to remove event assignment.',
+      }
     }
   }
 
   const local = getLocalAssignments().filter((a) => a.id !== assignmentId)
   saveLocalAssignments(local)
+  broadcastStatusChange({
+    type: 'team_updated',
+    clubId,
+  })
   return { success: true }
 }
-

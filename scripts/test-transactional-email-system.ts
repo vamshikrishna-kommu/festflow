@@ -135,8 +135,8 @@ async function runTestSuite() {
     'Auth Email 1 references canonical origin festflow.online'
   )
   assert(
-    confirmSignupHtml.includes('festflow.events@festflow.online'),
-    'Auth Email 1 mentions official sender festflow.events@festflow.online'
+    confirmSignupHtml.includes('festflow.events@gmail.com'),
+    'Auth Email 1 displays official support contact festflow.events@gmail.com'
   )
 
   assert(
@@ -148,8 +148,8 @@ async function runTestSuite() {
     'Auth Email 2 references canonical origin festflow.online'
   )
   assert(
-    resetPasswordHtml.includes('festflow.events@festflow.online'),
-    'Auth Email 2 mentions official sender festflow.events@festflow.online'
+    resetPasswordHtml.includes('festflow.events@gmail.com'),
+    'Auth Email 2 displays official support contact festflow.events@gmail.com'
   )
 
   // ─────────────────────────────────────────────────────────────────────────

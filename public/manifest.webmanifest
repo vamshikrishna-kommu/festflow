@@ -1,7 +1,7 @@
 {
   "name": "FestFlow — College Event Platform",
   "short_name": "FestFlow",
-  "description": "Discover, register, pay via UPI, and scan digital entry passes for college events.",
+  "description": "Discover, register, pay via UPI, and manage digital entry passes for college events.",
   "start_url": "/",
   "id": "/",
   "display": "standalone",
@@ -37,7 +37,7 @@
     {
       "name": "My Entry Passes",
       "url": "/student/dashboard",
-      "description": "View active digital tickets and QR gate credentials"
+      "description": "View active digital passes and confirmed registrations"
     }
   ]
 }

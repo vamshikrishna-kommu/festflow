@@ -60,6 +60,7 @@ import { RequestCancellationModal } from '@/components/registration/RequestCance
 import { RequestEditModal } from '@/components/registration/RequestEditModal'
 import { claimWaitlistOffer, declineWaitlistOffer } from '@/lib/waitlist'
 import { subscribeToStatusChanges } from '@/lib/sync'
+import { writeCachedStudentPasses, readCachedStudentPasses } from '@/lib/ticketCache'
 import type { RegistrationWithEvent, Event, InAppNotification, StudentAchievement } from '@/types'
 
 function getGreeting(): string {
@@ -130,11 +131,7 @@ export default function StudentDashboardPage() {
 
       if (regRes.registrations) {
         setRegistrations(regRes.registrations)
-        try {
-          localStorage.setItem(`festflow_cached_passes_${user.id}`, JSON.stringify(regRes.registrations))
-        } catch {
-          // ignore localstorage quota
-        }
+        writeCachedStudentPasses(user.id, regRes.registrations)
       }
       if (!eventsRes.error && eventsRes.events) {
         setPublishedEvents(
@@ -149,15 +146,11 @@ export default function StudentDashboardPage() {
       setNotifications(notifs)
     } catch (err) {
       console.warn('[FestFlow Student] Data load notice:', err)
-      // Attempt to load cached passes if offline or network drops
-      try {
-        const cached = localStorage.getItem(`festflow_cached_passes_${user.id}`)
-        if (cached) {
-          setRegistrations(JSON.parse(cached))
-          setNotice({ message: 'Loaded saved passes from offline storage.', isError: false })
-        }
-      } catch {
-        // ignore
+      // Attempt to load sanitized passes strictly for active user when offline
+      const cached = readCachedStudentPasses(user.id)
+      if (cached) {
+        setRegistrations(cached)
+        setNotice({ message: 'Loaded saved passes from offline storage.', isError: false })
       }
     } finally {
       if (!silent) setLoading(false)
@@ -282,9 +275,8 @@ export default function StudentDashboardPage() {
   const filteredList = useMemo(() => {
     return registrations.filter((r) => {
       const hasValidDate = Boolean(r.event?.start_date)
-      const eventStart = hasValidDate ? new Date(r.event!.start_date) : null
-      const isUpcoming = eventStart ? eventStart >= now : false
-      const isPast = eventStart ? eventStart < now : false
+      const isPast = r.event ? isEventCompleted(r.event, now.getTime()) : !hasValidDate
+      const isUpcoming = hasValidDate && !isPast
 
       let matches = false
       if (passTab === 'upcoming') {
@@ -296,7 +288,7 @@ export default function StudentDashboardPage() {
       } else if (passTab === 'waitlisted') {
         matches = r.status === 'waitlisted'
       } else if (passTab === 'past') {
-        matches = r.status === 'confirmed' && (isPast || !hasValidDate)
+        matches = r.status === 'confirmed' && isPast
       } else if (passTab === 'cancelled') {
         matches = r.status === 'cancelled' || r.status === 'rejected'
       }
@@ -334,7 +326,8 @@ export default function StudentDashboardPage() {
 
     for (const r of registrations) {
       const hasDate = Boolean(r.event?.start_date)
-      const isUpcoming = hasDate ? new Date(r.event!.start_date) >= now : false
+      const isCompletedEvt = r.event ? isEventCompleted(r.event, now.getTime()) : !hasDate
+      const isUpcoming = hasDate && !isCompletedEvt
       if (r.status === 'confirmed') {
         if (isUpcoming) upcoming++
         else past++
@@ -359,12 +352,20 @@ export default function StudentDashboardPage() {
     }
   }, [registrations, now])
 
-  // Attended events (verified through check-in records)
+  // Attended & completed events (confirmed registrations for completed events or legacy check-in records)
   const attendedRegistrations = useMemo(() => {
-    return registrations.filter(
-      (r) => (r as any).attendance_status === 'checked_in' || (r as any).attendance_status === 'checked_out'
-    )
-  }, [registrations])
+    const refMs = now.getTime()
+    return registrations.filter((r) => {
+      const legacyChecked =
+        (r as any).attendance_status === 'checked_in' ||
+        (r as any).attendance_status === 'checked_out'
+      if (legacyChecked) return true
+      if (r.status === 'confirmed' && r.event) {
+        return isEventCompleted(r.event, refMs)
+      }
+      return false
+    })
+  }, [registrations, now])
 
   const attendedCount = attendedRegistrations.length
   const totalRegistrations = registrations.length
@@ -396,7 +397,7 @@ export default function StudentDashboardPage() {
       {
         id: 'event_regular',
         title: 'Campus Regular',
-        description: 'Attended 3 verified campus events with gate check-in',
+        description: 'Completed 3 confirmed campus fest events with FestFlow',
         iconName: 'Award',
         badgeLabel: 'Regular',
         progress: Math.min(attendedCount, 3),
@@ -454,7 +455,7 @@ export default function StudentDashboardPage() {
         registration: nextEvt,
         title: `Next Up: ${nextEvt.event?.title || 'Campus Event'}`,
         description: `${startDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at ${nextEvt.event?.venue_name || 'Campus Venue'}`,
-        ctaLabel: 'View Gate Pass & QR',
+        ctaLabel: 'View Entry Pass',
         ctaLink: `/student/tickets/${nextEvt.id}`,
       }
     }
@@ -757,7 +758,7 @@ export default function StudentDashboardPage() {
             {
               label: 'Confirmed Passes',
               value: loading ? '…' : upcomingCount.toString(),
-              subtitle: 'Ready for gate check-in',
+              subtitle: 'Active upcoming events',
               icon: Ticket,
               badgeStyle: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
               targetTab: 'passes' as const,
@@ -766,7 +767,7 @@ export default function StudentDashboardPage() {
             {
               label: 'Events Attended',
               value: loading ? '…' : attendedCount.toString(),
-              subtitle: 'Verified gate entries',
+              subtitle: 'Completed campus events',
               icon: ShieldCheck,
               badgeStyle: 'text-[#18CFFC] bg-[#18CFFC]/10 border-[#18CFFC]/20',
               targetTab: 'history' as const,
@@ -872,7 +873,7 @@ export default function StudentDashboardPage() {
                       Upcoming Registered Passes ({upcomingRegisteredEvents.length})
                     </h3>
                     <p className="text-xs text-zinc-400">
-                      Confirmed entries ready for QR scan at entrance gates
+                      Confirmed digital passes ready for your upcoming campus events
                     </p>
                   </div>
                   <button
@@ -925,7 +926,7 @@ export default function StudentDashboardPage() {
 
                         {evt?.start_date && (
                           <div className="p-2.5 rounded-xl bg-[#14141A] border border-white/5 flex items-center justify-between">
-                            <span className="text-[11px] text-zinc-400">Gate countdown:</span>
+                            <span className="text-[11px] text-zinc-400">Starts in:</span>
                             <EventCountdown targetDate={evt.start_date} endDate={evt.end_date} size="sm" />
                           </div>
                         )}
@@ -933,7 +934,7 @@ export default function StudentDashboardPage() {
                         <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">
                           <Link to={`/student/tickets/${reg.id}`} className="w-full">
                             <Button size="sm" variant="primary" className="w-full justify-center" leftIcon={<Ticket size={14} />}>
-                              Open Digital QR Pass
+                              Open Digital Pass
                             </Button>
                           </Link>
                         </div>
@@ -1198,7 +1199,7 @@ export default function StudentDashboardPage() {
               <EmptyState
                 icon={Ticket}
                 title={`No ${passTab.replace('_', ' ')} passes`}
-                description="Browse campus events and secure your verified gate entry passes."
+                description="Browse campus events and secure your digital entry passes."
                 action={
                   <Link to="/discover">
                     <Button variant="primary" size="sm" leftIcon={<Compass size={15} />}>
@@ -1240,7 +1241,7 @@ export default function StudentDashboardPage() {
                             </Badge>
                           ) : isCheckedIn ? (
                             <Badge variant="cyan" className="text-[10px]">
-                              Gate Admitted
+                              Attendance Recorded
                             </Badge>
                           ) : reg.status === 'confirmed' ? (
                             <Badge variant="success" className="text-[10px]">
@@ -1305,7 +1306,7 @@ export default function StudentDashboardPage() {
                         {reg.status === 'confirmed' ? (
                           <Link to={`/student/tickets/${reg.id}`}>
                             <Button size="sm" variant="primary" leftIcon={<Ticket size={14} />}>
-                              View Digital QR Pass
+                              View Digital Pass
                             </Button>
                           </Link>
                         ) : reg.status === 'pending_payment' ? (
@@ -1520,18 +1521,18 @@ export default function StudentDashboardPage() {
             <div>
               <h3 className="text-xl font-bold font-heading text-white flex items-center gap-2">
                 <Award size={20} className="text-[#18CFFC]" />
-                Verified Attendance & Participation History
+                Participation & Completed Events History
               </h3>
               <p className="text-xs text-zinc-400">
-                Official records of campus events attended with gate check-in authentication
+                Completed campus events and historical attendance records from your registrations
               </p>
             </div>
 
             {attendedRegistrations.length === 0 ? (
               <EmptyState
                 icon={ShieldCheck}
-                title="No Physical Check-in Records Yet"
-                description="Once you present your QR digital pass at campus event gates, your verified attendance will appear here."
+                title="No Completed Events Yet"
+                description="Once campus events where you held a confirmed registration finish, they will appear in your participation history."
                 action={
                   <Button variant="outline" size="sm" onClick={() => setMainTab('passes')}>
                     View Confirmed Passes
@@ -1561,7 +1562,7 @@ export default function StudentDashboardPage() {
 
                     <div className="flex items-center gap-3">
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                        <ShieldCheck size={13} /> Verified Check-in
+                        <ShieldCheck size={13} /> Participated
                       </span>
                       <Link to={`/student/tickets/${reg.id}`}>
                         <Button size="sm" variant="outline">
@@ -1586,7 +1587,7 @@ export default function StudentDashboardPage() {
                   Student Notifications Center
                 </h3>
                 <p className="text-xs text-zinc-400">
-                  Registration updates, gate pass credentials, and event reminders
+                  Registration updates, digital pass alerts, and event reminders
                 </p>
               </div>
 

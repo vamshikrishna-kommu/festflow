@@ -31,7 +31,7 @@ export function getTargetWithPendingTeam(candidate: string | null | undefined, d
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { refreshProfile, role } = useAuth()
+  const { refreshProfile } = useAuth()
 
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -89,20 +89,35 @@ export default function AuthCallbackPage() {
               hashParams.get('redirect') ||
               storedNext
 
-            // Look up database profile role to ensure club organizers are accurately routed
-            let userRole = role || (data.session.user.user_metadata?.role as string)
+            // Look up database profile role and active club memberships (never trust editable user_metadata.role)
+            let userRole = 'student'
+            let hasActiveClubAccess = false
             try {
               const { data: pRec } = await (supabase.from('profiles') as any)
                 .select('role')
                 .eq('id', data.session.user.id)
                 .maybeSingle()
               if (pRec?.role) userRole = pRec.role as string
-            } catch {
-              // fallback
-            }
-            if (!userRole) userRole = 'student'
 
-            const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+              if (userRole !== 'club_member') {
+                const { data: mRec } = await (supabase.from('club_members') as any)
+                  .select('id')
+                  .eq('user_id', data.session.user.id)
+                  .eq('status', 'active')
+                  .limit(1)
+                hasActiveClubAccess = Boolean(mRec && mRec.length > 0)
+              }
+            } catch {
+              // Fail safe to student workspace if role lookup fails
+              userRole = 'student'
+            }
+
+            const defaultTarget =
+              userRole === 'platform_admin'
+                ? '/admin'
+                : userRole === 'club_member' || hasActiveClubAccess
+                ? '/club/dashboard'
+                : '/student/dashboard'
             const target = getTargetWithPendingTeam(rawCandidate, defaultTarget)
             setTimeout(() => {
               navigate(target, { replace: true })
@@ -141,19 +156,33 @@ export default function AuthCallbackPage() {
             hashParams.get('redirect') ||
             storedNext
 
-          let userRole = role || (session.user.user_metadata?.role as string)
+          let userRole = 'student'
+          let hasActiveClubAccess = false
           try {
             const { data: pRec } = await (supabase.from('profiles') as any)
               .select('role')
               .eq('id', session.user.id)
               .maybeSingle()
             if (pRec?.role) userRole = pRec.role as string
-          } catch {
-            // fallback
-          }
-          if (!userRole) userRole = 'student'
 
-          const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+            if (userRole !== 'club_member') {
+              const { data: mRec } = await (supabase.from('club_members') as any)
+                .select('id')
+                .eq('user_id', session.user.id)
+                .eq('status', 'active')
+                .limit(1)
+              hasActiveClubAccess = Boolean(mRec && mRec.length > 0)
+            }
+          } catch {
+            userRole = 'student'
+          }
+
+          const defaultTarget =
+            userRole === 'platform_admin'
+              ? '/admin'
+              : userRole === 'club_member' || hasActiveClubAccess
+              ? '/club/dashboard'
+              : '/student/dashboard'
           const target = getTargetWithPendingTeam(rawCandidate, defaultTarget)
           
           setTimeout(() => {
@@ -170,8 +199,32 @@ export default function AuthCallbackPage() {
                 return
               }
               const candidate = searchParams.get('next') || searchParams.get('redirect') || hashParams.get('next') || hashParams.get('redirect')
-              const userRole = (currentSession.user.user_metadata?.role as string) || 'student'
-              const defaultTarget = userRole === 'club_member' ? '/club/dashboard' : '/student/dashboard'
+              let userRole = 'student'
+              let hasActiveClubAccess = false
+              try {
+                const { data: pRec } = await (supabase.from('profiles') as any)
+                  .select('role')
+                  .eq('id', currentSession.user.id)
+                  .maybeSingle()
+                if (pRec?.role) userRole = pRec.role as string
+
+                if (userRole !== 'club_member') {
+                  const { data: mRec } = await (supabase.from('club_members') as any)
+                    .select('id')
+                    .eq('user_id', currentSession.user.id)
+                    .eq('status', 'active')
+                    .limit(1)
+                  hasActiveClubAccess = Boolean(mRec && mRec.length > 0)
+                }
+              } catch {
+                userRole = 'student'
+              }
+              const defaultTarget =
+                userRole === 'platform_admin'
+                  ? '/admin'
+                  : userRole === 'club_member' || hasActiveClubAccess
+                  ? '/club/dashboard'
+                  : '/student/dashboard'
               const target = getTargetWithPendingTeam(candidate, defaultTarget)
               navigate(target, { replace: true })
             }
@@ -198,7 +251,7 @@ export default function AuthCallbackPage() {
     }
 
     processAuth()
-  }, [navigate, searchParams, refreshProfile, role, status])
+  }, [navigate, searchParams, refreshProfile, status])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface-0)] px-4">

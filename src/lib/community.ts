@@ -431,11 +431,16 @@ export async function getClubAnnouncements(
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        return { success: true, announcements: data as ClubAnnouncementRecord[] }
+      if (error) {
+        return { success: false, announcements: [], message: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, announcements: (data as ClubAnnouncementRecord[]) || [] }
+    } catch (err: any) {
+      return {
+        success: false,
+        announcements: [],
+        message: err?.message || 'Failed to load club announcements.',
+      }
     }
   }
 

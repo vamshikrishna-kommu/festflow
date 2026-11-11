@@ -5,6 +5,7 @@ import {
   ScrollRestoration,
   useLocation,
   useNavigationType,
+  Navigate,
 } from 'react-router'
 import { lazy, Suspense, useEffect } from 'react'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
@@ -51,7 +52,6 @@ const StudentPaymentPage      = lazy(() => import('@/pages/student/StudentPaymen
 const EventRegistrationsPage = lazy(() => import('@/pages/club/EventRegistrationsPage'))
 const ClubPaymentSettingsPage = lazy(() => import('@/pages/club/ClubPaymentSettingsPage'))
 const ClubPaymentsPage        = lazy(() => import('@/pages/club/ClubPaymentsPage'))
-const EventCheckInPage        = lazy(() => import('@/pages/club/EventCheckInPage'))
 const EventReportsPage        = lazy(() => import('@/pages/club/EventReportsPage'))
 const JoinTeamPage            = lazy(() => import('@/pages/student/JoinTeamPage'))
 const ClubMembersPage         = lazy(() => import('@/pages/club/ClubMembersPage'))
@@ -119,24 +119,59 @@ function RootLayout() {
   const isExcludedPath = location.pathname.startsWith('/admin') || location.pathname.startsWith('/auth')
 
   useEffect(() => {
-    // 1. Handle in-page anchor hash navigation (e.g. /#features or skip link #main-content)
+    // 1. Handle in-page anchor hash navigation (e.g. /#scene-03-journey or #main-content)
     if (location.hash) {
-      const targetId = location.hash.replace('#', '')
-      const targetElement = document.getElementById(targetId)
+      const targetId = location.hash.slice(1)
+      let cancelled = false
+      let settleTimer: ReturnType<typeof setTimeout> | undefined
+      let pollTimer: ReturnType<typeof setTimeout> | undefined
 
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: 'smooth' })
-        return
+      const alignToElement = (el: HTMLElement) => {
+        if (cancelled) return
+        const header = document.querySelector('header')
+        const headerOffset =
+          targetId === 'main-content'
+            ? 0
+            : header
+              ? Math.round(header.getBoundingClientRect().height)
+              : 65
+        const targetTop = Math.max(
+          0,
+          Math.round(el.getBoundingClientRect().top + window.scrollY - headerOffset)
+        )
+        window.scrollTo({ top: targetTop, behavior: 'auto' })
+        window.dispatchEvent(new Event('scroll'))
       }
 
-      // Retry after frame in case the target section is inside an asynchronous lazy component
-      const timer = setTimeout(() => {
-        const retryEl = document.getElementById(targetId)
-        if (retryEl) {
-          retryEl.scrollIntoView({ behavior: 'smooth' })
+      const attemptScroll = (remainingAttempts: number) => {
+        if (cancelled) return
+        const el = document.getElementById(targetId)
+        if (el) {
+          // Wait two animation frames so lazy sections and ScrollTrigger pins settle before aligning
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              alignToElement(el)
+              // Re-align once more after GSAP pin spacing finalizes on cold lazy load
+              settleTimer = setTimeout(() => {
+                const settledEl = document.getElementById(targetId)
+                if (settledEl) alignToElement(settledEl)
+              }, 160)
+            })
+          })
+          return
         }
-      }, 120)
-      return () => clearTimeout(timer)
+
+        if (remainingAttempts > 0) {
+          pollTimer = setTimeout(() => attemptScroll(remainingAttempts - 1), 60)
+        }
+      }
+
+      attemptScroll(40)
+      return () => {
+        cancelled = true
+        if (pollTimer) clearTimeout(pollTimer)
+        if (settleTimer) clearTimeout(settleTimer)
+      }
     }
 
     // 2. On browser Back / Forward (POP), allow React Router's ScrollRestoration to restore coordinates.
@@ -156,7 +191,7 @@ function RootLayout() {
     if (mainContent) {
       mainContent.scrollTop = 0
     }
-  }, [location.pathname, location.hash, navigationType])
+  }, [location.pathname, location.hash, location.key, navigationType])
 
   // Initialize PWA service worker in browser environments
   useEffect(() => {
@@ -300,7 +335,10 @@ const router = createBrowserRouter([
         path: '/club/dashboard',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['club.view']}
+            >
               <ClubDashboardPage />
             </ProtectedRoute>
           </Suspense>
@@ -310,7 +348,10 @@ const router = createBrowserRouter([
         path: '/club/events',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['events.view']}
+            >
               <ClubEventsListPage />
             </ProtectedRoute>
           </Suspense>
@@ -320,7 +361,10 @@ const router = createBrowserRouter([
         path: '/club/events/new',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['events.create']}
+            >
               <NewEventPage />
             </ProtectedRoute>
           </Suspense>
@@ -330,7 +374,11 @@ const router = createBrowserRouter([
         path: '/club/events/:id/edit',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['events.edit']}
+              allowEventAssignmentScope
+            >
               <EditEventPage />
             </ProtectedRoute>
           </Suspense>
@@ -340,7 +388,11 @@ const router = createBrowserRouter([
         path: '/club/events/:id/registrations',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['registrations.view']}
+              allowEventAssignmentScope
+            >
               <EventRegistrationsPage />
             </ProtectedRoute>
           </Suspense>
@@ -350,7 +402,11 @@ const router = createBrowserRouter([
         path: '/club/payments',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['payments.view', 'payments.verify']}
+              clubPermissionMode="any"
+            >
               <ClubPaymentsPage />
             </ProtectedRoute>
           </Suspense>
@@ -360,7 +416,11 @@ const router = createBrowserRouter([
         path: '/club/settings',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['club.manage', 'payments.settings']}
+              clubPermissionMode="any"
+            >
               <ClubPaymentSettingsPage />
             </ProtectedRoute>
           </Suspense>
@@ -370,7 +430,11 @@ const router = createBrowserRouter([
         path: '/club/settings/payments',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['club.manage', 'payments.settings']}
+              clubPermissionMode="any"
+            >
               <ClubPaymentSettingsPage />
             </ProtectedRoute>
           </Suspense>
@@ -379,28 +443,34 @@ const router = createBrowserRouter([
       {
         path: '/club/events/:id/check-in',
         element: (
-          <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
-              <EventCheckInPage />
-            </ProtectedRoute>
-          </Suspense>
+          <ProtectedRoute
+            allowedRoles={['club_member', 'platform_admin']}
+            requiredClubPermissions={['club.view']}
+          >
+            <Navigate to="/club/events" replace />
+          </ProtectedRoute>
         ),
       },
       {
         path: '/club/events/:id/checkin',
         element: (
-          <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
-              <EventCheckInPage />
-            </ProtectedRoute>
-          </Suspense>
+          <ProtectedRoute
+            allowedRoles={['club_member', 'platform_admin']}
+            requiredClubPermissions={['club.view']}
+          >
+            <Navigate to="/club/events" replace />
+          </ProtectedRoute>
         ),
       },
       {
         path: '/club/events/:id/reports',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['reports.view']}
+              allowEventAssignmentScope
+            >
               <EventReportsPage />
             </ProtectedRoute>
           </Suspense>
@@ -410,7 +480,11 @@ const router = createBrowserRouter([
         path: '/club/events/:id/automation',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['events.edit']}
+              allowEventAssignmentScope
+            >
               <ClubAutomationPage />
             </ProtectedRoute>
           </Suspense>
@@ -420,7 +494,10 @@ const router = createBrowserRouter([
         path: '/club/members',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['members.view']}
+            >
               <ClubMembersPage />
             </ProtectedRoute>
           </Suspense>
@@ -430,7 +507,10 @@ const router = createBrowserRouter([
         path: '/club/team',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ProtectedRoute allowedRoles={['club_member', 'platform_admin']}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['members.view']}
+            >
               <ClubMembersPage />
             </ProtectedRoute>
           </Suspense>

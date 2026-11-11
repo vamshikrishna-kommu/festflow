@@ -11,7 +11,6 @@ import {
   Trash2,
   Clock,
   ShieldCheck,
-  QrCode,
   Calendar,
   MapPin,
   Building2,
@@ -186,7 +185,7 @@ export function EventRegistrationModal({
     const errors: Record<string, string> = {}
 
     if (!fullName.trim()) {
-      errors.fullName = 'Full Name is required for gate ticket issuance.'
+      errors.fullName = 'Full Name is required for pass issuance.'
     }
 
     if (pRequirements.require_college && !collegeName.trim()) {
@@ -212,7 +211,7 @@ export function EventRegistrationModal({
     }
 
     if (pRequirements.require_id_card && !studentIdCard.trim()) {
-      errors.studentIdCard = 'Student ID / Roll number is required for gate verification.'
+      errors.studentIdCard = 'Student ID / Roll number is required by the organizer.'
     }
 
     setFieldErrors(errors)
@@ -641,7 +640,7 @@ export function EventRegistrationModal({
                       <strong>Team Size:</strong> Minimum {event.min_team_size} to Maximum {event.max_team_size} members.
                     </li>
                     <li>
-                      <strong>Leader Responsibilities:</strong> As primary registrant, you are designated as the Team Leader. You are responsible for entering valid teammate credentials and coordinating attendance at check-in.
+                      <strong>Leader Responsibilities:</strong> As primary registrant, you are designated as the Team Leader. You are responsible for entering valid teammate credentials and coordinating squad registration.
                     </li>
                     <li>
                       <strong>Pass Issuance:</strong> Each member will receive a personalized digital entrance sub-pass linked to this squad ticket.
@@ -1404,7 +1403,7 @@ export function EventRegistrationModal({
                         variant="primary"
                         size="lg"
                         className="w-full bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-bold min-h-[44px]"
-                        rightIcon={<QrCode size={18} />}
+                        rightIcon={<ArrowRight size={18} />}
                       >
                         Pay via UPI ({event.currency || '₹'}{event.price})
                       </Button>
@@ -1424,7 +1423,7 @@ export function EventRegistrationModal({
                       className="w-full"
                     >
                       <Button variant="primary" size="lg" className="w-full min-h-[44px]" leftIcon={<Ticket size={18} />}>
-                        View Digital QR Pass
+                        View Digital Pass
                       </Button>
                     </Link>
                   )

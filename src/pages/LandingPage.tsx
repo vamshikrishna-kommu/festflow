@@ -7,7 +7,7 @@ export default function LandingPage() {
     <PageShell fullbleed>
       <SEOHead
         title="FestFlow — One Platform. Every Campus Event."
-        description="The modern, cinematic event platform for university clubs and students. Discover campus hackathons, cultural fests, instant UPI verification, and encrypted QR entry passes."
+        description="The modern, cinematic event platform for university clubs and students. Discover campus hackathons, cultural fests, instant UPI verification, and confirmed digital entry passes."
         canonicalPath="/"
       />
       <CinematicLanding />

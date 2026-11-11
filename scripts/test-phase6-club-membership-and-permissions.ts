@@ -75,25 +75,27 @@ async function runPhase6Tests() {
   // ──────────────────────────────────────────────────────────────────────────
   console.log('--- 1. Least-Privilege Role & Permission Matrix ---')
 
-  const allPermissions: ClubPermission[] = [
+  const legacyPermissions: ClubPermission[] = [
     'manage_club',
     'manage_members',
     'manage_events',
     'view_attendees',
-    'gate_checkin',
     'review_payments',
     'view_reports',
   ]
 
-  // Owner possesses all 7 permissions
-  allPermissions.forEach((perm) => {
+  // Owner possesses all 6 active legacy-aliased permissions (gate_checkin is retired)
+  legacyPermissions.forEach((perm) => {
     assert(hasPermission('owner', perm), `Owner possesses permission: ${perm}`)
   })
+  assert(!hasPermission('owner', 'gate_checkin'), 'Legacy gate_checkin permission is retired for Owner')
 
-  // Admin possesses all 7 permissions
-  allPermissions.forEach((perm) => {
+  // Admin possesses all 6 active legacy-aliased permissions (not club.transfer_ownership)
+  legacyPermissions.forEach((perm) => {
     assert(hasPermission('admin', perm), `Admin possesses permission: ${perm}`)
   })
+  assert(hasPermission('owner', 'club.transfer_ownership'), 'Owner possesses club.transfer_ownership')
+  assert(!hasPermission('admin', 'club.transfer_ownership'), 'Admin CANNOT transfer club ownership')
 
   // Event Manager: manage_events, view_attendees, view_reports (No gate_checkin, manage_club, manage_members, review_payments)
   assert(hasPermission('event_manager', 'manage_events'), 'Event Manager can manage_events')
@@ -113,9 +115,9 @@ async function runPhase6Tests() {
   assert(!hasPermission('payment_reviewer', 'manage_club'), 'Payment Reviewer CANNOT manage_club')
   assert(!hasPermission('payment_reviewer', 'manage_members'), 'Payment Reviewer CANNOT manage_members')
 
-  // Check-in Staff: gate_checkin, view_attendees (No manage_events, review_payments, view_reports, manage_club, manage_members)
-  assert(hasPermission('checkin_staff', 'gate_checkin'), 'Check-in Staff can gate_checkin')
-  assert(hasPermission('checkin_staff', 'view_attendees'), 'Check-in Staff can view_attendees')
+  // Legacy Check-in Staff: retired gate_checkin, retains read-only attendee compat ONLY (No manage_events, review_payments, view_reports, manage_club, manage_members)
+  assert(!hasPermission('checkin_staff', 'gate_checkin'), 'Legacy Check-in Staff no longer has retired gate_checkin')
+  assert(hasPermission('checkin_staff', 'view_attendees'), 'Legacy Check-in Staff retains read-only view_attendees compat')
   assert(!hasPermission('checkin_staff', 'manage_events'), 'Check-in Staff CANNOT manage_events')
   assert(!hasPermission('checkin_staff', 'review_payments'), 'Check-in Staff CANNOT review_payments')
   assert(!hasPermission('checkin_staff', 'view_reports'), 'Check-in Staff CANNOT view_reports')
@@ -135,17 +137,18 @@ async function runPhase6Tests() {
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n--- 2. Role Escalation Prevention ---')
 
-  assert(canAssignRole('owner', 'owner'), 'Owner can assign Owner')
+  assert(!canAssignRole('owner', 'owner'), 'Owner cannot assign Owner directly (requires transferClubOwnership)')
   assert(canAssignRole('owner', 'admin'), 'Owner can assign Admin')
   assert(canAssignRole('owner', 'event_manager'), 'Owner can assign Event Manager')
 
   assert(!canAssignRole('admin', 'owner'), 'Admin CANNOT assign Owner (Prevent Privilege Escalation)')
-  assert(canAssignRole('admin', 'admin'), 'Admin can assign Admin')
+  assert(!canAssignRole('admin', 'admin'), 'Admin CANNOT assign peer Admin (Strict hierarchy)')
   assert(canAssignRole('admin', 'payment_reviewer'), 'Admin can assign Payment Reviewer')
+  assert(!canAssignRole('admin', 'checkin_staff'), 'Admin CANNOT assign retired checkin_staff role')
 
   assert(!canAssignRole('event_manager', 'admin'), 'Event Manager cannot assign Admin')
   assert(!canAssignRole('event_manager', 'event_manager'), 'Event Manager cannot assign Event Manager')
-  assert(!canAssignRole('checkin_staff', 'checkin_staff'), 'Check-in staff cannot assign roles')
+  assert(!canAssignRole('checkin_staff', 'viewer'), 'Check-in staff cannot assign roles')
   assert(!canAssignRole('viewer', 'viewer'), 'Viewer cannot assign roles')
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -314,7 +317,7 @@ async function runPhase6Tests() {
     clubId: clubIdAlpha,
     clubName: clubNameAlpha,
     email: 'carol.organizer@campus.edu',
-    role: 'checkin_staff',
+    role: 'payment_reviewer',
     inviterId: ownerAlphaId,
     inviterRole: 'owner',
     inviterName: 'Alpha Founder',
@@ -332,7 +335,7 @@ async function runPhase6Tests() {
     clubId: clubIdAlpha,
     clubName: clubNameAlpha,
     email: 'dave.staff@campus.edu',
-    role: 'checkin_staff',
+    role: 'viewer',
     inviterId: ownerAlphaId,
     inviterRole: 'owner',
     inviterName: 'Alpha Founder',

@@ -104,20 +104,14 @@ export async function getClubCoupons(
 
       const { data, error } = await query
       if (error) {
-        console.warn('[FestFlow Coupons] Supabase query note:', error.message)
-        // Fallback to local
-        const local = getLocalCoupons().filter(
-          (c) => c.club_id === clubId && (!eventId || !c.event_id || c.event_id === eventId)
-        )
-        return { coupons: local }
+        return { coupons: [], error: error.message }
       }
       return { coupons: data || [] }
     } catch (err: any) {
-      console.warn('[FestFlow Coupons] Supabase error:', err.message)
-      const local = getLocalCoupons().filter(
-        (c) => c.club_id === clubId && (!eventId || !c.event_id || c.event_id === eventId)
-      )
-      return { coupons: local }
+      return {
+        coupons: [],
+        error: err?.message || 'Failed to load club coupons.',
+      }
     }
   }
 
@@ -187,18 +181,11 @@ export async function createCoupon(params: {
         .single()
 
       if (error) {
-        console.warn('[FestFlow Coupons] Insert note, persisting locally:', error.message)
-        const local = getLocalCoupons()
-        local.unshift(newRecord)
-        saveLocalCoupons(local)
-        return { coupon: newRecord }
+        return { error: error.message }
       }
       return { coupon: data }
-    } catch {
-      const local = getLocalCoupons()
-      local.unshift(newRecord)
-      saveLocalCoupons(local)
-      return { coupon: newRecord }
+    } catch (err: any) {
+      return { error: err?.message || 'Failed to create coupon.' }
     }
   }
 
@@ -217,11 +204,16 @@ export async function toggleCouponActive(
 ): Promise<{ success: boolean; error?: string }> {
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('event_coupons') as any)
+      const { error } = await (supabase.from('event_coupons') as any)
         .update({ is_active: isActive })
         .eq('id', couponId)
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+      return { success: true }
     } catch (e: any) {
-      console.warn('[FestFlow Coupons] Toggle note:', e.message)
+      return { success: false, error: e?.message || 'Failed to update coupon.' }
     }
   }
 
@@ -240,9 +232,16 @@ export async function toggleCouponActive(
 export async function deleteCoupon(couponId: string): Promise<{ success: boolean; error?: string }> {
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('event_coupons') as any).delete().eq('id', couponId)
+      const { error } = await (supabase.from('event_coupons') as any)
+        .delete()
+        .eq('id', couponId)
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+      return { success: true }
     } catch (e: any) {
-      console.warn('[FestFlow Coupons] Delete note:', e.message)
+      return { success: false, error: e?.message || 'Failed to delete coupon.' }
     }
   }
 
@@ -266,21 +265,62 @@ export async function validateCoupon(
 
   if (isSupabaseConfigured) {
     try {
+      const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('validate_event_coupon', {
+        p_code: norm,
+        p_event_id: eventId,
+        p_ticket_price: ticketPrice,
+      })
+
+      if (!rpcErr && rpcRes) {
+        if (!rpcRes.valid) {
+          return {
+            valid: false,
+            discountAmount: 0,
+            finalPrice: ticketPrice,
+            error: rpcRes.error || 'Invalid or inactive coupon code.',
+          }
+        }
+        return {
+          valid: true,
+          coupon: rpcRes.coupon as EventCouponRecord,
+          discountAmount: Number(rpcRes.discountAmount ?? rpcRes.discount_amount ?? 0),
+          finalPrice: Number(rpcRes.finalPrice ?? rpcRes.final_price ?? ticketPrice),
+        }
+      }
+
+      if (rpcErr && rpcErr.code !== 'PGRST202' && !String(rpcErr.message || '').includes('does not exist')) {
+        return {
+          valid: false,
+          discountAmount: 0,
+          finalPrice: ticketPrice,
+          error: rpcErr.message || 'Unable to validate coupon.',
+        }
+      }
+
       const { data, error } = await (supabase.from('event_coupons') as any)
         .select('*')
         .eq('code', norm)
         .eq('is_active', true)
         .maybeSingle()
 
-      if (!error && data) {
-        coupon = data
+      if (error) {
+        return {
+          valid: false,
+          discountAmount: 0,
+          finalPrice: ticketPrice,
+          error: error.message || 'Unable to validate coupon.',
+        }
       }
-    } catch {
-      // fallback
+      coupon = data || null
+    } catch (err: any) {
+      return {
+        valid: false,
+        discountAmount: 0,
+        finalPrice: ticketPrice,
+        error: err?.message || 'Unable to validate coupon.',
+      }
     }
-  }
-
-  if (!coupon) {
+  } else {
     const local = getLocalCoupons()
     coupon = local.find((c) => c.code === norm && c.is_active) || null
   }
@@ -349,16 +389,9 @@ export async function redeemCoupon(couponId: string): Promise<void> {
     try {
       await (supabase.rpc as any)('increment_coupon_usage', { p_coupon_id: couponId })
     } catch {
-      // fallback to manual update
-      try {
-        const { data } = await (supabase.from('event_coupons') as any).select('used_count').eq('id', couponId).single()
-        if (data) {
-          await (supabase.from('event_coupons') as any).update({ used_count: (data.used_count || 0) + 1 }).eq('id', couponId)
-        }
-      } catch {
-        // silent
-      }
+      // ignore RPC errors on non-critical increment wrapper
     }
+    return
   }
 
   const local = getLocalCoupons()

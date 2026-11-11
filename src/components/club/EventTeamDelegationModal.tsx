@@ -7,6 +7,8 @@ import {
   X,
 } from 'lucide-react'
 import { Modal, ModalBody, ModalFooter, Button, Badge } from '@/components/ui'
+import { useAuth } from '@/context/AuthContext'
+import { ASSIGNABLE_EVENT_ASSIGNMENT_ROLES } from '@/lib/rbac'
 import {
   getEventAssignments,
   assignMemberToEvent,
@@ -24,6 +26,7 @@ interface EventTeamDelegationModalProps {
   clubId: string
   eventTitle: string
   currentUserId: string
+  readOnly?: boolean
 }
 
 export function EventTeamDelegationModal({
@@ -33,7 +36,12 @@ export function EventTeamDelegationModal({
   clubId,
   eventTitle,
   currentUserId,
+  readOnly = false,
 }: EventTeamDelegationModalProps) {
+  const { role: globalRole, hasClubPermission } = useAuth()
+  const canManageDelegation =
+    !readOnly && (globalRole === 'platform_admin' || hasClubPermission('roles.assign'))
+
   const [assignments, setAssignments] = useState<EventAssignmentRecord[]>([])
   const [clubMembers, setClubMembers] = useState<ClubMemberRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,7 +60,7 @@ export function EventTeamDelegationModal({
     ])
     setLoading(false)
     if (asgRes.assignments) setAssignments(asgRes.assignments)
-    if (memRes.members) setClubMembers(memRes.members)
+    if (memRes.members) setClubMembers(memRes.members.filter((m) => m.status === 'active'))
   }
 
   useEffect(() => {
@@ -65,6 +73,18 @@ export function EventTeamDelegationModal({
 
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canManageDelegation) {
+      setNotice({ message: 'You do not have permission to assign event roles.', isError: true })
+      return
+    }
+    if (
+      !ASSIGNABLE_EVENT_ASSIGNMENT_ROLES.includes(
+        selectedRole as (typeof ASSIGNABLE_EVENT_ASSIGNMENT_ROLES)[number]
+      )
+    ) {
+      setNotice({ message: 'Selected role cannot be assigned.', isError: true })
+      return
+    }
     if (!selectedUserId) {
       setNotice({ message: 'Please select a club member.', isError: true })
       return
@@ -95,6 +115,10 @@ export function EventTeamDelegationModal({
   }
 
   const handleRemove = async (assignmentId: string) => {
+    if (!canManageDelegation) {
+      setNotice({ message: 'You do not have permission to remove event assignments.', isError: true })
+      return
+    }
     await removeEventAssignment(assignmentId)
     setAssignments((prev) => prev.filter((a) => a.id !== assignmentId))
   }
@@ -106,11 +130,15 @@ export function EventTeamDelegationModal({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-zinc-400">
-                Assign club members specific responsibilities for{' '}
+                {readOnly
+                  ? 'Delegated responsibilities (read-only archive) for '
+                  : !canManageDelegation
+                  ? 'Delegated responsibilities (view-only) for '
+                  : 'Assign club members specific responsibilities for '}
                 <strong className="text-white">"{eventTitle}"</strong>.
               </p>
             </div>
-            {!showAddForm && (
+            {canManageDelegation && !showAddForm && (
               <Button
                 size="sm"
                 variant="primary"
@@ -184,7 +212,7 @@ export function EventTeamDelegationModal({
                     onChange={(e) => setSelectedRole(e.target.value as any)}
                     className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
                   >
-                    {(Object.keys(ASSIGNMENT_ROLE_LABELS) as EventAssignmentRole[]).map((r) => (
+                    {ASSIGNABLE_EVENT_ASSIGNMENT_ROLES.map((r) => (
                       <option key={r} value={r}>
                         {ASSIGNMENT_ROLE_LABELS[r]}
                       </option>
@@ -253,14 +281,16 @@ export function EventTeamDelegationModal({
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(item.id)}
-                      className="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer"
-                      title="Remove Assignment"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {canManageDelegation && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(item.id)}
+                        className="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer"
+                        title="Remove Assignment"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 )
               })

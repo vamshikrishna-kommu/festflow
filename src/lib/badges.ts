@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { getEventLifecyclePhase } from '@/lib/events'
 import type { StudentBadgeRecord } from '@/types'
 
 const LOCAL_STORAGE_KEY = 'festflow_local_student_badges'
@@ -25,7 +26,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     key: 'first_event_attended',
     title: 'First Step on Campus',
-    description: 'Checked into your very first campus event through the FestFlow gate scanner.',
+    description: 'Participated in your first campus event registered through FestFlow.',
     iconName: 'Ticket',
     category: 'attendance',
     tier: 'bronze',
@@ -39,7 +40,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     key: 'active_participant',
     title: 'Active Explorer',
-    description: 'Attended 3 verified campus events with valid gate admission.',
+    description: 'Attended 3 verified campus events with confirmed FestFlow passes.',
     iconName: 'Zap',
     category: 'attendance',
     tier: 'bronze',
@@ -109,7 +110,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     key: 'dedicated_attendee',
     title: 'Dedicated Attendee',
-    description: 'Successfully checked into 3 or more campus events.',
+    description: 'Participated in 3 or more completed or verified campus events.',
     iconName: 'Award',
     category: 'attendance',
     tier: 'silver',
@@ -180,27 +181,35 @@ export async function calculateStudentStats(studentId: string): Promise<StudentS
 
   if (isSupabaseConfigured) {
     try {
-      // 1. Query student's confirmed registrations and check_ins
+      // 1. Query student's registrations with event lifecycle metadata
       const { data: regs } = await (supabase.from('registrations') as any)
-        .select('id, event_id, status, team_id, team_name, events(club_id)')
+        .select('id, event_id, status, team_id, team_name, events(club_id, status, start_date, end_date, timezone)')
         .eq('student_id', studentId)
 
       if (regs) {
         totalRegistrations = regs.length
+        const attendedRegIds = new Set<string>()
         for (const r of regs) {
           if (r.team_id || r.team_name) teamEventsCount++
           if (r.events?.club_id) distinctClubs.add(r.events.club_id)
+          if (r.status === 'confirmed' && r.events && getEventLifecyclePhase(r.events) === 'completed') {
+            attendedRegIds.add(r.id)
+          }
         }
 
+        // Preserve historical check-in records without requiring live scanning
         const regIds = regs.map((r: any) => r.id)
         if (regIds.length > 0) {
-          const { count } = await (supabase.from('check_ins') as any)
-            .select('id', { count: 'exact', head: true })
+          const { data: checkInRows } = await (supabase.from('check_ins') as any)
+            .select('registration_id')
             .in('registration_id', regIds)
             .in('status', ['checked_in', 'checked_out'])
 
-          attendedCount = count ?? 0
+          for (const ci of checkInRows || []) {
+            if (ci.registration_id) attendedRegIds.add(ci.registration_id)
+          }
         }
+        attendedCount = attendedRegIds.size
       }
     } catch {
       // ignore
@@ -212,7 +221,10 @@ export async function calculateStudentStats(studentId: string): Promise<StudentS
       const userRegs = mockRegs.filter((r: any) => r.student_id === studentId || r.user_id === studentId)
       totalRegistrations = userRegs.length
       attendedCount = userRegs.filter(
-        (r: any) => r.attendance_status === 'checked_in' || r.attendance_status === 'checked_out'
+        (r: any) =>
+          r.attendance_status === 'checked_in' ||
+          r.attendance_status === 'checked_out' ||
+          (r.status === 'confirmed' && r.event && getEventLifecyclePhase(r.event) === 'completed')
       ).length
       for (const r of userRegs) {
         if (r.team_id || r.team_name) teamEventsCount++

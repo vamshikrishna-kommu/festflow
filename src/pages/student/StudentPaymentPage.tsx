@@ -476,7 +476,7 @@ export default function StudentPaymentPage() {
                 isFreeEvent
                   ? `Registration Reference: ${registration.ticket_code} • Free event admission pass is confirmed.`
                   : isPaymentApproved
-                  ? `Registration Reference: ${registration.ticket_code} • Payment verified by organizer. Active gate pass issued.`
+                  ? `Registration Reference: ${registration.ticket_code} • Payment verified by organizer. Entry pass confirmed.`
                   : isPaymentPendingReview
                   ? `Registration Reference: ${registration.ticket_code} • Payment submitted (UTR: ${submission?.transaction_reference}). Awaiting organizer verification.`
                   : isPaymentRejected
@@ -500,7 +500,7 @@ export default function StudentPaymentPage() {
                       This Event is Free of Charge!
                     </h3>
                     <p className="text-xs text-emerald-300/80">
-                      No payment transaction is required for free campus events. Present your digital QR pass at the entrance gate.
+                      No payment transaction is required for free campus events. Your confirmed digital entry pass is ready below.
                     </p>
                   </div>
                 </div>
@@ -557,7 +557,7 @@ export default function StudentPaymentPage() {
                       Payment Verified & Pass Active!
                     </h3>
                     <p className="text-xs text-emerald-300/80 mt-0.5">
-                      Your payment of <strong className="text-white">{effectiveCurrency} {effectiveAmount}</strong> (Ref: <span className="font-mono text-white font-bold">{submission?.transaction_reference || 'Verified'}</span>) has been verified and confirmed by the organizer. Your active digital pass and QR code are ready for entrance gate check-in.
+                      Your payment of <strong className="text-white">{effectiveCurrency} {effectiveAmount}</strong> (Ref: <span className="font-mono text-white font-bold">{submission?.transaction_reference || 'Verified'}</span>) has been verified and confirmed by the organizer. Your digital pass is now active in your dashboard.
                     </p>
                   </div>
                 </div>

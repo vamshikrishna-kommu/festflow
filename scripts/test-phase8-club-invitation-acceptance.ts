@@ -135,7 +135,7 @@ async function runPhase8TestSuite() {
       id: 'mem_coord',
       club_id: CLUB_ID,
       user_id: CLUB_COORDINATOR_ID,
-      role: 'coordinator' as ClubRole,
+      role: 'event_manager' as ClubRole,
       status: 'active' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -150,7 +150,7 @@ async function runPhase8TestSuite() {
       },
     },
   ]
-  mockLocalStorage.setItem('festflow_club_members', JSON.stringify(initialMembers))
+  mockLocalStorage.setItem('festflow_local_club_members', JSON.stringify(initialMembers))
 
   // ──────────────────────────────────────────────────────────────────────────
   // TEST GROUP 1: Valid Invitation Link Generation on Production Domain
@@ -165,7 +165,7 @@ async function runPhase8TestSuite() {
   const inviteRes1 = await inviteClubMember({
     clubId: CLUB_ID,
     email: 'newvolunteer@college.edu',
-    role: 'coordinator',
+    role: 'event_manager',
     inviterId: CLUB_OWNER_ID,
     inviterRole: 'owner',
     clubName: 'Google Developer Student Club',
@@ -187,7 +187,7 @@ async function runPhase8TestSuite() {
   const lookup1 = await getInvitationByToken(token1)
   assert(lookup1.invitation !== null, 'Valid invitation token can be resolved by getInvitationByToken')
   assert(lookup1.invitation?.email === 'newvolunteer@college.edu', 'Token resolves correct recipient email')
-  assert(lookup1.invitation?.role === 'coordinator', 'Token resolves correct assigned role')
+  assert(lookup1.invitation?.role === 'event_manager', 'Token resolves correct assigned role')
 
   // Check URL routes whitelist in safeNavigation
   const isPublicInvitationRoute = isPathAllowedForRole(`/club/invitations/${token1}`, null)
@@ -236,12 +236,12 @@ async function runPhase8TestSuite() {
   const inviteRes2 = await inviteClubMember({
     clubId: CLUB_ID,
     email: 'sarah.designer@college.edu',
-    role: 'volunteer',
+    role: 'viewer',
     inviterId: CLUB_ADMIN_ID,
     inviterRole: 'admin',
     clubName: 'Design Society',
   })
-  assert(inviteRes2.success === true, 'Admin can invite volunteer')
+  assert(inviteRes2.success === true, 'Admin can invite viewer')
   const token2 = inviteRes2.invitation!.token
 
   // Attempt acceptance with a different email account
@@ -259,7 +259,7 @@ async function runPhase8TestSuite() {
     display_name: 'Sarah Connor',
   })
   assert(matchingAccept.success === true, 'Acceptance succeeds when email matches normalized (case-insensitive & trimmed)')
-  assert(matchingAccept.role === 'volunteer', 'Assigned role in response matches trusted invitation role')
+  assert(matchingAccept.role === 'viewer', 'Assigned role in response matches trusted invitation role')
 
   // ──────────────────────────────────────────────────────────────────────────
   // TEST GROUP 5: Already-Used / Double Acceptance & Idempotency
@@ -332,19 +332,27 @@ async function runPhase8TestSuite() {
     canAssignRole('admin', 'owner') === false,
     'Admin cannot assign owner role'
   )
-  // Admin can assign staff roles
+  // Admin can assign lower operational staff roles, not peer/higher or retired roles
   assert(
     canAssignRole('admin', 'event_manager') === true,
     'Admin can assign event_manager role'
   )
   assert(
-    canAssignRole('admin', 'checkin_staff') === true,
-    'Admin can assign checkin_staff role'
+    canAssignRole('admin', 'payment_reviewer') === true,
+    'Admin can assign payment_reviewer role'
+  )
+  assert(
+    canAssignRole('admin', 'admin') === false,
+    'Admin cannot assign peer admin role (strict hierarchy)'
+  )
+  assert(
+    canAssignRole('admin', 'checkin_staff') === false,
+    'Admin cannot assign retired checkin_staff role'
   )
   // Non-admin staff cannot assign any roles
   assert(
-    canAssignRole('event_manager', 'checkin_staff') === false,
-    'Event manager cannot assign checkin_staff role'
+    canAssignRole('event_manager', 'viewer') === false,
+    'Event manager cannot assign viewer role'
   )
   assert(
     canAssignRole('checkin_staff', 'viewer') === false,

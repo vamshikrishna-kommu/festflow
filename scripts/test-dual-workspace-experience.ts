@@ -176,7 +176,7 @@ console.log('\nScenario 6: Viewer cannot perform privileged actions');
   assert(canManageEvents === false, 'Viewer CANNOT manage events');
   assert(canManageMembers === false, 'Viewer CANNOT manage members');
   assert(canCheckIn === false, 'Viewer CANNOT check in attendees (gate_checkin)');
-  assert(ROLE_LABELS[viewerRole] === 'Viewer / Reporter', 'Viewer label formatted cleanly as "Viewer / Reporter"');
+  assert(ROLE_LABELS[viewerRole] === 'Viewer', 'Viewer label formatted cleanly as "Viewer"');
 }
 
 // ---------------------------------------------------------------------------

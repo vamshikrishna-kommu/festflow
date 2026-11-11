@@ -115,7 +115,7 @@ function generateEmailContent(
           Hi <strong>${recipient}</strong>, your spot for <strong>${eventTitle}</strong> is locked in.
         </p>
         <div style="background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
-          <p style="color: ${textMuted}; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px 0;">Gate Admission Code</p>
+          <p style="color: ${textMuted}; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px 0;">Official Pass Code</p>
           <p style="font-family: monospace; font-size: 26px; font-weight: bold; letter-spacing: 3px; color: ${brandCyan}; margin: 0;">${ticketCode}</p>
           <p style="color: ${textMuted}; font-size: 13px; margin: 12px 0 0 0;">📍 ${venueName}</p>
         </div>
@@ -206,7 +206,7 @@ function generateEmailContent(
     <tr>
       <td style="padding: 20px 32px; background-color: #0e0e13; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
         <p style="margin: 0; font-size: 12px; color: ${textMuted};">
-          FestFlow Campus OS • Automated Transactional Gateway<br>
+          FestFlow Campus OS • Official Support: <a href="mailto:festflow.events@gmail.com" style="color: ${brandCyan}; text-decoration: none;">festflow.events@gmail.com</a><br>
           <a href="https://festflow.online" style="color: ${brandCyan}; text-decoration: none;">festflow.online</a>
         </p>
       </td>
@@ -216,7 +216,9 @@ function generateEmailContent(
 </html>
   `.trim()
 
-  return { subject, html: fullHtml, text: textFallback }
+  const fullText = `${textFallback}\n\n---\nFestFlow • https://festflow.online\nContact: festflow.events@gmail.com`
+
+  return { subject, html: fullHtml, text: fullText }
 }
 
 export default async function handler(req: any, res?: any): Promise<Response | void> {
@@ -291,6 +293,8 @@ export default async function handler(req: any, res?: any): Promise<Response | v
 
     const cleanTo = to.trim().toLowerCase()
     const resendApiKey = process.env.RESEND_API_KEY
+    // Resend requires a verified custom domain for `From` (gmail.com cannot pass DKIM/DMARC).
+    // All replies and public support links resolve to festflow.events@gmail.com.
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'festflow.events@festflow.online'
     const fromName = process.env.RESEND_FROM_NAME || 'FestFlow'
     const replyToEmail = process.env.RESEND_REPLY_TO || 'festflow.events@gmail.com'

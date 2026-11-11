@@ -68,14 +68,8 @@ async function runMobileAudit() {
   assert(bottomNavCode.includes('to="/club/dashboard"'), 'Organizer navigation includes Overview')
   assert(bottomNavCode.includes('to="/club/events"'), 'Organizer navigation includes Events management')
   assert(bottomNavCode.includes('to="/club/payments"'), 'Organizer navigation includes Payments review')
-  assert(bottomNavCode.includes('Check-In'), 'Organizer navigation includes Gate Check-In')
+  assert(!bottomNavCode.includes('Check-In') && !bottomNavCode.includes('/check-in'), 'Organizer navigation removes club gate check-in routes')
   assert(bottomNavCode.includes('to="/club/settings"'), 'Organizer navigation includes Club Settings')
-
-  // Scanner exclusion check
-  assert(
-    bottomNavCode.includes('isScannerRoute') && bottomNavCode.includes('return null'),
-    'Bottom navigation safely hides on gate QR scanner camera view to maximize viewfinder'
-  )
 
   // ── 4. Student Event Discovery & Details ───────────────────────────────────
   console.log('\n--- Test Suite 4: Mobile Event Discovery & Details ---')
@@ -97,14 +91,14 @@ async function runMobileAudit() {
   assert(regModalCode.includes('min-h-[44px]'), 'Form inputs and buttons respect minimum 44px touch targets')
   assert(regModalCode.includes('autoComplete="name"'), 'Full name provides mobile autofill assistance')
 
-  // ── 6. Mobile Gate Pass & High-Contrast Scanner Mode ───────────────────────
-  console.log('\n--- Test Suite 6: Digital Pass Mobile & Turnstile Capabilities ---')
+  // ── 6. Mobile Digital Pass & Offline Capabilities ─────────────────────────
+  console.log('\n--- Test Suite 6: Digital Pass Mobile & Offline Capabilities ---')
   const ticketCardCode = fs.readFileSync(path.join(rootDir, 'src/components/tickets/DigitalTicketCard.tsx'), 'utf-8')
-  assert(ticketCardCode.includes('Turnstile Contrast Mode') || ticketCardCode.includes('High Contrast Mode'), 'Includes gate scanner high-contrast brightness toggle')
+  assert(!ticketCardCode.includes('Turnstile Contrast Mode') && !ticketCardCode.includes('QrCameraScanner'), 'DigitalTicketCard removes club turnstile scanner wording')
   assert(ticketCardCode.includes('festflow_cached_ticket_'), 'Includes offline pass caching in localStorage')
 
   const ticketDetailCode = fs.readFileSync(path.join(rootDir, 'src/pages/student/TicketDetailPage.tsx'), 'utf-8')
-  assert(ticketDetailCode.includes('isOffline') && ticketDetailCode.includes('Offline Gate Pass'), 'Ticket detail page displays cached offline pass if cellular signal is lost')
+  assert(ticketDetailCode.includes('isOffline') && ticketDetailCode.includes('Offline Pass Copy'), 'Ticket detail page displays cached offline pass if cellular signal is lost')
 
   // ── 7. Student Settings & Preferences Modal ────────────────────────────────
   console.log('\n--- Test Suite 7: Student Settings & Preferences ---')
@@ -112,7 +106,7 @@ async function runMobileAudit() {
   assert(settingsCode.includes('festflow_pref_email'), 'Supports notification preferences storage')
   assert(settingsCode.includes('festflow_pref_sound'), 'Supports audio feedback preferences toggle')
   assert(settingsCode.includes('festflow_pref_haptics'), 'Supports mobile vibration/haptics preferences toggle')
-  assert(settingsCode.includes('festflow_pref_high_contrast'), 'Supports default high-contrast display mode')
+  assert(!settingsCode.includes('festflow_pref_high_contrast'), 'Removed orphaned scanner high-contrast toggle from student settings')
 
   // ── 8. PWA Manifest Compliance ─────────────────────────────────────────────
   console.log('\n--- Test Suite 8: Installable PWA Manifest ---')

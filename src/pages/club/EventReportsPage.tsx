@@ -6,14 +6,21 @@ import {
   Send,
   Users,
   CreditCard,
-  QrCode,
+  Archive,
   CheckCircle2,
   RefreshCw,
 } from 'lucide-react'
 import { Button, Card, PageHeader, Alert, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
-import { getEventById } from '@/lib/events'
+import {
+  getEventById,
+  getEventLifecyclePhase,
+  isEventConcludedOrCancelled,
+  LIFECYCLE_BADGE_META,
+  formatEventDate,
+  resolveEventTimezone,
+} from '@/lib/events'
 import { getEventRegistrations } from '@/lib/registrations'
 import { getClubPaymentSubmissions } from '@/lib/payments'
 import { getEventRegistrationsWithCheckIn } from '@/lib/checkin'
@@ -36,7 +43,14 @@ import { ResourceOwnerGuard } from '@/components/auth/ResourceOwnerGuard'
 
 export default function EventReportsPage() {
   const { id } = useParams<{ id: string }>()
-  const { user, role } = useAuth()
+  const {
+    role,
+    activeClubId,
+    activeClubRole,
+    eventAssignments,
+    hasEventPermission,
+    isRoleLoading,
+  } = useAuth()
 
   const [event, setEvent] = useState<EventRecord | null>(null)
   const [registrations, setRegistrations] = useState<RegistrationWithStudent[]>([])
@@ -54,38 +68,79 @@ export default function EventReportsPage() {
   const [sendingReminder, setSendingReminder] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
 
+  const canViewReports = event
+    ? role === 'platform_admin' || hasEventPermission(event.id, 'reports.view', event.club_id)
+    : Boolean(isAuthorized)
+  const canExportReports = event
+    ? role === 'platform_admin' || hasEventPermission(event.id, 'reports.export', event.club_id)
+    : false
+  const canViewPayments = event
+    ? role === 'platform_admin' || hasEventPermission(event.id, 'payments.view', event.club_id)
+    : false
+  const canViewRegistrations = event
+    ? role === 'platform_admin' || hasEventPermission(event.id, 'registrations.view', event.club_id)
+    : false
+  const canSendReminders = event
+    ? role === 'platform_admin' ||
+      hasEventPermission(event.id, 'events.edit', event.club_id) ||
+      hasEventPermission(event.id, 'registrations.manage', event.club_id)
+    : false
+
   const loadData = async (silent = false) => {
-    if (!id) return
+    if (!id || isRoleLoading) return
     if (!silent) setLoading(true)
     else setRefreshing(true)
 
-    const [eventRes, regRes, payRes, checkInRes] = await Promise.all([
-      getEventById(id),
+    const eventRes = await getEventById(id)
+    if (!eventRes.event) {
+      setIsAuthorized(false)
+      setEvent(null)
+      if (!silent) setLoading(false)
+      else setRefreshing(false)
+      return
+    }
+
+    const authorized =
+      role === 'platform_admin' ||
+      hasEventPermission(eventRes.event.id, 'reports.view', eventRes.event.club_id)
+
+    setIsAuthorized(authorized)
+    if (!authorized) {
+      setEvent(null)
+      setRegistrations([])
+      setPayments([])
+      setAttendeesWithCheckIn([])
+      if (!silent) setLoading(false)
+      else setRefreshing(false)
+      return
+    }
+
+    const canFetchPayments =
+      role === 'platform_admin' ||
+      hasEventPermission(eventRes.event.id, 'payments.view', eventRes.event.club_id)
+
+    const [regRes, payRes, checkInRes] = await Promise.all([
       getEventRegistrations(id),
-      getClubPaymentSubmissions(user?.id, id),
+      canFetchPayments
+        ? getClubPaymentSubmissions(eventRes.event.club_id || activeClubId || undefined, id)
+        : Promise.resolve({ submissions: [], error: null }),
       getEventRegistrationsWithCheckIn(id),
     ])
 
     if (!silent) setLoading(false)
     else setRefreshing(false)
 
-    if (eventRes.event) {
-      const authorized = (user && eventRes.event.club_id === user.id) || role === 'platform_admin'
-      setIsAuthorized(authorized)
-      if (authorized) {
-        setEvent(eventRes.event)
-        if (regRes.registrations) setRegistrations(regRes.registrations)
-        if (payRes.submissions) setPayments(payRes.submissions)
-        if (checkInRes.registrations) setAttendeesWithCheckIn(checkInRes.registrations)
-      }
-    } else {
-      setIsAuthorized(false)
-    }
+    setEvent(eventRes.event)
+    if (regRes.registrations) setRegistrations(regRes.registrations)
+    setPayments(canFetchPayments && payRes.submissions ? payRes.submissions : [])
+    if (checkInRes.registrations) setAttendeesWithCheckIn(checkInRes.registrations)
   }
 
   useEffect(() => {
-    loadData()
-  }, [id, user, role])
+    if (!isRoleLoading) {
+      loadData()
+    }
+  }, [id, role, isRoleLoading, activeClubId, activeClubRole, eventAssignments])
 
   // Calculated Metrics
   const totalRegistrations = registrations.length
@@ -94,15 +149,32 @@ export default function EventReportsPage() {
   const cancelledRegistrations = registrations.filter((r) => r.status === 'cancelled').length
 
   const successfulCheckIns = attendeesWithCheckIn.filter((a) => Boolean(a.check_in)).length
-  const attendanceRate =
-    confirmedAttendees > 0 ? Math.round((successfulCheckIns / confirmedAttendees) * 100) : 0
+  const lifecyclePhase = event ? getEventLifecyclePhase(event) : 'draft'
+  const isArchiveEvent = event ? isEventConcludedOrCancelled(event) : false
+  const lifecycleMeta = LIFECYCLE_BADGE_META[lifecyclePhase]
+  const eventTz = resolveEventTimezone(event?.timezone)
 
   const approvedPayments = payments.filter((p) => p.status === 'approved')
   const totalRevenue = approvedPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
 
   // Reminders Dispatch
   const handleSendReminders = async () => {
-    if (!id) return
+    if (!id || !canSendReminders) {
+      setShowReminderModal(false)
+      setNotice({
+        message: 'You do not have permission to send event reminder broadcasts.',
+        isError: true,
+      })
+      return
+    }
+    if (event && isEventConcludedOrCancelled(event)) {
+      setShowReminderModal(false)
+      setNotice({
+        message: 'Pre-event reminder broadcasts are disabled after an event concludes or is cancelled.',
+        isError: true,
+      })
+      return
+    }
     setSendingReminder(true)
     setNotice(null)
     const res = await sendBulkEventReminders(id, customReminderNote)
@@ -119,9 +191,8 @@ export default function EventReportsPage() {
     }
   }
 
-  const startDate = event ? new Date(event.start_date) : null
-  const formattedDate = startDate
-    ? startDate.toLocaleDateString('en-IN', {
+  const formattedDate = event?.start_date
+    ? formatEventDate(event.start_date, eventTz, {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
@@ -129,7 +200,7 @@ export default function EventReportsPage() {
       })
     : ''
 
-  if (loading) {
+  if (loading || isRoleLoading) {
     return (
       <PageShell>
         <div className="py-24 flex flex-col items-center justify-center text-center">
@@ -142,7 +213,7 @@ export default function EventReportsPage() {
     )
   }
 
-  if (isAuthorized === false || !event) {
+  if (isAuthorized === false || !canViewReports || !event) {
     return (
       <PageShell>
         <ResourceOwnerGuard
@@ -169,8 +240,8 @@ export default function EventReportsPage() {
             { label: 'Reports & Analytics' },
           ]}
           title="Event Reports & Analytics"
-          badge="Executive Summary"
-          badgeVariant="purple"
+          badge={lifecycleMeta.label}
+          badgeVariant={lifecycleMeta.variant}
           subtitle={
             event
               ? `${event.title} • ${formattedDate} • ${event.venue_name || 'Online'}`
@@ -188,15 +259,10 @@ export default function EventReportsPage() {
               >
                 Refresh
               </Button>
-              {event && (
-                <Link to={`/club/events/${event.id}/check-in`} className="flex-1 sm:flex-initial">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<QrCode size={14} />}
-                    className="w-full justify-center bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white border-none font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
-                  >
-                    Gate Check-In
+              {event && canViewRegistrations && (
+                <Link to={`/club/events/${event.id}/registrations`} className="flex-1 sm:flex-initial">
+                  <Button variant="outline" size="sm" leftIcon={<Users size={14} />} className="w-full justify-center">
+                    Attendee Roster
                   </Button>
                 </Link>
               )}
@@ -215,7 +281,7 @@ export default function EventReportsPage() {
         )}
 
         {/* Executive Summary Metrics Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
+        <div className={`grid grid-cols-2 sm:grid-cols-3 ${canViewPayments ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 sm:gap-3`}>
           <Card className="p-3 sm:p-3.5 flex flex-col justify-between">
             <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
               Total Signed Up
@@ -243,32 +309,16 @@ export default function EventReportsPage() {
             </div>
           </Card>
 
-          <Card className="p-3.5 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
-              Gate Admitted
-            </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-emerald-400 mt-1">
-              {loading ? '…' : successfulCheckIns}
-            </div>
-          </Card>
-
-          <Card className="p-3.5 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
-              Turnout Rate
-            </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-[#18CFFC] mt-1">
-              {loading ? '…' : `${attendanceRate}%`}
-            </div>
-          </Card>
-
-          <Card className="p-3.5 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
-              Total Revenue
-            </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-emerald-300 mt-1">
-              {loading ? '…' : `₹${totalRevenue.toLocaleString()}`}
-            </div>
-          </Card>
+          {canViewPayments && (
+            <Card className="p-3.5 flex flex-col justify-between">
+              <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+                Total Revenue
+              </span>
+              <div className="text-xl sm:text-2xl font-bold font-display text-emerald-300 mt-1">
+                {loading ? '…' : `₹${totalRevenue.toLocaleString()}`}
+              </div>
+            </Card>
+          )}
 
           <Card className="p-3.5 flex flex-col justify-between">
             <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
@@ -281,7 +331,8 @@ export default function EventReportsPage() {
         </div>
 
         {/* Section 1: Data Exports (Excel .xlsx & CSV) */}
-        <div className="flex flex-col gap-4">
+        {canExportReports ? (
+          <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 className="text-base font-bold font-display text-[var(--color-text-primary)]">
@@ -293,7 +344,7 @@ export default function EventReportsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${successfulCheckIns > 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
             {/* Export 1: All Registrations */}
             <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[#18CFFC]/50 transition-colors">
               <div className="space-y-1.5">
@@ -347,107 +398,111 @@ export default function EventReportsPage() {
               </div>
             </Card>
 
-            {/* Export 2: Gate Attendance Report */}
-            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-emerald-500/50 transition-colors">
-              <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 w-fit">
-                  <QrCode size={20} />
+            {/* Export 2: Historical Attendance Archive (only rendered when historical records exist) */}
+            {successfulCheckIns > 0 && (
+              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-emerald-500/50 transition-colors">
+                <div className="space-y-1.5">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 w-fit">
+                    <Archive size={20} />
+                  </div>
+                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Historical Attendance Archive
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                    Archived check-in timestamps recorded for prior event sessions ({successfulCheckIns} records).
+                  </p>
                 </div>
-                <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
-                  Gate Attendance Report
-                </h3>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  Real-time entry verification logs with exact check-in timestamps and admission status ({attendeesWithCheckIn.length} rows).
-                </p>
-              </div>
 
-              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={async () => {
-                    if (!event) return
-                    setExportingType('attendance_xlsx')
-                    try {
-                      const { exportAttendanceReportXlsx } = await import('@/lib/excelExport')
-                      await exportAttendanceReportXlsx({
-                        event,
-                        registrations: attendeesWithCheckIn,
-                        checkIns: attendeesWithCheckIn.flatMap(a => a.check_ins || (a.check_in ? [a.check_in] : [])),
-                      })
-                    } finally {
-                      setExportingType(null)
-                    }
-                  }}
-                  disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
-                  isLoading={exportingType === 'attendance_xlsx'}
-                  leftIcon={<Download size={14} />}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
-                >
-                  Download Excel (.xlsx)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => event && exportAttendanceReportCsv(event, attendeesWithCheckIn)}
-                  disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
-                  className="w-full text-xs text-[var(--color-text-secondary)]"
-                >
-                  Download CSV
-                </Button>
-              </div>
-            </Card>
+                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={async () => {
+                      if (!event) return
+                      setExportingType('attendance_xlsx')
+                      try {
+                        const { exportAttendanceReportXlsx } = await import('@/lib/excelExport')
+                        await exportAttendanceReportXlsx({
+                          event,
+                          registrations: attendeesWithCheckIn,
+                          checkIns: attendeesWithCheckIn.flatMap(a => a.check_ins || (a.check_in ? [a.check_in] : [])),
+                        })
+                      } finally {
+                        setExportingType(null)
+                      }
+                    }}
+                    disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
+                    isLoading={exportingType === 'attendance_xlsx'}
+                    leftIcon={<Download size={14} />}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                  >
+                    Download Excel (.xlsx)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => event && exportAttendanceReportCsv(event, attendeesWithCheckIn)}
+                    disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
+                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                  >
+                    Download CSV
+                  </Button>
+                </div>
+              </Card>
+            )}
 
             {/* Export 3: Payment Reconciliation */}
-            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-amber-500/50 transition-colors">
-              <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 w-fit">
-                  <CreditCard size={20} />
+            {canViewPayments && (
+              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-amber-500/50 transition-colors">
+                <div className="space-y-1.5">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 w-fit">
+                    <CreditCard size={20} />
+                  </div>
+                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    Payment Reconciliation
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                    Financial audit report with 12-digit UPI UTR references, approval timestamps, and amounts ({payments.length} rows).
+                  </p>
                 </div>
-                <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
-                  Payment Reconciliation
-                </h3>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                  Financial audit report with 12-digit UPI UTR references, approval timestamps, and amounts ({payments.length} rows).
-                </p>
-              </div>
 
-              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={async () => {
-                    if (!event) return
-                    setExportingType('payment_xlsx')
-                    try {
-                      const { exportPaymentsReportXlsx } = await import('@/lib/excelExport')
-                      await exportPaymentsReportXlsx({
-                        event,
-                        payments,
-                        isAuthorized: Boolean(isAuthorized),
-                      })
-                    } finally {
-                      setExportingType(null)
-                    }
-                  }}
-                  disabled={!event || payments.length === 0 || Boolean(exportingType)}
-                  isLoading={exportingType === 'payment_xlsx'}
-                  leftIcon={<Download size={14} />}
-                  className="w-full font-semibold"
-                >
-                  Download Excel (.xlsx)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => event && exportPaymentReconciliationCsv(event, payments)}
-                  disabled={!event || payments.length === 0 || Boolean(exportingType)}
-                  className="w-full text-xs text-[var(--color-text-secondary)]"
-                >
-                  Download CSV
-                </Button>
-              </div>
-            </Card>
+                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={async () => {
+                      if (!event) return
+                      setExportingType('payment_xlsx')
+                      try {
+                        const { exportPaymentsReportXlsx } = await import('@/lib/excelExport')
+                        await exportPaymentsReportXlsx({
+                          event,
+                          payments,
+                          isAuthorized: Boolean(isAuthorized),
+                        })
+                      } finally {
+                        setExportingType(null)
+                      }
+                    }}
+                    disabled={!event || payments.length === 0 || Boolean(exportingType)}
+                    isLoading={exportingType === 'payment_xlsx'}
+                    leftIcon={<Download size={14} />}
+                    className="w-full font-semibold"
+                  >
+                    Download Excel (.xlsx)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => event && exportPaymentReconciliationCsv(event, payments)}
+                    disabled={!event || payments.length === 0 || Boolean(exportingType)}
+                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                  >
+                    Download CSV
+                  </Button>
+                </div>
+              </Card>
+            )}
 
             {/* Export 4: Confirmed Attendees or Team Roster */}
             {event?.participation_type === 'team' ? (
@@ -554,8 +609,14 @@ export default function EventReportsPage() {
             )}
           </div>
         </div>
+        ) : (
+          <Alert variant="warning">
+            Summary metrics are visible for your role, while spreadsheet export (.xlsx and .csv) requires report export permission.
+          </Alert>
+        )}
 
         {/* Section 2: Bulk Reminders & Communication Controls */}
+        {canSendReminders && (
         <Card className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-[var(--color-surface-3)]">
           <div className="space-y-1 max-w-xl">
             <div className="flex items-center gap-2">
@@ -565,7 +626,13 @@ export default function EventReportsPage() {
               </h3>
             </div>
             <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-              Send an automated event reminder to all <strong className="text-[var(--color-text-primary)]">{confirmedAttendees} confirmed pass holders</strong>. Notifications are queued safely with duplicate protection so attendees are not spammed.
+              {isArchiveEvent
+                ? `This event has ${lifecyclePhase === 'cancelled' ? 'been cancelled' : 'already concluded'}. Pre-event reminder broadcasts are locked for archived events.`
+                : (
+                  <>
+                    Send an automated event reminder to all <strong className="text-[var(--color-text-primary)]">{confirmedAttendees} confirmed pass holders</strong>. Notifications are queued safely with duplicate protection so attendees are not spammed.
+                  </>
+                )}
             </p>
           </div>
 
@@ -573,13 +640,14 @@ export default function EventReportsPage() {
             variant="primary"
             size="md"
             onClick={() => setShowReminderModal(true)}
-            disabled={!event || confirmedAttendees === 0}
+            disabled={!event || confirmedAttendees === 0 || isArchiveEvent}
             leftIcon={<Send size={15} />}
             className="shrink-0 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
           >
             Preview & Send Reminder
           </Button>
         </Card>
+        )}
 
         {/* Reminder Preview & Confirmation Modal */}
         <Modal

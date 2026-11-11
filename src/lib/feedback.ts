@@ -48,7 +48,11 @@ export async function getEventFeedback(
         .eq('event_id', eventId)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
+      if (error) {
+        return { feedback: [], error: error.message }
+      }
+
+      if (data) {
         // Sanitize anonymous reviews
         const sanitized = data.map((fb: any) => {
           if (fb.is_anonymous) {
@@ -65,8 +69,12 @@ export async function getEventFeedback(
         })
         return { feedback: sanitized }
       }
+      return { feedback: [] }
     } catch (e: any) {
-      console.warn('[FestFlow Feedback] Query note:', e.message)
+      return {
+        feedback: [],
+        error: e?.message || 'Failed to load event feedback.',
+      }
     }
   }
 

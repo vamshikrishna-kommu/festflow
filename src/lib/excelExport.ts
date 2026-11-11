@@ -403,11 +403,11 @@ export async function buildAttendanceWorkbook(params: {
   workbook.creator = 'FestFlow Campus Gate Operations'
   workbook.created = new Date()
 
-  const worksheet = workbook.addWorksheet('Gate Attendance Log', {
+  const worksheet = workbook.addWorksheet('Historical Attendance', {
     pageSetup: { orientation: 'landscape' },
   })
 
-  // Calculate authoritative attendance figures
+  // Calculate authoritative historical attendance figures
   const confirmedCount = registrations.filter((r) => r.status === 'confirmed').length
   const totalScans = checkIns.length
   const insideCount = checkIns.filter((c) => c.status !== 'checked_out').length
@@ -415,12 +415,12 @@ export async function buildAttendanceWorkbook(params: {
   const turnoutRate = confirmedCount > 0 ? Math.round((insideCount / confirmedCount) * 100) : 0
 
   // Metadata Summary Block
-  worksheet.addRow([`Gate Attendance & Turnstile Log: ${event.title}`])
+  worksheet.addRow([`Historical Attendance Archive: ${event.title}`])
   worksheet.addRow([
     `Venue: ${event.venue_name || 'Campus Venue'}  |  Event Date: ${formatExcelDateTime(event.start_date)}  |  Re-entry: ${event.allow_reentry ? 'Permitted' : 'Strict Single Entry'}`,
   ])
   worksheet.addRow([
-    `Admitted Inside: ${insideCount}  |  Checked Out: ${checkedOutCount}  |  Total Scans: ${totalScans}  |  Confirmed: ${confirmedCount}  |  Turnout: ${turnoutRate}%`,
+    `Recorded Admitted: ${insideCount}  |  Checked Out: ${checkedOutCount}  |  Total Records: ${totalScans}  |  Confirmed: ${confirmedCount}  |  Rate: ${turnoutRate}%`,
   ])
   worksheet.addRow([]) // Spacer row
 
@@ -436,13 +436,13 @@ export async function buildAttendanceWorkbook(params: {
     'Attendee / Team Name',
     'Student Email',
     'Participation Type',
-    'Gate Turnstile Status',
-    'First Gate Check-In',
-    'Last Gate Check-Out',
+    'Historical Attendance Status',
+    'First Recorded Entry',
+    'Last Recorded Checkout',
     'Total Admissions (Entry Count)',
     'Verified Operator ID',
     'Checkout Operator ID',
-    'Operator Turnstile Notes',
+    'Archive Notes',
   ]
 
   const headerRowNumber = 5

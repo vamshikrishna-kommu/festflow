@@ -576,11 +576,10 @@ export async function getEventWaitlistStatus(
 
       if (studentId) {
         const { data: entry } = await (supabase.from('event_waitlist_entries') as any)
-          .from('event_waitlist_entries')
           .select('*')
           .eq('event_id', eventId)
           .eq('student_id', studentId)
-          .single()
+          .maybeSingle()
 
         if (entry) {
           userEntry = entry as EventWaitlistEntryRecord
@@ -786,16 +785,16 @@ export const DEFAULT_CLUB_AUTOMATIONS: Array<{
   {
     trigger_type: 'reminder_1d',
     label: '24-Hour Urgent Reminder',
-    description: 'Sent 1 day prior with venue gate location and digital pass instructions',
+    description: 'Sent 1 day prior with venue details and digital pass information',
     defaultTemplate:
-      'Get ready! {{event_title}} starts tomorrow at {{start_time}}. Keep your FestFlow digital pass ready for scan.',
+      'Get ready! {{event_title}} starts tomorrow at {{start_time}}. Keep your FestFlow digital pass handy.',
   },
   {
     trigger_type: 'reminder_2h',
-    label: '2-Hour Final Turnstile Call',
-    description: 'Sent 2 hours before turnstile doors open for instant gate admission',
+    label: '2-Hour Pre-Event Call',
+    description: 'Sent 2 hours before the event begins with venue and pass details',
     defaultTemplate:
-      'Doors opening soon for {{event_title}}! Turnstiles open at {{venue_name}}. Have your QR pass loaded.',
+      'Starting soon: {{event_title}} at {{venue_name}}! Have your confirmed digital pass details handy.',
   },
   {
     trigger_type: 'post_event_feedback',
@@ -816,12 +815,15 @@ export async function getClubEventAutomations(
         .from('club_event_automations')
         .select('*')
         .eq('event_id', eventId)
+        .eq('club_id', clubId)
 
-      if (!error && data) {
-        return data as ClubEventAutomationRecord[]
+      if (error) {
+        console.warn('[FestFlow Automations] Query rejected:', error.message)
+        return []
       }
+      return (data as ClubEventAutomationRecord[]) || []
     } catch {
-      // fallback
+      return []
     }
   }
 
@@ -829,13 +831,13 @@ export async function getClubEventAutomations(
     const raw = localStorage.getItem(LOCAL_AUTOMATIONS_KEY)
     if (raw) {
       const all: ClubEventAutomationRecord[] = JSON.parse(raw)
-      return all.filter((a) => a.event_id === eventId)
+      return all.filter((a) => a.event_id === eventId && a.club_id === clubId)
     }
   } catch {
     // fallback
   }
 
-  // Pre-seed default automation rules if none exist
+  // Pre-seed default automation rules if none exist in local mode
   return DEFAULT_CLUB_AUTOMATIONS.map((def) => ({
     id: `auto_${def.trigger_type}_${eventId}`,
     event_id: eventId,
@@ -850,22 +852,35 @@ export async function getClubEventAutomations(
 export async function saveClubEventAutomation(
   record: Partial<ClubEventAutomationRecord>
 ): Promise<{ success: boolean; record?: ClubEventAutomationRecord; message: string }> {
-  if (isSupabaseConfigured && record.event_id && record.club_id) {
+  if (!record.event_id || !record.club_id) {
+    return { success: false, message: 'Event ID and Club ID are required.' }
+  }
+
+  if (isSupabaseConfigured) {
     try {
       const { data, error } = await (supabase.from('club_event_automations') as any)
         .upsert(record)
         .select()
         .single()
 
-      if (!error && data) {
+      if (error || !data) {
         return {
-          success: true,
-          record: data as ClubEventAutomationRecord,
-          message: 'Automation rule saved successfully.',
+          success: false,
+          message: error?.message || 'Unable to save automation rule.',
         }
       }
-    } catch {
-      // fallback
+
+      return {
+        success: true,
+        record: data as ClubEventAutomationRecord,
+        message: 'Automation rule saved successfully.',
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message:
+          err instanceof Error ? err.message : 'Failed to save automation rule.',
+      }
     }
   }
 

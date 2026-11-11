@@ -11,7 +11,16 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured, isProduction } from '@/lib/supabase'
 import { getAuthCallbackUrl, getResetPasswordUrl } from '@/lib/canonicalUrl'
-import type { UserRole, Profile, ClubProfile, StudentProfile, ClubMemberRecord, ClubRole } from '@/types'
+import type {
+  UserRole,
+  Profile,
+  ClubProfile,
+  StudentProfile,
+  ClubMemberRecord,
+  ClubRole,
+  ClubPermission,
+  EventAssignmentRecord,
+} from '@/types'
 import {
   canAccessStudentWorkspace,
   canAccessClubWorkspace,
@@ -20,7 +29,10 @@ import {
   type WorkspaceType,
   type AvailableClub,
 } from '@/lib/workspace'
-import { broadcastStatusChange } from '@/lib/sync'
+import { hasPermission, hasEventPermission as hasEventPermissionHelper } from '@/lib/rbac'
+import { getUserEventAssignments } from '@/lib/eventAssignments'
+import { broadcastStatusChange, subscribeToStatusChanges } from '@/lib/sync'
+import { clearAllUserTicketCaches, reconcileTicketCacheOwner } from '@/lib/ticketCache'
 
 export interface SignUpClubParams {
   name: string
@@ -49,6 +61,7 @@ export interface AuthContextType {
   studentProfile: StudentProfile | null
   clubMemberships: ClubMemberRecord[]
   activeClubMembership: ClubMemberRecord | null
+  eventAssignments: EventAssignmentRecord[]
   hasClubMembership: boolean
   activeClubId: string | null
   activeClubProfile: ClubProfile | null
@@ -56,6 +69,8 @@ export interface AuthContextType {
   isDualEligible: boolean
   availableClubs: AvailableClub[]
   activeClubRole: ClubRole | null
+  hasClubPermission: (permission: ClubPermission) => boolean
+  hasEventPermission: (eventId: string, permission: ClubPermission, eventClubId?: string | null) => boolean
   role: UserRole | null
   isLoading: boolean
   isRoleLoading: boolean
@@ -72,6 +87,7 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: string | null; success: boolean }>
   updatePassword: (newPassword: string) => Promise<{ error: string | null; success: boolean }>
   refreshProfile: () => Promise<void>
+  refreshMemberships: () => Promise<void>
   updateProfile: (data: {
     displayName?: string
     collegeName?: string
@@ -117,12 +133,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clubProfile, setClubProfile] = useState<ClubProfile | null>(null)
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
   const [clubMemberships, setClubMemberships] = useState<ClubMemberRecord[]>([])
+  const [legacyOwnedClub, setLegacyOwnedClub] = useState<ClubProfile | null>(null)
   const [activeClubMembership, setActiveClubMembership] = useState<ClubMemberRecord | null>(null)
   const [activeClubProfile, setActiveClubProfile] = useState<ClubProfile | null>(null)
+  const [eventAssignments, setEventAssignments] = useState<EventAssignmentRecord[]>([])
+  const [preferredWorkspace, setPreferredWorkspace] = useState<WorkspaceType>(() => {
+    try {
+      const stored = sessionStorage.getItem('festflow_active_workspace')
+      if (stored === 'student' || stored === 'club') return stored
+    } catch {
+      // ignore
+    }
+    return 'student'
+  })
+  const [preferredClubId, setPreferredClubId] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('festflow_preferred_club_id')
+    } catch {
+      return null
+    }
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [isRoleLoading, setIsRoleLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const profileRef = useRef<Profile | null>(null)
+  const preferredClubIdRef = useRef<string | null>(preferredClubId)
+  preferredClubIdRef.current = preferredClubId
+
+  const clearWorkspaceAndAuthState = useCallback(() => {
+    try {
+      sessionStorage.removeItem('festflow_active_workspace')
+      sessionStorage.removeItem('festflow_preferred_club_id')
+    } catch {
+      // ignore
+    }
+    preferredClubIdRef.current = null
+    setPreferredClubId(null)
+    setPreferredWorkspace('student')
+    profileRef.current = null
+    setProfile(null)
+    setClubProfile(null)
+    setLegacyOwnedClub(null)
+    setStudentProfile(null)
+    setClubMemberships([])
+    setActiveClubMembership(null)
+    setActiveClubProfile(null)
+    setEventAssignments([])
+    setProfileError(null)
+    setIsRoleLoading(false)
+  }, [])
 
   // ── Fetch Profile from Supabase (Strict Database Source of Truth) ────────
   const fetchProfile = useCallback(
@@ -131,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userMeta?: Record<string, unknown>,
       silent = false,
       userSessionEmail?: string
-    ) => {
+    ): Promise<Profile | null> => {
       if (!silent) setIsRoleLoading(true)
       setProfileError(null)
     try {
@@ -144,14 +203,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error('[FestFlow Security] Profile authorization query failed:', error.message)
+          profileRef.current = null
           setProfile(null)
           setClubProfile(null)
+          setLegacyOwnedClub(null)
           setStudentProfile(null)
           setClubMemberships([])
           setActiveClubMembership(null)
           setActiveClubProfile(null)
+          setEventAssignments([])
           setProfileError(error.message || 'Failed to verify account authorization.')
-          return
+          return null
         }
 
         let profileData = data as unknown as Profile | null
@@ -166,14 +228,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               (userMeta?.full_name as string) ||
               (userMeta?.name as string) ||
               (userMeta?.display_name as string) ||
-              (userMeta?.email ? (userMeta.email as string).split('@')[0] : 'FestFlow Member')
+              (userSessionEmail ? userSessionEmail.split('@')[0] : 'FestFlow Member')
 
             const { data: createdProfile, error: pCreateErr } = await (supabase.from('profiles') as any)
               .insert({
                 id: userId,
                 role: 'student',
                 display_name: defaultName,
-                email: (userMeta?.email as string) || userSessionEmail || '',
+                email: userSessionEmail || '',
               })
               .select('*')
               .maybeSingle()
@@ -190,20 +252,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (profileData) {
-          const userEmail =
-            userSessionEmail ||
-            (userMeta?.email as string) ||
-            profileData.email ||
-            ''
+          const verifiedEmail = userSessionEmail || profileData.email || ''
           const isSuperAdminEmail =
-            PLATFORM_ADMIN_EMAILS.includes(userEmail.toLowerCase().trim()) ||
+            (verifiedEmail && PLATFORM_ADMIN_EMAILS.includes(verifiedEmail.toLowerCase().trim())) ||
             (userSessionEmail && PLATFORM_ADMIN_EMAILS.includes(userSessionEmail.toLowerCase().trim())) ||
             (profileData.email && PLATFORM_ADMIN_EMAILS.includes(profileData.email.toLowerCase().trim()))
           if (isSuperAdminEmail && profileData.role !== 'platform_admin') {
             profileData = { ...profileData, role: 'platform_admin' }
             try {
               void (supabase as any).rpc('bootstrap_initial_super_admin', {
-                p_email: userEmail.toLowerCase().trim(),
+                p_email: verifiedEmail.toLowerCase().trim(),
               })
             } catch {
               // Non-blocking
@@ -213,16 +271,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profileRef.current = profileData
           setProfile(profileData)
 
-          // Concurrently fetch subprofile and club memberships in parallel to avoid sequential network round trips
-          const subProfilePromise = (async () => {
+          const subProfilePromise = (async (): Promise<ClubProfile | null> => {
             if (profileData.role === 'club_member') {
               const { data: cData } = await supabase
                 .from('club_profiles')
                 .select('*')
                 .eq('profile_id', userId)
                 .maybeSingle()
-              setClubProfile((cData as unknown as ClubProfile | null) ?? null)
+              const cp = (cData as unknown as ClubProfile | null) ?? null
+              setClubProfile(cp)
+              return cp
             } else if (profileData.role === 'student') {
+              setClubProfile(null)
               const { data: sData } = await supabase
                 .from('student_profiles')
                 .select('*')
@@ -246,89 +306,165 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 })
               }
             }
+            return null
           })()
 
-          const membershipsPromise = (async () => {
+          const membershipsPromise = (async (): Promise<{
+            ok: boolean
+            allRows: ClubMemberRecord[]
+            enrichedActive: ClubMemberRecord[]
+            errorMsg?: string
+          }> => {
             try {
               const { data: memberRows, error: mErr } = await (supabase.from('club_members') as any)
                 .select('*')
                 .eq('user_id', userId)
-                .eq('status', 'active')
 
-              if (!mErr && memberRows && memberRows.length > 0) {
-                const typedMembers = memberRows as ClubMemberRecord[]
-                const clubIds = typedMembers.map((m) => m.club_id)
-
-                // Fetch matching organization profiles to enrich club names
-                let enrichedMembers: ClubMemberRecord[] = typedMembers
-                try {
-                  const { data: orgData } = await (supabase.from('club_profiles') as any)
-                    .select('*')
-                    .in('profile_id', clubIds)
-                  if (orgData && orgData.length > 0) {
-                    const orgList = orgData as ClubProfile[]
-                    enrichedMembers = typedMembers.map((m) => {
-                      const org = orgList.find((o) => o.profile_id === m.club_id)
-                      return {
-                        ...m,
-                        club: org || null,
-                        club_name: org?.club_name || 'Campus Club',
-                      }
-                    })
-                  }
-                } catch {
-                  // ignore org lookup failure
+              if (mErr) {
+                console.error('[FestFlow Security] Club members query failed:', mErr.message)
+                return {
+                  ok: false,
+                  allRows: [],
+                  enrichedActive: [],
+                  errorMsg: mErr.message || 'Failed to verify club memberships.',
                 }
-
-                setClubMemberships(enrichedMembers)
-
-                // Check preferred club from sessionStorage
-                let preferredId: string | null = null
-                try {
-                  preferredId = sessionStorage.getItem('festflow_preferred_club_id')
-                } catch {
-                  // ignore
-                }
-
-                const matched = preferredId
-                  ? enrichedMembers.find((m) => m.club_id === preferredId)
-                  : null
-                const selectedMembership = matched || enrichedMembers[0]
-
-                setActiveClubMembership(selectedMembership)
-                if (selectedMembership.club) {
-                  setActiveClubProfile(selectedMembership.club)
-                } else {
-                  const { data: cOrgData } = await (supabase.from('club_profiles') as any)
-                    .select('*')
-                    .eq('profile_id', selectedMembership.club_id)
-                    .maybeSingle()
-                  setActiveClubProfile(cOrgData ? (cOrgData as unknown as ClubProfile) : null)
-                }
-              } else {
-                setClubMemberships([])
-                setActiveClubMembership(null)
-                setActiveClubProfile(null)
               }
-            } catch (mCatchErr) {
-              console.warn('[FestFlow Auth] Club members lookup warning:', mCatchErr)
-              setClubMemberships([])
-              setActiveClubMembership(null)
-              setActiveClubProfile(null)
+
+              const allRows = (memberRows || []) as ClubMemberRecord[]
+              const activeRows = allRows.filter((m) => m.status === 'active')
+              if (activeRows.length === 0) {
+                return { ok: true, allRows, enrichedActive: [] }
+              }
+
+              const clubIds = activeRows.map((m) => m.club_id)
+              let enrichedActive: ClubMemberRecord[] = activeRows
+              try {
+                const { data: orgData } = await (supabase.from('club_profiles') as any)
+                  .select('*')
+                  .in('profile_id', clubIds)
+                if (orgData && orgData.length > 0) {
+                  const orgList = orgData as ClubProfile[]
+                  enrichedActive = activeRows.map((m) => {
+                    const org = orgList.find((o) => o.profile_id === m.club_id)
+                    return {
+                      ...m,
+                      club: org || null,
+                      club_name: org?.club_name || 'Campus Club',
+                    }
+                  })
+                }
+              } catch {
+                // ignore org lookup enrichment failure
+              }
+
+              return { ok: true, allRows, enrichedActive }
+            } catch (mCatchErr: any) {
+              console.error('[FestFlow Security] Club members lookup exception:', mCatchErr)
+              return {
+                ok: false,
+                allRows: [],
+                enrichedActive: [],
+                errorMsg: mCatchErr?.message || 'Club membership lookup failed.',
+              }
             }
           })()
 
-          await Promise.all([subProfilePromise, membershipsPromise])
+          const assignmentsPromise = getUserEventAssignments(userId)
+
+          const [ownClubProfile, membershipsResult, assignmentsResult] = await Promise.all([
+            subProfilePromise,
+            membershipsPromise,
+            assignmentsPromise,
+          ])
+
+          if (!membershipsResult.ok) {
+            setClubMemberships([])
+            setLegacyOwnedClub(null)
+            setActiveClubMembership(null)
+            setActiveClubProfile(null)
+            setEventAssignments([])
+            setProfileError(membershipsResult.errorMsg || 'Failed to verify club memberships.')
+            return profileData
+          }
+
+          const { allRows, enrichedActive } = membershipsResult
+
+          // Legacy owner fallback ONLY when club_profiles exists for userId, user has NO club_members
+          // row for that club (e.g. removed/revoked/demoted), AND zero active owners exist in DB.
+          let resolvedLegacyClub: ClubProfile | null = null
+          if (
+            ownClubProfile &&
+            !allRows.some((m) => m.club_id === ownClubProfile.profile_id)
+          ) {
+            const { data: existingOwners, error: ownerCheckErr } = await (supabase.from('club_members') as any)
+              .select('id')
+              .eq('club_id', ownClubProfile.profile_id)
+              .eq('role', 'owner')
+              .eq('status', 'active')
+              .limit(1)
+
+            if (!ownerCheckErr && (!existingOwners || existingOwners.length === 0)) {
+              resolvedLegacyClub = ownClubProfile
+            }
+          }
+
+          setLegacyOwnedClub(resolvedLegacyClub)
+          setClubMemberships(enrichedActive)
+
+          const activeClubIdSet = new Set(enrichedActive.map((m) => m.club_id))
+          if (resolvedLegacyClub) activeClubIdSet.add(resolvedLegacyClub.profile_id)
+
+          if (assignmentsResult.error) {
+            console.warn('[FestFlow Auth] Event assignments lookup warning:', assignmentsResult.error)
+            setEventAssignments([])
+          } else {
+            setEventAssignments(
+              (assignmentsResult.assignments || []).filter((a) => activeClubIdSet.has(a.club_id))
+            )
+          }
+
+          const currentPref = preferredClubIdRef.current
+          if (resolvedLegacyClub && currentPref === resolvedLegacyClub.profile_id) {
+            setActiveClubMembership(null)
+            setActiveClubProfile(resolvedLegacyClub)
+          } else if (enrichedActive.length > 0) {
+            const matched = currentPref
+              ? enrichedActive.find((m) => m.club_id === currentPref)
+              : null
+            const selectedMembership = matched || enrichedActive[0]
+            setActiveClubMembership(selectedMembership)
+            if (selectedMembership.club) {
+              setActiveClubProfile(selectedMembership.club)
+            } else {
+              const { data: cOrgData } = await (supabase.from('club_profiles') as any)
+                .select('*')
+                .eq('profile_id', selectedMembership.club_id)
+                .maybeSingle()
+              setActiveClubProfile(cOrgData ? (cOrgData as unknown as ClubProfile) : null)
+            }
+          } else if (resolvedLegacyClub) {
+            setActiveClubMembership(null)
+            setActiveClubProfile(resolvedLegacyClub)
+          } else {
+            setActiveClubMembership(null)
+            setActiveClubProfile(null)
+          }
+
+          return profileData
         } else {
           // Profile missing in database — fail closed to prevent metadata privilege escalation
           console.warn('[FestFlow Security] No database profile found for user:', userId)
+          profileRef.current = null
           setProfile(null)
           setClubProfile(null)
+          setLegacyOwnedClub(null)
           setStudentProfile(null)
           setClubMemberships([])
           setActiveClubMembership(null)
           setActiveClubProfile(null)
+          setEventAssignments([])
           setProfileError('Account profile record not found in database.')
+          return null
         }
       } else {
         // Offline / Simulation Mode (Development only)
@@ -343,9 +479,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }
+          profileRef.current = fallbackProfile
           setProfile(fallbackProfile)
+
+          let ownMockClub: ClubProfile | null = null
           if (fallbackRole === 'club_member') {
-            setClubProfile({
+            ownMockClub = {
               id: `cp_${userId}`,
               profile_id: userId,
               club_name: (userMeta.club_name as string) || 'Campus Club',
@@ -355,54 +494,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               is_verified: false,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
-            })
+            }
           }
+          setClubProfile(ownMockClub)
 
-          // Check simulation club memberships
           try {
             const rawMembers =
               localStorage.getItem('festflow_local_club_members') ||
               localStorage.getItem('festflow_club_members')
-            if (rawMembers) {
-              const parsedMembers = JSON.parse(rawMembers) as ClubMemberRecord[]
-              const activeMembers = parsedMembers.filter(
-                (m) => m.user_id === userId && m.status === 'active'
-              )
+            const parsedMembers = rawMembers ? (JSON.parse(rawMembers) as ClubMemberRecord[]) : []
+            const userAllRows = parsedMembers.filter((m) => m.user_id === userId)
+            const activeMembers = userAllRows.filter((m) => m.status === 'active')
 
-              // Load mock club profiles for club names if available
-              let enriched = activeMembers
-              try {
-                const rawClubs = localStorage.getItem('festflow_local_clubs')
-                if (rawClubs) {
-                  const parsedClubs = JSON.parse(rawClubs) as Array<{ id: string; name: string }>
-                  enriched = activeMembers.map((m) => {
-                    const c = parsedClubs.find((cl) => cl.id === m.club_id)
-                    return {
-                      ...m,
-                      club_name: c?.name || m.club_name || 'Campus Club',
-                    }
-                  })
-                }
-              } catch {
-                // ignore
+            let enriched = activeMembers
+            try {
+              const rawClubs = localStorage.getItem('festflow_local_clubs')
+              if (rawClubs) {
+                const parsedClubs = JSON.parse(rawClubs) as Array<{ id: string; name: string }>
+                enriched = activeMembers.map((m) => {
+                  const c = parsedClubs.find((cl) => cl.id === m.club_id)
+                  return {
+                    ...m,
+                    club_name: c?.name || m.club_name || 'Campus Club',
+                  }
+                })
               }
+            } catch {
+              // ignore
+            }
 
-              setClubMemberships(enriched)
+            const hasExplicitRowForOwnClub =
+              ownMockClub !== null && userAllRows.some((m) => m.club_id === ownMockClub!.profile_id)
+            const resolvedMockLegacy =
+              ownMockClub && !hasExplicitRowForOwnClub ? ownMockClub : null
 
-              let preferredId: string | null = null
-              try {
-                preferredId = sessionStorage.getItem('festflow_preferred_club_id')
-              } catch {
-                // ignore
-              }
-              const matched = preferredId ? enriched.find((m) => m.club_id === preferredId) : null
-              const selected = matched || (enriched.length > 0 ? enriched[0] : null)
+            setLegacyOwnedClub(resolvedMockLegacy)
+            setClubMemberships(enriched)
 
+            const { assignments } = await getUserEventAssignments(userId)
+            setEventAssignments(assignments || [])
+
+            const currentPref = preferredClubIdRef.current
+            const matched = currentPref ? enriched.find((m) => m.club_id === currentPref) : null
+            const selected = matched || (enriched.length > 0 ? enriched[0] : null)
+
+            if (resolvedMockLegacy && currentPref === resolvedMockLegacy.profile_id) {
+              setActiveClubMembership(null)
+              setActiveClubProfile(resolvedMockLegacy)
+            } else if (selected) {
               setActiveClubMembership(selected)
-              if (selected && selected.club) {
-                setActiveClubProfile(selected.club)
-              } else if (selected) {
-                setActiveClubProfile({
+              setActiveClubProfile(
+                selected.club || {
                   id: `cp_${selected.club_id}`,
                   profile_id: selected.club_id,
                   club_name: selected.club_name || 'Campus Club',
@@ -412,25 +554,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   is_verified: true,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
-                })
-              } else {
-                setActiveClubProfile(null)
-              }
+                }
+              )
+            } else if (resolvedMockLegacy) {
+              setActiveClubMembership(null)
+              setActiveClubProfile(resolvedMockLegacy)
             } else {
-              setClubMemberships([])
               setActiveClubMembership(null)
               setActiveClubProfile(null)
             }
           } catch {
+            setLegacyOwnedClub(null)
             setClubMemberships([])
             setActiveClubMembership(null)
             setActiveClubProfile(null)
+            setEventAssignments([])
           }
+          return fallbackProfile
         }
+        return null
       }
     } catch (err) {
       console.error('[FestFlow Auth] Error fetching profile:', err)
       setProfileError(err instanceof Error ? err.message : 'Authorization lookup failed')
+      return null
     } finally {
       if (!silent) setIsRoleLoading(false)
     }
@@ -443,6 +590,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isSupabaseConfigured) {
       supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
         if (!mounted) return
+        reconcileTicketCacheOwner(initialSession?.user?.id ?? null)
         setSession(initialSession)
         setUser(initialSession?.user ?? null)
         if (initialSession?.user) {
@@ -461,27 +609,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
         if (!mounted) return
-        setSession(newSession)
-        setUser(newSession?.user ?? null)
-        if (newSession?.user) {
-          const isSilent =
-            event === 'TOKEN_REFRESHED' ||
-            Boolean(profileRef.current && profileRef.current.id === newSession.user.id)
-          fetchProfile(
-            newSession.user.id,
-            newSession.user.user_metadata,
-            isSilent,
-            newSession.user.email
-          )
-        } else {
-          profileRef.current = null
-          setProfile(null)
-          setClubProfile(null)
-          setStudentProfile(null)
-          setClubMemberships([])
-          setActiveClubMembership(null)
-          setActiveClubProfile(null)
+        if (event === 'SIGNED_OUT' || !newSession?.user) {
+          clearAllUserTicketCaches()
+          setSession(null)
+          setUser(null)
+          clearWorkspaceAndAuthState()
+          return
         }
+
+        reconcileTicketCacheOwner(newSession.user.id)
+        const switchedAccount = Boolean(
+          profileRef.current && profileRef.current.id !== newSession.user.id
+        )
+        if (switchedAccount) {
+          clearWorkspaceAndAuthState()
+        }
+
+        setSession(newSession)
+        setUser(newSession.user)
+        const isSilent =
+          event === 'TOKEN_REFRESHED' ||
+          Boolean(profileRef.current && profileRef.current.id === newSession.user.id)
+        fetchProfile(
+          newSession.user.id,
+          newSession.user.user_metadata,
+          isSilent,
+          newSession.user.email
+        )
       })
 
       return () => {
@@ -491,11 +645,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       // In Production, NEVER silently load fake authentication
       if (isProduction) {
+        clearAllUserTicketCaches()
+        clearWorkspaceAndAuthState()
         setSession(null)
         setUser(null)
-        setProfile(null)
-        setClubProfile(null)
-        setStudentProfile(null)
         setIsLoading(false)
         return
       }
@@ -505,6 +658,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const stored = localStorage.getItem(MOCK_STORAGE_KEY)
         if (stored) {
           const parsed = JSON.parse(stored) as SimulatedAuthData
+          reconcileTicketCacheOwner(parsed.user.id)
           setUser(parsed.user as unknown as User)
           setSession({
             access_token: 'mock_token',
@@ -514,9 +668,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             refresh_token: 'mock_refresh',
             user: parsed.user as unknown as User,
           })
+          profileRef.current = parsed.profile
           setProfile(parsed.profile)
           setClubProfile(parsed.clubProfile ?? null)
           setStudentProfile(parsed.studentProfile ?? null)
+          void fetchProfile(
+            parsed.user.id,
+            parsed.user.user_metadata as Record<string, unknown>,
+            true,
+            parsed.user.email
+          )
         } else {
           setSession(null)
           setUser(null)
@@ -528,9 +689,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false)
       }
     }
-  }, [fetchProfile])
+  }, [fetchProfile, clearWorkspaceAndAuthState])
 
-  // ── Refresh Profile ───────────────────────────────────────────────────────
+  // ── Refresh Profile & Memberships ─────────────────────────────────────────
   const refreshProfile = useCallback(async () => {
     if (isSupabaseConfigured) {
       try {
@@ -550,9 +711,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (stored) {
           const parsed = JSON.parse(stored) as SimulatedAuthData
           setUser(parsed.user as unknown as User)
-          setProfile(parsed.profile)
-          if (parsed.studentProfile !== undefined) setStudentProfile(parsed.studentProfile)
-          if (parsed.clubProfile !== undefined) setClubProfile(parsed.clubProfile)
+          await fetchProfile(
+            parsed.user.id,
+            parsed.user.user_metadata as Record<string, unknown>,
+            true,
+            parsed.user.email
+          )
+          return
         }
       } catch {
         // ignore
@@ -562,6 +727,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user?.id) {
       await fetchProfile(user.id, user.user_metadata, false, user.email)
     }
+  }, [user, fetchProfile])
+
+  const refreshMemberships = useCallback(async () => {
+    if (!user?.id) return
+    await fetchProfile(user.id, user.user_metadata, true, user.email)
   }, [user, fetchProfile])
 
   // ── Update Profile & Settings ──────────────────────────────────────────────
@@ -594,7 +764,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .eq('id', user.id)
 
             if (pErr) {
-              console.warn('[FestFlow Auth] Profiles update note (persisting via auth metadata):', pErr.message)
+              console.warn('[FestFlow Auth] Profiles update failed:', pErr.message)
+              return { error: pErr.message || 'Failed to update profile.' }
             }
           }
 
@@ -607,13 +778,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (params.collegeId !== undefined) updatePayload.college_id = params.collegeId || null
             if (params.gradYear !== undefined) updatePayload.graduation_year = params.gradYear
 
-            // First attempt update to comply with existing "students can update own student profile" RLS policy
             const { data: updatedRows, error: sErr } = await (supabase.from('student_profiles') as any)
               .update(updatePayload)
               .eq('profile_id', user.id)
               .select('id')
 
-            // If no row updated (e.g., student_profile record not yet created), attempt insert
             if (!sErr && (!updatedRows || updatedRows.length === 0)) {
               const { error: insertErr } = await (supabase.from('student_profiles') as any)
                 .insert({
@@ -621,14 +790,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   ...updatePayload,
                 })
               if (insertErr) {
-                console.warn('[FestFlow Auth] student_profiles insert note:', insertErr.message)
+                console.warn('[FestFlow Auth] student_profiles insert failed:', insertErr.message)
+                return { error: insertErr.message || 'Failed to create student profile.' }
               }
             } else if (sErr) {
-              console.warn('[FestFlow Auth] student_profiles update note (persisting via auth metadata):', sErr.message)
+              console.warn('[FestFlow Auth] student_profiles update failed:', sErr.message)
+              return { error: sErr.message || 'Failed to update student profile.' }
             }
           }
 
-          // 3. Update club_profiles table if club fields provided
+          // 3. Update club_profiles table for the active club if club fields provided
+          let clubUpdatePayload: Record<string, any> | null = null
+          let targetClubId: string | null = null
           if (
             params.clubName !== undefined ||
             params.repName !== undefined ||
@@ -636,22 +809,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             params.websiteUrl !== undefined ||
             params.collegeId !== undefined
           ) {
-            const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() }
-            if (params.clubName !== undefined) updatePayload.club_name = params.clubName.trim()
-            if (params.repName !== undefined) updatePayload.representative_name = params.repName.trim()
-            if (params.description !== undefined) updatePayload.description = params.description?.trim() || null
-            if (params.websiteUrl !== undefined) updatePayload.website_url = params.websiteUrl?.trim() || null
-            if (params.collegeId !== undefined) updatePayload.college_id = params.collegeId || null
+            targetClubId =
+              activeClubMembership?.club_id ||
+              activeClubProfile?.profile_id ||
+              legacyOwnedClub?.profile_id ||
+              clubProfile?.profile_id ||
+              user.id
+            clubUpdatePayload = { updated_at: new Date().toISOString() }
+            if (params.clubName !== undefined) clubUpdatePayload.club_name = params.clubName.trim()
+            if (params.repName !== undefined) clubUpdatePayload.representative_name = params.repName.trim()
+            if (params.description !== undefined) clubUpdatePayload.description = params.description?.trim() || null
+            if (params.websiteUrl !== undefined) clubUpdatePayload.website_url = params.websiteUrl?.trim() || null
+            if (params.collegeId !== undefined) clubUpdatePayload.college_id = params.collegeId || null
 
             const { error: cErr } = await (supabase.from('club_profiles') as any)
-              .update(updatePayload)
-              .eq('profile_id', user.id)
+              .update(clubUpdatePayload)
+              .eq('profile_id', targetClubId)
             if (cErr) {
-              console.warn('[FestFlow Auth] club_profiles update note:', cErr.message)
+              console.warn('[FestFlow Auth] club_profiles update failed:', cErr.message)
+              return { error: cErr.message || 'Permission denied: cannot update club profile.' }
             }
           }
 
-          // 4. Update Supabase Auth user_metadata (always permitted for authenticated user)
+          // 4. Update Supabase Auth user_metadata for non-privilege preferences/display fields
           const metadataUpdates: Record<string, any> = {}
           if (params.displayName !== undefined) metadataUpdates.display_name = params.displayName.trim()
           if (params.collegeName !== undefined) metadataUpdates.college = params.collegeName?.trim() || null
@@ -678,6 +858,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ...(params.displayName !== undefined ? { display_name: params.displayName.trim() } : {}),
             }
           })
+
+          if (clubUpdatePayload && targetClubId) {
+            const clubPatch = clubUpdatePayload
+            setActiveClubProfile((prev) =>
+              prev && prev.profile_id === targetClubId ? { ...prev, ...clubPatch } : prev
+            )
+            setClubProfile((prev) =>
+              prev && prev.profile_id === targetClubId ? { ...prev, ...clubPatch } : prev
+            )
+            setLegacyOwnedClub((prev) =>
+              prev && prev.profile_id === targetClubId ? { ...prev, ...clubPatch } : prev
+            )
+          }
 
           setStudentProfile((prev) => {
             if (!prev) {
@@ -801,7 +994,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: err?.message || 'Failed to update profile settings.' }
       }
     },
-    [user, refreshProfile]
+    [user, refreshProfile, activeClubMembership, activeClubProfile, legacyOwnedClub, clubProfile]
   )
 
   // ── Sign In ───────────────────────────────────────────────────────────────
@@ -821,10 +1014,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (data.user) {
+            reconcileTicketCacheOwner(data.user.id)
             setUser(data.user)
             setSession(data.session)
-            await fetchProfile(data.user.id, data.user.user_metadata)
-            const role = (data.user.user_metadata?.role as UserRole) || 'student'
+            const loadedProfile = await fetchProfile(
+              data.user.id,
+              data.user.user_metadata,
+              false,
+              data.user.email
+            )
+            const role: UserRole = loadedProfile?.role || 'student'
             setIsLoading(false)
             return { error: null, role }
           }
@@ -894,6 +1093,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(mockData))
+          reconcileTicketCacheOwner(mockData.user.id)
           setUser(mockData.user as unknown as User)
           setSession({
             access_token: 'mock_token',
@@ -1002,6 +1202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(mockData))
+          reconcileTicketCacheOwner(mockData.user.id)
           setUser(mockData.user as unknown as User)
           setSession({
             access_token: 'mock_google_token',
@@ -1231,68 +1432,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         localStorage.removeItem(MOCK_STORAGE_KEY)
       }
-      // Clean up sensitive client-cached ticket passes on sign-out to prevent shared-device exposure
-      try {
-        const keysToRemove: string[] = []
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && key.startsWith('festflow_cached_ticket_')) {
-            keysToRemove.push(key)
-          }
-        }
-        keysToRemove.forEach((k) => localStorage.removeItem(k))
-      } catch {
-        // ignore localStorage access issues
-      }
       setSession(null)
       setUser(null)
-      setProfile(null)
-      setClubProfile(null)
-      setStudentProfile(null)
-      setClubMemberships([])
-      setActiveClubMembership(null)
-      setActiveClubProfile(null)
-      setProfileError(null)
-      setIsRoleLoading(false)
+      clearWorkspaceAndAuthState()
     } finally {
+      // Unconditionally purge all user-specific cached passes and session credentials on logout
+      clearAllUserTicketCaches()
       setIsLoading(false)
     }
-  }, [])
+  }, [clearWorkspaceAndAuthState])
 
   // ── Fast Demo Sign-In Helper (Development Only) ─────────────────────────
-  const setDemoUser = useCallback((targetRole: 'club_member' | 'student' | 'platform_admin') => {
-    if (isProduction) {
-      console.error('[FestFlow Security Safeguard] Demo logins are permanently disabled in production builds.')
-      return
-    }
+  const setDemoUser = useCallback(
+    (targetRole: 'club_member' | 'student' | 'platform_admin') => {
+      if (isProduction) {
+        console.error('[FestFlow Security Safeguard] Demo logins are permanently disabled in production builds.')
+        return
+      }
 
-    const isClub = targetRole === 'club_member'
-    const isAdmin = targetRole === 'platform_admin'
-    const name = isAdmin ? 'Platform Administrator' : isClub ? 'Sarah Chen' : 'Alex Rivera'
-    const email = isAdmin ? 'admin@festflow.online' : isClub ? 'organizer@robotics-club.edu' : 'alex.rivera@campus.edu'
-    const demoId = `demo_${targetRole}_${Date.now()}`
+      clearWorkspaceAndAuthState()
 
-    const demoData: SimulatedAuthData = {
-      user: {
-        id: demoId,
-        email,
-        user_metadata: {
-          role: targetRole,
-          display_name: name,
-          club_name: isClub ? 'Robotics & AI Club' : undefined,
-        },
-        email_confirmed_at: new Date().toISOString(),
-      },
-      profile: {
-        id: demoId,
-        role: targetRole,
-        display_name: name,
-        email,
-        avatar_url: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      clubProfile: isClub
+      const isClub = targetRole === 'club_member'
+      const isAdmin = targetRole === 'platform_admin'
+      const name = isAdmin ? 'Platform Administrator' : isClub ? 'Sarah Chen' : 'Alex Rivera'
+      const email = isAdmin ? 'admin@festflow.online' : isClub ? 'organizer@robotics-club.edu' : 'alex.rivera@campus.edu'
+      const demoId = `demo_${targetRole}_${Date.now()}`
+      const nowIso = new Date().toISOString()
+
+      const demoClubProfile: ClubProfile | null = isClub
         ? {
             id: `cp_${demoId}`,
             profile_id: demoId,
@@ -1301,49 +1468,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             website_url: 'https://robotics-festflow.edu',
             description: 'Premier student robotics team and hackathon host.',
             is_verified: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            created_at: nowIso,
+            updated_at: nowIso,
           }
-        : null,
-      studentProfile: !isClub
-        ? {
-            id: `sp_${demoId}`,
-            profile_id: demoId,
-            college_name: 'State Tech University',
-            graduation_year: 2026,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-        : null,
-    }
+        : null
 
-    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(demoData))
-    setUser(demoData.user as unknown as User)
-    setSession({
-      access_token: 'mock_token',
-      token_type: 'bearer',
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      refresh_token: 'mock_refresh',
-      user: demoData.user as unknown as User,
-    })
-    setProfile(demoData.profile)
-    setClubProfile(demoData.clubProfile ?? null)
-    setStudentProfile(demoData.studentProfile ?? null)
-    setIsLoading(false)
-  }, [])
+      const demoData: SimulatedAuthData = {
+        user: {
+          id: demoId,
+          email,
+          user_metadata: {
+            role: targetRole,
+            display_name: name,
+            club_name: isClub ? 'Robotics & AI Club' : undefined,
+          },
+          email_confirmed_at: nowIso,
+        },
+        profile: {
+          id: demoId,
+          role: targetRole,
+          display_name: name,
+          email,
+          avatar_url: null,
+          created_at: nowIso,
+          updated_at: nowIso,
+        },
+        clubProfile: demoClubProfile,
+        studentProfile: !isClub
+          ? {
+              id: `sp_${demoId}`,
+              profile_id: demoId,
+              college_name: 'State Tech University',
+              graduation_year: 2026,
+              created_at: nowIso,
+              updated_at: nowIso,
+            }
+          : null,
+      }
+
+      localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(demoData))
+      reconcileTicketCacheOwner(demoId)
+      setUser(demoData.user as unknown as User)
+      setSession({
+        access_token: 'mock_token',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'mock_refresh',
+        user: demoData.user as unknown as User,
+      })
+      profileRef.current = demoData.profile
+      setProfile(demoData.profile)
+      setClubProfile(demoClubProfile)
+      setLegacyOwnedClub(demoClubProfile)
+      setActiveClubProfile(demoClubProfile)
+      setStudentProfile(demoData.studentProfile ?? null)
+
+      if (demoClubProfile) {
+        const demoMembership: ClubMemberRecord = {
+          id: `cm_${demoId}`,
+          club_id: demoId,
+          user_id: demoId,
+          role: 'owner',
+          status: 'active',
+          created_at: nowIso,
+          updated_at: nowIso,
+          club_name: demoClubProfile.club_name,
+          club: demoClubProfile,
+        }
+        setClubMemberships([demoMembership])
+        setActiveClubMembership(demoMembership)
+        setPreferredClubId(demoId)
+        try {
+          sessionStorage.setItem('festflow_preferred_club_id', demoId)
+        } catch {
+          // ignore
+        }
+      }
+      setIsLoading(false)
+    },
+    [clearWorkspaceAndAuthState]
+  )
 
   // ── Dual Workspace & Active Club Helpers ─────────────────────────────────
-  const [preferredWorkspace, setPreferredWorkspace] = useState<WorkspaceType>(() => {
-    try {
-      const stored = sessionStorage.getItem('festflow_active_workspace')
-      if (stored === 'student' || stored === 'club') return stored
-    } catch {
-      // ignore
-    }
-    return 'student'
-  })
-
   const [routeWorkspace, setRouteWorkspace] = useState<WorkspaceType | null>(() => {
     if (typeof window !== 'undefined') {
       return getWorkspaceFromPath(window.location.pathname)
@@ -1351,41 +1558,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null
   })
 
-  // Synchronize workspace with current route and popstate navigation
+  // Synchronize workspace with React Router navigation (pushState / replaceState / popstate)
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
     const syncFromPath = () => {
-      if (typeof window !== 'undefined') {
-        setRouteWorkspace(getWorkspaceFromPath(window.location.pathname))
-      }
+      setRouteWorkspace(getWorkspaceFromPath(window.location.pathname))
     }
+
+    const origPushState = window.history.pushState.bind(window.history)
+    const origReplaceState = window.history.replaceState.bind(window.history)
+
+    window.history.pushState = function (...args: Parameters<History['pushState']>) {
+      const result = origPushState(...args)
+      queueMicrotask(syncFromPath)
+      return result
+    }
+
+    window.history.replaceState = function (...args: Parameters<History['replaceState']>) {
+      const result = origReplaceState(...args)
+      queueMicrotask(syncFromPath)
+      return result
+    }
+
     window.addEventListener('popstate', syncFromPath)
     window.addEventListener('festflow:navigation', syncFromPath)
+
     return () => {
+      window.history.pushState = origPushState
+      window.history.replaceState = origReplaceState
       window.removeEventListener('popstate', syncFromPath)
       window.removeEventListener('festflow:navigation', syncFromPath)
     }
   }, [])
 
-  const hasClubMembership = Boolean(
-    clubProfile !== null ||
-    clubMemberships.some((m) => m.status === 'active') ||
-    (isSupabaseConfigured
-      ? profile?.role === 'club_member'
-      : profile?.role === 'club_member' || (user?.user_metadata?.role as UserRole) === 'club_member')
-  )
+  const effectiveLegacyClub = isSupabaseConfigured ? legacyOwnedClub : clubProfile
 
-  const activeClubId = clubProfile?.profile_id || activeClubMembership?.club_id || null
+  const hasClubMembership = Boolean(
+    effectiveLegacyClub !== null ||
+      clubMemberships.some((m) => m.status === 'active')
+  )
 
   const availableClubs: AvailableClub[] = useMemo(() => {
     const list: AvailableClub[] = []
-    if (clubProfile) {
-      list.push({
-        id: clubProfile.profile_id,
-        name: clubProfile.club_name,
-        role: 'owner',
-        isOwner: true,
-      })
-    }
     for (const m of clubMemberships) {
       if (m.status === 'active' && !list.some((c) => c.id === m.club_id)) {
         list.push({
@@ -1396,24 +1611,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
     }
+    if (effectiveLegacyClub && !list.some((c) => c.id === effectiveLegacyClub.profile_id)) {
+      list.unshift({
+        id: effectiveLegacyClub.profile_id,
+        name: effectiveLegacyClub.club_name,
+        role: 'owner',
+        isOwner: true,
+      })
+    }
     return list
-  }, [clubProfile, clubMemberships])
+  }, [effectiveLegacyClub, clubMemberships])
+
+  // Prioritize explicitly selected activeClubMembership; fall back to legacy club profile ONLY if owned cleanly
+  const activeClubId: string | null = useMemo(() => {
+    if (activeClubMembership && activeClubMembership.status === 'active') {
+      return activeClubMembership.club_id
+    }
+    if (activeClubProfile?.profile_id && availableClubs.some((c) => c.id === activeClubProfile.profile_id)) {
+      return activeClubProfile.profile_id
+    }
+    if (effectiveLegacyClub) {
+      return effectiveLegacyClub.profile_id
+    }
+    return availableClubs[0]?.id || null
+  }, [activeClubMembership, activeClubProfile, availableClubs, effectiveLegacyClub])
 
   const activeClubRole: ClubRole | null = useMemo(() => {
-    if (clubProfile && activeClubId === clubProfile.profile_id) {
-      return 'owner'
-    }
-    if (activeClubMembership && activeClubMembership.club_id === activeClubId) {
+    if (!activeClubId) return null
+    if (
+      activeClubMembership &&
+      activeClubMembership.club_id === activeClubId &&
+      activeClubMembership.status === 'active'
+    ) {
       return activeClubMembership.role
     }
+    const matchingMember = clubMemberships.find(
+      (m) => m.club_id === activeClubId && m.status === 'active'
+    )
+    if (matchingMember) {
+      return matchingMember.role
+    }
+    if (effectiveLegacyClub && effectiveLegacyClub.profile_id === activeClubId) {
+      return 'owner'
+    }
     return null
-  }, [clubProfile, activeClubId, activeClubMembership])
+  }, [activeClubId, activeClubMembership, clubMemberships, effectiveLegacyClub])
 
   const isSuperAdminUser =
-    (user?.email && PLATFORM_ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) ||
-    (profile?.email && PLATFORM_ADMIN_EMAILS.includes(profile.email.toLowerCase().trim())) ||
-    (user?.user_metadata?.email &&
-      PLATFORM_ADMIN_EMAILS.includes(String(user.user_metadata.email).toLowerCase().trim()))
+    profile?.role === 'platform_admin' ||
+    Boolean(user?.email && PLATFORM_ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) ||
+    Boolean(profile?.email && PLATFORM_ADMIN_EMAILS.includes(profile.email.toLowerCase().trim()))
 
   const effectiveRole: UserRole | null = isSuperAdminUser
     ? 'platform_admin'
@@ -1421,19 +1668,176 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ? (profile?.role ?? null)
     : (profile?.role ?? (user?.user_metadata?.role as UserRole) ?? null)
 
+  const hasClubPermission = useCallback(
+    (permission: ClubPermission): boolean => {
+      if (effectiveRole === 'platform_admin') return true
+      return hasPermission(activeClubRole, permission)
+    },
+    [effectiveRole, activeClubRole]
+  )
+
+  const hasEventPermission = useCallback(
+    (eventId: string, permission: ClubPermission, eventClubId?: string | null): boolean => {
+      if (effectiveRole === 'platform_admin') return true
+      const targetClubId = eventClubId || activeClubId
+      if (!targetClubId || !eventId) return false
+
+      let clubRoleForEvent: ClubRole | null = null
+      const memberForClub = clubMemberships.find(
+        (m) => m.club_id === targetClubId && m.status === 'active'
+      )
+      if (memberForClub) {
+        clubRoleForEvent = memberForClub.role
+      } else if (effectiveLegacyClub && effectiveLegacyClub.profile_id === targetClubId) {
+        clubRoleForEvent = 'owner'
+      }
+
+      if (!clubRoleForEvent) return false
+
+      return hasEventPermissionHelper({
+        clubRole: clubRoleForEvent,
+        clubId: targetClubId,
+        eventClubId: eventClubId || targetClubId,
+        eventId,
+        userId: user?.id,
+        eventAssignments,
+        permission,
+      })
+    },
+    [effectiveRole, activeClubId, clubMemberships, effectiveLegacyClub, eventAssignments, user?.id]
+  )
+
+  // Live RBAC Synchronization (Supabase Realtime + BroadcastChannel + Focus/Visibility)
+  useEffect(() => {
+    if (!user?.id) return
+
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null
+    let lastFocusRefreshAt = 0
+
+    const scheduleSilentRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer)
+      refreshTimer = setTimeout(() => {
+        if (user?.id) {
+          void fetchProfile(user.id, user.user_metadata, true, user.email)
+        }
+      }, 150)
+    }
+
+    const unsubscribeSync = subscribeToStatusChanges(
+      [
+        'role_updated',
+        'membership_updated',
+        'event_assignment_updated',
+        'team_updated',
+        'invitation_accepted',
+        'reconnect',
+      ],
+      (evt) => {
+        if (
+          evt.type === 'reconnect' ||
+          !evt.studentId ||
+          evt.studentId === user.id ||
+          (activeClubId && evt.clubId === activeClubId)
+        ) {
+          scheduleSilentRefresh()
+        }
+      }
+    )
+
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      const now = Date.now()
+      if (now - lastFocusRefreshAt < 10000) return
+      lastFocusRefreshAt = now
+      scheduleSilentRefresh()
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleVisibilityOrFocus)
+      document.addEventListener('visibilitychange', handleVisibilityOrFocus)
+    }
+
+    let rbacChannel: any = null
+    if (isSupabaseConfigured) {
+      try {
+        const uid = user.id
+        const userEmailLower = (user.email || '').toLowerCase().trim()
+        rbacChannel = supabase
+          .channel(`auth-rbac-${uid}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'club_members' },
+            (payload) => {
+              const row: any = payload.new || payload.old
+              if (!row?.user_id || row.user_id === uid) {
+                scheduleSilentRefresh()
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'event_assignments' },
+            (payload) => {
+              const row: any = payload.new || payload.old
+              if (!row?.user_id || row.user_id === uid) {
+                scheduleSilentRefresh()
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'club_invitations' },
+            (payload) => {
+              const row: any = payload.new || payload.old
+              const rowEmail = String(row?.email || '').toLowerCase().trim()
+              if (!rowEmail || (userEmailLower && rowEmail === userEmailLower)) {
+                scheduleSilentRefresh()
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` },
+            () => {
+              scheduleSilentRefresh()
+            }
+          )
+          .subscribe()
+      } catch {
+        rbacChannel = null
+      }
+    }
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer)
+      unsubscribeSync()
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', handleVisibilityOrFocus)
+        document.removeEventListener('visibilitychange', handleVisibilityOrFocus)
+      }
+      if (rbacChannel && isSupabaseConfigured) {
+        try {
+          supabase.removeChannel(rbacChannel)
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [user?.id, user?.email, activeClubId, fetchProfile])
+
   const isDualEligible = useMemo(() => {
     return isDualWorkspaceEligible(
       effectiveRole,
-      clubProfile,
+      effectiveLegacyClub,
       clubMemberships
     )
-  }, [effectiveRole, clubProfile, clubMemberships])
+  }, [effectiveRole, effectiveLegacyClub, clubMemberships])
 
   const activeWorkspace: WorkspaceType = useMemo(() => {
     // Route explicitly dedicated to a workspace takes immediate priority
     if (
       routeWorkspace === 'club' &&
-      canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)
+      canAccessClubWorkspace(effectiveRole, effectiveLegacyClub, clubMemberships)
     ) {
       return 'club'
     }
@@ -1444,23 +1848,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // On neutral routes (e.g. /discover, /events/:id, /): respect user preference
     if (
       preferredWorkspace === 'club' &&
-      canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)
+      canAccessClubWorkspace(effectiveRole, effectiveLegacyClub, clubMemberships)
     ) {
       return 'club'
     }
     if (canAccessStudentWorkspace(effectiveRole)) {
       return 'student'
     }
-    if (canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)) {
+    if (canAccessClubWorkspace(effectiveRole, effectiveLegacyClub, clubMemberships)) {
       return 'club'
     }
     return 'student'
-  }, [routeWorkspace, preferredWorkspace, effectiveRole, clubProfile, clubMemberships])
+  }, [routeWorkspace, preferredWorkspace, effectiveRole, effectiveLegacyClub, clubMemberships])
 
   const switchWorkspace = useCallback(
     (target: WorkspaceType, navigate?: (path: string) => void) => {
       if (target === 'club') {
-        if (!canAccessClubWorkspace(effectiveRole, clubProfile, clubMemberships)) {
+        if (!canAccessClubWorkspace(effectiveRole, effectiveLegacyClub, clubMemberships)) {
           console.warn('[FestFlow Security] Access to Club Workspace denied: no active club membership.')
           return
         }
@@ -1493,7 +1897,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [effectiveRole, hasClubMembership, clubProfile, clubMemberships]
+    [effectiveRole, effectiveLegacyClub, clubMemberships]
   )
 
   const switchActiveClub = useCallback(
@@ -1504,17 +1908,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false
       }
 
+      preferredClubIdRef.current = clubId
+      setPreferredClubId(clubId)
       try {
         sessionStorage.setItem('festflow_preferred_club_id', clubId)
       } catch {
         // ignore
-      }
-
-      if (clubProfile && clubProfile.profile_id === clubId) {
-        setActiveClubMembership(null)
-        setActiveClubProfile(clubProfile)
-        broadcastStatusChange({ type: 'team_updated', clubId })
-        return true
       }
 
       const membership = clubMemberships.find((m) => m.club_id === clubId && m.status === 'active')
@@ -1539,9 +1938,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true
       }
 
+      if (effectiveLegacyClub && effectiveLegacyClub.profile_id === clubId) {
+        setActiveClubMembership(null)
+        setActiveClubProfile(effectiveLegacyClub)
+        broadcastStatusChange({ type: 'team_updated', clubId })
+        return true
+      }
+
       return false
     },
-    [availableClubs, clubProfile, clubMemberships]
+    [availableClubs, effectiveLegacyClub, clubMemberships]
   )
 
   const value: AuthContextType = {
@@ -1552,6 +1958,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     studentProfile,
     clubMemberships,
     activeClubMembership,
+    eventAssignments,
     hasClubMembership,
     activeClubId,
     activeClubProfile,
@@ -1559,6 +1966,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isDualEligible,
     availableClubs,
     activeClubRole,
+    hasClubPermission,
+    hasEventPermission,
     role: effectiveRole,
     isLoading,
     isRoleLoading,
@@ -1575,6 +1984,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetPassword,
     updatePassword,
     refreshProfile,
+    refreshMemberships,
     updateProfile,
     setDemoUser,
   }

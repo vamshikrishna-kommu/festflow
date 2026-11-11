@@ -1,7 +1,7 @@
 // FestFlow Production Service Worker
 // Version: 1.0.0 (Phase 9 PWA & Offline Support)
 
-const CACHE_NAME = 'festflow-core-v1';
+const CACHE_NAME = 'festflow-core-v2';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [
@@ -10,6 +10,8 @@ const STATIC_PRECACHE = [
   '/manifest.webmanifest',
   '/favicon.svg',
   '/favicon.png',
+  '/festflow-logo.webp',
+  '/festflow-emblem.webp',
   '/festflow-logo.png',
 ];
 

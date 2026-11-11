@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Clock,
   MapPin,
-  QrCode,
   TrendingUp,
   GraduationCap,
   Tag,
@@ -18,35 +17,52 @@ import {
   Activity,
   BarChart3,
   Filter,
-  CheckCircle2,
   AlertTriangle,
   Sparkles,
   Layers,
   ShieldCheck,
   Settings,
   ChevronDown,
+  Archive,
 } from 'lucide-react'
 import { Button, Badge, EmptyState } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { Link, useNavigate } from 'react-router'
 import { fadeIn, staggerContainer, metricItem } from '@/lib/animations'
-import { listClubEvents } from '@/lib/events'
+import {
+  listClubEvents,
+  getEventLifecyclePhase,
+  isEventConcludedOrCancelled,
+  LIFECYCLE_BADGE_META,
+  formatEventDate,
+  formatEventTime,
+  resolveEventTimezone,
+} from '@/lib/events'
 import { getClubPaymentSubmissions } from '@/lib/payments'
-import { hasPermission, ROLE_LABELS } from '@/lib/clubMembers'
+import { ROLE_LABELS } from '@/lib/clubMembers'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { ClubCouponsModal } from '@/components/club/ClubCouponsModal'
 import { ClubBrandingModal } from '@/components/club/ClubBrandingModal'
-import { EventComparisonModal } from '@/components/club/EventComparisonModal'
 import { EventTeamDelegationModal } from '@/components/club/EventTeamDelegationModal'
 import { EventFeedbackDashboardModal } from '@/components/club/EventFeedbackDashboardModal'
 import type { EventRecord, PaymentSubmissionWithDetails, RegistrationRecord } from '@/types'
 
 type DateRangeFilter = 'all' | 'today' | '7d' | '30d'
+type DashboardLifecycleTab = 'all' | 'upcoming' | 'ongoing' | 'completed' | 'draft' | 'cancelled'
+
+const DASHBOARD_LIFECYCLE_LABELS: Record<DashboardLifecycleTab, string> = {
+  all: 'All',
+  upcoming: 'Upcoming',
+  ongoing: 'Live Now',
+  completed: 'Completed',
+  draft: 'Drafts',
+  cancelled: 'Cancelled',
+}
 
 interface ActivityItem {
   id: string
-  type: 'registration' | 'payment' | 'checkin' | 'event'
+  type: 'registration' | 'payment' | 'event'
   title: string
   subtitle: string
   timestamp: string
@@ -61,7 +77,11 @@ export default function ClubDashboardPage() {
     activeClubProfile,
     activeClubId,
     activeClubRole,
+    eventAssignments,
     isDualEligible,
+    isRoleLoading,
+    hasClubPermission,
+    hasEventPermission,
     switchWorkspace,
     signOut,
   } = useAuth()
@@ -76,21 +96,47 @@ export default function ClubDashboardPage() {
   // Filter States
   const [dateRange, setDateRange] = useState<DateRangeFilter>('all')
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all')
+  const [eventLifecycleFilter, setEventLifecycleFilter] = useState<DashboardLifecycleTab>('all')
   const [showAllMetrics, setShowAllMetrics] = useState(false)
 
   // Modals
   const [couponsModalOpen, setCouponsModalOpen] = useState(false)
   const [brandingModalOpen, setBrandingModalOpen] = useState(false)
-  const [comparisonModalOpen, setComparisonModalOpen] = useState(false)
   const [delegationModalEvent, setDelegationModalEvent] = useState<EventRecord | null>(null)
   const [feedbackModalEvent, setFeedbackModalEvent] = useState<EventRecord | null>(null)
 
-  const clubId = activeClubId || clubProfile?.profile_id || activeClubMembership?.club_id || ''
-  const clubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Campus Organization'
-  const repName = profile?.display_name || clubProfile?.representative_name || 'Club Representative'
+  const clubId = activeClubId || ''
+  const clubName =
+    activeClubProfile?.club_name ||
+    activeClubMembership?.club_name ||
+    clubProfile?.club_name ||
+    profile?.display_name ||
+    'Campus Organization'
+  const repName =
+    profile?.display_name ||
+    activeClubProfile?.representative_name ||
+    clubProfile?.representative_name ||
+    'Club Representative'
+
+  const canCreateEvents = hasClubPermission('events.create')
+  const canEditAnyEvent = hasClubPermission('events.edit')
+  const canManageClub = hasClubPermission('club.manage')
+  const canManageCoupons = hasClubPermission('club.manage') || hasClubPermission('events.edit')
+  const canViewPayments = hasClubPermission('payments.view')
+  const canVerifyPayments = hasClubPermission('payments.verify')
+  const canViewMembers = hasClubPermission('members.view')
+  const canAssignRoles = hasClubPermission('roles.assign')
+  const canManageSettings = hasClubPermission('club.manage') || hasClubPermission('payments.settings')
+  const canViewRegistrationsClub = hasClubPermission('registrations.view')
+  const canManageRegistrationsClub = hasClubPermission('registrations.manage') || hasClubPermission('events.cancel')
+  const canViewReportsClub = hasClubPermission('reports.view')
 
   const loadClubData = async () => {
+    if (isRoleLoading) return
     if (!clubId) {
+      setEvents([])
+      setSubmissions([])
+      setAllRegistrations([])
       setLoading(false)
       return
     }
@@ -98,20 +144,31 @@ export default function ClubDashboardPage() {
 
     const [eventsRes, paymentsRes] = await Promise.all([
       listClubEvents(clubId),
-      getClubPaymentSubmissions(clubId),
+      canViewPayments ? getClubPaymentSubmissions(clubId) : Promise.resolve({ submissions: [], error: null }),
     ])
 
     const loadedEvents = eventsRes.events || []
     setEvents(loadedEvents)
-    if (paymentsRes.submissions) setSubmissions(paymentsRes.submissions)
+    setSubmissions(canViewPayments && paymentsRes.submissions ? paymentsRes.submissions : [])
 
-    // Load registrations across this club's events
-    const eventIds = loadedEvents.map((e) => e.id)
-    if (isSupabaseConfigured && eventIds.length > 0) {
+    // Load registrations across this club's events when user holds roster/report permission
+    const authorizedEventIds = loadedEvents
+      .filter(
+        (e) =>
+          canViewRegistrationsClub ||
+          canViewReportsClub ||
+          hasEventPermission(e.id, 'registrations.view', e.club_id) ||
+          hasEventPermission(e.id, 'reports.view', e.club_id)
+      )
+      .map((e) => e.id)
+
+    if (authorizedEventIds.length === 0) {
+      setAllRegistrations([])
+    } else if (isSupabaseConfigured) {
       try {
         const { data: regData } = await (supabase.from('registrations') as any)
           .select('id, event_id, status, created_at, ticket_code, cancellation_request_status')
-          .in('event_id', eventIds)
+          .in('event_id', authorizedEventIds)
           .order('created_at', { ascending: false })
 
         if (regData) {
@@ -126,7 +183,7 @@ export default function ClubDashboardPage() {
         const raw = localStorage.getItem('festflow_local_registrations')
         if (raw) {
           const parsed = JSON.parse(raw) as RegistrationRecord[]
-          setAllRegistrations(parsed.filter((r) => eventIds.includes(r.event_id)))
+          setAllRegistrations(parsed.filter((r) => authorizedEventIds.includes(r.event_id)))
         }
       } catch {
         // fallback
@@ -137,8 +194,10 @@ export default function ClubDashboardPage() {
   }
 
   useEffect(() => {
-    loadClubData()
-  }, [clubId])
+    if (!isRoleLoading) {
+      loadClubData()
+    }
+  }, [clubId, isRoleLoading, activeClubRole, canViewPayments, canViewRegistrationsClub, canViewReportsClub, eventAssignments])
 
   const now = new Date()
 
@@ -176,20 +235,116 @@ export default function ClubDashboardPage() {
     return list
   }, [allRegistrations, selectedEventFilter, dateThreshold])
 
-  // Real Database-backed metrics
-  const publishedEvents = useMemo(() => filteredEvents.filter((e) => e.status === 'published'), [filteredEvents])
-  const draftEvents = useMemo(() => filteredEvents.filter((e) => e.status === 'draft'), [filteredEvents])
-  const publishedCount = publishedEvents.length
+  // Real Database-backed lifecycle & registration metrics
+  const draftEvents = useMemo(
+    () => filteredEvents.filter((e) => getEventLifecyclePhase(e) === 'draft'),
+    [filteredEvents]
+  )
+  const liveEvents = useMemo(
+    () => filteredEvents.filter((e) => getEventLifecyclePhase(e) === 'ongoing'),
+    [filteredEvents]
+  )
+  const upcomingEventsList = useMemo(() => {
+    return filteredEvents
+      .filter((e) => {
+        const phase = getEventLifecyclePhase(e)
+        return phase === 'upcoming' || phase === 'registration_closed'
+      })
+      .sort((a, b) => new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime())
+  }, [filteredEvents])
+  const completedEvents = useMemo(
+    () => filteredEvents.filter((e) => getEventLifecyclePhase(e) === 'completed'),
+    [filteredEvents]
+  )
+  const cancelledEvents = useMemo(
+    () => filteredEvents.filter((e) => getEventLifecyclePhase(e) === 'cancelled'),
+    [filteredEvents]
+  )
+  const activePublishedEvents = useMemo(
+    () => filteredEvents.filter((e) => !isEventConcludedOrCancelled(e) && getEventLifecyclePhase(e) !== 'draft'),
+    [filteredEvents]
+  )
   const draftCount = draftEvents.length
+  const activePublishedCount = activePublishedEvents.length
+
+  const lifecycleTabCounts = useMemo(
+    () => ({
+      all: filteredEvents.length,
+      upcoming: upcomingEventsList.length,
+      ongoing: liveEvents.length,
+      completed: completedEvents.length,
+      draft: draftEvents.length,
+      cancelled: cancelledEvents.length,
+    }),
+    [
+      filteredEvents.length,
+      upcomingEventsList.length,
+      liveEvents.length,
+      completedEvents.length,
+      draftEvents.length,
+      cancelledEvents.length,
+    ]
+  )
+
+  const displayedManagedEvents = useMemo(() => {
+    const base =
+      eventLifecycleFilter === 'all'
+        ? filteredEvents
+        : eventLifecycleFilter === 'upcoming'
+        ? upcomingEventsList
+        : eventLifecycleFilter === 'ongoing'
+        ? liveEvents
+        : eventLifecycleFilter === 'completed'
+        ? completedEvents
+        : eventLifecycleFilter === 'draft'
+        ? draftEvents
+        : cancelledEvents
+
+    if (eventLifecycleFilter === 'completed' || eventLifecycleFilter === 'cancelled') {
+      return [...base].sort(
+        (a, b) => new Date(b.end_date || b.start_date || 0).getTime() - new Date(a.end_date || a.start_date || 0).getTime()
+      )
+    }
+    return base
+  }, [
+    eventLifecycleFilter,
+    filteredEvents,
+    upcomingEventsList,
+    liveEvents,
+    completedEvents,
+    draftEvents,
+    cancelledEvents,
+  ])
+
+  const activeAndUpcomingEvents = useMemo(
+    () =>
+      filteredEvents.filter((evt) => {
+        const phase = getEventLifecyclePhase(evt)
+        return phase !== 'completed' && phase !== 'cancelled'
+      }),
+    [filteredEvents]
+  )
+
+  const completedHistoryEvents = useMemo(
+    () =>
+      [...completedEvents].sort(
+        (a, b) => new Date(b.end_date || b.start_date || 0).getTime() - new Date(a.end_date || a.start_date || 0).getTime()
+      ),
+    [completedEvents]
+  )
+
+  const cancelledHistoryEvents = useMemo(
+    () =>
+      [...cancelledEvents].sort(
+        (a, b) => new Date(b.end_date || b.start_date || 0).getTime() - new Date(a.end_date || a.start_date || 0).getTime()
+      ),
+    [cancelledEvents]
+  )
 
   const totalCapacity = useMemo(() => filteredEvents.reduce((sum, e) => sum + (e.capacity || 0), 0), [filteredEvents])
   const totalRegistrationsCount = filteredRegistrations.length
   const confirmedRegistrations = useMemo(() => filteredRegistrations.filter((r) => r.status === 'confirmed'), [filteredRegistrations])
   const confirmedCount = confirmedRegistrations.length
-
-  // Attendance Metrics
-  const checkedInCount = useMemo(() => filteredRegistrations.filter((r) => (r as any).attendance_status === 'checked_in').length, [filteredRegistrations])
-  const turnoutRate = confirmedCount > 0 ? Math.round((checkedInCount / confirmedCount) * 100) : 0
   const capacityUtilization = totalCapacity > 0 ? Math.round((totalRegistrationsCount / totalCapacity) * 100) : 0
 
   // Payments Metrics
@@ -214,13 +369,6 @@ export default function ClubDashboardPage() {
     [filteredRegistrations]
   )
   const pendingCancellationsCount = pendingCancellations.length
-
-  // Upcoming Published Events
-  const upcomingEventsList = useMemo(() => {
-    return events
-      .filter((e) => e.status === 'published' && Boolean(e.start_date))
-      .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
-  }, [events])
 
   // ── Daily Registration Velocity for Interactive Area Chart (Part 3) ───────
   const chartData = useMemo(() => {
@@ -275,11 +423,11 @@ export default function ClubDashboardPage() {
 
   // Organizer Next Action Banner
   const organizerNextAction = useMemo(() => {
-    if (pendingPaymentsCount > 0) {
+    if (canVerifyPayments && pendingPaymentsCount > 0) {
       return {
         type: 'pending_payment' as const,
         title: `${pendingPaymentsCount} Payment Submission${pendingPaymentsCount > 1 ? 's' : ''} Awaiting Review`,
-        description: 'Students have submitted transaction UTR proofs for paid event tickets. Review and approve to release gate passes.',
+        description: 'Students have submitted transaction UTR proofs for paid event tickets. Review and approve to issue confirmed entry passes.',
         ctaLabel: 'Review Payments',
         ctaLink: '/club/payments',
         badge: 'Action Required',
@@ -287,52 +435,94 @@ export default function ClubDashboardPage() {
       }
     }
 
-    const upcomingPublished = publishedEvents
-      .filter((e) => Boolean(e.start_date))
+    const activeSoon = activePublishedEvents
+      .filter((e) => {
+        if (!hasEventPermission(e.id, 'registrations.view', e.club_id)) return false
+        if (getEventLifecyclePhase(e) === 'ongoing') return true
+        if (!e.start_date) return false
+        const diffHours = Math.floor((new Date(e.start_date).getTime() - now.getTime()) / (1000 * 60 * 60))
+        return diffHours >= 0 && diffHours <= 48
+      })
       .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
 
-    if (upcomingPublished.length > 0) {
-      const nextEvt = upcomingPublished[0]
-      const startDate = new Date(nextEvt.start_date)
-      const diffMs = startDate.getTime() - now.getTime()
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    if (activeSoon.length > 0) {
+      const nextEvt = activeSoon[0]
+      const isOngoing = getEventLifecyclePhase(nextEvt) === 'ongoing'
+      const diffHours = nextEvt.start_date
+        ? Math.max(0, Math.floor((new Date(nextEvt.start_date).getTime() - now.getTime()) / (1000 * 60 * 60)))
+        : 0
 
-      if (diffHours >= -6 && diffHours <= 48) {
-        return {
-          type: 'event_active' as const,
-          title: `Gate Desk Ready: ${nextEvt.title}`,
-          description: `Event ${diffHours <= 0 ? 'is in progress' : `starts in ${diffHours} hours`} at ${nextEvt.venue_name}. Launch check-in scanner for attendee admittance.`,
-          ctaLabel: 'Launch QR Check-In',
-          ctaLink: `/club/events/${nextEvt.id}/check-in`,
-          badge: 'Live Session',
-          badgeVariant: 'cyan' as const,
-        }
+      return {
+        type: 'event_active' as const,
+        title: `${isOngoing ? 'Live Event In Progress' : 'Upcoming Event Ready'}: ${nextEvt.title}`,
+        description: `${isOngoing ? 'Event is currently underway' : `Event starts in ${diffHours} hours`} at ${nextEvt.venue_name || 'campus venue'}. Manage attendee rosters and confirmed registrations.`,
+        ctaLabel: 'Open Attendee Roster',
+        ctaLink: `/club/events/${nextEvt.id}/registrations`,
+        badge: isOngoing ? 'Live Now' : 'Upcoming Soon',
+        badgeVariant: 'cyan' as const,
       }
     }
 
-    if (draftCount > 0) {
-      const draftEvt = draftEvents[0]
+    const editableDraft = draftEvents.find((e) => hasEventPermission(e.id, 'events.edit', e.club_id))
+    if (editableDraft) {
+      const canPublishDraft = hasEventPermission(editableDraft.id, 'events.publish', editableDraft.club_id)
       return {
         type: 'draft_pending' as const,
-        title: `Draft Ready for Review: "${draftEvt.title}"`,
-        description: 'Complete form configuration, custom questions, or publish this event to campus students.',
-        ctaLabel: 'Edit & Publish',
-        ctaLink: `/club/events/${draftEvt.id}/edit`,
+        title: `Draft Ready for Review: "${editableDraft.title}"`,
+        description: canPublishDraft
+          ? 'Complete form configuration, custom questions, or publish this event to campus students.'
+          : 'Complete form configuration and content details while an administrator prepares publication.',
+        ctaLabel: canPublishDraft ? 'Edit & Publish' : 'Edit Draft',
+        ctaLink: `/club/events/${editableDraft.id}/edit`,
         badge: 'Draft Saved',
         badgeVariant: 'purple' as const,
       }
     }
 
+    if (canCreateEvents) {
+      return {
+        type: 'default' as const,
+        title: 'Host Your Next Campus Experience',
+        description: 'Create technical hackathons, cultural festivals, athletic tournaments, or seminars with structured registration and pass workflows.',
+        ctaLabel: 'Create New Event',
+        ctaLink: '/club/events/new',
+        badge: 'Organizer Hub',
+        badgeVariant: 'cyan' as const,
+      }
+    }
+
+    if (canViewPayments) {
+      return {
+        type: 'pending_payment' as const,
+        title: 'Payment Verification Workspace',
+        description: 'Monitor transaction UTR proofs, fee receipts, and settlement status for paid campus events.',
+        ctaLabel: 'Open Payments',
+        ctaLink: '/club/payments',
+        badge: 'Payments Desk',
+        badgeVariant: 'cyan' as const,
+      }
+    }
+
     return {
       type: 'default' as const,
-      title: 'Host Your Next Campus Experience',
-      description: 'Create technical hackathons, cultural festivals, athletic tournaments, or seminars with automated QR ticketing.',
-      ctaLabel: 'Create New Event',
-      ctaLink: '/club/events/new',
+      title: `${clubName} Operations Workspace`,
+      description: 'Review scheduled club events, assigned duties, and permitted club analytics.',
+      ctaLabel: 'Browse Club Events',
+      ctaLink: '/club/events',
       badge: 'Organizer Hub',
       badgeVariant: 'cyan' as const,
     }
-  }, [pendingPaymentsCount, publishedEvents, draftEvents, draftCount, now])
+  }, [
+    canVerifyPayments,
+    canViewPayments,
+    canCreateEvents,
+    pendingPaymentsCount,
+    activePublishedEvents,
+    draftEvents,
+    now,
+    clubName,
+    hasEventPermission,
+  ])
 
   if (!clubId && !loading) {
     return (
@@ -341,7 +531,7 @@ export default function ClubDashboardPage() {
           <EmptyState
             icon={Building2}
             title="No Active Club Organization"
-            description="You do not currently belong to an active club organization. When a club invites you to their team, you'll manage events and turnstile gate check-in here."
+            description="You do not currently belong to an active club organization. When a club invites you to their team, you'll manage events, attendee rosters, and payment verification here."
             action={
               <Button
                 variant="primary"
@@ -354,6 +544,137 @@ export default function ClubDashboardPage() {
           />
         </div>
       </PageShell>
+    )
+  }
+
+  const renderManagedEventCard = (evt: EventRecord) => {
+    const evtRegs = allRegistrations.filter((r) => r.event_id === evt.id)
+    const evtConfirmed = evtRegs.filter((r) => r.status === 'confirmed').length
+    const capacity = evt.capacity || 100
+    const fillPct = Math.min(100, Math.round((evtConfirmed / capacity) * 100))
+    const phase = getEventLifecyclePhase(evt)
+    const badgeMeta = LIFECYCLE_BADGE_META[phase]
+    const isArchive = phase === 'completed' || phase === 'cancelled'
+    const eventTz = resolveEventTimezone(evt.timezone)
+    const formattedDate = evt.start_date
+      ? `${formatEventDate(evt.start_date, eventTz, { day: 'numeric', month: 'short' })} • ${formatEventTime(evt.start_date, eventTz, { hour: 'numeric', minute: '2-digit', hour12: true })}`
+      : 'Schedule TBA'
+
+    return (
+      <div
+        key={evt.id}
+        className={`p-5 rounded-3xl bg-[#0E0E12] border transition-all flex flex-col justify-between gap-4 shadow-xl ${
+          isArchive ? 'border-white/[0.05] opacity-90' : 'border-white/[0.08] hover:border-white/20'
+        }`}
+      >
+        <div>
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#18CFFC]">
+              {evt.category}
+            </span>
+            <Badge
+              variant={badgeMeta.variant}
+              className="text-[10px]"
+            >
+              {badgeMeta.label}
+            </Badge>
+          </div>
+
+          <h3 className="text-base font-bold font-heading text-white line-clamp-1">
+            {evt.title}
+          </h3>
+          <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1 truncate">
+            <Calendar size={12} className="text-[#18CFFC] shrink-0" />
+            {formattedDate}
+          </p>
+          <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1 truncate">
+            <MapPin size={12} className="text-[#18CFFC] shrink-0" />
+            {evt.venue_name || 'Campus Venue'}
+          </p>
+        </div>
+
+        {/* Capacity Fill Bar */}
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-white/5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-zinc-400">Confirmed Passes:</span>
+            <span className="font-mono text-white">
+              <strong>{evtConfirmed}</strong> / {capacity} seats ({fillPct}% cap)
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[#18CFFC] to-[#0D56FB] rounded-full"
+              style={{ width: `${fillPct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Shortcuts Actions */}
+        {(() => {
+          const canViewEventRoster = hasEventPermission(evt.id, 'registrations.view', evt.club_id)
+          const canViewEventReports = hasEventPermission(evt.id, 'reports.view', evt.club_id)
+          const canEditEventCard = hasEventPermission(evt.id, 'events.edit', evt.club_id)
+          const canOpenFeedback = canViewEventReports || canEditEventCard
+
+          return (
+            <div className="flex items-center justify-between gap-1.5 pt-3 border-t border-white/5 flex-wrap">
+              {canViewEventRoster && (
+                <Link to={`/club/events/${evt.id}/registrations`} className="flex-1">
+                  <Button size="sm" variant="primary" leftIcon={<Users size={13} />} className="w-full text-xs">
+                    Roster
+                  </Button>
+                </Link>
+              )}
+
+              {!isArchive && canAssignRoles && (
+                <button
+                  type="button"
+                  onClick={() => setDelegationModalEvent(evt)}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-purple-400 hover:text-white transition-colors cursor-pointer"
+                  title="Staff Delegation"
+                >
+                  <ShieldCheck size={14} />
+                </button>
+              )}
+
+              {canOpenFeedback && (
+                <button
+                  type="button"
+                  onClick={() => setFeedbackModalEvent(evt)}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 hover:text-white transition-colors cursor-pointer"
+                  title="Feedback Reviews"
+                >
+                  <Star size={14} />
+                </button>
+              )}
+
+              {canViewEventReports && (
+                <Link to={`/club/events/${evt.id}/reports`}>
+                  <button
+                    type="button"
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-sky-400 hover:text-white transition-colors cursor-pointer"
+                    title="Event Reports & Analytics"
+                  >
+                    <BarChart3 size={14} />
+                  </button>
+                </Link>
+              )}
+
+              {canEditEventCard && (
+                <Link to={`/club/events/${evt.id}/edit`}>
+                  <button
+                    type="button"
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title={isArchive ? 'View Event Archive' : 'Edit Event Details'}
+                  >
+                    {isArchive ? <Archive size={14} /> : <Edit size={14} />}
+                  </button>
+                </Link>
+              )}
+            </div>
+          )
+        })()}
+      </div>
     )
   }
 
@@ -387,7 +708,7 @@ export default function ClubDashboardPage() {
                   </h1>
                   <Badge variant="purple" className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs">
                     <ShieldCheck size={12} className="text-[#18CFFC]" />
-                    {activeClubRole ? ROLE_LABELS[activeClubRole] : 'Club Administrator'}
+                    {activeClubRole ? ROLE_LABELS[activeClubRole] : 'Access Restricted'}
                   </Badge>
                 </div>
 
@@ -406,7 +727,7 @@ export default function ClubDashboardPage() {
             </div>
 
             {/* Primary Action Button */}
-            {(!activeClubRole || hasPermission(activeClubRole, 'manage_events')) && (
+            {canCreateEvents && (
               <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                 <Link to="/club/events/new" className="w-full sm:w-auto shrink-0">
                   <Button variant="primary" size="sm" leftIcon={<Plus size={15} />} className="w-full sm:w-auto min-h-[44px] justify-center whitespace-nowrap shadow-lg shadow-[#18CFFC]/20 font-bold">
@@ -419,7 +740,7 @@ export default function ClubDashboardPage() {
 
           {/* Mobile Quick Actions Grid (sm:hidden) */}
           <div className="sm:hidden grid grid-cols-2 gap-2 pt-3 border-t border-white/[0.08]">
-            {(!activeClubRole || hasPermission(activeClubRole, 'review_payments')) && (
+            {canViewPayments && (
               <Link to="/club/payments" className="w-full">
                 <Button
                   variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
@@ -438,35 +759,39 @@ export default function ClubDashboardPage() {
                 leftIcon={<Calendar size={15} />}
                 className="w-full min-h-[44px] justify-center text-xs"
               >
-                Events ({publishedCount})
+                Events ({activePublishedCount})
               </Button>
             </Link>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setCouponsModalOpen(true)}
-              leftIcon={<Tag size={14} className="text-amber-400" />}
-              className="w-full min-h-[44px] justify-center text-xs"
-            >
-              Coupons
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setBrandingModalOpen(true)}
-              leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
-              className="w-full min-h-[44px] justify-center text-xs"
-            >
-              Brand & Profile
-            </Button>
+            {canManageCoupons && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCouponsModalOpen(true)}
+                leftIcon={<Tag size={14} className="text-amber-400" />}
+                className="w-full min-h-[44px] justify-center text-xs"
+              >
+                Coupons
+              </Button>
+            )}
+            {canManageClub && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setBrandingModalOpen(true)}
+                leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
+                className="w-full min-h-[44px] justify-center text-xs"
+              >
+                Brand & Profile
+              </Button>
+            )}
           </div>
 
           {/* Row 2: Comprehensive Action Toolbar with Responsive Wrapping (Desktop) */}
           <div className="hidden sm:flex relative flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-white/[0.08] w-full">
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-              {(!activeClubRole || hasPermission(activeClubRole, 'review_payments')) && (
+              {canViewPayments && (
                 <Link to="/club/payments" className="shrink-0">
                   <Button
                     variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
@@ -485,41 +810,32 @@ export default function ClubDashboardPage() {
               )}
 
               {/* Coupons Shortcut */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCouponsModalOpen(true)}
-                leftIcon={<Tag size={14} className="text-amber-400" />}
-                className="shrink-0 whitespace-nowrap"
-              >
-                Coupons
-              </Button>
-
-              {/* Event Comparison Shortcut */}
-              {events.length >= 2 && (
+              {canManageCoupons && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setComparisonModalOpen(true)}
-                  leftIcon={<BarChart3 size={14} className="text-[#18CFFC]" />}
+                  onClick={() => setCouponsModalOpen(true)}
+                  leftIcon={<Tag size={14} className="text-amber-400" />}
                   className="shrink-0 whitespace-nowrap"
                 >
-                  Compare
+                  Coupons
                 </Button>
               )}
 
               {/* Brand & Identity Customizer */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setBrandingModalOpen(true)}
-                leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
-                className="shrink-0 whitespace-nowrap"
-              >
-                Brand & Profile
-              </Button>
+              {canManageClub && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBrandingModalOpen(true)}
+                  leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
+                  className="shrink-0 whitespace-nowrap"
+                >
+                  Brand & Profile
+                </Button>
+              )}
 
-              {(!activeClubRole || hasPermission(activeClubRole, 'manage_members')) && (
+              {canViewMembers && (
                 <Link to="/club/members" className="shrink-0">
                   <Button variant="outline" size="sm" leftIcon={<Users size={15} />} className="whitespace-nowrap">
                     Team Roster
@@ -529,16 +845,18 @@ export default function ClubDashboardPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-              <Link to="/club/settings" className="shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Settings size={14} className="text-zinc-400" />}
-                  className="whitespace-nowrap"
-                >
-                  Settings
-                </Button>
-              </Link>
+              {canManageSettings && (
+                <Link to="/club/settings" className="shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Settings size={14} className="text-zinc-400" />}
+                    className="whitespace-nowrap"
+                  >
+                    Settings
+                  </Button>
+                </Link>
+              )}
 
               {isDualEligible && (
                 <Button
@@ -565,68 +883,81 @@ export default function ClubDashboardPage() {
         </motion.div>
 
         {/* ── Pending Tasks & Actionable Items ───────────────────────────────── */}
-        {(pendingPaymentsCount > 0 || pendingCancellationsCount > 0 || draftCount > 0) && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-3 shadow-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase font-bold tracking-wider text-amber-300 flex items-center gap-1.5">
-                <AlertTriangle size={15} /> Action Items Requiring Attention
-              </span>
-              <span className="text-[11px] font-mono text-amber-200/80">
-                {(pendingPaymentsCount > 0 ? 1 : 0) + (pendingCancellationsCount > 0 ? 1 : 0) + (draftCount > 0 ? 1 : 0)} pending task categories
-              </span>
+        {(() => {
+          const showPendingPaymentsTask = canVerifyPayments && pendingPaymentsCount > 0
+          const showPendingCancellationsTask = canManageRegistrationsClub && pendingCancellationsCount > 0
+          const showDraftsTask = canEditAnyEvent && draftCount > 0
+          if (!showPendingPaymentsTask && !showPendingCancellationsTask && !showDraftsTask) {
+            return null
+          }
+          const taskCategoryCount =
+            (showPendingPaymentsTask ? 1 : 0) +
+            (showPendingCancellationsTask ? 1 : 0) +
+            (showDraftsTask ? 1 : 0)
+
+          return (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-3 shadow-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase font-bold tracking-wider text-amber-300 flex items-center gap-1.5">
+                  <AlertTriangle size={15} /> Action Items Requiring Attention
+                </span>
+                <span className="text-[11px] font-mono text-amber-200/80">
+                  {taskCategoryCount} pending task categories
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                {showPendingPaymentsTask && (
+                  <Link to="/club/payments" className="flex-1 sm:flex-initial">
+                    <div className="p-3 rounded-xl bg-[#0E0E12] border border-amber-500/40 hover:border-amber-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                      <div className="flex items-center gap-2">
+                        <CreditCard size={16} className="text-amber-400 shrink-0" />
+                        <span className="text-white font-semibold">
+                          {pendingPaymentsCount} Payment{pendingPaymentsCount > 1 ? 's' : ''} Awaiting Review
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 shrink-0">
+                        Verify UTR →
+                      </span>
+                    </div>
+                  </Link>
+                )}
+
+                {showPendingCancellationsTask && (
+                  <Link to="/club/events" className="flex-1 sm:flex-initial">
+                    <div className="p-3 rounded-xl bg-[#0E0E12] border border-rose-500/40 hover:border-rose-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Users size={16} className="text-rose-400 shrink-0" />
+                        <span className="text-white font-semibold">
+                          {pendingCancellationsCount} Cancellation Request{pendingCancellationsCount > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 shrink-0">
+                        Review →
+                      </span>
+                    </div>
+                  </Link>
+                )}
+
+                {showDraftsTask && (
+                  <Link to="/club/events" className="flex-1 sm:flex-initial">
+                    <div className="p-3 rounded-xl bg-[#0E0E12] border border-purple-500/40 hover:border-purple-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Layers size={16} className="text-purple-400 shrink-0" />
+                        <span className="text-white font-semibold">
+                          {draftCount} Draft Event{draftCount > 1 ? 's' : ''} Unpublished
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 shrink-0">
+                        Review →
+                      </span>
+                    </div>
+                  </Link>
+                )}
+              </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              {pendingPaymentsCount > 0 && (
-                <Link to="/club/payments" className="flex-1 sm:flex-initial">
-                  <div className="p-3 rounded-xl bg-[#0E0E12] border border-amber-500/40 hover:border-amber-400 flex items-center justify-between gap-3 text-xs transition-colors">
-                    <div className="flex items-center gap-2">
-                      <CreditCard size={16} className="text-amber-400 shrink-0" />
-                      <span className="text-white font-semibold">
-                        {pendingPaymentsCount} Payment{pendingPaymentsCount > 1 ? 's' : ''} Awaiting Review
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 shrink-0">
-                      Verify UTR →
-                    </span>
-                  </div>
-                </Link>
-              )}
-
-              {pendingCancellationsCount > 0 && (
-                <Link to="/club/events" className="flex-1 sm:flex-initial">
-                  <div className="p-3 rounded-xl bg-[#0E0E12] border border-rose-500/40 hover:border-rose-400 flex items-center justify-between gap-3 text-xs transition-colors">
-                    <div className="flex items-center gap-2">
-                      <Users size={16} className="text-rose-400 shrink-0" />
-                      <span className="text-white font-semibold">
-                        {pendingCancellationsCount} Cancellation Request{pendingCancellationsCount > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 shrink-0">
-                      Review →
-                    </span>
-                  </div>
-                </Link>
-              )}
-
-              {draftCount > 0 && (
-                <Link to="/club/events" className="flex-1 sm:flex-initial">
-                  <div className="p-3 rounded-xl bg-[#0E0E12] border border-purple-500/40 hover:border-purple-400 flex items-center justify-between gap-3 text-xs transition-colors">
-                    <div className="flex items-center gap-2">
-                      <Layers size={16} className="text-purple-400 shrink-0" />
-                      <span className="text-white font-semibold">
-                        {draftCount} Draft Event{draftCount > 1 ? 's' : ''} Unpublished
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 shrink-0">
-                      Publish →
-                    </span>
-                  </div>
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* ── Spotlight Next Action Banner ─────────────────────────────────── */}
         <motion.div
@@ -649,7 +980,7 @@ export default function ClubDashboardPage() {
                 {organizerNextAction.type === 'pending_payment' ? (
                   <CreditCard size={22} />
                 ) : organizerNextAction.type === 'event_active' ? (
-                  <QrCode size={22} />
+                  <Users size={22} />
                 ) : (
                   <Calendar size={22} />
                 )}
@@ -732,42 +1063,50 @@ export default function ClubDashboardPage() {
             {
               label: 'Total Registrations',
               value: loading ? '…' : totalRegistrationsCount.toString(),
-              subtitle: `${confirmedCount} confirmed gate passes`,
+              subtitle: `${confirmedCount} confirmed registrations`,
               icon: Users,
               color: 'text-[#18CFFC]',
               badgeStyle: 'bg-[#18CFFC]/10 border-[#18CFFC]/20 text-[#18CFFC]',
             },
             {
-              label: 'Gate Attendance',
-              value: loading ? '…' : checkedInCount.toString(),
-              subtitle: `${turnoutRate}% turnout conversion rate`,
-              icon: CheckCircle2,
+              label: 'Completed Events',
+              value: loading ? '…' : completedEvents.length.toString(),
+              subtitle:
+                cancelledEvents.length > 0
+                  ? `${cancelledEvents.length} cancelled also archived`
+                  : 'Concluded event records',
+              icon: Archive,
               color: 'text-emerald-400',
               badgeStyle: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+              link: '/club/events',
             },
+            ...(canViewPayments
+              ? [
+                  {
+                    label: 'Pending Fee Reviews',
+                    value: loading ? '…' : pendingPaymentsCount.toString(),
+                    subtitle: 'UTR proofs awaiting verification',
+                    icon: CreditCard,
+                    color: 'text-amber-400',
+                    badgeStyle: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+                    link: '/club/payments',
+                    highlight: pendingPaymentsCount > 0,
+                  },
+                  {
+                    label: 'Verified Gross Fees',
+                    value: loading ? '…' : `₹${grossVerifiedRevenue.toLocaleString()}`,
+                    subtitle: `${approvedPayments.length} verified transactions`,
+                    icon: TrendingUp,
+                    color: 'text-emerald-400',
+                    badgeStyle: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+                    link: '/club/payments',
+                  },
+                ]
+              : []),
             {
-              label: 'Pending Fee Reviews',
-              value: loading ? '…' : pendingPaymentsCount.toString(),
-              subtitle: 'UTR proofs awaiting verification',
-              icon: CreditCard,
-              color: 'text-amber-400',
-              badgeStyle: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
-              link: '/club/payments',
-              highlight: pendingPaymentsCount > 0,
-            },
-            {
-              label: 'Verified Gross Fees',
-              value: loading ? '…' : `₹${grossVerifiedRevenue.toLocaleString()}`,
-              subtitle: `${approvedPayments.length} verified transactions`,
-              icon: TrendingUp,
-              color: 'text-emerald-400',
-              badgeStyle: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-              link: '/club/payments',
-            },
-            {
-              label: 'Published Events',
-              value: loading ? '…' : publishedCount.toString(),
-              subtitle: 'Active campus listings',
+              label: 'Active & Upcoming',
+              value: loading ? '…' : activePublishedCount.toString(),
+              subtitle: `${liveEvents.length} live now • ${upcomingEventsList.length} upcoming`,
               icon: Calendar,
               color: 'text-[#18CFFC]',
               badgeStyle: 'bg-[#18CFFC]/10 border-[#18CFFC]/20 text-[#18CFFC]',
@@ -790,11 +1129,11 @@ export default function ClubDashboardPage() {
               badgeStyle: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
             },
             {
-              label: 'Upcoming Events',
-              value: loading
-                ? '…'
-                : upcomingEventsList.length.toString(),
-              subtitle: 'Published events scheduled',
+              label: 'Upcoming Scheduled',
+              value: loading ? '…' : upcomingEventsList.length.toString(),
+              subtitle: upcomingEventsList[0]
+                ? `Next: ${upcomingEventsList[0].title}`
+                : 'No upcoming dates scheduled',
               icon: Clock,
               color: 'text-zinc-300',
               badgeStyle: 'bg-white/10 border-white/15 text-zinc-300',
@@ -948,9 +1287,11 @@ export default function ClubDashboardPage() {
               )}
             </div>
 
-            <Link to="/club/members" className="pt-2 border-t border-white/5 text-center text-xs text-[#18CFFC] hover:underline">
-              Inspect Full Audit Trail →
-            </Link>
+            {canViewMembers && (
+              <Link to="/club/members" className="pt-2 border-t border-white/5 text-center text-xs text-[#18CFFC] hover:underline">
+                Inspect Full Team & Audit Trail →
+              </Link>
+            )}
           </div>
         </div>
 
@@ -962,164 +1303,168 @@ export default function ClubDashboardPage() {
                 Managed Campus Events
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Real-time ticketing, check-in desks, and attendee records for {clubName}
+                Lifecycle tracking, registration rosters, reports, and attendee records for {clubName}
               </p>
             </div>
 
-            <Link to="/club/events/new">
-              <Button size="sm" variant="primary" leftIcon={<Plus size={14} />}>
-                Host Event
-              </Button>
-            </Link>
+            {canCreateEvents && (
+              <Link to="/club/events/new">
+                <Button size="sm" variant="primary" leftIcon={<Plus size={14} />}>
+                  Host Event
+                </Button>
+              </Link>
+            )}
           </div>
+
+          {events.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar touch-pan-x">
+              {(['all', 'upcoming', 'ongoing', 'completed', 'draft', 'cancelled'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setEventLifecycleFilter(tab)}
+                  className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 min-h-[34px] flex items-center gap-1.5 cursor-pointer ${
+                    eventLifecycleFilter === tab
+                      ? 'bg-[#242430] text-white font-semibold border border-white/10'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span>{DASHBOARD_LIFECYCLE_LABELS[tab]}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                      eventLifecycleFilter === tab
+                        ? 'bg-[#18CFFC] text-black font-bold'
+                        : 'bg-white/10 text-zinc-400'
+                    }`}
+                  >
+                    {lifecycleTabCounts[tab]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {events.length === 0 ? (
             <EmptyState
               icon={Calendar}
               title="No Events Created Yet"
-              description="Start organizing campus hackathons, cultural festivals, athletic tournaments, or seminars with automated QR ticketing."
+              description="Start organizing campus hackathons, cultural festivals, athletic tournaments, or seminars with structured registration and pass workflows."
               action={
-                <Link to="/club/events/new">
-                  <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
-                    Create First Event
-                  </Button>
-                </Link>
+                canCreateEvents ? (
+                  <Link to="/club/events/new">
+                    <Button variant="primary" size="sm" leftIcon={<Plus size={15} />}>
+                      Create First Event
+                    </Button>
+                  </Link>
+                ) : undefined
               }
             />
+          ) : displayedManagedEvents.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-center flex flex-col items-center gap-3">
+              <p className="text-sm text-zinc-300 font-medium">
+                No events currently in the {DASHBOARD_LIFECYCLE_LABELS[eventLifecycleFilter]} category.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => setEventLifecycleFilter('all')}>
+                Show All Events
+              </Button>
+            </div>
+          ) : eventLifecycleFilter === 'all' ? (
+            <div className="flex flex-col gap-6">
+              {/* Active & Upcoming Events */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold font-heading text-white uppercase tracking-wider">
+                      Active & Upcoming Events
+                    </h3>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#18CFFC]/15 text-[#18CFFC] font-mono font-semibold">
+                      {activeAndUpcomingEvents.length}
+                    </span>
+                  </div>
+                </div>
+                {activeAndUpcomingEvents.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-[#0E0E12] border border-white/[0.06] text-xs text-zinc-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span>No active upcoming, ongoing, or draft events right now.</span>
+                    {canCreateEvents && (
+                      <Link to="/club/events/new">
+                        <Button size="sm" variant="outline" leftIcon={<Plus size={13} />}>
+                          Create New Event
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activeAndUpcomingEvents.map(renderManagedEventCard)}
+                  </div>
+                )}
+              </div>
+
+              {/* Completed Events History — Clearly separated from upcoming events */}
+              {completedHistoryEvents.length > 0 && (
+                <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.08]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold font-heading text-zinc-200 uppercase tracking-wider">
+                        Completed Events History
+                      </h3>
+                      <Badge variant="neutral" className="text-[10px]">
+                        {completedHistoryEvents.length} Completed
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Concluded events preserved with registration rosters, payments, feedback, and reports.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {completedHistoryEvents.map(renderManagedEventCard)}
+                  </div>
+                </div>
+              )}
+
+              {/* Cancelled Events — Kept separate from completed history */}
+              {cancelledHistoryEvents.length > 0 && (
+                <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.08]">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold font-heading text-rose-300 uppercase tracking-wider">
+                      Cancelled Events
+                    </h3>
+                    <Badge variant="danger" className="text-[10px]">
+                      {cancelledHistoryEvents.length} Cancelled
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {cancelledHistoryEvents.map(renderManagedEventCard)}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredEvents.map((evt) => {
-                const evtRegs = allRegistrations.filter((r) => r.event_id === evt.id)
-                const evtConfirmed = evtRegs.filter((r) => r.status === 'confirmed').length
-                const evtCheckedIn = evtRegs.filter((r) => (r as any).attendance_status === 'checked_in').length
-                const capacity = evt.capacity || 100
-                const fillPct = Math.min(100, Math.round((evtConfirmed / capacity) * 100))
-
-                return (
-                  <div
-                    key={evt.id}
-                    className="p-5 rounded-3xl bg-[#0E0E12] border border-white/[0.08] hover:border-white/20 transition-all flex flex-col justify-between gap-4 shadow-xl"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#18CFFC]">
-                          {evt.category}
-                        </span>
-                        <Badge
-                          variant={evt.status === 'published' ? 'success' : 'amber'}
-                          className="capitalize text-[10px]"
-                        >
-                          {evt.status}
-                        </Badge>
-                      </div>
-
-                      <h3 className="text-base font-bold font-heading text-white line-clamp-1">
-                        {evt.title}
-                      </h3>
-                      <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1">
-                        <MapPin size={12} className="text-[#18CFFC]" />
-                        {evt.venue_name || 'Campus Venue'}
-                      </p>
-                    </div>
-
-                    {/* Capacity & Attendance Fill Bar */}
-                    <div className="flex flex-col gap-1.5 pt-2 border-t border-white/5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-zinc-400">Admittance:</span>
-                        <span className="font-mono text-white">
-                          <strong>{evtCheckedIn}</strong> / {evtConfirmed} passes ({fillPct}% cap)
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#18CFFC] to-[#0D56FB] rounded-full"
-                          style={{ width: `${fillPct}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Shortcuts Actions */}
-                    <div className="flex items-center justify-between gap-1.5 pt-3 border-t border-white/5 flex-wrap">
-                      <Link to={`/club/events/${evt.id}/registrations`} className="flex-1">
-                        <Button size="sm" variant="primary" leftIcon={<Users size={13} />} className="w-full text-xs">
-                          Roster
-                        </Button>
-                      </Link>
-
-                      <Link to={`/club/events/${evt.id}/check-in`}>
-                        <Button size="sm" variant="outline" leftIcon={<QrCode size={13} />} className="text-xs">
-                          Scanner
-                        </Button>
-                      </Link>
-
-                      <button
-                        type="button"
-                        onClick={() => setDelegationModalEvent(evt)}
-                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-purple-400 hover:text-white transition-colors cursor-pointer"
-                        title="Staff Delegation"
-                      >
-                        <ShieldCheck size={14} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setFeedbackModalEvent(evt)}
-                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 hover:text-white transition-colors cursor-pointer"
-                        title="Feedback Reviews"
-                      >
-                        <Star size={14} />
-                      </button>
-
-                      <Link to={`/club/events/${evt.id}/reports`}>
-                        <button
-                          type="button"
-                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-sky-400 hover:text-white transition-colors cursor-pointer"
-                          title="Event Reports & Analytics"
-                        >
-                          <BarChart3 size={14} />
-                        </button>
-                      </Link>
-
-                      <Link to={`/club/events/${evt.id}/edit`}>
-                        <button
-                          type="button"
-                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                          title="Edit Event Details"
-                        >
-                          <Edit size={14} />
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-                )
-              })}
+              {displayedManagedEvents.map(renderManagedEventCard)}
             </div>
           )}
         </div>
 
-        {/* ── Modals: Coupons, Brand Customization, Comparison, Delegation, Feedback ─ */}
-        <ClubCouponsModal
-          isOpen={couponsModalOpen}
-          onClose={() => setCouponsModalOpen(false)}
-          clubId={clubId}
-        />
-
-        <ClubBrandingModal
-          isOpen={brandingModalOpen}
-          onClose={() => setBrandingModalOpen(false)}
-          clubId={clubId}
-          onUpdated={loadClubData}
-        />
-
-        {events.length >= 2 && (
-          <EventComparisonModal
-            isOpen={comparisonModalOpen}
-            onClose={() => setComparisonModalOpen(false)}
-            events={events}
+        {/* ── Modals: Coupons, Brand Customization, Delegation, Feedback ─ */}
+        {canManageCoupons && (
+          <ClubCouponsModal
+            isOpen={couponsModalOpen}
+            onClose={() => setCouponsModalOpen(false)}
+            clubId={clubId}
           />
         )}
 
-        {delegationModalEvent && (
+        {canManageClub && (
+          <ClubBrandingModal
+            isOpen={brandingModalOpen}
+            onClose={() => setBrandingModalOpen(false)}
+            clubId={clubId}
+            onUpdated={loadClubData}
+          />
+        )}
+
+        {delegationModalEvent && canAssignRoles && (
           <EventTeamDelegationModal
             isOpen={Boolean(delegationModalEvent)}
             onClose={() => setDelegationModalEvent(null)}
@@ -1127,17 +1472,23 @@ export default function ClubDashboardPage() {
             clubId={clubId}
             eventTitle={delegationModalEvent.title}
             currentUserId={profile?.id || ''}
+            readOnly={
+              getEventLifecyclePhase(delegationModalEvent) === 'completed' ||
+              getEventLifecyclePhase(delegationModalEvent) === 'cancelled'
+            }
           />
         )}
 
-        {feedbackModalEvent && (
-          <EventFeedbackDashboardModal
-            isOpen={Boolean(feedbackModalEvent)}
-            onClose={() => setFeedbackModalEvent(null)}
-            eventId={feedbackModalEvent.id}
-            eventTitle={feedbackModalEvent.title}
-          />
-        )}
+        {feedbackModalEvent &&
+          (hasEventPermission(feedbackModalEvent.id, 'reports.view', feedbackModalEvent.club_id) ||
+            hasEventPermission(feedbackModalEvent.id, 'events.edit', feedbackModalEvent.club_id)) && (
+            <EventFeedbackDashboardModal
+              isOpen={Boolean(feedbackModalEvent)}
+              onClose={() => setFeedbackModalEvent(null)}
+              eventId={feedbackModalEvent.id}
+              eventTitle={feedbackModalEvent.title}
+            />
+          )}
       </div>
     </PageShell>
   )

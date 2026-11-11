@@ -120,45 +120,47 @@ export function WorkspaceSwitcher({
         <div className="flex items-center justify-between mb-2 px-0.5">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] flex items-center gap-1.5">
             <Layers size={12} className="text-[var(--color-brand-violet)]" />
-            Active Workspace
+            {isDualEligible ? 'Active Workspace' : 'Club Organizations'}
           </span>
           <span className="text-[10px] text-[var(--color-brand-cyan)] font-medium">
             {activeWorkspace === 'club' ? 'Club Mode' : 'Student Mode'}
           </span>
         </div>
 
-        {/* Workspace Dual Segmented Control */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)]">
-          <button
-            type="button"
-            onClick={() => handleSelectWorkspace('student')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeWorkspace === 'student'
-                ? 'bg-cyan-500/20 text-[var(--color-brand-cyan)] border border-cyan-500/30 shadow-sm'
-                : 'text-[var(--color-text-secondary)] hover:text-white'
-            }`}
-          >
-            <GraduationCap size={14} />
-            <span>Student</span>
-          </button>
+        {/* Workspace Dual Segmented Control (Strictly gated to dual-eligible accounts) */}
+        {isDualEligible && (
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)]">
+            <button
+              type="button"
+              onClick={() => handleSelectWorkspace('student')}
+              className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeWorkspace === 'student'
+                  ? 'bg-cyan-500/20 text-[var(--color-brand-cyan)] border border-cyan-500/30 shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-white'
+              }`}
+            >
+              <GraduationCap size={14} />
+              <span>Student</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleSelectWorkspace('club')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeWorkspace === 'club'
-                ? 'bg-[#7F1AFB]/20 text-[#C084FC] border border-[#7F1AFB]/35 shadow-sm'
-                : 'text-[var(--color-text-secondary)] hover:text-white'
-            }`}
-          >
-            <Building2 size={14} />
-            <span>Club</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => handleSelectWorkspace('club')}
+              className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeWorkspace === 'club'
+                  ? 'bg-[#7F1AFB]/20 text-[#C084FC] border border-[#7F1AFB]/35 shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-white'
+              }`}
+            >
+              <Building2 size={14} />
+              <span>Club</span>
+            </button>
+          </div>
+        )}
 
         {/* Organization Switcher (If multiple clubs available in Club Workspace) */}
         {activeWorkspace === 'club' && availableClubs.length > 1 && (
-          <div className="mt-3 pt-2.5 border-t border-[oklch(100%_0_0_/_0.06)]">
+          <div className={isDualEligible ? 'mt-3 pt-2.5 border-t border-[oklch(100%_0_0_/_0.06)]' : 'mt-1'}>
             <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider block mb-1.5">
               Select Club ({availableClubs.length})
             </span>
@@ -267,83 +269,85 @@ export function WorkspaceSwitcher({
             {/* Header */}
             <div className="px-2 py-1 flex items-center justify-between border-b border-[oklch(100%_0_0_/_0.08)] pb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
-                Workspaces
+                {isDualEligible ? 'Workspaces' : 'Organizations'}
               </span>
               <span className="text-[10px] text-[var(--color-brand-violet)] font-semibold">
-                Dual Access Active
+                {isDualEligible ? 'Dual Access Active' : `${availableClubs.length} Clubs`}
               </span>
             </div>
 
-            {/* Workspace Options */}
-            <div className="flex flex-col gap-1">
-              {/* 1. Student Workspace Option */}
-              <button
-                type="button"
-                onClick={() => handleSelectWorkspace('student')}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer text-left ${
-                  activeWorkspace === 'student'
-                    ? 'bg-cyan-500/10 border border-cyan-500/30 text-white'
-                    : 'hover:bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      activeWorkspace === 'student'
-                        ? 'bg-cyan-500/20 text-[var(--color-brand-cyan)]'
-                        : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
-                    }`}
-                  >
-                    <GraduationCap size={16} />
+            {/* Workspace Options (Strictly gated to dual-eligible accounts) */}
+            {isDualEligible && (
+              <div className="flex flex-col gap-1">
+                {/* 1. Student Workspace Option */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectWorkspace('student')}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer text-left ${
+                    activeWorkspace === 'student'
+                      ? 'bg-cyan-500/10 border border-cyan-500/30 text-white'
+                      : 'hover:bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        activeWorkspace === 'student'
+                          ? 'bg-cyan-500/20 text-[var(--color-brand-cyan)]'
+                          : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
+                      }`}
+                    >
+                      <GraduationCap size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold block">Student Workspace</span>
+                      <span className="text-[10px] text-[var(--color-text-muted)] block truncate">
+                        Event passes, tickets & registrations
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold block">Student Workspace</span>
-                    <span className="text-[10px] text-[var(--color-text-muted)] block truncate">
-                      Event passes, tickets & registrations
-                    </span>
-                  </div>
-                </div>
-                {activeWorkspace === 'student' && (
-                  <Check size={14} className="text-[var(--color-brand-cyan)] shrink-0 ml-1" />
-                )}
-              </button>
+                  {activeWorkspace === 'student' && (
+                    <Check size={14} className="text-[var(--color-brand-cyan)] shrink-0 ml-1" />
+                  )}
+                </button>
 
-              {/* 2. Club Workspace Option */}
-              <button
-                type="button"
-                onClick={() => handleSelectWorkspace('club')}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer text-left ${
-                  activeWorkspace === 'club'
-                    ? 'bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-white'
-                    : 'hover:bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      activeWorkspace === 'club'
-                        ? 'bg-[#18CFFC]/20 text-[#18CFFC]'
-                        : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
-                    }`}
-                  >
-                    <Building2 size={16} />
+                {/* 2. Club Workspace Option */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectWorkspace('club')}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer text-left ${
+                    activeWorkspace === 'club'
+                      ? 'bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-white'
+                      : 'hover:bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        activeWorkspace === 'club'
+                          ? 'bg-[#18CFFC]/20 text-[#18CFFC]'
+                          : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
+                      }`}
+                    >
+                      <Building2 size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold block">Club Workspace</span>
+                      <span className="text-[10px] text-[var(--color-text-muted)] block truncate">
+                        Event hosting, payments & attendee rosters
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold block">Club Workspace</span>
-                    <span className="text-[10px] text-[var(--color-text-muted)] block truncate">
-                      Event hosting, payments & turnstile check-in
-                    </span>
-                  </div>
-                </div>
-                {activeWorkspace === 'club' && (
-                  <Check size={14} className="text-[#18CFFC] shrink-0 ml-1" />
-                )}
-              </button>
-            </div>
+                  {activeWorkspace === 'club' && (
+                    <Check size={14} className="text-[#18CFFC] shrink-0 ml-1" />
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* Organizations Selection (Visible when multiple clubs exist) */}
             {availableClubs.length > 0 && (
-              <div className="pt-2 border-t border-[oklch(100%_0_0_/_0.08)]">
+              <div className={isDualEligible ? 'pt-2 border-t border-[oklch(100%_0_0_/_0.08)]' : 'pt-0.5'}>
                 <div className="px-2 pb-1.5 flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
                     Club Organization ({availableClubs.length})

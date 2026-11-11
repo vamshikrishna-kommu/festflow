@@ -1,31 +1,37 @@
 /**
- * Cinematic Landing Page Orchestrator
- * Integrates Scenes 01 to 09 into a seamless, scroll-driven visual journey.
+ * FESTFLOW MOBILE FILM 2.0 — MASTER CINEMATIC ORCHESTRATOR
+ *
+ * Implements the 5-Scene Interactive Product Film Standard:
+ * 1. Scene 01: Brand Reveal (Logo, energy beam, headline)
+ * 2. Scene 02: Discover Campus Events (FestFlow discovery preview)
+ * 3. Scene 03: The Student Journey (Central smartphone 6-step sequential scrub)
+ * 4. Scene 04: The Organizer Experience (Mobile club command center 4-stage scrub)
+ * 5. Scene 05: The Final Reveal (Converged experience, logo focal point, CTAs)
+ *
  * Features:
- * - Native browser scrolling (no hijacking)
- * - Forward & reverse scrub / trigger animations powered by GSAP
- * - Floating "Skip Experience" control for fast navigation
- * - Live published campus events showcase
- * - Campus community ticker
- * - Reduced motion accessibility awareness
+ * - Direct scroll-driven bidirectional GSAP ScrollTrigger timelines (scroll down = forward, scroll up = reverse)
+ * - Native browser scrolling preserved (no wheel interception, no scroll hijacking)
+ * - Safe viewport handling for 320px to 430px mobile widths
+ * - Live campus events feed integration with explicit loading, error+retry, empty, and populated states
+ * - Full reduced motion support
+ * - Context-aware Skip-to-Join control that hides automatically upon reaching Scene 05
  */
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router'
-import { Calendar, ChevronRight, ArrowRight, FastForward } from 'lucide-react'
+import { Calendar, ChevronRight, ArrowRight, FastForward, AlertCircle, RefreshCw } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { ScrollTrigger } from '@/lib/gsap'
 import { listPublishedEvents, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import type { Event as UiEvent } from '@/types'
 import { Button, EmptyState } from '@/components/ui'
 import { EventGrid } from '@/components/sections/EventGrid'
-import { Scene01Intro } from './Scene01Intro'
-import { Scene02Events } from './Scene02Events'
-import { Scene03Discover } from './Scene03Discover'
-import { Scene04Register } from './Scene04Register'
-import { Scene05Payment } from './Scene05Payment'
-import { Scene06Ticket } from './Scene06Ticket'
-import { Scene07Organizer } from './Scene07Organizer'
-import { Scene08Connected } from './Scene08Connected'
-import { Scene09Final } from './Scene09Final'
+
+import { getNavbarOffset } from './CinematicShared'
+import { Scene01BrandReveal } from './Scene01BrandReveal'
+import { Scene02DiscoverEvents } from './Scene02DiscoverEvents'
+import { Scene03StudentJourney } from './Scene03StudentJourney'
+import { Scene04OrganizerExperience } from './Scene04OrganizerExperience'
+import { Scene05FinalReveal } from './Scene05FinalReveal'
 
 const CLUB_COMMUNITIES = [
   'Technical Chapters',
@@ -40,27 +46,27 @@ const CLUB_COMMUNITIES = [
   'Robotics Clubs',
 ]
 
-function CinematicTicker() {
+function CampusChapterTicker() {
   const reduced = useReducedMotion()
   const items = [...CLUB_COMMUNITIES, ...CLUB_COMMUNITIES, ...CLUB_COMMUNITIES]
 
   return (
     <div
       aria-label="Campus communities supported by FestFlow"
-      className="py-5 sm:py-6 border-y border-white/[0.06] bg-[#0A0A0E]/60 backdrop-blur-md overflow-hidden relative z-10"
+      className="py-4 sm:py-5 border-y border-white/[0.06] bg-[#0A0A0E]/70 backdrop-blur-md overflow-hidden relative z-10 select-none"
     >
-      <p className="text-center text-[10px] uppercase tracking-widest text-zinc-500 mb-2.5 font-semibold">
-        Engineered for University Chapters & Student Communities
+      <p className="text-center text-[9px] sm:text-[10px] uppercase tracking-widest text-zinc-500 mb-2 font-mono font-semibold">
+        Engineered for University Chapters &amp; Student Communities
       </p>
       <div className="relative overflow-hidden">
         <div
           className="ticker-track"
-          style={reduced ? { justifyContent: 'center', flexWrap: 'wrap', gap: '1.5rem', animation: 'none' } : {}}
+          style={reduced ? { justifyContent: 'center', flexWrap: 'wrap', gap: '1.25rem', animation: 'none' } : {}}
         >
           {items.map((name, i) => (
             <span
               key={`${name}-${i}`}
-              className="whitespace-nowrap text-xs font-semibold text-zinc-400 hover:text-white transition-colors px-5 shrink-0 flex items-center gap-2"
+              className="whitespace-nowrap text-xs font-semibold text-zinc-400 hover:text-white transition-colors px-4 shrink-0 flex items-center gap-1.5"
             >
               <span className="text-[#18CFFC]" aria-hidden="true">✦</span>
               {name}
@@ -76,97 +82,127 @@ export function CinematicLanding() {
   const reducedMotion = useReducedMotion()
   const [events, setEvents] = useState<UiEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const [eventsError, setEventsError] = useState<string | null>(null)
   const [showSkip, setShowSkip] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const masterContainerRef = useRef<HTMLDivElement>(null)
+  const requestIdRef = useRef(0)
 
-  useEffect(() => {
-    let mounted = true
-    listPublishedEvents({ limit: 6 }).then((res) => {
-      if (!mounted) return
-      setLoading(false)
-      const activeEvents = (res.events || [])
-        .filter((e) => !isEventCompleted(e))
-        .map(mapRecordToUiEvent)
-      setEvents(activeEvents)
-    })
+  const loadLiveEvents = useCallback(async () => {
+    const reqId = ++requestIdRef.current
+    setLoading(true)
+    setEventsError(null)
+    try {
+      const res = await listPublishedEvents({ limit: 6 })
+      if (reqId !== requestIdRef.current) return
 
-    const handleScroll = () => {
-      // Show skip button once user has scrolled past 300px
-      if (window.scrollY > 300) {
-        setShowSkip(true)
+      if (res.error) {
+        setEvents([])
+        setEventsError(res.error)
       } else {
-        setShowSkip(false)
+        const activeEvents = (res.events || [])
+          .filter((e) => !isEventCompleted(e))
+          .map(mapRecordToUiEvent)
+        setEvents(activeEvents)
       }
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => {
-      mounted = false
-      window.removeEventListener('scroll', handleScroll)
+    } catch (err) {
+      if (reqId !== requestIdRef.current) return
+      setEvents([])
+      setEventsError(err instanceof Error ? err.message : 'Unable to load live campus events.')
+    } finally {
+      if (reqId === requestIdRef.current) {
+        setLoading(false)
+      }
     }
   }, [])
 
-  const handleSkipToFinal = () => {
-    const el = document.getElementById('scene-final')
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' })
+  useEffect(() => {
+    void loadLiveEvents()
+    return () => {
+      // Invalidate any in-flight request on unmount
+      requestIdRef.current += 1
     }
+  }, [loadLiveEvents])
+
+  useEffect(() => {
+    const updateSkipVisibility = () => {
+      const pastIntro = window.scrollY > 280
+      const finalEl = document.getElementById('scene-05-final')
+      if (!finalEl) {
+        setShowSkip(pastIntro)
+        return
+      }
+      const rect = finalEl.getBoundingClientRect()
+      // Hide Skip control once Scene 05 enters upper viewport, keeping it hidden across #events and Footer
+      const beforeFinal = rect.top > window.innerHeight * 0.65
+      setShowSkip(pastIntro && beforeFinal)
+    }
+
+    updateSkipVisibility()
+    window.addEventListener('scroll', updateSkipVisibility, { passive: true })
+    window.addEventListener('resize', updateSkipVisibility, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', updateSkipVisibility)
+      window.removeEventListener('resize', updateSkipVisibility)
+    }
+  }, [reducedMotion])
+
+  const handleSkipToFinal = () => {
+    const el = document.getElementById('scene-05-final')
+    if (!el) return
+    const navbarOffset = getNavbarOffset()
+    const targetTop = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - navbarOffset))
+    window.scrollTo({
+      top: targetTop,
+      behavior: 'auto',
+    })
+    ScrollTrigger.update()
   }
 
   return (
-    <div ref={containerRef} className="relative w-full bg-[#08080A] text-white overflow-hidden">
-      {/* Floating Quick Skip Control */}
+    <div ref={masterContainerRef} className="relative w-full bg-[#08080A] text-white overflow-x-clip">
+      {/* Context-aware Quick Skip Control — hides automatically upon reaching Scene 05, #events, or Footer */}
       {showSkip && (
         <aside
-          aria-label="Page navigation"
-          className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-40 transition-opacity duration-300"
+          aria-label="Skip to final actions"
+          className="fixed bottom-[70px] right-2.5 min-[360px]:bottom-20 min-[360px]:right-3.5 sm:bottom-8 sm:right-8 z-30 transition-opacity duration-200"
         >
           <button
             type="button"
             onClick={handleSkipToFinal}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-white/90 bg-[#14141A]/90 hover:bg-[#1C1C24] border border-white/15 backdrop-blur-md shadow-2xl transition-all duration-200 hover:border-[#18CFFC]/50 hover:text-white cursor-pointer"
-            aria-label="Skip to final section"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 min-[360px]:px-3.5 min-[360px]:py-2 rounded-full text-[11px] min-[360px]:text-xs font-bold text-white bg-[#14141A]/95 hover:bg-[#1C1C24] border border-white/25 backdrop-blur-md shadow-2xl transition-all duration-200 hover:border-[#18CFFC]/60 cursor-pointer"
+            aria-label="Skip to final actions"
           >
-            <FastForward size={13} className="text-[#18CFFC]" />
+            <FastForward size={12} className="text-[#18CFFC]" />
             <span>Skip to Join</span>
           </button>
         </aside>
       )}
 
-      {/* ─── SCENE 01: Brand Intro & Reveal ─────────────────────────── */}
-      <Scene01Intro reducedMotion={reducedMotion} />
+      {/* ─── SCENE 01: FestFlow Brand Reveal ─── */}
+      <Scene01BrandReveal reducedMotion={reducedMotion} />
 
-      {/* ─── Ticker: Campus Chapters ─────────────────────────────────── */}
-      <CinematicTicker />
+      {/* ─── Campus Chapter Ticker ─── */}
+      <CampusChapterTicker />
 
-      {/* ─── SCENE 02: Campus Events World ──────────────────────────── */}
-      <Scene02Events reducedMotion={reducedMotion} />
+      {/* ─── SCENE 02: Discover Campus Events ─── */}
+      <Scene02DiscoverEvents reducedMotion={reducedMotion} />
 
-      {/* ─── SCENE 03: Discover Phone Mockup ────────────────────────── */}
-      <Scene03Discover reducedMotion={reducedMotion} />
+      {/* ─── SCENE 03: The Student Journey ─── */}
+      <Scene03StudentJourney reducedMotion={reducedMotion} />
 
-      {/* ─── SCENE 04: Registration Journey ─────────────────────────── */}
-      <Scene04Register reducedMotion={reducedMotion} />
+      {/* ─── SCENE 04: The Organizer Experience ─── */}
+      <Scene04OrganizerExperience reducedMotion={reducedMotion} />
 
-      {/* ─── SCENE 05: Payment Verification ─────────────────────────── */}
-      <Scene05Payment reducedMotion={reducedMotion} />
+      {/* ─── SCENE 05: The Final Reveal ─── */}
+      <Scene05FinalReveal reducedMotion={reducedMotion} />
 
-      {/* ─── SCENE 06: Digital Ticket ───────────────────────────────── */}
-      <Scene06Ticket reducedMotion={reducedMotion} />
-
-      {/* ─── SCENE 07: Organizer Dashboard ──────────────────────────── */}
-      <Scene07Organizer reducedMotion={reducedMotion} />
-
-      {/* ─── SCENE 08: Connected Ecosystem ──────────────────────────── */}
-      <Scene08Connected reducedMotion={reducedMotion} />
-
-      {/* ─── LIVE EVENTS SHOWCASE: Active Campus Schedule ───────────── */}
+      {/* ─── LIVE CAMPUS EVENTS CALENDAR ─── */}
       <section
         id="events"
         aria-labelledby="live-events-heading"
-        className="relative py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
+        className="relative py-16 sm:py-24 pb-24 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full select-none"
       >
-        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="mb-8 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-[#18CFFC] bg-[#14141A] border border-[#18CFFC]/30 mb-3">
               <Calendar size={13} />
@@ -189,7 +225,7 @@ export function CinematicLanding() {
               </span>
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed max-w-xl">
-              Register now for live hackathons, cultural showcases, and workshops happening on campus.
+              Published campus events synced directly from FestFlow organizers.
             </p>
           </div>
 
@@ -203,23 +239,53 @@ export function CinematicLanding() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" aria-busy="true" aria-label="Loading upcoming campus events">
+            {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="h-80 rounded-2xl bg-[#0E0E12] animate-pulse border border-white/10"
+                className="h-72 sm:h-80 rounded-2xl bg-[#0E0E12] animate-pulse border border-white/10"
               />
             ))}
+          </div>
+        ) : eventsError ? (
+          <div
+            role="alert"
+            className="rounded-2xl bg-[#0E0E12] border border-red-500/30 p-6 sm:p-8 text-center max-w-xl mx-auto shadow-xl"
+          >
+            <div className="w-11 h-11 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto mb-3">
+              <AlertCircle size={20} />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-white mb-1.5">
+              Unable to Load Campus Events
+            </h3>
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed mb-5">
+              We couldn&apos;t connect to the live campus event feed right now. Check your connection and try again.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2.5 justify-center">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => void loadLiveEvents()}
+                leftIcon={<RefreshCw size={14} />}
+              >
+                Retry Loading
+              </Button>
+              <Link to="/discover">
+                <Button variant="outline" size="md" className="w-full sm:w-auto">
+                  Open Discover Page
+                </Button>
+              </Link>
+            </div>
           </div>
         ) : events.length === 0 ? (
           <EmptyState
             icon={Calendar}
             title="No Events Published Yet"
-            description="Campus clubs are finalizing their schedules. Are you a student organizer ready to launch your club's next event?"
+            description="Campus clubs are preparing their upcoming event schedules. Are you a club lead ready to launch your first event?"
             action={
               <Link to="/club/signup">
                 <Button variant="primary" size="md" rightIcon={<ArrowRight size={15} />}>
-                  Create an Event
+                  Create Club Event
                 </Button>
               </Link>
             }
@@ -243,10 +309,6 @@ export function CinematicLanding() {
           </Link>
         </div>
       </section>
-
-      {/* ─── SCENE 09: Final Climax CTA ─────────────────────────────── */}
-      <Scene09Final reducedMotion={reducedMotion} />
     </div>
   )
 }
-

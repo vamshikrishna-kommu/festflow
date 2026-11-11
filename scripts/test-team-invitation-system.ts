@@ -470,7 +470,8 @@ async function runTestSuite() {
   console.log('\n13. Testing Team Leader Dashboard Roster & Status Aggregation...')
   const teamDetailsRes = await getTeamDetails(teamId, leaderId)
   assert(teamDetailsRes.success, 'Fetched complete squad details for leader')
-  assert(teamDetailsRes.team?.members.length === 3, 'Roster has exactly 3 confirmed members')
+  const leaderRosterConfirmed = teamDetailsRes.team?.members.filter((m) => m.status === 'accepted') || []
+  assert(leaderRosterConfirmed.length === 3, `Roster has exactly 3 confirmed members, got ${leaderRosterConfirmed.length}`)
   assert(teamDetailsRes.team?.userRole === 'leader', 'User role correctly flagged as "leader"')
   assert(Boolean(teamDetailsRes.team?.invitations.length), 'Leader can inspect full invitation history')
 
@@ -483,11 +484,28 @@ async function runTestSuite() {
     user: { id: leader2Id, email: leader2Email },
   }))
 
+  const earlyResendRes = await resendTeamInvitation({
+    invitationId: inviteSnehaTeam2.invitation_id!,
+    leaderId: leader2Id,
+  })
+  assert(
+    !earlyResendRes.success && earlyResendRes.message.includes('Please wait'),
+    'Anti-spam cooldown enforces 60s wait before immediate resend'
+  )
+
+  // Advance clock beyond 60s cooldown in stored invitation record, then resend
+  const storedInvites = JSON.parse(localStorage.getItem('festflow_local_team_invitations') || '[]')
+  const targetInv = storedInvites.find((inv: any) => inv.id === inviteSnehaTeam2.invitation_id)
+  if (targetInv) {
+    targetInv.last_sent_at = new Date(Date.now() - 65000).toISOString()
+    localStorage.setItem('festflow_local_team_invitations', JSON.stringify(storedInvites))
+  }
+
   const resendRes = await resendTeamInvitation({
     invitationId: inviteSnehaTeam2.invitation_id!,
     leaderId: leader2Id,
   })
-  assert(resendRes.success, 'Invitation successfully resent with fresh expiry')
+  assert(resendRes.success, 'Invitation successfully resent with fresh expiry after cooldown')
 
   // ─────────────────────────────────────────────────────────────────────────
   // Summary

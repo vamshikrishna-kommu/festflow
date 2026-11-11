@@ -21,69 +21,59 @@ import {
   uploadClubPaymentQr,
   validateUpiId,
 } from '@/lib/payments'
-import {
-  ROLE_LABELS,
-  hasPermission,
-  getUserClubRole,
-} from '@/lib/clubMembers'
-import type { ClubRole } from '@/types'
+import { ROLE_LABELS } from '@/lib/clubMembers'
 
 export default function ClubPaymentSettingsPage() {
   const {
-    user,
     profile,
     clubProfile,
     activeClubId,
     activeClubMembership,
     activeClubProfile,
+    activeClubRole,
     clubMemberships,
+    hasClubPermission,
+    isRoleLoading,
+    role,
     updateProfile,
   } = useAuth()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Resolve selected club strictly from authorized owner profile or active membership - NEVER fallback to user.id
-  const clubId = activeClubId || clubProfile?.profile_id || activeClubMembership?.club_id || null
-  const currentClubName = clubProfile?.club_name || activeClubProfile?.club_name || profile?.display_name || 'Campus Club'
-  const currentRepName = clubProfile?.representative_name || activeClubProfile?.representative_name || profile?.display_name || ''
+  const isPlatformAdmin = role === 'platform_admin'
+  const clubId = activeClubId || null
+  const sourceClubProfile = activeClubProfile || clubProfile
+  const currentClubName =
+    activeClubProfile?.club_name ||
+    activeClubMembership?.club_name ||
+    clubProfile?.club_name ||
+    profile?.display_name ||
+    'Campus Club'
+  const currentRepName =
+    activeClubProfile?.representative_name ||
+    clubProfile?.representative_name ||
+    profile?.display_name ||
+    ''
 
-  const initialClubRole: ClubRole | null =
-    clubProfile?.profile_id === user?.id
-      ? 'owner'
-      : (activeClubMembership?.role as ClubRole) || null
+  const canManageClub = isPlatformAdmin || hasClubPermission('club.manage')
+  const canManagePaymentSettings = isPlatformAdmin || hasClubPermission('payments.settings')
+  const canReviewPayments = isPlatformAdmin || hasClubPermission('payments.verify')
+  const canAccessSettings = canManageClub || canManagePaymentSettings
 
-  const [userClubRole, setUserClubRole] = useState<ClubRole | null>(initialClubRole)
-  const [roleLoading, setRoleLoading] = useState(true)
-
-  useEffect(() => {
-    let mounted = true
-    if (!clubId || !user) {
-      setUserClubRole(null)
-      setRoleLoading(false)
-      return
-    }
-
-    getUserClubRole(clubId, user.id).then((r) => {
-      if (!mounted) return
-      setUserClubRole(r || (clubProfile?.profile_id === user.id ? 'owner' : (activeClubMembership?.role as ClubRole) || null))
-      setRoleLoading(false)
-    })
-
-    return () => {
-      mounted = false
-    }
-  }, [clubId, user?.id, clubProfile?.profile_id, activeClubMembership?.role])
-
-  const canManageClub = Boolean(userClubRole && hasPermission(userClubRole, 'manage_club'))
-  const canReviewPayments = Boolean(userClubRole && hasPermission(userClubRole, 'review_payments'))
-
-  // Determine active tab from URL or query
-  const initialTab =
+  // Determine active tab from URL or query, respecting permitted tab scope
+  const requestedTab =
     searchParams.get('tab') === 'profile'
       ? 'profile'
       : location.pathname.endsWith('/payments')
       ? 'payments'
       : 'profile'
+
+  const initialTab =
+    requestedTab === 'payments' && !canManagePaymentSettings && canManageClub
+      ? 'profile'
+      : requestedTab === 'profile' && !canManageClub && canManagePaymentSettings
+      ? 'payments'
+      : requestedTab
 
   const [activeTab, setActiveTab] = useState<'profile' | 'payments'>(initialTab)
 
@@ -96,39 +86,50 @@ export default function ClubPaymentSettingsPage() {
   // Club Profile form state
   const [clubNameInput, setClubNameInput] = useState(currentClubName)
   const [repNameInput, setRepNameInput] = useState(currentRepName)
-  const [websiteInput, setWebsiteInput] = useState(clubProfile?.website_url || '')
-  const [descriptionInput, setDescriptionInput] = useState(clubProfile?.description || '')
+  const [websiteInput, setWebsiteInput] = useState(sourceClubProfile?.website_url || '')
+  const [descriptionInput, setDescriptionInput] = useState(sourceClubProfile?.description || '')
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingQr, setUploadingQr] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
 
-  // Sync profile inputs when clubProfile updates
+  // Keep active tab within permitted tabs if roles change dynamically
   useEffect(() => {
-    if (clubProfile) {
-      setClubNameInput(clubProfile.club_name || '')
-      setRepNameInput(clubProfile.representative_name || profile?.display_name || '')
-      setWebsiteInput(clubProfile.website_url || '')
-      setDescriptionInput(clubProfile.description || '')
-    } else if (activeClubProfile) {
+    if (activeTab === 'profile' && !canManageClub && canManagePaymentSettings) {
+      setActiveTab('payments')
+    } else if (activeTab === 'payments' && !canManagePaymentSettings && canManageClub) {
+      setActiveTab('profile')
+    }
+  }, [activeTab, canManageClub, canManagePaymentSettings])
+
+  // Sync profile inputs when activeClubProfile or clubProfile updates
+  useEffect(() => {
+    if (activeClubProfile) {
       setClubNameInput(activeClubProfile.club_name || '')
       setRepNameInput(activeClubProfile.representative_name || profile?.display_name || '')
       setWebsiteInput(activeClubProfile.website_url || '')
       setDescriptionInput(activeClubProfile.description || '')
+    } else if (clubProfile) {
+      setClubNameInput(clubProfile.club_name || '')
+      setRepNameInput(clubProfile.representative_name || profile?.display_name || '')
+      setWebsiteInput(clubProfile.website_url || '')
+      setDescriptionInput(clubProfile.description || '')
     } else if (profile) {
       setClubNameInput(profile.display_name || 'Campus Club')
       setRepNameInput(profile.display_name || '')
     }
-  }, [clubProfile, activeClubProfile, profile])
+  }, [activeClubProfile, clubProfile, profile])
 
   // Load payment settings
   useEffect(() => {
     let mounted = true
-    if (!clubId || !canManageClub) {
+    if (isRoleLoading) return
+    if (!clubId || !canManagePaymentSettings) {
       setLoading(false)
       return
     }
+    setLoading(true)
     getClubPaymentSettings(clubId).then((settings) => {
       if (!mounted) return
       setLoading(false)
@@ -138,6 +139,8 @@ export default function ClubPaymentSettingsPage() {
         setPaymentInstructions(settings.payment_instructions || '')
         setQrImageUrl(settings.qr_image_url || null)
       } else {
+        setUpiId('')
+        setQrImageUrl(null)
         setAccountName(currentClubName)
         setPaymentInstructions(
           'Please mention your student name and registration code in the transaction note. Keep the 12-digit UTR handy for verification.'
@@ -147,16 +150,18 @@ export default function ClubPaymentSettingsPage() {
     return () => {
       mounted = false
     }
-  }, [clubId, currentClubName, canManageClub])
+  }, [clubId, currentClubName, canManagePaymentSettings, isRoleLoading, activeClubRole])
 
   const handleTabChange = (tab: 'profile' | 'payments') => {
+    if (tab === 'profile' && !canManageClub) return
+    if (tab === 'payments' && !canManagePaymentSettings) return
     setActiveTab(tab)
     setNotice(null)
     setSearchParams({ tab }, { replace: true })
   }
 
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!canManageClub || !clubId) return
+    if (!canManagePaymentSettings || !clubId) return
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -185,7 +190,7 @@ export default function ClubPaymentSettingsPage() {
 
   const handleSavePayments = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!canManageClub || !clubId) return
+    if (!canManagePaymentSettings || !clubId) return
     setNotice(null)
 
     if (!validateUpiId(upiId)) {
@@ -290,7 +295,7 @@ export default function ClubPaymentSettingsPage() {
     )
   }
 
-  if (!roleLoading && !canManageClub) {
+  if (!isRoleLoading && !canAccessSettings) {
     return (
       <PageShell>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
@@ -307,7 +312,7 @@ export default function ClubPaymentSettingsPage() {
           <EmptyState
             icon={AlertTriangle}
             title="Role Permission Required"
-            description={`Your current role (${userClubRole ? ROLE_LABELS[userClubRole] : 'Staff Member'}) in ${currentClubName} does not have permission to modify organization profiles or UPI gateway settings. Only Club Owners and Administrators can manage these settings.`}
+            description={`Your current role (${activeClubRole ? ROLE_LABELS[activeClubRole] : 'Staff Member'}) in ${currentClubName} does not have permission to modify organization profiles or UPI gateway settings. Only Club Owners and Administrators can manage these settings.`}
             action={
               canReviewPayments ? (
                 <Link to="/club/payments">
@@ -355,31 +360,35 @@ export default function ClubPaymentSettingsPage() {
 
         {/* Section Navigation Tabs */}
         <div className="flex items-center gap-2 p-1.5 bg-[#0E0E12] rounded-2xl border border-white/10 text-xs">
-          <button
-            type="button"
-            onClick={() => handleTabChange('profile')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
-              activeTab === 'profile'
-                ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
-                : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Building2 size={16} />
-            <span>Club Organization Profile</span>
-          </button>
+          {canManageClub && (
+            <button
+              type="button"
+              onClick={() => handleTabChange('profile')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
+                activeTab === 'profile'
+                  ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
+                  : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Building2 size={16} />
+              <span>Club Organization Profile</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('payments')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
-              activeTab === 'payments'
-                ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
-                : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <CreditCard size={16} />
-            <span>UPI & Payment Gateway</span>
-          </button>
+          {canManagePaymentSettings && (
+            <button
+              type="button"
+              onClick={() => handleTabChange('payments')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
+                activeTab === 'payments'
+                  ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
+                  : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <CreditCard size={16} />
+              <span>UPI & Payment Gateway</span>
+            </button>
+          )}
         </div>
 
         {/* Notice Feedback */}
@@ -390,7 +399,7 @@ export default function ClubPaymentSettingsPage() {
         )}
 
         {/* ── Tab 1: Club Organization Profile ──────────────────────────────── */}
-        {activeTab === 'profile' && (
+        {activeTab === 'profile' && canManageClub && (
           <form onSubmit={handleSaveProfile}>
             <Card className="p-6 sm:p-8 flex flex-col gap-6">
               <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
@@ -512,7 +521,7 @@ export default function ClubPaymentSettingsPage() {
         )}
 
         {/* ── Tab 2: UPI Payment Gateway ───────────────────────────────────── */}
-        {activeTab === 'payments' && (
+        {activeTab === 'payments' && canManagePaymentSettings && (
           <form onSubmit={handleSavePayments}>
             <Card className="p-6 sm:p-8 flex flex-col gap-6">
               {/* Security & Instructions Notice */}

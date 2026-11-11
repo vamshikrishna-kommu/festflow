@@ -1,26 +1,51 @@
 import type { ReactNode } from 'react'
-import { Navigate, useLocation, Link } from 'react-router'
+import { Navigate, useLocation, useParams, Link } from 'react-router'
 import { AlertTriangle, RefreshCw, LogOut, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Button, Logo } from '@/components/ui'
-import type { UserRole } from '@/types'
+import type { UserRole, ClubPermission } from '@/types'
 
 interface ProtectedRouteProps {
   children: ReactNode
   allowedRoles?: UserRole[]
+  requiredClubPermissions?: ClubPermission[]
+  clubPermissionMode?: 'all' | 'any'
+  allowEventAssignmentScope?: boolean
   fallbackPath?: string
 }
 
 export function ProtectedRoute({
   children,
   allowedRoles,
+  requiredClubPermissions,
+  clubPermissionMode = 'all',
+  allowEventAssignmentScope = false,
   fallbackPath,
 }: ProtectedRouteProps) {
-  const { session, role, isLoading, isRoleLoading, profileError, refreshProfile, signOut, hasClubMembership } = useAuth()
+  const {
+    session,
+    role,
+    isLoading,
+    isRoleLoading,
+    profileError,
+    refreshProfile,
+    signOut,
+    hasClubMembership,
+    activeClubRole,
+    eventAssignments,
+    hasClubPermission,
+    hasEventPermission,
+  } = useAuth()
   const location = useLocation()
+  const { id: routeEventId } = useParams<{ id?: string }>()
 
-  // 1. Session Hydration & Role Loading — Only block during initial evaluation before role is determined
-  if (isLoading || session === undefined || (session && isRoleLoading && !role)) {
+  // 1. Session Hydration & Role/Membership Loading — Wait until RBAC context is settled
+  const awaitingPermissions = Boolean(requiredClubPermissions?.length) && !activeClubRole && !profileError
+  if (
+    isLoading ||
+    session === undefined ||
+    (session && isRoleLoading && (!role || awaitingPermissions))
+  ) {
     return (
       <div
         className="min-h-screen flex items-center justify-center bg-[var(--color-surface-0)]"
@@ -130,6 +155,42 @@ export function ProtectedRoute({
     }
   }
 
-  // 5. Authorized
+  // 5. Granular Club RBAC Permission Check (Fail Closed)
+  if (requiredClubPermissions && requiredClubPermissions.length > 0 && role !== 'platform_admin') {
+    const checkPermission = (perm: ClubPermission): boolean => {
+      if (hasClubPermission(perm)) return true
+      if (allowEventAssignmentScope && routeEventId) {
+        if (hasEventPermission(routeEventId, perm)) return true
+        return eventAssignments.some(
+          (a) =>
+            a.event_id === routeEventId &&
+            hasEventPermission(routeEventId, perm, a.club_id)
+        )
+      }
+      return false
+    }
+
+    const authorized =
+      clubPermissionMode === 'any'
+        ? requiredClubPermissions.some(checkPermission)
+        : requiredClubPermissions.every(checkPermission)
+
+    if (!authorized) {
+      return (
+        <Navigate
+          to="/unauthorized"
+          state={{
+            attemptedPath: location.pathname + (location.search || ''),
+            userRole: role,
+            clubRole: activeClubRole,
+            requiredPermissions: requiredClubPermissions,
+          }}
+          replace
+        />
+      )
+    }
+  }
+
+  // 6. Authorized
   return <>{children}</>
 }

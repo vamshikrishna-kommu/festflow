@@ -260,7 +260,7 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
           ${teamName ? `<p style="margin: 4px 0; color: #a78bfa;">🛡️ <strong>Squad:</strong> ${teamName}</p>` : ''}
         </div>
         <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Digital Pass & QR</a>
+          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Digital Pass</a>
         </p>
       `
       break
@@ -299,7 +299,7 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
           <p style="margin: 4px 0; color: ${textWhite};">📍 <strong>Venue:</strong> ${venueName}</p>
         </div>
         <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeTicketUrl}" style="background: #34d399; color: #000; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Access Digital QR Pass</a>
+          <a href="${safeTicketUrl}" style="background: #34d399; color: #000; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Digital Pass</a>
         </p>
       `
       break
@@ -413,7 +413,7 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
           ${ticketCode ? `<p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Pass Code:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: ${brandCyan};">${ticketCode}</span></p>` : ''}
         </div>
         <p style="color: ${textMuted}; font-size: 13px; line-height: 1.5;">
-          ${isPaid ? 'Payment verification is managed by your team leader. Once verified, your entry pass will be active.' : 'Your team registration is recorded. Access your pass and QR code directly from your student dashboard.'}
+          ${isPaid ? 'Payment verification is managed by your team leader. Once verified, your entry pass will be active.' : 'Your team registration is confirmed. Access your official pass directly from your student dashboard.'}
         </p>
         <p style="text-align: center; margin: 25px 0;">
           <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Squad Pass</a>
@@ -429,7 +429,7 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
       bodyContent = `
         <h2 style="color: ${brandCyan}; margin-top: 0;">🎟️ Your Individual Pass is Ready!</h2>
         <p style="color: ${textWhite}; font-size: 15px; line-height: 1.6;">
-          Hi <strong>${recipient}</strong>, your individual event ticket for <strong>${eventTitle}</strong> is active and ready for gate admission.
+          Hi <strong>${recipient}</strong>, your individual event pass for <strong>${eventTitle}</strong> is confirmed and active.
         </p>
         <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 12px; padding: 18px; margin: 20px 0;">
           <p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Ticket Identifier:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: ${brandCyan};">${ticketCode}</span></p>
@@ -437,7 +437,7 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
           ${teamName ? `<p style="margin: 4px 0; color: #a78bfa;">🛡️ <strong>Squad:</strong> ${teamName}</p>` : ''}
         </div>
         <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Open Pass & QR Code</a>
+          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Open Official Pass</a>
         </p>
       `
       break
@@ -552,7 +552,7 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
           <p style="margin: 4px 0; color: ${textWhite};">🎟️ <strong>Pass:</strong> <span style="font-family: monospace; font-weight: bold;">${ticketCode}</span></p>
         </div>
         <p style="text-align: center; margin: 25px 0;">
-          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">Open Pass for Gate Entry</a>
+          <a href="${safeTicketUrl}" style="background: linear-gradient(135deg, ${brandPurple}, ${brandCyan}); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">View Event Pass</a>
         </p>
       `
       break
@@ -602,6 +602,206 @@ export function generateEmailHtml(template: EmailTemplateType, name: string, pay
  * Server-side authorization check to prevent arbitrary email dispatch abuse.
  * Validates caller identity, recipient association, and organizer permissions against trusted database records.
  */
+const ALLOWED_SELF_ACTION_TEMPLATES = new Set<EmailTemplateType>([
+  'application_submitted',
+  'payment_received',
+  'registration_confirmed',
+  'registration_waitlisted',
+  'ticket_issued',
+  'ticket_updated',
+  'registration_cancelled',
+])
+
+const CONFIRMED_REG_STATUSES = new Set(['confirmed', 'registered', 'approved'])
+
+type EdgeEmailPermission =
+  | 'members.invite'
+  | 'registrations.manage'
+  | 'payments.verify'
+  | 'events.edit'
+
+const EDGE_CLUB_ROLE_PERMS: Record<string, ReadonlySet<EdgeEmailPermission>> = {
+  owner: new Set(['members.invite', 'registrations.manage', 'payments.verify', 'events.edit']),
+  admin: new Set(['members.invite', 'registrations.manage', 'payments.verify', 'events.edit']),
+  event_manager: new Set(['registrations.manage', 'events.edit']),
+  payment_reviewer: new Set(['payments.verify']),
+  viewer: new Set(),
+  // checkin_staff is retired and grants no active dispatch permissions
+  checkin_staff: new Set(),
+}
+
+const EDGE_EVENT_ASSIGNMENT_PERMS: Record<string, ReadonlySet<EdgeEmailPermission>> = {
+  event_manager: new Set(['registrations.manage', 'events.edit']),
+  registration_manager: new Set(['registrations.manage']),
+  finance_manager: new Set(['payments.verify']),
+  content_manager: new Set(['events.edit']),
+  checkin_staff: new Set(),
+}
+
+async function isPlatformAdminCaller(supabaseAdmin: any, userId: string): Promise<boolean> {
+  const { data: profileRow, error } = await supabaseAdmin
+    .from('profiles')
+    .select('role, status')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !profileRow) return false
+  return profileRow.role === 'platform_admin' && profileRow.status !== 'suspended'
+}
+
+/**
+ * Resolves effective club role while honoring status ('active') and ownership transfers:
+ * clubId === userId only falls back to 'owner' when no club_members row exists for userId
+ * AND no active 'owner' record exists for that club_id.
+ */
+async function getEffectiveClubRole(
+  supabaseAdmin: any,
+  clubId: string,
+  userId: string
+): Promise<string | null> {
+  if (!clubId || !userId) return null
+
+  const { data: memberRecord, error: memberError } = await supabaseAdmin
+    .from('club_members')
+    .select('role, status')
+    .eq('club_id', clubId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (memberError) return null
+
+  if (memberRecord) {
+    return memberRecord.status === 'active' ? (memberRecord.role || null) : null
+  }
+
+  if (clubId === userId) {
+    const { data: activeOwners, error: ownerError } = await supabaseAdmin
+      .from('club_members')
+      .select('id')
+      .eq('club_id', clubId)
+      .eq('role', 'owner')
+      .eq('status', 'active')
+      .limit(1)
+
+    if (!ownerError && (!activeOwners || activeOwners.length === 0)) {
+      return 'owner'
+    }
+  }
+
+  return null
+}
+
+async function hasClubOrEventPermission(
+  supabaseAdmin: any,
+  clubId: string,
+  eventId: string | undefined,
+  userId: string,
+  permission: EdgeEmailPermission
+): Promise<{ authorized: boolean; clubRole: string | null }> {
+  const clubRole = await getEffectiveClubRole(supabaseAdmin, clubId, userId)
+  if (!clubRole) {
+    return { authorized: false, clubRole: null }
+  }
+
+  if (EDGE_CLUB_ROLE_PERMS[clubRole]?.has(permission)) {
+    return { authorized: true, clubRole }
+  }
+
+  // Event-scoped assignments ONLY apply to users with an active club_members row.
+  if (eventId) {
+    const { data: assignments, error } = await supabaseAdmin
+      .from('event_assignments')
+      .select('role')
+      .eq('club_id', clubId)
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+
+    if (!error && Array.isArray(assignments)) {
+      const grantedByEvent = assignments.some((a: any) =>
+        Boolean(a?.role && EDGE_EVENT_ASSIGNMENT_PERMS[a.role]?.has(permission))
+      )
+      if (grantedByEvent) {
+        return { authorized: true, clubRole }
+      }
+    }
+  }
+
+  return { authorized: false, clubRole }
+}
+
+async function resolveRegistrationEmail(
+  supabaseAdmin: any,
+  regRecord: { student_id?: string | null; participant_details?: any }
+): Promise<string> {
+  let regEmail = (regRecord.participant_details?.email || '').toLowerCase().trim()
+  if (!regEmail && regRecord.student_id) {
+    const { data: studentProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('id', regRecord.student_id)
+      .maybeSingle()
+    regEmail = (studentProfile?.email || '').toLowerCase().trim()
+  }
+  return regEmail
+}
+
+async function hasAttendeeRegistration(
+  supabaseAdmin: any,
+  eventId: string,
+  targetEmail: string
+): Promise<boolean> {
+  const { data: profileRecord } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .ilike('email', targetEmail)
+    .maybeSingle()
+
+  if (profileRecord?.id) {
+    const { data: regByStudentId } = await supabaseAdmin
+      .from('registrations')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('student_id', profileRecord.id)
+      .limit(1)
+
+    if (regByStudentId && regByStudentId.length > 0) {
+      return true
+    }
+  }
+
+  const { data: regByJsonEmail, error: jsonFilterErr } = await supabaseAdmin
+    .from('registrations')
+    .select('id')
+    .eq('event_id', eventId)
+    .ilike('participant_details->>email', targetEmail)
+    .limit(1)
+
+  if (!jsonFilterErr) {
+    return Boolean(regByJsonEmail && regByJsonEmail.length > 0)
+  }
+
+  // Fallback pagination across all registrations when JSON filter operator is unsupported
+  const pageSize = 1000
+  let offset = 0
+  while (true) {
+    const { data: batch, error: batchErr } = await supabaseAdmin
+      .from('registrations')
+      .select('id, participant_details')
+      .eq('event_id', eventId)
+      .range(offset, offset + pageSize - 1)
+
+    if (batchErr || !batch || batch.length === 0) break
+    const matched = batch.some(
+      (r: any) => (r.participant_details?.email || '').toLowerCase().trim() === targetEmail
+    )
+    if (matched) return true
+    if (batch.length < pageSize) break
+    offset += pageSize
+  }
+
+  return false
+}
+
 export async function authorizeEmailDispatch(params: {
   template: EmailTemplateType
   caller: { id: string; email?: string }
@@ -614,408 +814,327 @@ export async function authorizeEmailDispatch(params: {
   const targetEmail = (to || '').toLowerCase().trim()
   const payload = body.payload || {}
 
-  // 1. Self-directed notifications (isSelfAction: attendee's own ticket, confirmation, receipts)
+  // Fail closed when authoritative database connection is unavailable
+  if (!supabaseAdmin) {
+    return {
+      authorized: false,
+      reason: 'Authorization service unavailable: database client is not configured.',
+    }
+  }
+
+  // 1. Restricted self-directed student notifications (verified against caller's own DB registration)
   const isSelfAction = Boolean(callerEmail && callerEmail === targetEmail)
-  if (isSelfAction) {
+  if (isSelfAction && ALLOWED_SELF_ACTION_TEMPLATES.has(template)) {
+    const registrationId = body.registration_id || payload?.registration_id
+    const eventId = body.event_id || payload?.event_id
+
+    if (registrationId) {
+      const { data: regRecord } = await supabaseAdmin
+        .from('registrations')
+        .select('id, event_id, student_id, status, participant_details')
+        .eq('id', registrationId)
+        .maybeSingle()
+
+      if (regRecord) {
+        const regEmail = await resolveRegistrationEmail(supabaseAdmin, regRecord)
+        const callerOwnsReg =
+          regRecord.student_id === caller.id || Boolean(regEmail && regEmail === callerEmail)
+        const targetMatchesReg = Boolean(regEmail && regEmail === targetEmail)
+        const regStatus = String(regRecord.status || '').toLowerCase()
+
+        if (callerOwnsReg && targetMatchesReg) {
+          if (template === 'registration_confirmed' || template === 'ticket_issued') {
+            if (CONFIRMED_REG_STATUSES.has(regStatus)) return { authorized: true }
+          } else if (template === 'registration_waitlisted') {
+            if (regStatus === 'waitlisted') return { authorized: true }
+          } else {
+            return { authorized: true }
+          }
+        }
+      }
+    } else if (eventId) {
+      const { data: regRecords } = await supabaseAdmin
+        .from('registrations')
+        .select('id, status')
+        .eq('event_id', eventId)
+        .eq('student_id', caller.id)
+        .limit(5)
+
+      if (regRecords && regRecords.length > 0) {
+        if (template === 'registration_confirmed' || template === 'ticket_issued') {
+          if (regRecords.some((r: any) => CONFIRMED_REG_STATUSES.has(String(r.status || '').toLowerCase()))) {
+            return { authorized: true }
+          }
+        } else if (template === 'registration_waitlisted') {
+          if (regRecords.some((r: any) => String(r.status || '').toLowerCase() === 'waitlisted')) {
+            return { authorized: true }
+          }
+        } else {
+          return { authorized: true }
+        }
+      }
+    }
+    // Otherwise do not return early; fall through to organizer RBAC checks if caller holds club staff rights.
+  }
+
+  // 2. Club Member Invitation (Requires active members.invite + valid pending non-expired invite)
+  if (template === 'club_member_invitation') {
+    const clubId = body.club_id || payload?.club_id
+    if (!clubId) {
+      return { authorized: false, reason: 'Missing club_id for club member invitation.' }
+    }
+
+    const isAdmin = await isPlatformAdminCaller(supabaseAdmin, caller.id)
+    const callerRole = await getEffectiveClubRole(supabaseAdmin, clubId, caller.id)
+    const isClubAuthorized =
+      isAdmin || Boolean(callerRole && EDGE_CLUB_ROLE_PERMS[callerRole]?.has('members.invite'))
+
+    if (!isClubAuthorized) {
+      return {
+        authorized: false,
+        reason: 'Caller does not have active members.invite permissions for this club.',
+      }
+    }
+
+    const { data: invRecords } = await supabaseAdmin
+      .from('club_invitations')
+      .select('id, email, club_id, status, expires_at')
+      .eq('club_id', clubId)
+      .ilike('email', targetEmail)
+      .eq('status', 'pending')
+      .limit(5)
+
+    const validInvite = (invRecords || []).find(
+      (inv: any) => !inv.expires_at || new Date(inv.expires_at).getTime() > Date.now()
+    )
+
+    if (!validInvite) {
+      return {
+        authorized: false,
+        reason: 'No active pending invitation found for this recipient in the target organization.',
+      }
+    }
+
     return { authorized: true }
   }
 
-  // 2. Authoritative Database Verification (When connected to Supabase)
-  if (supabaseAdmin) {
-    // ── FIX 1: Club Member Invitation ──────────────────────────────────────
-    if (template === 'club_member_invitation') {
-      const clubId = body.club_id || payload?.club_id
-      let isClubAuthorized = false
-
-      if (clubId) {
-        // Direct club owner check (clubId is primary owner profile id)
-        if (clubId === caller.id) {
-          isClubAuthorized = true
-        } else {
-          // Check public.club_members table for active membership with manage_members permission (roles: owner, admin)
-          const { data: memberRecord } = await supabaseAdmin
-            .from('club_members')
-            .select('role, status')
-            .eq('club_id', clubId)
-            .eq('user_id', caller.id)
-            .eq('status', 'active')
-            .maybeSingle()
-
-          const role = memberRecord?.role
-          if (role === 'owner' || role === 'admin') {
-            isClubAuthorized = true
-          }
-        }
-      }
-
-      // Verify that the recipient email is tied to a legitimate, active pending invitation
-      let invQuery = supabaseAdmin
-        .from('club_invitations')
-        .select('id, email, club_id')
-        .ilike('email', targetEmail)
-        .eq('status', 'pending')
-
-      if (clubId) {
-        invQuery = invQuery.eq('club_id', clubId)
-      } else {
-        invQuery = invQuery.eq('invited_by', caller.id)
-      }
-
-      const { data: invRecords } = await invQuery.limit(1)
-
-      if (!invRecords || invRecords.length === 0) {
-        return {
-          authorized: false,
-          reason: 'No pending invitation found for this recipient in the target organization.',
-        }
-      }
-
-      if (isClubAuthorized || invRecords[0].club_id === clubId) {
-        return { authorized: true }
-      }
-
-      return { authorized: false, reason: 'Caller does not have active owner or admin permissions for this club.' }
+  // 3. Club Staff Invitation Accepted (Active club member notifies club owner or admin)
+  if (template === 'club_invitation_accepted') {
+    const clubId = body.club_id || payload?.club_id
+    if (!clubId) {
+      return { authorized: false, reason: 'Missing required club_id in payload.' }
     }
 
-    // ── FIX 3: Team Invitation Accepted (Member notifies team leader) ────────
-    if (template === 'team_invitation_accepted') {
-      const teamId = body.payload?.team_id || body.payload?.teamId
-      if (!teamId) {
-        return { authorized: false, reason: 'Missing required team_id in payload.' }
+    const callerRole = await getEffectiveClubRole(supabaseAdmin, clubId, caller.id)
+    if (!callerRole) {
+      return { authorized: false, reason: 'Caller is not an active member of this club.' }
+    }
+
+    const { data: recipientProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .ilike('email', targetEmail)
+      .maybeSingle()
+
+    if (recipientProfile?.id) {
+      const recipientRole = await getEffectiveClubRole(supabaseAdmin, clubId, recipientProfile.id)
+      if (recipientRole === 'owner' || recipientRole === 'admin') {
+        return { authorized: true }
       }
+    }
 
-      // Query database for team record
-      const { data: teamRecord } = await supabaseAdmin
-        .from('teams')
-        .select('id, leader_id, name')
-        .eq('id', teamId)
-        .single()
+    return { authorized: false, reason: 'Recipient is not verified as an owner or administrator of this club.' }
+  }
 
-      if (!teamRecord) {
-        return { authorized: false, reason: 'Team record not found in database.' }
-      }
+  // 4. Team Invitation Accepted / Declined (Squad member notifies verified team leader)
+  if (template === 'team_invitation_accepted' || template === 'team_invitation_declined') {
+    const teamId = body.team_id || payload?.team_id || payload?.teamId
+    if (!teamId) {
+      return { authorized: false, reason: 'Missing required team_id in payload.' }
+    }
 
-      // Verify caller is an accepted member of this team
-      const { data: memberRecord } = await supabaseAdmin
+    const { data: teamRecord } = await supabaseAdmin
+      .from('teams')
+      .select('id, leader_id, name')
+      .eq('id', teamId)
+      .maybeSingle()
+
+    if (!teamRecord) {
+      return { authorized: false, reason: 'Team record not found in database.' }
+    }
+
+    let { data: memberRecord } = await supabaseAdmin
+      .from('team_members')
+      .select('id, status, role')
+      .eq('team_id', teamId)
+      .eq('user_id', caller.id)
+      .maybeSingle()
+
+    if (!memberRecord && template === 'team_invitation_declined' && callerEmail) {
+      const { data: memberByEmail } = await supabaseAdmin
         .from('team_members')
         .select('id, status, role')
         .eq('team_id', teamId)
-        .eq('user_id', caller.id)
-        .single()
+        .ilike('email', callerEmail)
+        .maybeSingle()
+      memberRecord = memberByEmail
+    }
 
+    if (template === 'team_invitation_accepted') {
       if (!memberRecord || memberRecord.status !== 'accepted') {
         return { authorized: false, reason: 'Caller is not an accepted member of this team.' }
       }
+    } else if (!memberRecord || (memberRecord.status !== 'declined' && memberRecord.status !== 'pending')) {
+      return { authorized: false, reason: 'Caller is not an invited member of this team.' }
+    }
 
-      // Verify recipient 'to' is the verified team leader
-      const { data: leaderProfile } = await supabaseAdmin
-        .from('profiles')
+    const { data: leaderProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('id', teamRecord.leader_id)
+      .maybeSingle()
+
+    if (!leaderProfile || (leaderProfile.email || '').toLowerCase().trim() !== targetEmail) {
+      const { data: leaderMember } = await supabaseAdmin
+        .from('team_members')
         .select('email')
-        .eq('id', teamRecord.leader_id)
-        .single()
-
-      if (!leaderProfile || (leaderProfile.email || '').toLowerCase().trim() !== targetEmail) {
-        const { data: leaderMember } = await supabaseAdmin
-          .from('team_members')
-          .select('email')
-          .eq('team_id', teamId)
-          .eq('role', 'leader')
-          .single()
-
-        if (!leaderMember || (leaderMember.email || '').toLowerCase().trim() !== targetEmail) {
-          return { authorized: false, reason: 'Recipient is not the verified leader of this team.' }
-        }
-      }
-
-      return { authorized: true }
-    }
-
-    // ── Club Staff Invitation Accepted (Staff notifies club owner/inviter) ───
-    if (template === 'club_invitation_accepted') {
-      const clubId = body.club_id || payload?.club_id
-      if (!clubId) {
-        return { authorized: false, reason: 'Missing required club_id in payload.' }
-      }
-
-      // Verify caller is an active member of this club
-      const { data: callerMember } = await supabaseAdmin
-        .from('club_members')
-        .select('id, status')
-        .eq('club_id', clubId)
-        .eq('user_id', caller.id)
-        .eq('status', 'active')
+        .eq('team_id', teamId)
+        .eq('role', 'leader')
         .maybeSingle()
 
-      if (!callerMember) {
-        return { authorized: false, reason: 'Caller is not an active member of this club.' }
+      if (!leaderMember || (leaderMember.email || '').toLowerCase().trim() !== targetEmail) {
+        return { authorized: false, reason: 'Recipient is not the verified leader of this team.' }
       }
-
-      // If clubId matches caller, self-owner action
-      if (clubId === caller.id) {
-        return { authorized: true }
-      }
-
-      // Verify recipient is club owner or active admin
-      const { data: recipientProfile } = await supabaseAdmin
-        .from('profiles')
-        .select('id')
-        .ilike('email', targetEmail)
-        .maybeSingle()
-
-      if (recipientProfile) {
-        if (recipientProfile.id === clubId) {
-          return { authorized: true }
-        }
-        const { data: recipientMember } = await supabaseAdmin
-          .from('club_members')
-          .select('role, status')
-          .eq('club_id', clubId)
-          .eq('user_id', recipientProfile.id)
-          .eq('status', 'active')
-          .maybeSingle()
-
-        if (recipientMember?.role === 'owner' || recipientMember?.role === 'admin') {
-          return { authorized: true }
-        }
-      }
-
-      return { authorized: false, reason: 'Recipient is not verified as an owner or administrator of this club.' }
     }
 
-    // ── Team Invitation / Team Member Added (Team leader invites/adds a student) ─
-    if (template === 'team_invitation' || template === 'team_member_added') {
-      const teamId = body.team_id || payload?.team_id || payload?.teamId
-      if (teamId) {
-        const { data: teamRecord } = await supabaseAdmin
-          .from('teams')
-          .select('id, leader_id')
-          .eq('id', teamId)
-          .single()
-
-        if (teamRecord?.leader_id === caller.id) {
-          return { authorized: true }
-        }
-      }
-
-      const eventId = body.event_id || payload?.event_id || payload?.eventId
-      const teamName = payload?.teamName || payload?.team_name
-      if (eventId && teamName) {
-        const { data: teamRecord } = await supabaseAdmin
-          .from('teams')
-          .select('id, leader_id')
-          .eq('event_id', eventId)
-          .eq('name', teamName)
-          .single()
-
-        if (teamRecord?.leader_id === caller.id) {
-          return { authorized: true }
-        }
-      }
-      return { authorized: false, reason: 'Caller is not the leader of this team.' }
-    }
-
-    // ── FIX 2: Organizer Actions on Attendees & Events ─────────────────────
-    if (
-      template === 'registration_confirmed' ||
-      template === 'registration_cancelled' ||
-      template === 'registration_waitlisted' ||
-      template === 'ticket_updated' ||
-      template === 'ticket_issued' ||
-      template === 'payment_approved' ||
-      template === 'payment_rejected' ||
-      template === 'checkin_confirmed' ||
-      template === 'event_updated' ||
-      template === 'event_cancelled' ||
-      template === 'event_reminder'
-    ) {
-      let eventId = body.event_id || payload?.event_id
-      const registrationId = body.registration_id || payload?.registration_id
-
-      // 1. If registrationId is present, verify registration exists and belongs to targetEmail
-      if (registrationId) {
-        const { data: regRecord } = await supabaseAdmin
-          .from('registrations')
-          .select('id, event_id, student_id, participant_details')
-          .eq('id', registrationId)
-          .single()
-
-        if (!regRecord) {
-          return { authorized: false, reason: 'Registration record not found.' }
-        }
-
-        // Verify recipient matches registration email (from participant_details or profiles table)
-        let regEmail = (regRecord.participant_details?.email || '').toLowerCase().trim()
-        if (!regEmail && regRecord.student_id) {
-          const { data: studentProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('email')
-            .eq('id', regRecord.student_id)
-            .single()
-          regEmail = (studentProfile?.email || '').toLowerCase().trim()
-        }
-
-        if (regEmail && regEmail !== targetEmail) {
-          return { authorized: false, reason: 'Recipient email does not match registered attendee.' }
-        }
-
-        eventId = eventId || regRecord.event_id
-      } else if (
-        // For per-attendee templates without registrationId, verify registration by eventId + email
-        template === 'registration_confirmed' ||
-        template === 'registration_cancelled' ||
-        template === 'registration_waitlisted' ||
-        template === 'ticket_updated' ||
-        template === 'payment_approved' ||
-        template === 'payment_rejected' ||
-        template === 'checkin_confirmed'
-      ) {
-        if (eventId) {
-          const { data: regByEmail } = await supabaseAdmin
-            .from('registrations')
-            .select('id, participant_details, student_id')
-            .eq('event_id', eventId)
-            .limit(50)
-
-          const hasMatchingReg = (regByEmail || []).some((r: any) => {
-            const pEmail = (r.participant_details?.email || '').toLowerCase().trim()
-            return pEmail === targetEmail
-          })
-
-          if (!hasMatchingReg) {
-            const { data: profileRecord } = await supabaseAdmin
-              .from('profiles')
-              .select('id')
-              .ilike('email', targetEmail)
-              .single()
-
-            if (profileRecord) {
-              const { data: regByStudentId } = await supabaseAdmin
-                .from('registrations')
-                .select('id')
-                .eq('event_id', eventId)
-                .eq('student_id', profileRecord.id)
-                .limit(1)
-
-              if (!regByStudentId || regByStudentId.length === 0) {
-                return { authorized: false, reason: 'No matching attendee registration found for this recipient.' }
-              }
-            } else {
-              return { authorized: false, reason: 'No matching attendee registration found for this recipient.' }
-            }
-          }
-        }
-      }
-
-      if (!eventId) {
-        return { authorized: false, reason: 'Missing event_id for organizer action.' }
-      }
-
-      // 2. Query event to find owning club
-      const { data: eventRecord } = await supabaseAdmin
-        .from('events')
-        .select('club_id')
-        .eq('id', eventId)
-        .single()
-
-      if (!eventRecord) {
-        return { authorized: false, reason: 'Event not found.' }
-      }
-
-      const clubId = eventRecord.club_id
-
-      // 3. Primary club owner verification (club_id matches profile id)
-      if (clubId === caller.id) {
-        return { authorized: true }
-      }
-
-      // 4. Club staff role permission verification against granular least-privilege matrix
-      const { data: staffRecord } = await supabaseAdmin
-        .from('club_members')
-        .select('role, status')
-        .eq('club_id', clubId)
-        .eq('user_id', caller.id)
-        .eq('status', 'active')
-        .single()
-
-      if (!staffRecord) {
-        return { authorized: false, reason: 'Caller is not an active staff member of this event organizing club.' }
-      }
-
-      const role = staffRecord.role
-      if (template === 'payment_approved' || template === 'payment_rejected') {
-        if (role === 'owner' || role === 'admin' || role === 'payment_reviewer') {
-          return { authorized: true }
-        }
-      } else if (template === 'checkin_confirmed') {
-        if (role === 'owner' || role === 'admin' || role === 'checkin_staff' || role === 'event_manager') {
-          return { authorized: true }
-        }
-      } else {
-        // registration_confirmed, registration_cancelled, registration_waitlisted, ticket_updated, ticket_issued, event_updated, event_cancelled, event_reminder
-        if (role === 'owner' || role === 'admin' || role === 'event_manager') {
-          return { authorized: true }
-        }
-      }
-
-      return { authorized: false, reason: `Role "${role}" does not have permission to trigger ${template}.` }
-    }
-
-    return { authorized: false, reason: 'Unsupported action for third-party recipient.' }
+    return { authorized: true }
   }
 
-  // 3. Simulation mode (fallback when running in mock local environment without database connection)
-  if (template === 'club_member_invitation') {
-    const clubId = body.club_id || payload?.club_id
-    if (clubId && (payload?.inviter_name || body.name)) {
-      return { authorized: true }
-    }
-    return { authorized: false, reason: 'Missing club context in simulation mode.' }
-  }
-
-  if (template === 'club_invitation_accepted') {
-    const clubName = payload?.club_name
-    if (clubName) {
-      return { authorized: true }
-    }
-    return { authorized: false, reason: 'Missing club context in simulation mode.' }
-  }
-
+  // 5. Team Invitation / Team Member Added (Team leader invites/adds a student)
   if (template === 'team_invitation' || template === 'team_member_added') {
+    const teamId = body.team_id || payload?.team_id || payload?.teamId
+    if (teamId) {
+      const { data: teamRecord } = await supabaseAdmin
+        .from('teams')
+        .select('id, leader_id')
+        .eq('id', teamId)
+        .maybeSingle()
+
+      if (teamRecord?.leader_id === caller.id) {
+        return { authorized: true }
+      }
+    }
+
+    const eventId = body.event_id || payload?.event_id || payload?.eventId
     const teamName = payload?.teamName || payload?.team_name
-    if (teamName) {
-      return { authorized: true }
+    if (eventId && teamName) {
+      const { data: teamRecord } = await supabaseAdmin
+        .from('teams')
+        .select('id, leader_id')
+        .eq('event_id', eventId)
+        .eq('name', teamName)
+        .maybeSingle()
+
+      if (teamRecord?.leader_id === caller.id) {
+        return { authorized: true }
+      }
     }
-    return { authorized: false, reason: 'Missing team context in simulation mode.' }
+    return { authorized: false, reason: 'Caller is not the leader of this team.' }
   }
 
-  if (template === 'team_invitation_accepted') {
-    if (payload?.team_name && payload?.member_email && payload.member_email.toLowerCase() === callerEmail) {
-      return { authorized: true }
-    }
-    return { authorized: false, reason: 'Caller email does not match accepted member email in simulation mode.' }
-  }
-
+  // 6. Organizer Actions on Attendees & Events
   if (
     template === 'registration_confirmed' ||
     template === 'registration_cancelled' ||
     template === 'registration_waitlisted' ||
     template === 'ticket_updated' ||
+    template === 'ticket_issued' ||
     template === 'payment_approved' ||
     template === 'payment_rejected' ||
-    template === 'ticket_issued' ||
     template === 'checkin_confirmed' ||
     template === 'event_updated' ||
     template === 'event_cancelled' ||
     template === 'event_reminder'
   ) {
-    const eventId = body.event_id || payload?.event_id
-    if (eventId && (body.registration_id || payload?.registration_id || payload?.event_title)) {
+    let eventId = body.event_id || payload?.event_id
+    const registrationId = body.registration_id || payload?.registration_id
+
+    if (registrationId) {
+      const { data: regRecord } = await supabaseAdmin
+        .from('registrations')
+        .select('id, event_id, student_id, participant_details')
+        .eq('id', registrationId)
+        .maybeSingle()
+
+      if (!regRecord) {
+        return { authorized: false, reason: 'Registration record not found.' }
+      }
+
+      const regEmail = await resolveRegistrationEmail(supabaseAdmin, regRecord)
+      if (!regEmail || regEmail !== targetEmail) {
+        return { authorized: false, reason: 'Recipient email does not match registered attendee.' }
+      }
+
+      eventId = eventId || regRecord.event_id
+    } else {
+      if (!eventId) {
+        return { authorized: false, reason: 'Missing event_id for organizer action.' }
+      }
+
+      const matchedAttendee = await hasAttendeeRegistration(supabaseAdmin, eventId, targetEmail)
+      if (!matchedAttendee) {
+        return { authorized: false, reason: 'No matching attendee registration found for this recipient.' }
+      }
+    }
+
+    if (!eventId) {
+      return { authorized: false, reason: 'Missing event_id for organizer action.' }
+    }
+
+    const { data: eventRecord } = await supabaseAdmin
+      .from('events')
+      .select('club_id')
+      .eq('id', eventId)
+      .maybeSingle()
+
+    if (!eventRecord) {
+      return { authorized: false, reason: 'Event not found.' }
+    }
+
+    if (await isPlatformAdminCaller(supabaseAdmin, caller.id)) {
       return { authorized: true }
     }
-    return { authorized: false, reason: 'Missing event/registration context in simulation mode.' }
+
+    let requiredPermission: EdgeEmailPermission = 'registrations.manage'
+    if (template === 'payment_approved' || template === 'payment_rejected') {
+      requiredPermission = 'payments.verify'
+    } else if (template === 'event_updated' || template === 'event_cancelled' || template === 'event_reminder') {
+      requiredPermission = 'events.edit'
+    }
+
+    const permCheck = await hasClubOrEventPermission(
+      supabaseAdmin,
+      eventRecord.club_id,
+      eventId,
+      caller.id,
+      requiredPermission
+    )
+
+    if (permCheck.authorized) {
+      return { authorized: true }
+    }
+
+    if (!permCheck.clubRole) {
+      return { authorized: false, reason: 'Caller is not an active staff member of this event organizing club.' }
+    }
+
+    return {
+      authorized: false,
+      reason: `Role "${permCheck.clubRole}" does not have permission "${requiredPermission}" to trigger ${template}.`,
+    }
   }
 
-  return { authorized: false, reason: 'Unauthorized third-party dispatch in simulation mode.' }
+  return { authorized: false, reason: 'Unsupported action for recipient.' }
 }
 
 serve(async (req) => {
@@ -1037,17 +1156,20 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
 
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Server configuration error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for email authorization.',
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const isServiceRole = Boolean(supabaseServiceKey && token === supabaseServiceKey)
     let authenticatedUser: any = null
 
     if (!isServiceRole) {
-      if (!supabaseUrl) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Server configuration error: missing SUPABASE_URL.' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
       const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey || supabaseServiceKey)
       const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
 

@@ -32,42 +32,269 @@ export function generateSlug(title: string): string {
   return `${base || 'event'}-${randomSuffix}`
 }
 
-/**
- * Helper to determine if an event has concluded or has been marked completed/cancelled.
- * An event is completed if:
- * 1. Its status is explicitly 'completed' or 'cancelled'.
- * 2. Its end_date has elapsed (is before current timestamp).
- * 3. Or, if no end_date is specified, its start_date has elapsed.
- */
-export function isEventCompleted(event: {
+export const DEFAULT_EVENT_TIMEZONE = 'Asia/Kolkata'
+
+export type EventLifecyclePhase =
+  | 'upcoming'
+  | 'ongoing'
+  | 'completed'
+  | 'draft'
+  | 'cancelled'
+  | 'registration_closed'
+
+export interface EventLifecycleInput {
   status?: string | null
   end_date?: string | null
   start_date?: string | null
+  date?: string | null
   startDate?: string | null
   endDate?: string | null
-}): boolean {
-  if (event.status === 'completed' || event.status === 'cancelled') {
-    return true
-  }
+  timezone?: string | null
+}
 
-  const now = Date.now()
+/**
+ * Validates and resolves an IANA timezone string, defaulting cleanly to Asia/Kolkata.
+ */
+export function resolveEventTimezone(timeZone?: string | null): string {
+  const candidate = (timeZone || '').trim() || DEFAULT_EVENT_TIMEZONE
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone: candidate })
+    return candidate
+  } catch {
+    return DEFAULT_EVENT_TIMEZONE
+  }
+}
+
+function getZonedDateParts(date: Date, timeZone: string): {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute: number
+  second: number
+} {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    hourCycle: 'h23',
+  })
+  const map: Record<string, string> = {}
+  for (const part of fmt.formatToParts(date)) {
+    if (part.type !== 'literal') map[part.type] = part.value
+  }
+  const rawHour = Number(map.hour ?? '0')
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+    hour: rawHour === 24 ? 0 : rawHour,
+    minute: Number(map.minute ?? '0'),
+    second: Number(map.second ?? '0'),
+  }
+}
+
+function getTimezoneOffsetMs(utcMs: number, timeZone: string): number {
+  const parts = getZonedDateParts(new Date(utcMs), timeZone)
+  const zonedAsUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+    0
+  )
+  return zonedAsUtc - utcMs
+}
+
+/**
+ * Converts a YYYY-MM-DDTHH:mm wall-clock string interpreted in `timeZone` into an ISO UTC timestamp.
+ */
+export function zonedDatetimeInputToIso(val: string, timeZone?: string | null): string {
+  if (!val || !val.trim()) return ''
+  const trimmed = val.trim()
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(trimmed)
+  if (!match) {
+    const parsed = new Date(trimmed)
+    return isNaN(parsed.getTime()) ? '' : parsed.toISOString()
+  }
+  const tz = resolveEventTimezone(timeZone)
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const hour = Number(match[4])
+  const minute = Number(match[5])
+  const second = Number(match[6] || '0')
+
+  const wallAsUtc = Date.UTC(year, month - 1, day, hour, minute, second, 0)
+  const guess = wallAsUtc - getTimezoneOffsetMs(wallAsUtc, tz)
+  const refined = wallAsUtc - getTimezoneOffsetMs(guess, tz)
+  return new Date(refined).toISOString()
+}
+
+/**
+ * Formats an ISO UTC timestamp as YYYY-MM-DDTHH:mm in `timeZone` for datetime-local inputs.
+ */
+export function isoToZonedDatetimeInput(isoStr?: string | null, timeZone?: string | null): string {
+  if (!isoStr) return ''
+  const d = new Date(isoStr)
+  if (isNaN(d.getTime())) return ''
+  const tz = resolveEventTimezone(timeZone)
+  const p = getZonedDateParts(d, tz)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`
+}
+
+/**
+ * Formats an event timestamp in the event's configured timezone.
+ */
+export function formatEventDate(
+  isoStr?: string | null,
+  timeZone?: string | null,
+  options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }
+): string {
+  if (!isoStr) return 'Date TBA'
+  const d = new Date(isoStr)
+  if (isNaN(d.getTime())) return 'Date TBA'
+  return d.toLocaleDateString('en-IN', {
+    ...options,
+    timeZone: resolveEventTimezone(timeZone),
+  })
+}
+
+/**
+ * Formats an event time string in the event's configured timezone.
+ */
+export function formatEventTime(
+  isoStr?: string | null,
+  timeZone?: string | null,
+  options: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', hour12: true }
+): string {
+  if (!isoStr) return 'Time TBA'
+  const d = new Date(isoStr)
+  if (isNaN(d.getTime())) return 'Time TBA'
+  return d.toLocaleTimeString('en-IN', {
+    ...options,
+    timeZone: resolveEventTimezone(timeZone),
+  })
+}
+
+/**
+ * Resolves the authoritative end timestamp (UTC ms) of an event:
+ * - Uses `end_date` / `endDate` directly when provided.
+ * - If `end_date` is missing/null, treats the end of `start_date`'s calendar day
+ *   (23:59:59.999) in `event.timezone` as the conclusion boundary so ongoing
+ *   same-day events do not appear completed immediately at start time.
+ */
+export function getEffectiveEventEndMs(event: EventLifecycleInput): number | null {
   const endIso = event.end_date || event.endDate
   if (endIso) {
     const endMs = new Date(endIso).getTime()
-    if (!isNaN(endMs) && endMs < now) {
-      return true
-    }
-  } else {
-    const startIso = event.start_date || event.startDate
-    if (startIso) {
-      const startMs = new Date(startIso).getTime()
-      if (!isNaN(startMs) && startMs < now) {
-        return true
-      }
+    if (!isNaN(endMs)) return endMs
+  }
+
+  const startIso = event.start_date || event.startDate || event.date
+  if (!startIso) return null
+  const startDate = new Date(startIso)
+  if (isNaN(startDate.getTime())) return null
+
+  const tz = resolveEventTimezone(event.timezone)
+  const p = getZonedDateParts(startDate, tz)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const eodIso = zonedDatetimeInputToIso(`${p.year}-${pad(p.month)}-${pad(p.day)}T23:59:59`, tz)
+  const eodMs = eodIso ? new Date(eodIso).getTime() + 999 : startDate.getTime()
+  return isNaN(eodMs) ? null : eodMs
+}
+
+/**
+ * Determines the exact lifecycle phase of an event:
+ * - Cancelled events stay 'cancelled' (NEVER reclassified as 'completed').
+ * - Draft events stay 'draft' unless explicitly updated by organizer/admin.
+ * - Explicitly 'completed' events OR events past their end boundary resolve to 'completed'.
+ * - Events currently between start_date and effective end boundary resolve to 'ongoing'.
+ */
+export function getEventLifecyclePhase(
+  event: EventLifecycleInput,
+  referenceNow = Date.now()
+): EventLifecyclePhase {
+  const rawStatus = (event.status || '').toLowerCase()
+
+  if (rawStatus === 'cancelled') return 'cancelled'
+  if (rawStatus === 'draft') return 'draft'
+  if (rawStatus === 'completed') return 'completed'
+
+  const effectiveEndMs = getEffectiveEventEndMs(event)
+  if (effectiveEndMs !== null && effectiveEndMs <= referenceNow) {
+    return 'completed'
+  }
+
+  const startIso = event.start_date || event.startDate || event.date
+  if (startIso) {
+    const startMs = new Date(startIso).getTime()
+    if (!isNaN(startMs) && startMs <= referenceNow) {
+      return 'ongoing'
     }
   }
 
-  return false
+  if (rawStatus === 'registration_closed') return 'registration_closed'
+  return 'upcoming'
+}
+
+/**
+ * Returns true strictly when an event has concluded (explicitly 'completed' or
+ * its end time / start calendar day in event timezone has elapsed).
+ * Cancelled and draft events return false.
+ */
+export function isEventCompleted(event: EventLifecycleInput, referenceNow = Date.now()): boolean {
+  return getEventLifecyclePhase(event, referenceNow) === 'completed'
+}
+
+/**
+ * Returns true when an active event has started and not yet reached its end boundary.
+ */
+export function isEventOngoing(event: EventLifecycleInput, referenceNow = Date.now()): boolean {
+  return getEventLifecyclePhase(event, referenceNow) === 'ongoing'
+}
+
+/**
+ * Returns true when an event is either completed or cancelled (excluded from public discovery
+ * and read-only / locked against organizer lifecycle mutations).
+ */
+export function isEventConcludedOrCancelled(
+  event: EventLifecycleInput,
+  referenceNow = Date.now()
+): boolean {
+  const phase = getEventLifecyclePhase(event, referenceNow)
+  return phase === 'completed' || phase === 'cancelled'
+}
+
+/**
+ * Returns true if organizers may edit schedule/details, publish, cancel, or dispatch
+ * pre-event automations/reminders. Platform admins retain separate moderation override paths.
+ */
+export function canClubMutateEvent(
+  event: EventLifecycleInput,
+  referenceNow = Date.now()
+): boolean {
+  return !isEventConcludedOrCancelled(event, referenceNow)
+}
+
+export const LIFECYCLE_BADGE_META: Record<
+  EventLifecyclePhase,
+  { label: string; variant: 'cyan' | 'success' | 'neutral' | 'amber' | 'danger' | 'purple' }
+> = {
+  upcoming: { label: 'Upcoming', variant: 'cyan' },
+  ongoing: { label: 'Live Now', variant: 'success' },
+  completed: { label: 'Completed', variant: 'neutral' },
+  draft: { label: 'Draft', variant: 'amber' },
+  cancelled: { label: 'Cancelled', variant: 'danger' },
+  registration_closed: { label: 'Reg Closed', variant: 'purple' },
 }
 
 // ── Local Storage Helper for Offline / Fallback ──────────────────────────────
@@ -317,14 +544,21 @@ export async function createEvent(
 // ── Update Event ─────────────────────────────────────────────────────────────
 export async function updateEvent(
   id: string,
-  updates: EventUpdate
+  updates: EventUpdate,
+  clubId?: string
 ): Promise<{ event: EventRecord | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      const { data: updated, error } = await supabase
+      let query = supabase
         .from('events')
         .update(updates as never)
         .eq('id', id)
+
+      if (clubId) {
+        query = query.eq('club_id', clubId)
+      }
+
+      const { data: updated, error } = await query
         .select('*')
         .single()
 
@@ -336,7 +570,7 @@ export async function updateEvent(
   } else {
     await new Promise((r) => setTimeout(r, 400))
     const current = getInitialLocalEvents()
-    const idx = current.findIndex((e) => e.id === id)
+    const idx = current.findIndex((e) => e.id === id && (!clubId || e.club_id === clubId))
     if (idx === -1) return { event: null, error: 'Event not found' }
 
     const updatedRecord: EventRecord = {
@@ -356,22 +590,24 @@ export async function getEventById(
 ): Promise<{ event: EventRecord | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      // Use supabasePublic to prevent user-session RLS recursion, with fallback to supabase
+      // Try public client first for published events, then authenticated client for club drafts/cancelled events
       let { data, error } = await supabasePublic
         .from('events')
         .select('*')
         .eq('id', id)
         .maybeSingle()
 
-      if (error && !error.message.includes('infinite recursion')) {
+      if ((!data && !error) || (error && !error.message.includes('infinite recursion'))) {
         const retry = await supabase
           .from('events')
           .select('*')
           .eq('id', id)
           .maybeSingle()
-        if (!retry.error) {
+        if (!retry.error && retry.data) {
           data = retry.data
           error = null
+        } else if (retry.error && error) {
+          error = retry.error
         }
       }
 
@@ -502,9 +738,10 @@ export async function listClubEvents(
       return { events: [], error: err instanceof Error ? err.message : 'Failed to list club events' }
     }
   } else {
-    // In local simulation mode, return all managed local events
+    // In local simulation mode, isolate events to the requested club
     const current = getInitialLocalEvents()
-    return { events: current, error: null }
+    const filtered = clubId ? current.filter((e) => e.club_id === clubId) : current
+    return { events: filtered, error: null }
   }
 }
 
@@ -525,10 +762,14 @@ export async function listPublishedEvents(params?: {
           .eq('status', 'published')
           .order('start_date', { ascending: true })
 
-        // Unless explicitly requested, exclude events whose date has passed
+        // Unless explicitly requested, exclude events whose effective end has passed
+        // Include a 24h lookback window for start_date so ongoing same-day events with null end_date
+        // are retained from PostgREST before client timezone-aware phase filtering runs.
         if (!params?.includeCompleted) {
-          const nowIso = new Date().toISOString()
-          q = q.or(`start_date.gte.${nowIso},end_date.gte.${nowIso}`)
+          const nowMs = Date.now()
+          const nowIso = new Date(nowMs).toISOString()
+          const lookbackIso = new Date(nowMs - 24 * 60 * 60 * 1000).toISOString()
+          q = q.or(`start_date.gte.${lookbackIso},end_date.gte.${nowIso}`)
         }
 
         if (params?.category && params.category !== 'all') {
@@ -578,9 +819,9 @@ export async function listPublishedEvents(params?: {
 
       let rawEvents = (data as unknown as Record<string, unknown>[]) || []
 
-      // Defensive filtering: Ensure no concluded or completed events remain
+      // Defensive filtering: Ensure no concluded or cancelled events remain
       if (!params?.includeCompleted) {
-        rawEvents = rawEvents.filter((row) => !isEventCompleted(row as any))
+        rawEvents = rawEvents.filter((row) => !isEventConcludedOrCancelled(row as any))
       }
 
       // If any clubs don't have club_profile populated, batch fetch them directly by profile_id
@@ -643,7 +884,7 @@ export async function listPublishedEvents(params?: {
     const current = getInitialLocalEvents()
     let filtered = current.filter((e) => {
       if (e.status !== 'published') return false
-      if (!params?.includeCompleted && isEventCompleted(e)) return false
+      if (!params?.includeCompleted && isEventConcludedOrCancelled(e)) return false
       return true
     })
 

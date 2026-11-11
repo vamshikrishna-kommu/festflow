@@ -17,6 +17,7 @@ import {
 import { Button, Modal, ModalBody, ModalFooter } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 import { CollegeSearchCombobox } from '@/components/colleges/CollegeSearchCombobox'
+import { OFFICIAL_CONTACT_EMAIL, OFFICIAL_SUPPORT_MAILTO } from '@/lib/brandConfig'
 
 interface StudentSettingsModalProps {
   isOpen: boolean
@@ -71,10 +72,7 @@ export function StudentSettingsModal({
     return localStorage.getItem('festflow_pref_haptics') !== 'false'
   })
 
-  // Appearance Preferences (Device-specific)
-  const [scannerHighContrast, setScannerHighContrast] = useState<boolean>(() => {
-    return localStorage.getItem('festflow_pref_high_contrast') === 'true'
-  })
+  // Audio & Haptics Preferences (Device-specific)
 
   // Save states
   const [isSaving, setIsSaving] = useState(false)
@@ -150,7 +148,6 @@ export function StudentSettingsModal({
       localStorage.setItem('festflow_pref_ticket_updates', String(ticketUpdates))
       localStorage.setItem('festflow_pref_sound', String(soundEnabled))
       localStorage.setItem('festflow_pref_haptics', String(hapticsEnabled))
-      localStorage.setItem('festflow_pref_high_contrast', String(scannerHighContrast))
 
       setIsSaving(false)
       setSavedNotice('Settings saved successfully!')
@@ -360,7 +357,7 @@ export function StudentSettingsModal({
                     Audio Feedback
                   </span>
                   <span className="text-[11px] text-[var(--color-text-muted)]">
-                    Play confirmation tones for pass scans and payment updates.
+                    Play confirmation tones for registration and payment updates.
                   </span>
                 </div>
                 <input
@@ -377,7 +374,7 @@ export function StudentSettingsModal({
                     Vibration & Tactile Haptics
                   </span>
                   <span className="text-[11px] text-[var(--color-text-muted)]">
-                    Vibrate phone on button clicks, code copy, and gate check-in success.
+                    Vibrate phone on button clicks, code copy, and registration confirmation.
                   </span>
                 </div>
                 <input
@@ -393,23 +390,6 @@ export function StudentSettingsModal({
           {/* ── 4. Appearance & Display Section ── */}
           {activeSection === 'appearance' && (
             <div className="space-y-3 text-xs">
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] cursor-pointer">
-                <div>
-                  <span className="font-semibold text-[var(--color-text-primary)] block">
-                    Gate Scanner High-Contrast Mode
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">
-                    Default digital passes to pure white backdrop for rapid turnstile laser reads.
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={scannerHighContrast}
-                  onChange={(e) => setScannerHighContrast(e.target.checked)}
-                  className="w-4 h-4 rounded text-[var(--color-brand-cyan)] focus:ring-0 cursor-pointer ml-3 shrink-0"
-                />
-              </label>
-
               <div className="p-3.5 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)]">
                 <span className="font-semibold text-[var(--color-text-primary)] block mb-1">
                   Theme Palette
@@ -490,8 +470,8 @@ export function StudentSettingsModal({
                 </span>
                 <div className="space-y-2 text-[11px] text-[var(--color-text-muted)]">
                   <div>
-                    <strong className="text-[var(--color-text-primary)] block">How do I enter an event with my ticket?</strong>
-                    Open "My Passes", tap on the event, and show the digital QR code at the campus entry gate. You can enable High-Contrast mode for bright sunlight.
+                    <strong className="text-[var(--color-text-primary)] block">Where do I find my confirmed event pass?</strong>
+                    Open "My Passes", tap the event, and view your official ticket code and registration details. You can enable High-Contrast mode or download your pass for offline reference.
                   </div>
                   <div>
                     <strong className="text-[var(--color-text-primary)] block">How are UPI payments verified?</strong>
@@ -504,18 +484,18 @@ export function StudentSettingsModal({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] flex items-center justify-between gap-3">
                 <div>
                   <span className="font-semibold text-[var(--color-text-primary)] block">
                     Campus Student Helpdesk
                   </span>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">
-                    Need assistance with payments or registration?
+                  <span className="text-[11px] text-[var(--color-text-muted)] block">
+                    Need assistance? Reach us at {OFFICIAL_CONTACT_EMAIL}
                   </span>
                 </div>
                 <a
-                  href="mailto:support@festflow.online"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--color-brand-cyan)]/10 text-[var(--color-brand-cyan)] border border-[var(--color-brand-cyan)]/25 font-semibold text-xs min-h-[44px]"
+                  href={OFFICIAL_SUPPORT_MAILTO}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--color-brand-cyan)]/10 text-[var(--color-brand-cyan)] border border-[var(--color-brand-cyan)]/25 font-semibold text-xs min-h-[44px] shrink-0"
                 >
                   <Mail size={14} />
                   <span>Email Support</span>

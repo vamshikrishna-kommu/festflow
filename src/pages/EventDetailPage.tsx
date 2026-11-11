@@ -96,7 +96,7 @@ export default function EventDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, profile, studentProfile, role } = useAuth()
+  const { user, profile, studentProfile, role, hasEventPermission } = useAuth()
 
   const [event, setEvent] = useState<EventWithClub | null>(null)
   const [loading, setLoading] = useState(true)
@@ -422,7 +422,13 @@ export default function EventDetailPage() {
       })
     : null
 
-  const isOwner = user?.id === event.club_id
+  const isPlatformAdmin = role === 'platform_admin'
+  const canEditEvent =
+    isPlatformAdmin || hasEventPermission(event.id, 'events.edit', event.club_id)
+  const canViewRoster =
+    isPlatformAdmin || hasEventPermission(event.id, 'registrations.view', event.club_id)
+  const canModerateDiscussion =
+    canEditEvent || hasEventPermission(event.id, 'registrations.manage', event.club_id)
   const isCancelled = event.status === 'cancelled'
   const isDraft = event.status === 'draft'
   const isRegClosedStatus = event.status === 'registration_closed'
@@ -491,7 +497,7 @@ export default function EventDetailPage() {
 
           <div className="flex items-center gap-2">
             {/* Organizer Quick Management Pill */}
-            {(isOwner || role === 'platform_admin') && (
+            {canEditEvent && (
               <button
                 type="button"
                 onClick={() => setShowOrganizerModal(true)}
@@ -608,7 +614,7 @@ export default function EventDetailPage() {
                 <strong>Draft Preview:</strong> This event is currently a draft and is not visible on the public Discover feed.
               </span>
             </div>
-            {isOwner && (
+            {canEditEvent && (
               <Link to={`/club/events/${event.id}/edit`}>
                 <Button variant="primary" size="sm">
                   Edit & Publish
@@ -699,26 +705,32 @@ export default function EventDetailPage() {
                 </div>
               </div>
 
-              {isOwner && (
+              {(canEditEvent || canViewRoster) && (
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowOrganizerModal(true)}
-                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
-                  >
-                    <Sliders size={14} className="text-[#18CFFC]" />
-                    <span>Manage Hub</span>
-                  </button>
-                  <Link to={`/club/events/${event.id}/registrations`}>
-                    <Button variant="outline" size="sm" leftIcon={<Users size={14} />}>
-                      Attendees
-                    </Button>
-                  </Link>
-                  <Link to={`/club/events/${event.id}/edit`}>
-                    <Button variant="ghost" size="sm">
-                      Edit
-                    </Button>
-                  </Link>
+                  {canEditEvent && (
+                    <button
+                      type="button"
+                      onClick={() => setShowOrganizerModal(true)}
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                    >
+                      <Sliders size={14} className="text-[#18CFFC]" />
+                      <span>Manage Hub</span>
+                    </button>
+                  )}
+                  {canViewRoster && (
+                    <Link to={`/club/events/${event.id}/registrations`}>
+                      <Button variant="outline" size="sm" leftIcon={<Users size={14} />}>
+                        Attendees
+                      </Button>
+                    </Link>
+                  )}
+                  {canEditEvent && (
+                    <Link to={`/club/events/${event.id}/edit`}>
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -859,7 +871,7 @@ export default function EventDetailPage() {
               <EventLeaderboardSection
                 entries={leaderboardEntries}
                 title={(event as any).leaderboard_title || 'Competition Standings'}
-                isOrganizer={isOwner || role === 'platform_admin'}
+                isOrganizer={canEditEvent}
               />
             )}
 
@@ -983,7 +995,7 @@ export default function EventDetailPage() {
             <EventDiscussionSection
               eventId={event.id}
               clubId={event.club_id}
-              isOrganizer={user?.id === event.club_id || role === 'platform_admin'}
+              isOrganizer={canModerateDiscussion}
             />
 
             {/* ── Related Events Recommendations (Phase 6) ────────────────── */}
@@ -1134,10 +1146,10 @@ export default function EventDetailPage() {
 
                 <div className="flex items-center justify-between py-1">
                   <span className="flex items-center gap-1.5 text-zinc-500">
-                    <Ticket size={14} className="text-[#18CFFC]" /> Gate Credential
+                    <Ticket size={14} className="text-[#18CFFC]" /> Entry Credential
                   </span>
                   <span className="font-medium text-zinc-200">
-                    Encrypted QR Pass
+                    Verified Digital Pass
                   </span>
                 </div>
               </div>
@@ -1158,10 +1170,9 @@ export default function EventDetailPage() {
                   <div className="flex items-center gap-2">
                     <CheckCircle2 size={16} />
                     <span>
-                      {(existingReg as any).attendance_status === 'checked_in'
-                        ? 'Admitted Inside Venue'
-                        : (existingReg as any).attendance_status === 'checked_out'
-                        ? 'Checked Out of Venue'
+                      {(existingReg as any).attendance_status === 'checked_in' ||
+                      (existingReg as any).attendance_status === 'checked_out'
+                        ? 'Attendance Recorded'
                         : existingReg.status === 'confirmed'
                         ? 'Pass Confirmed'
                         : existingReg.approval_status === 'pending'
@@ -1222,7 +1233,7 @@ export default function EventDetailPage() {
                   ) : (
                     <div className="text-[11px] text-center text-zinc-500 bg-[#14141A] p-2.5 rounded-xl border border-white/[0.06] leading-relaxed">
                       {isCheckedIn ? (
-                        <span>Gate check-in recorded • Ticket cannot be cancelled after physical entry</span>
+                        <span>Attendance recorded • Ticket cannot be cancelled after recorded entry</span>
                       ) : isStarted ? (
                         <span>Event has started • Registration cancellation is closed</span>
                       ) : isCutoffPassed ? (
@@ -1421,7 +1432,7 @@ export default function EventDetailPage() {
               </div>
 
               <p className="text-[11px] text-zinc-500 text-center leading-relaxed">
-                Tickets are issued as authenticated digital QR passes with instant gate verification.
+                Tickets are issued as verified FestFlow digital entry passes upon registration confirmation.
               </p>
             </div>
           </div>
@@ -1451,7 +1462,7 @@ export default function EventDetailPage() {
               </div>
 
               <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
-                You are currently logged in as a <strong>Club Organizer</strong>. Organizers manage events and check-in desks. To claim a student entry pass, please sign in with or create a student account.
+                You are currently logged in as a <strong>Club Organizer</strong>. Organizers manage events and attendee rosters. To claim a student entry pass, please sign in with or create a student account.
               </p>
             </div>
           </ModalBody>
@@ -1546,7 +1557,7 @@ export default function EventDetailPage() {
         )}
 
         {/* ── Organizer Experience Manager Hub Modal (Phase 6) ─────────────── */}
-        {event && (
+        {event && canEditEvent && (
           <EventOrganizerExperienceModal
             isOpen={showOrganizerModal}
             onClose={() => setShowOrganizerModal(false)}
@@ -1576,7 +1587,7 @@ export default function EventDetailPage() {
           <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
             <div className="min-w-0">
               <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 block truncate">
-                {selectedTier ? selectedTier.name : displayIsFree ? 'Gate Admission' : 'Entry Ticket'}
+                {selectedTier ? selectedTier.name : displayIsFree ? 'Free Admission' : 'Entry Ticket'}
               </span>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-lg font-extrabold font-heading text-white">

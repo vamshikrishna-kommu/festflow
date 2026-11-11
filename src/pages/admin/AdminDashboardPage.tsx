@@ -8,7 +8,7 @@ import {
   Calendar,
   AlertCircle,
   CreditCard,
-  QrCode,
+  Ticket,
   DollarSign,
   ArrowRight,
   RefreshCw,
@@ -107,11 +107,11 @@ export default function AdminDashboardPage() {
           color="amber"
         />
         <AdminMetricCard
-          title="Turnstile Check-ins"
-          value={metrics?.total_check_ins ?? '—'}
-          icon={QrCode}
+          title="Issued Entry Passes"
+          value={metrics?.total_issued_passes ?? '—'}
+          icon={Ticket}
           color="emerald"
-          subtitle="Verified gate entrances"
+          subtitle="Confirmed registration passes"
         />
         <AdminMetricCard
           title="Transacted Ticket Volume"

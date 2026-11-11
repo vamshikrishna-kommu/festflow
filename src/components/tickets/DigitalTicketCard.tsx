@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
-import { QRCodeSVG } from 'qrcode.react'
 import {
   Calendar,
   Clock,
@@ -19,16 +18,17 @@ import {
   Users,
   AlertCircle,
   X,
-  Sun,
 } from 'lucide-react'
 import { Badge, Button, Logo } from '@/components/ui'
 import { resendPassEmail } from '@/lib/emails'
+import { writeCachedTicket, TICKET_CACHE_PREFIX } from '@/lib/ticketCache'
 import { ticketReveal, statusBadgePop } from '@/lib/animations'
 import type { RegistrationWithEvent } from '@/types'
 
 interface DigitalTicketCardProps {
   registration: RegistrationWithEvent
   studentName?: string
+  viewerUserId?: string
   onCancel?: () => void
   showActions?: boolean
 }
@@ -36,6 +36,7 @@ interface DigitalTicketCardProps {
 export function DigitalTicketCard({
   registration,
   studentName,
+  viewerUserId,
   onCancel,
   showActions = true,
 }: DigitalTicketCardProps) {
@@ -44,27 +45,17 @@ export function DigitalTicketCard({
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendNotice, setResendNotice] = useState<{ message: string; isError?: boolean } | null>(null)
 
-  // Mobile gate scanner high-contrast mode toggle
-  const [highContrast, setHighContrast] = useState<boolean>(() => {
-    return localStorage.getItem('festflow_pref_high_contrast') === 'true'
-  })
-
   const ticketCardRef = useRef<HTMLDivElement>(null)
   const event = registration.event || null
-  const qrToken = (registration as any).qr_token || registration.ticket_code
 
   const isConfirmed = registration.status === 'confirmed' && Boolean(registration.ticket_issued_at)
 
-  // Offline ticket persistence: safely caches confirmed pass for offline gate scan
+  // Offline pass persistence under `festflow_cached_ticket_` stores sanitized metadata in localStorage.
   useEffect(() => {
-    if (isConfirmed && registration.id) {
-      try {
-        localStorage.setItem(`festflow_cached_ticket_${registration.id}`, JSON.stringify(registration))
-      } catch {
-        // ignore quota limits
-      }
+    if (isConfirmed && registration.id && TICKET_CACHE_PREFIX) {
+      writeCachedTicket(registration, viewerUserId || registration.student_id)
     }
-  }, [isConfirmed, registration])
+  }, [isConfirmed, registration, viewerUserId])
   const isPendingApproval = registration.status === 'pending_approval'
   const isPending = registration.status === 'pending_payment'
   const isWaitlisted = registration.status === 'waitlisted'
@@ -100,10 +91,6 @@ export function DigitalTicketCard({
   const hasTeamMembers = Boolean(event && event.participation_type === 'team' && teamMembers.length > 0)
 
   const currentPassCode = registration.ticket_code
-  const currentToken = qrToken
-
-  // Opaque token only: Never encode student email, phone, or payment secrets inside QR
-  const qrPayload = `festflow://pass/${currentToken}`
 
   const handleCopyCode = () => {
     if (navigator.clipboard) {
@@ -210,11 +197,11 @@ export function DigitalTicketCard({
 
       ctx.fillStyle = '#18CFFC'
       ctx.font = 'bold 12px monospace'
-      ctx.fillText('OFFICIAL CAMPUS GATE PASS', 40, 85)
+      ctx.fillText('OFFICIAL CAMPUS ENTRY PASS', 40, 85)
 
       ctx.fillStyle = '#34d399'
       ctx.font = 'bold 13px system-ui, sans-serif'
-      ctx.fillText('✓ VERIFIED', 520, 60)
+      ctx.fillText('✓ CONFIRMED', 500, 60)
 
       // Event Title
       ctx.fillStyle = '#ffffff'
@@ -251,59 +238,45 @@ export function DigitalTicketCard({
         ctx.fillText(`Team: ${registration.team_name} (${registration.team_role === 'leader' ? 'Leader' : 'Member'})`, 40, 350)
       }
 
-      // QR Code Background Box
-      ctx.fillStyle = '#ffffff'
+      // Confirmed Pass Verification Card Box
+      ctx.fillStyle = '#141424'
       ctx.beginPath()
-      ctx.roundRect(195, 390, 250, 250, 16)
+      ctx.roundRect(80, 400, 480, 220, 16)
       ctx.fill()
+      ctx.strokeStyle = 'rgba(24, 207, 252, 0.45)'
+      ctx.lineWidth = 2
+      ctx.stroke()
 
-      // Draw SVG QR Code onto Canvas
-      const svgElement = ticketCardRef.current?.querySelector('svg')
-      if (svgElement) {
-        const svgXml = new XMLSerializer().serializeToString(svgElement)
-        const svgBlob = new Blob([svgXml], { type: 'image/svg+xml;charset=utf-8' })
-        const URL = window.URL || window.webkitURL || window
-        const blobURL = URL.createObjectURL(svgBlob)
+      ctx.textAlign = 'center'
+      ctx.fillStyle = '#18CFFC'
+      ctx.font = 'bold 12px monospace'
+      ctx.fillText('CONFIRMED PASS REFERENCE', 320, 450)
 
-        const img = new Image()
-        img.onload = () => {
-          ctx.drawImage(img, 220, 415, 200, 200)
-          URL.revokeObjectURL(blobURL)
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 34px monospace'
+      ctx.fillText(currentPassCode, 320, 515)
 
-          // Ticket Code Box Below QR
-          ctx.fillStyle = '#1e1b4b'
-          ctx.beginPath()
-          ctx.roundRect(170, 670, 300, 44, 8)
-          ctx.fill()
-          ctx.strokeStyle = 'rgba(124, 58, 237, 0.5)'
-          ctx.stroke()
+      ctx.fillStyle = '#34d399'
+      ctx.font = 'bold 14px system-ui, sans-serif'
+      ctx.fillText('VERIFIED STUDENT REGISTRATION', 320, 575)
 
-          ctx.fillStyle = '#a5b4fc'
-          ctx.font = 'bold 18px monospace'
-          ctx.textAlign = 'center'
-          ctx.fillText(currentPassCode, 320, 698)
+      // Security Notice
+      ctx.fillStyle = '#64748b'
+      ctx.font = '12px system-ui, sans-serif'
+      ctx.fillText('Keep this digital entry pass available for organizer verification.', 320, 690)
+      ctx.fillText('Issued directly to the registered student attendee on FestFlow.', 320, 712)
 
-          // Security Notice
-          ctx.textAlign = 'center'
-          ctx.fillStyle = '#64748b'
-          ctx.font = '11px system-ui, sans-serif'
-          ctx.fillText('Scan at campus event gate for entry admission.', 320, 750)
-          ctx.fillText('Encrypted token • Do not share with unverified parties.', 320, 770)
+      // Watermark Footer
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.14)'
+      ctx.font = 'bold 10px monospace'
+      ctx.fillText(`REF ID: ${registration.id.slice(0, 8).toUpperCase()}`, 320, 840)
+      ctx.fillText('FESTFLOW · CAMPUS EVENT PASS', 320, 860)
 
-          // Watermark Footer
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.08)'
-          ctx.font = 'bold 10px monospace'
-          ctx.fillText(`TOKEN: ${currentToken.substring(0, 16)}...`, 320, 840)
-          ctx.fillText('POWERED BY FESTFLOW PASS ENGINE', 320, 860)
-
-          // Export and trigger download
-          const link = document.createElement('a')
-          link.download = `FestFlow-Pass-${currentPassCode}.png`
-          link.href = canvas.toDataURL('image/png')
-          link.click()
-        }
-        img.src = blobURL
-      }
+      // Export and trigger download
+      const link = document.createElement('a')
+      link.download = `FestFlow-Pass-${currentPassCode}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
     } catch (err) {
       console.error('Failed to export pass image:', err)
       setResendNotice({ message: 'Unable to generate pass image download.', isError: true })
@@ -359,10 +332,9 @@ export function DigitalTicketCard({
 
             {/* Status Badge */}
             <motion.div variants={statusBadgePop} initial="initial" animate="animate">
-              {(registration as any)?.attendance_status === 'checked_in' ? (
-                <Badge variant="success">Admitted Inside</Badge>
-              ) : (registration as any)?.attendance_status === 'checked_out' ? (
-                <Badge variant="amber">Checked Out</Badge>
+              {(registration as any)?.attendance_status === 'checked_in' ||
+              (registration as any)?.attendance_status === 'checked_out' ? (
+                <Badge variant="success">Attendance Recorded</Badge>
               ) : isConfirmed ? (
                 <Badge variant="success">Confirmed Pass</Badge>
               ) : null}
@@ -462,76 +434,37 @@ export function DigitalTicketCard({
           <div className="w-5 h-5 rounded-full bg-[#08080A] border border-white/20 -mr-7 shadow-inner" />
         </div>
 
-        {/* Bottom Section: QR Code & Verification */}
+        {/* Bottom Section: Confirmed Pass Reference & Verification */}
         <div className="p-6 pt-3 flex flex-col items-center text-center gap-4 bg-[#0E0E12]">
           {isConfirmed ? (
             <>
-              {/* Gate Scanner High-Contrast Mode Toggle for Turnstiles */}
-              <div className="flex items-center justify-between w-full max-w-xs px-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextVal = !highContrast
-                    setHighContrast(nextVal)
-                    localStorage.setItem('festflow_pref_high_contrast', String(nextVal))
-                  }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-all border cursor-pointer ${
-                    highContrast
-                      ? 'bg-amber-400 text-black border-amber-300 shadow-md'
-                      : 'bg-[#14141A] text-zinc-300 hover:text-white border-white/10'
-                  }`}
-                  title="Toggle high-contrast screen brightness for gate scanner cameras"
-                >
-                  <Sun size={13} className={highContrast ? 'text-black' : 'text-amber-400'} />
-                  <span>{highContrast ? 'High Contrast Mode ON' : 'Turnstile Contrast Mode'}</span>
-                </button>
+              <div className="w-full max-w-xs p-5 rounded-2xl bg-[#14141A] border border-emerald-500/25 shadow-xl flex flex-col items-center gap-2.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                  <CheckCircle2 size={12} />
+                  Verified Entry Pass
+                </div>
 
-                <span className="text-[10px] text-zinc-500 font-mono">
-                  {highContrast ? 'Maximum Readability' : 'OLED Dark'}
+                <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
+                  Confirmed Pass Code
                 </span>
-              </div>
 
-              {/* Confirmed QR Code */}
-              <div className={`p-4 rounded-2xl shadow-xl border flex flex-col items-center justify-center transition-all ${
-                highContrast
-                  ? 'bg-white border-white text-black ring-4 ring-white/30'
-                  : 'bg-white border-white/20'
-              }`}>
-                <QRCodeSVG
-                  value={qrPayload}
-                  size={highContrast ? 180 : 155}
-                  bgColor="#ffffff"
-                  fgColor="#000000"
-                  level="H"
-                />
-                {highContrast && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-black mt-2">
-                    Turnstile Scanner Ready
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-[11px] text-[var(--color-text-muted)]">
-                  Official Gate Scanner Pass Token
-                </span>
                 <button
                   type="button"
                   onClick={handleCopyCode}
                   title="Click to copy pass code"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14141A] border border-white/10 hover:border-[#18CFFC] text-xs font-mono font-bold text-white transition-all min-h-[36px] cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/50 border border-white/15 hover:border-[#18CFFC] text-base sm:text-lg font-mono font-extrabold tracking-wider text-white transition-all min-h-[44px] cursor-pointer"
                 >
                   <span>{currentPassCode}</span>
                   {copied ? (
-                    <CheckCircle2 size={13} className="text-emerald-400" />
+                    <CheckCircle2 size={15} className="text-emerald-400" />
                   ) : (
-                    <Copy size={13} className="text-zinc-500" />
+                    <Copy size={15} className="text-zinc-400" />
                   )}
                 </button>
               </div>
 
               <p className="text-[11px] text-zinc-500 max-w-xs leading-relaxed font-sans">
-                Scan this encrypted QR pass at the campus event gate for instant check-in. Valid only for authorized student entry.
+                Keep this confirmed pass code handy for organizer verification. Valid strictly for the registered student attendee.
               </p>
             </>
           ) : isPendingApproval ? (
@@ -563,7 +496,7 @@ export function DigitalTicketCard({
                   Pass Locked — Payment Verification Pending
                 </strong>
                 <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mb-3 font-sans">
-                  Please complete the ticket fee payment to unlock your active gate entry pass and QR code.
+                  Please complete the ticket fee payment to unlock your confirmed entry pass.
                 </p>
                 <Link to={`/student/payments/${registration.id}`}>
                   <Button variant="primary" size="sm" rightIcon={<ExternalLink size={14} />}>
@@ -626,7 +559,7 @@ export function DigitalTicketCard({
                 Registration Void / Cancelled
               </strong>
               <p className="text-xs text-[var(--color-text-muted)] max-w-xs">
-                This pass has been cancelled and is no longer valid for gate admission.
+                This pass has been cancelled and is no longer valid for event entry.
               </p>
             </div>
           )}
@@ -637,7 +570,7 @@ export function DigitalTicketCard({
           <div className="w-full pt-3 border-t border-[var(--color-surface-3)] flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">
             <span className="flex items-center gap-1">
               <ShieldCheck size={12} className="text-emerald-400" />
-              Verified FestFlow Digital Token
+              Verified FestFlow Digital Pass
             </span>
             <span className="font-mono">ID: {registration.id.slice(0, 8)}…</span>
           </div>
@@ -728,7 +661,7 @@ export function DigitalTicketCard({
             {!isCancelled && !isRejected && onCancel && (
               (registration as any)?.attendance_status === 'checked_in' || (registration as any)?.attendance_status === 'checked_out' ? (
                 <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 w-full sm:w-auto text-center">
-                  Gate entry recorded (cancellation closed)
+                  Attendance recorded (cancellation closed)
                 </span>
               ) : hasStarted ? (
                 <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 w-full sm:w-auto text-center">

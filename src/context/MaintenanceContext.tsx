@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { getPlatformSettings, syncLocalSetting } from '@/lib/admin'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { OFFICIAL_CONTACT_EMAIL, OFFICIAL_SUPPORT_PHONE, normalizeSupportEmail } from '@/lib/brandConfig'
 
 interface MaintenanceContextType {
   isMaintenanceMode: boolean
@@ -13,8 +14,8 @@ interface MaintenanceContextType {
 
 const MaintenanceContext = createContext<MaintenanceContextType>({
   isMaintenanceMode: false,
-  supportEmail: 'support@festflow.online',
-  supportPhone: '+91-9876543210',
+  supportEmail: OFFICIAL_CONTACT_EMAIL,
+  supportPhone: OFFICIAL_SUPPORT_PHONE,
   isChecking: false,
   refreshMaintenanceStatus: async () => false,
   setMaintenanceMode: () => {},
@@ -39,15 +40,15 @@ export function MaintenanceProvider({ children }: { children: ReactNode }) {
     return false
   })
 
-  const [supportEmail, setSupportEmail] = useState('support@festflow.online')
-  const [supportPhone, setSupportPhone] = useState('+91-9876543210')
+  const [supportEmail, setSupportEmail] = useState(OFFICIAL_CONTACT_EMAIL)
+  const [supportPhone, setSupportPhone] = useState(OFFICIAL_SUPPORT_PHONE)
   const [isChecking, setIsChecking] = useState(false)
 
   const syncFromSettings = useCallback((settings: any) => {
     if (settings) {
       const isMaint = settings.maintenance_mode === true || settings.maintenance_mode === 'true'
       setIsMaintenanceMode(isMaint)
-      if (settings.support_email) setSupportEmail(settings.support_email)
+      if (settings.support_email) setSupportEmail(normalizeSupportEmail(settings.support_email))
       if (settings.support_phone) setSupportPhone(settings.support_phone)
       return isMaint
     }

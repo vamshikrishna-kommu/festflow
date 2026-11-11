@@ -522,10 +522,10 @@ async function runPhase5TestSuite() {
   const reloadedAttWb = new ExcelJS.Workbook()
   await reloadedAttWb.xlsx.load(attBuffer as any)
 
-  const attSheet = reloadedAttWb.getWorksheet('Gate Attendance Log')
+  const attSheet = reloadedAttWb.getWorksheet('Historical Attendance')
   assert(
     Boolean(attSheet),
-    'Gate Attendance worksheet must be named "Gate Attendance Log"'
+    'Historical Attendance worksheet must be named "Historical Attendance"'
   )
 
   if (attSheet) {
@@ -533,9 +533,9 @@ async function runPhase5TestSuite() {
     const summaryCell = attSheet.getCell('A3').value as string
     assert(
       typeof summaryCell === 'string' &&
-        summaryCell.includes('Admitted Inside: 1') &&
+        summaryCell.includes('Recorded Admitted: 1') &&
         summaryCell.includes('Checked Out: 1'),
-      'Turnstile summary row must calculate exact counts of inside attendees and exited check-outs',
+      'Historical attendance summary row must calculate exact counts of admitted and exited records',
       `Summary line: ${summaryCell}`
     )
 
@@ -544,8 +544,8 @@ async function runPhase5TestSuite() {
     assert(
       attHeaders.includes('Verified Operator ID') &&
         attHeaders.includes('Checkout Operator ID') &&
-        attHeaders.includes('Operator Turnstile Notes'),
-      'Attendance report must include operator audit trail and gate turnstile notes',
+        attHeaders.includes('Archive Notes'),
+      'Attendance report must include operator audit trail and archive notes',
       `Headers: ${attHeaders.join(', ')}`
     )
 

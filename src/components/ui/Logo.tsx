@@ -52,21 +52,25 @@ export function Logo({
   ...imgProps
 }: LogoProps) {
   const isEmblem = variant === 'emblem' || variant === 'compact'
-  const src = isEmblem ? '/festflow-emblem.png' : '/festflow-logo.png'
+  const pngSrc = isEmblem ? '/festflow-emblem.png' : '/festflow-logo.png'
+  const webpSrc = isEmblem ? '/festflow-emblem.webp' : '/festflow-logo.webp'
   const containerClasses = VARIANT_CONTAINER_CLASSES[variant]
   const dims = VARIANT_DIMENSIONS[variant]
 
   const imageElement = (
-    <img
-      src={src}
-      alt={alt}
-      width={dims.width}
-      height={dims.height}
-      loading="eager"
-      decoding="async"
-      className={`w-auto h-auto max-h-full max-w-full object-contain shrink-0 select-none ${className}`}
-      {...imgProps}
-    />
+    <picture className="contents">
+      <source srcSet={webpSrc} type="image/webp" />
+      <img
+        src={pngSrc}
+        alt={alt}
+        width={dims.width}
+        height={dims.height}
+        loading="eager"
+        decoding="async"
+        className={`w-auto h-auto max-h-full max-w-full object-contain shrink-0 select-none ${className}`}
+        {...imgProps}
+      />
+    </picture>
   )
 
   if (variant === 'custom' && !containerClassName) {

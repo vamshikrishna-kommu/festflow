@@ -1,5 +1,6 @@
 import { PageShell } from '@/components/layout/PageShell'
 import { Card, Badge } from '@/components/ui'
+import { OFFICIAL_CONTACT_EMAIL, OFFICIAL_SUPPORT_MAILTO } from '@/lib/brandConfig'
 import { ShieldCheck } from 'lucide-react'
 
 export default function PrivacyPolicyPage() {
@@ -40,7 +41,7 @@ export default function PrivacyPolicyPage() {
               2. How Information is Used
             </h2>
             <p>
-              Collected information is strictly used for event discovery, ticket generation, door check-in, organizer analytics, and transactional notifications (such as registration approvals and payment receipts). We do not sell attendee information to third-party advertisers.
+              Collected information is strictly used for event discovery, digital pass confirmation, organizer coordination, analytics, and transactional notifications (such as registration approvals and payment receipts). We do not sell attendee information to third-party advertisers.
             </p>
           </section>
 
@@ -59,8 +60,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>
               For privacy inquiries, data deletion requests, or institutional compliance audits, please contact the FestFlow team at{' '}
-              <a href="mailto:privacy@festflow.online" className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
-                privacy@festflow.online
+              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
+                {OFFICIAL_CONTACT_EMAIL}
               </a>.
             </p>
           </section>

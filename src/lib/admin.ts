@@ -1,5 +1,6 @@
 // Phase 7: Super Admin and Platform Management Service Layer
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { OFFICIAL_CONTACT_EMAIL, OFFICIAL_SUPPORT_PHONE, normalizeSupportEmail } from '@/lib/brandConfig'
 import type {
   PlatformMetrics,
   CollegeRecord,
@@ -49,8 +50,8 @@ const DEFAULT_SETTINGS: PlatformSettingsMap = {
   require_event_approval: false,
   max_upload_size_mb: 10,
   allowed_upload_types: ['image/jpeg', 'image/png', 'image/webp'],
-  support_email: 'support@festflow.online',
-  support_phone: '+91-9876543210',
+  support_email: OFFICIAL_CONTACT_EMAIL,
+  support_phone: OFFICIAL_SUPPORT_PHONE,
   platform_fee_percentage: 0,
   announcement_banner_enabled: true,
 }
@@ -1053,6 +1054,7 @@ export async function getPlatformSettings(): Promise<PlatformSettingsMap> {
             map[row.key] = row.value
           }
         }
+        map.support_email = normalizeSupportEmail(map.support_email)
         try {
           localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(map))
         } catch {}
@@ -1070,6 +1072,7 @@ export async function getPlatformSettings(): Promise<PlatformSettingsMap> {
       return {
         ...DEFAULT_SETTINGS,
         ...parsed,
+        support_email: normalizeSupportEmail(parsed.support_email),
         maintenance_mode: parsed.maintenance_mode === true || parsed.maintenance_mode === 'true',
       }
     }

@@ -361,13 +361,14 @@ async function runEmailIntegrationTests() {
   ]
   mockLocalStorage.setItem('festflow_local_clubs', JSON.stringify(mockClubs))
 
-  // Seed inviter as owner in club members
+  // Seed inviter as active owner in club members
   const mockMembers = [
     {
       id: 'cmem_01',
       club_id: clubId,
       user_id: inviterId,
       role: 'owner',
+      status: 'active',
       joined_at: new Date().toISOString(),
     },
   ]
@@ -444,20 +445,21 @@ async function runEmailIntegrationTests() {
 
   // Verify code invariants in Edge Function
   assert(
-    edgeCode.includes("role === 'owner' || role === 'admin'"),
-    'FIX 1: Edge Function checks active owner or admin role for club member invitations'
+    edgeCode.includes("EDGE_CLUB_ROLE_PERMS[callerRole]?.has('members.invite')") &&
+      edgeCode.includes("owner: new Set(['members.invite'"),
+    'FIX 1: Edge Function checks active members.invite permission (owner/admin) for club member invitations'
   )
   assert(
-    edgeCode.includes("regEmail && regEmail !== targetEmail"),
+    edgeCode.includes('!regEmail || regEmail !== targetEmail'),
     'FIX 2: Edge Function verifies recipient email matches attendee registration'
   )
   assert(
-    edgeCode.includes("role === 'payment_reviewer'"),
+    edgeCode.includes("payment_reviewer: new Set(['payments.verify'])"),
     'FIX 2: Edge Function permits payment reviewers to approve/reject payments'
   )
   assert(
-    edgeCode.includes("role === 'checkin_staff'"),
-    'FIX 2: Edge Function permits check-in staff to confirm gate admission'
+    edgeCode.includes('checkin_staff: new Set(),'),
+    'FIX 2: Edge Function denies dispatch permissions to retired checkin_staff role'
   )
   assert(
     edgeCode.includes("template === 'team_invitation_accepted'"),
@@ -576,7 +578,8 @@ async function runEmailIntegrationTests() {
       if (template === 'payment_approved' || template === 'payment_rejected') {
         if (staff.role === 'owner' || staff.role === 'admin' || staff.role === 'payment_reviewer') return { authorized: true }
       } else if (template === 'checkin_confirmed') {
-        if (staff.role === 'owner' || staff.role === 'admin' || staff.role === 'checkin_staff' || staff.role === 'event_manager') return { authorized: true }
+        // checkin_staff is retired and holds zero active email dispatch permissions
+        if (staff.role === 'owner' || staff.role === 'admin' || staff.role === 'event_manager') return { authorized: true }
       } else {
         if (staff.role === 'owner' || staff.role === 'admin' || staff.role === 'event_manager') return { authorized: true }
       }
@@ -705,6 +708,15 @@ async function runEmailIntegrationTests() {
   })
   assert(!gateApproveAttempt.authorized, 'FIX 2: Check-in Staff is REJECTED from approving payments')
 
+  const gateCheckinConfirmAttempt = await simulateDbAuth({
+    template: 'checkin_confirmed',
+    caller: { id: 'u_gate', email: 'gate@techclub.org' },
+    to: 'maya@student.edu',
+    body: { template: 'checkin_confirmed', to: 'maya@student.edu', registration_id: 'reg_101', event_id: 'evt_hackathon', payload: {} },
+    mockDb: mockDb2,
+  })
+  assert(!gateCheckinConfirmAttempt.authorized, 'FIX 2: Retired Check-in Staff is REJECTED from dispatching organizer checkin_confirmed emails')
+
   // --- Test FIX 3: team_invitation_accepted Server-Side DB Verification ---
   const mockDb3 = {
     teams: [{ id: 'team_alpha', event_id: 'evt_hackathon', leader_id: 'u_leader_99', name: 'Alpha Squad' }],
@@ -819,6 +831,7 @@ async function runEmailIntegrationTests() {
     console.log('🎉 ALL EMAIL SECURITY, SENDER & RESEND AUDIT TESTS PASSED!')
   } else {
     console.error(`⚠️ ${totalTests - passedTests} TESTS FAILED!`)
+    process.exit(1)
   }
   console.log('============================================================\n')
 }

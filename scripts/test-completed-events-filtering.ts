@@ -1,4 +1,12 @@
-import { isEventCompleted, listPublishedEvents } from '../src/lib/events'
+import {
+  isEventCompleted,
+  isEventOngoing,
+  getEventLifecyclePhase,
+  isEventConcludedOrCancelled,
+  isoToZonedDatetimeInput,
+  zonedDatetimeInputToIso,
+  listPublishedEvents,
+} from '../src/lib/events'
 import type { EventRecord } from '../src/types'
 
 console.log('=============================================================================')
@@ -36,10 +44,21 @@ assert('Event with status=completed is identified as completed', isEventComplete
   end_date: futureDateLater,
 }))
 
-assert('Event with status=cancelled is identified as completed', isEventCompleted({
+assert('Cancelled event is NOT classified as completed', !isEventCompleted({
   status: 'cancelled',
-  start_date: futureDate,
-  end_date: futureDateLater,
+  start_date: pastDateEarlier,
+  end_date: pastDate,
+}))
+
+assert('Cancelled event resolves strictly to lifecycle phase cancelled and excluded from discovery', (
+  getEventLifecyclePhase({ status: 'cancelled', start_date: futureDate, end_date: futureDateLater }) === 'cancelled' &&
+  isEventConcludedOrCancelled({ status: 'cancelled', start_date: futureDate, end_date: futureDateLater })
+))
+
+assert('Draft event is NOT classified as completed even if start date is in the past', !isEventCompleted({
+  status: 'draft',
+  start_date: pastDateEarlier,
+  end_date: pastDate,
 }))
 
 // 2. Future upcoming event
@@ -61,19 +80,52 @@ assert('Past event with elapsed end_date is identified as completed', isEventCom
   end_date: pastDate,
 }))
 
-assert('Past event with no end_date and elapsed start_date is identified as completed', isEventCompleted({
+assert('Past event with no end_date and elapsed calendar day is identified as completed', isEventCompleted({
   status: 'published',
   start_date: pastDate,
+  timezone: 'Asia/Kolkata',
 }))
 
-// 4. Currently ongoing event (started earlier today, ends tomorrow)
-assert('Ongoing event (started earlier, ends in future) is NOT completed', !isEventCompleted({
-  status: 'published',
-  start_date: pastDate,
-  end_date: futureDate,
-}))
+// 4. Currently ongoing event (started earlier, ends later OR same calendar day without end_date)
+assert('Ongoing event (started earlier, ends in future) is NOT completed and resolves to ongoing', (
+  !isEventCompleted({
+    status: 'published',
+    start_date: pastDate,
+    end_date: futureDate,
+  }) &&
+  isEventOngoing({
+    status: 'published',
+    start_date: pastDate,
+    end_date: futureDate,
+  })
+))
 
-// 5. CamelCase support (UI model Event)
+const sameDayRefMs = new Date('2026-11-11T10:00:00.000Z').getTime() // 15:30 IST on 2026-11-11
+assert('Same-day event without end_date remains ongoing until end of day in event timezone', (
+  !isEventCompleted({
+    status: 'published',
+    start_date: '2026-11-11T04:30:00.000Z', // 10:00 IST on 2026-11-11
+    end_date: null,
+    timezone: 'Asia/Kolkata',
+  }, sameDayRefMs) &&
+  getEventLifecyclePhase({
+    status: 'published',
+    start_date: '2026-11-11T04:30:00.000Z',
+    end_date: null,
+    timezone: 'Asia/Kolkata',
+  }, sameDayRefMs) === 'ongoing'
+))
+
+// 5. Timezone round-trip accuracy (independent of OS local timezone)
+const sampleUtcIso = '2026-11-15T09:00:00.000Z' // 14:30 IST
+const zonedStr = isoToZonedDatetimeInput(sampleUtcIso, 'Asia/Kolkata')
+const roundTripIso = zonedDatetimeInputToIso(zonedStr, 'Asia/Kolkata')
+assert('Timezone conversion preserves wall clock in Asia/Kolkata accurately', (
+  zonedStr === '2026-11-15T14:30' &&
+  roundTripIso === sampleUtcIso
+))
+
+// 6. CamelCase support (UI model Event)
 assert('UI model event with past endDate is identified as completed', isEventCompleted({
   status: 'published',
   startDate: pastDateEarlier,

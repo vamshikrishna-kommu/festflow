@@ -279,23 +279,33 @@ export async function promoteWaitlistStudent(
 
   if (isSupabaseConfigured) {
     try {
-      const { error } = await (supabase.from('registrations') as any)
+      const { data, error } = await (supabase.from('registrations') as any)
         .update({
           status: nextStatus,
           waitlist_offer_expires_at: expiresAt,
           updated_at: new Date().toISOString(),
         })
         .eq('id', registrationId)
+        .select('id')
+        .maybeSingle()
 
-      if (!error) {
-        broadcastStatusChange({
-          type: 'registration_updated',
-          registrationId,
-        })
-        return { success: true }
+      if (error || !data) {
+        return {
+          success: false,
+          error: error?.message || 'Unauthorized or waitlist registration not found.',
+        }
       }
+
+      broadcastStatusChange({
+        type: 'registration_updated',
+        registrationId,
+      })
+      return { success: true }
     } catch (e: any) {
-      console.warn('[FestFlow Waitlist] Promote note:', e.message)
+      return {
+        success: false,
+        error: e?.message || 'Failed to promote waitlist student.',
+      }
     }
   }
 

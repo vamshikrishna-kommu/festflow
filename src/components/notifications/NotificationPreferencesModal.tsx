@@ -192,7 +192,7 @@ export function NotificationPreferencesModal({
                           </div>
                           <div className="text-xs text-[var(--color-text-secondary)]">
                             {pushStatus.supported
-                              ? 'Receive instant gate alerts & turnstile updates on this device'
+                              ? 'Receive instant event alerts & schedule updates on this device'
                               : 'Not supported on this browser or platform'}
                           </div>
                         </div>
@@ -236,7 +236,7 @@ export function NotificationPreferencesModal({
                             Event Reminders (7d, 1d, 2h)
                           </div>
                           <div className="text-xs text-[var(--color-text-secondary)]">
-                            Automated schedule updates, venue directions, and turnstile alerts
+                            Automated schedule updates, venue directions, and pass reminders
                           </div>
                         </div>
                       </div>

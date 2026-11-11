@@ -19,6 +19,9 @@ export type StatusChangeType =
   | 'invitation_accepted'
   | 'ticket_updated'
   | 'checkin_recorded'
+  | 'role_updated'
+  | 'membership_updated'
+  | 'event_assignment_updated'
   | 'reconnect'
 
 export interface StatusChangeEvent {
@@ -214,6 +217,41 @@ export function subscribeToStatusChanges(
               callback({
                 type: 'team_updated',
                 teamId: row?.team_id,
+                eventId: row?.event_id,
+                studentId: row?.user_id,
+                timestamp: Date.now(),
+                source: 'realtime',
+                payload: row,
+              })
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'club_members' },
+          (payload) => {
+            const row: any = payload.new || payload.old
+            if (allowed.has('membership_updated') || allowed.has('role_updated') || allowed.has('team_updated')) {
+              callback({
+                type: allowed.has('role_updated') ? 'role_updated' : 'membership_updated',
+                clubId: row?.club_id,
+                studentId: row?.user_id,
+                timestamp: Date.now(),
+                source: 'realtime',
+                payload: row,
+              })
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'event_assignments' },
+          (payload) => {
+            const row: any = payload.new || payload.old
+            if (allowed.has('event_assignment_updated') || allowed.has('role_updated')) {
+              callback({
+                type: 'event_assignment_updated',
+                clubId: row?.club_id,
                 eventId: row?.event_id,
                 studentId: row?.user_id,
                 timestamp: Date.now(),

@@ -9,6 +9,7 @@ import { RequestCancellationModal } from '@/components/registration/RequestCance
 import { RequestEditModal } from '@/components/registration/RequestEditModal'
 import { getRegistrationById } from '@/lib/registrations'
 import { subscribeToStatusChanges } from '@/lib/sync'
+import { writeCachedTicket, readCachedTicket } from '@/lib/ticketCache'
 import { useAuth } from '@/context/AuthContext'
 import type { RegistrationWithEvent } from '@/types'
 
@@ -33,22 +34,16 @@ export default function TicketDetailPage() {
     if (!silent) setLoading(false)
 
     if (res.error || !res.registration) {
-      // Check offline local storage fallback
-      try {
-        const cachedRaw = localStorage.getItem(`festflow_cached_ticket_${id}`)
-        if (cachedRaw) {
-          const cached = JSON.parse(cachedRaw)
-          // Strictly verify cached ticket ownership; unauthenticated users cannot view cached credentials
-          if (!user || (cached.student_id !== user.id && role !== 'platform_admin')) {
-            setError('You do not have permission to view this ticket.')
-            return
-          }
-          setRegistration(cached)
-          setIsOffline(true)
-          return
-        }
-      } catch {
-        // ignore JSON parse error
+      // Check owner-scoped offline cache (never persists plaintext qr_token in localStorage)
+      const offlineRes = readCachedTicket(id, user?.id, role === 'platform_admin')
+      if (offlineRes.unauthorized) {
+        setError('You do not have permission to view this ticket.')
+        return
+      }
+      if (offlineRes.registration) {
+        setRegistration(offlineRes.registration)
+        setIsOffline(true)
+        return
       }
       setError(res.error || 'Ticket could not be found.')
     } else {
@@ -59,11 +54,7 @@ export default function TicketDetailPage() {
       } else {
         setRegistration(res.registration)
         setIsOffline(false)
-        try {
-          localStorage.setItem(`festflow_cached_ticket_${id}`, JSON.stringify(res.registration))
-        } catch {
-          // ignore
-        }
+        writeCachedTicket(res.registration, user?.id || res.registration.student_id)
       }
     }
   }
@@ -140,7 +131,7 @@ export default function TicketDetailPage() {
               <div className="w-full max-w-md p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3 shadow-md">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                  <span><strong>Offline Gate Pass</strong> — Cached from previous session. Ready for scanner verification.</span>
+                  <span><strong>Offline Pass Copy</strong> — Cached from previous session for viewing without internet access.</span>
                 </div>
               </div>
             )}
@@ -196,6 +187,7 @@ export default function TicketDetailPage() {
             <DigitalTicketCard
               registration={registration}
               studentName={profile?.display_name || 'FestFlow Student'}
+              viewerUserId={user?.id}
               onCancel={() => setShowCancelModal(true)}
             />
 

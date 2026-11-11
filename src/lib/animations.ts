@@ -296,25 +296,7 @@ export const statusBadgePop: Variants = {
   },
 }
 
-// ─── 13. Scanner Success & Rejection Feedback ──────────────────────────────
 
-export const scannerAccepted: Variants = {
-  hidden: { opacity: 0, scale: 0.94 },
-  visible: {
-    opacity: 1,
-    scale: [0.94, 1.02, 1],
-    transition: { duration: 0.3, ease: EASINGS.brand },
-  },
-}
-
-export const scannerRejected: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    x: [0, -8, 8, -6, 6, -2, 2, 0],
-    transition: { duration: 0.45, ease: 'easeInOut' },
-  },
-}
 
 // ─── 14. Dashboard Metric Counter & Chart Appearance ───────────────────────
 

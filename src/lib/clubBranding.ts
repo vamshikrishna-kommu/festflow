@@ -37,11 +37,12 @@ export async function getClubBranding(clubId: string): Promise<{
         .eq('profile_id', clubId)
         .maybeSingle()
 
-      if (!error && data) {
-        return { profile: data }
+      if (error) {
+        return { error: error.message }
       }
+      return { profile: data || undefined }
     } catch (e: any) {
-      console.warn('[FestFlow Branding] Query note:', e.message)
+      return { error: e?.message || 'Failed to load club branding.' }
     }
   }
 
@@ -99,11 +100,15 @@ export async function updateClubBranding(
         .update(payload)
         .eq('profile_id', clubId)
 
-      if (!error) {
-        return { success: true }
+      if (error) {
+        return { success: false, error: error.message }
       }
+      return { success: true }
     } catch (e: any) {
-      console.warn('[FestFlow Branding] Update note, saving locally:', e.message)
+      return {
+        success: false,
+        error: e?.message || 'Failed to update club branding.',
+      }
     }
   }
 

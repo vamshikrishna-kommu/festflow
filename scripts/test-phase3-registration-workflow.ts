@@ -11,6 +11,7 @@ const mockLocalStorage = {
 ;(globalThis as any).localStorage = mockLocalStorage
 
 import { registerForEvent, reviewRegistrationApplication, cancelRegistration } from '../src/lib/registrations'
+import { reviewRegistrationCancellation, getLocalCancellationRequests } from '../src/lib/cancellations'
 import type { EventRecord } from '../src/types'
 
 let totalTests = 0
@@ -520,11 +521,25 @@ async function runTests() {
     const capReg = currentRegs.find((r: any) => r.event_id === 'evt-test-tight-capacity' && r.student_id === 'student_cap_1')
 
     const cancelRes = await cancelRegistration(capReg.id)
-    assert(cancelRes.success === true, 'Active registration cancelled successfully')
+    assert(cancelRes.success === true, 'Student cancellation request submitted successfully')
+
+    // Student cancellation request must NOT immediately void the ticket or release seat before organizer approval
+    const blockedBeforeApproval = await registerForEvent('evt-test-tight-capacity', 'student_cap_3')
+    assert(!blockedBeforeApproval.success, 'Capacity remains reserved while cancellation awaits organizer approval')
+
+    // Organizer approves the pending cancellation request -> ticket cancelled & capacity restored
+    const pendingReq = getLocalCancellationRequests().find((r) => r.registration_id === capReg.id && r.status === 'pending')
+    const approveCancelRes = await reviewRegistrationCancellation({
+      requestId: pendingReq!.id,
+      decision: 'approved',
+      decisionNotes: 'Approved seat release',
+      reviewerId: 'club_host_test',
+    })
+    assert(approveCancelRes.success === true, 'Organizer approves student cancellation request')
 
     // Capacity should now have a free seat! student_cap_3 should be able to register now
     const retryRes = await registerForEvent('evt-test-tight-capacity', 'student_cap_3')
-    assert(retryRes.success === true, 'Capacity seat is restored and can be claimed after pass cancellation')
+    assert(retryRes.success === true, 'Capacity seat is restored and can be claimed after organizer cancellation approval')
   }
 
   // -------------------------------------------------------------
