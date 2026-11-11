@@ -31,3 +31,7 @@ dist-ssr
 .temp
 supabase/.temp/
 
+# Local screenshot testing artifacts
+screenshots/
+
+
