@@ -792,8 +792,21 @@ GRANT ALL ON public.seat_layout_audit TO service_role;
 
 -- ─── 12. Realtime replication ─────────────────────────────────────────────────
 
--- Enable Realtime replication for seat_reservations so the seat map updates live
-ALTER PUBLICATION supabase_realtime ADD TABLE public.seat_reservations;
+-- Enable Realtime replication for seat_reservations so the seat map updates live (idempotent guard)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'seat_reservations'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime
+      ADD TABLE public.seat_reservations;
+  END IF;
+END
+$$;
 
 
 -- ─── 13. Automatic Payment Lifecycle Synchronization Triggers ────────────────
