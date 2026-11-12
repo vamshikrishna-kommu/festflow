@@ -67,13 +67,34 @@ export async function registerForEvent(
 
       // Canonical 5-parameter signature matching PostgreSQL function:
       // public.register_for_event(p_event_id, p_team_name, p_team_members, p_custom_responses, p_participant_details)
-      const { data, error } = await (supabase.rpc as any)('register_for_event', {
+      // With fallback for databases that have the 6-parameter compatibility signature (p_ticket_tier_id)
+      let rpcRes = await (supabase.rpc as any)('register_for_event', {
         p_event_id: eventId,
         p_team_name: options?.teamName || null,
         p_team_members: options?.teamMembers || [],
         p_custom_responses: options?.customResponses || {},
         p_participant_details: participantDetails,
       })
+
+      // If PostgreSQL returns an ambiguous function candidate error (due to overloaded register_for_event with default args),
+      // or schema cache mismatch, disambiguate by explicitly supplying p_ticket_tier_id to target the 6-parameter signature.
+      if (
+        rpcRes.error &&
+        (rpcRes.error.message?.includes('Could not choose the best candidate function') ||
+          rpcRes.error.message?.includes('is not unique') ||
+          rpcRes.error.message?.includes('schema cache'))
+      ) {
+        rpcRes = await (supabase.rpc as any)('register_for_event', {
+          p_event_id: eventId,
+          p_team_name: options?.teamName || null,
+          p_team_members: options?.teamMembers || [],
+          p_custom_responses: options?.customResponses || {},
+          p_participant_details: participantDetails,
+          p_ticket_tier_id: options?.ticketTierId || null,
+        })
+      }
+
+      const { data, error } = rpcRes
 
       if (error) {
         return {

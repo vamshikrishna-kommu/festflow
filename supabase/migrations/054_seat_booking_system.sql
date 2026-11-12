@@ -789,6 +789,13 @@ GRANT ALL ON public.seats             TO service_role;
 GRANT ALL ON public.seat_reservations TO service_role;
 GRANT ALL ON public.seat_layout_audit TO service_role;
 
+-- Explicit RPC execution grants for authenticated users and backend service
+GRANT EXECUTE ON FUNCTION public.reserve_event_seats(UUID, UUID[], TEXT) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.reclaim_expired_seat_holds(UUID) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.release_seat_hold(UUID[]) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_seat_availability(UUID) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.confirm_seat_reservations_on_payment(UUID, UUID) TO authenticated, service_role;
+
 
 -- ─── 12. Realtime replication ─────────────────────────────────────────────────
 
