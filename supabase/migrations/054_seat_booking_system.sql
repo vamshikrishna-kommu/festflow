@@ -325,7 +325,15 @@ BEGIN
   v_reservation_ids := ARRAY[]::UUID[];
   v_held_until      := now() + (v_layout.hold_duration_minutes || ' minutes')::INTERVAL;
 
-  -- Pass 1: Lock and validate ALL requested seats before performing any inserts
+  -- Step A: Deterministically lock all requested seats to prevent concurrent deadlocks
+  PERFORM 1
+  FROM    public.seats s
+  WHERE   s.id = ANY(v_seat_ids_sorted)
+    AND   s.layout_id = v_layout.id
+  ORDER BY s.id
+  FOR UPDATE;
+
+  -- Step B: Pass 1 — Validate ALL requested seats before performing any inserts
   -- This guarantees strict atomicity: if ANY seat fails, ZERO seats are inserted.
   FOR v_seat IN
     SELECT s.id,
@@ -341,8 +349,7 @@ BEGIN
     LEFT JOIN   public.seat_categories sc ON sc.id = s.category_id
     WHERE  s.id = ANY(v_seat_ids_sorted)
       AND  s.layout_id = v_layout.id
-    ORDER BY s.id   -- deterministic lock order (deadlock-free)
-    FOR UPDATE OF s
+    ORDER BY s.id
   LOOP
     -- Reject aisle gaps
     IF v_seat.is_aisle_gap THEN
