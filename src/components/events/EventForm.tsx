@@ -30,6 +30,7 @@ import {
   EyeOff,
   Layout,
   Lock,
+  LayoutGrid,
 } from 'lucide-react'
 import { Button, Badge } from '@/components/ui'
 import { EVENT_CATEGORIES } from '@/lib/mock-data'
@@ -181,6 +182,9 @@ export function EventForm({
   )
   const [isUnlisted, setIsUnlisted] = useState<boolean>(
     initialData?.is_unlisted ?? false
+  )
+  const [registrationMode, setRegistrationMode] = useState<'standard' | 'reserved_seating'>(
+    (initialData as any)?.registration_mode || 'standard'
   )
   const [coverUrl, setCoverUrl] = useState<string>(initialData?.cover_url || '')
   const [pageLayout, setPageLayout] = useState<EventPageSection[]>(
@@ -347,6 +351,7 @@ export function EventForm({
       participant_fields: participantFields,
       waitlist_enabled: waitlistEnabled,
       is_unlisted: isUnlisted,
+      registration_mode: registrationMode,
       page_layout: pageLayout,
       status: action === 'publish' ? 'published' : mode === 'edit' ? status : 'draft',
     }
@@ -1247,6 +1252,66 @@ export function EventForm({
               </div>
             </div>
             <Badge variant="success">Step 5</Badge>
+          </div>
+
+          {/* Seating & Registration Mode Selection */}
+          <div className="flex flex-col gap-2 p-4 rounded-2xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)]">
+            <label className="text-xs font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+              <LayoutGrid size={15} className="text-[#18CFFC]" />
+              Seating & Admission Model
+            </label>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Choose standard open admission or cinema-style reserved seating with an interactive map.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+              <button
+                type="button"
+                onClick={() => setRegistrationMode('standard')}
+                className={`p-3.5 rounded-xl border text-left transition-all ${
+                  registrationMode === 'standard'
+                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-sm'
+                    : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[var(--color-text-primary)]">Standard Open Admission</span>
+                  {registrationMode === 'standard' && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
+                </div>
+                <p className="text-[11px] text-[var(--color-text-secondary)] mt-1">
+                  General registration queue, standard passes, open or unallocated venue seating.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRegistrationMode('reserved_seating')}
+                className={`p-3.5 rounded-xl border text-left transition-all ${
+                  registrationMode === 'reserved_seating'
+                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-sm'
+                    : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[var(--color-text-primary)]">Cinema-Style Reserved Seating</span>
+                  {registrationMode === 'reserved_seating' && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
+                </div>
+                <p className="text-[11px] text-[var(--color-text-secondary)] mt-1">
+                  Interactive seat map, tier-based seat pricing, real-time availability, and hold timer.
+                </p>
+              </button>
+            </div>
+
+            {registrationMode === 'reserved_seating' && (initialData as any)?.id && (
+              <div className="mt-2 flex items-center justify-between p-3 rounded-xl bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-xs">
+                <span className="text-[#18CFFC] font-medium">Layout configuration is available for this event.</span>
+                <a
+                  href={`/club/events/${(initialData as any).id}/seats`}
+                  className="inline-flex items-center gap-1 font-semibold text-white underline hover:text-[#18CFFC]"
+                >
+                  Open Seat Editor →
+                </a>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

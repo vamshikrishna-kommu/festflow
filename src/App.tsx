@@ -44,6 +44,8 @@ const ClubDashboardPage    = lazy(() => import('@/pages/dashboard/ClubDashboardP
 const ClubEventsListPage   = lazy(() => import('@/pages/club/ClubEventsListPage'))
 const NewEventPage         = lazy(() => import('@/pages/club/NewEventPage'))
 const EditEventPage        = lazy(() => import('@/pages/club/EditEventPage'))
+const EventSeatManagementPage = lazy(() => import('@/pages/club/EventSeatManagementPage'))
+const SeatBookingPage      = lazy(() => import('@/pages/events/SeatBookingPage'))
 
 // Student dashboard & tickets
 const StudentDashboardPage   = lazy(() => import('@/pages/dashboard/StudentDashboardPage'))
@@ -256,6 +258,26 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/events/:slug/seats',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/events/:slug/book-seats',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
         path: '/join-team',
         element: (
           <Suspense fallback={<PageLoader />}>
@@ -380,6 +402,20 @@ const router = createBrowserRouter([
               allowEventAssignmentScope
             >
               <EditEventPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/club/events/:id/seats',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute
+              allowedRoles={['club_member', 'platform_admin']}
+              requiredClubPermissions={['events.edit']}
+              allowEventAssignmentScope
+            >
+              <EventSeatManagementPage />
             </ProtectedRoute>
           </Suspense>
         ),

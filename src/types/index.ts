@@ -64,6 +64,7 @@ export type EventRecord = Database['public']['Tables']['events']['Row'] & {
   gallery_enabled?: boolean
   announcements_enabled?: boolean
   addons_enabled?: boolean
+  registration_mode?: 'standard' | 'reserved_seating'
 }
 export type EventInsert = Database['public']['Tables']['events']['Insert'] & {
   cover_url?: string | null
@@ -84,6 +85,7 @@ export type EventInsert = Database['public']['Tables']['events']['Insert'] & {
   gallery_enabled?: boolean
   announcements_enabled?: boolean
   addons_enabled?: boolean
+  registration_mode?: 'standard' | 'reserved_seating'
 }
 export type EventUpdate = Partial<EventInsert>
 export type RegistrationRecord = Database['public']['Tables']['registrations']['Row'] & {
@@ -94,6 +96,15 @@ export type RegistrationRecord = Database['public']['Tables']['registrations']['
   ticket_tier_id?: string | null
   ticket_tier_name?: string | null
   unit_price?: number | null
+  seat_reservation_id?: string | null
+  seat_details?: {
+    display_label?: string
+    row_identifier?: string
+    column_position?: number
+    section?: string | null
+    category_name?: string | null
+    category_color?: string | null
+  } | null
 }
 export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert'] & {
   waitlist_offer_expires_at?: string | null
@@ -102,6 +113,7 @@ export type RegistrationInsert = Database['public']['Tables']['registrations']['
   ticket_tier_id?: string | null
   ticket_tier_name?: string | null
   unit_price?: number | null
+  seat_reservation_id?: string | null
 }
 export type ClubPaymentSettings = Database['public']['Tables']['club_payment_settings']['Row']
 export type PaymentSubmission = Database['public']['Tables']['payment_submissions']['Row']
@@ -1255,4 +1267,28 @@ export interface AutomationQueueMetrics {
   waitlist_active_count: number
   active_automations_count: number
 }
+
+// ── Seating System (Migration 054) ──────────────────────────────────────────
+export type {
+  SeatStatus,
+  StagePosition,
+  RegistrationMode,
+  SeatLayout,
+  SeatCategory,
+  Seat,
+  SeatReservation,
+  SeatLayoutFull,
+  SeatWithAvailability,
+  SeatAvailabilityMap,
+  SeatRow,
+  ReserveSeatItem,
+  ReserveSeatsSuccess,
+  ReserveSeatsErrorCode,
+  ReserveSeatsFailure,
+  ReserveSeatsResult,
+  LayoutEditorSeat,
+  LayoutEditorRow,
+  LayoutEditorConfig,
+  LayoutValidationError,
+} from './seating'
 

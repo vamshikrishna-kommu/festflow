@@ -333,6 +333,11 @@ export default function EventDetailPage() {
       return
     }
 
+    if (event?.registration_mode === 'reserved_seating') {
+      navigate(`/events/${event.slug || event.id}/seats`)
+      return
+    }
+
     setShowRegModal(true)
   }
 
@@ -1355,6 +1360,8 @@ export default function EventDetailPage() {
                       ? 'Event Started'
                       : !user
                       ? 'Sign In to Register'
+                      : event.registration_mode === 'reserved_seating'
+                      ? 'Select Seats'
                       : canQuickRegister
                       ? 'Custom Details Registration'
                       : displayIsFree
@@ -1648,6 +1655,8 @@ export default function EventDetailPage() {
                     ? 'Started'
                     : !user
                     ? 'Sign In to Register'
+                    : event.registration_mode === 'reserved_seating'
+                    ? 'Select Seats'
                     : displayIsFree
                     ? (event.participation_type === 'team' ? 'Register Team' : 'Claim Free Pass')
                     : (event.participation_type === 'team' ? 'Register Team' : `Register (₹${displayPrice})`)}

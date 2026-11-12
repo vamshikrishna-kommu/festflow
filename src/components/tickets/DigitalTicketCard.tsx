@@ -18,6 +18,7 @@ import {
   Users,
   AlertCircle,
   X,
+  Ticket,
 } from 'lucide-react'
 import { Badge, Button, Logo } from '@/components/ui'
 import { resendPassEmail } from '@/lib/emails'
@@ -31,6 +32,13 @@ interface DigitalTicketCardProps {
   viewerUserId?: string
   onCancel?: () => void
   showActions?: boolean
+  seatReservation?: {
+    display_label?: string
+    row_identifier?: string
+    section?: string | null
+    category_name?: string | null
+    category_color?: string | null
+  } | null
 }
 
 export function DigitalTicketCard({
@@ -39,6 +47,7 @@ export function DigitalTicketCard({
   viewerUserId,
   onCancel,
   showActions = true,
+  seatReservation,
 }: DigitalTicketCardProps) {
   const [copied, setCopied] = useState(false)
   const [resending, setResending] = useState(false)
@@ -422,6 +431,39 @@ export function DigitalTicketCard({
                     </span>
                   ))}
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Reserved Seat Information Block */}
+        {(seatReservation || registration.seat_details || (registration as any).seat_label) && (
+          <div className="p-4 bg-[#14141A] border-b border-white/[0.08] text-xs">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[#18CFFC] font-bold">
+                <Ticket size={14} /> Reserved Seat
+              </span>
+              <div className="flex items-center gap-1.5">
+                {(seatReservation?.category_name || (registration as any).seat_details?.category_name) && (
+                  <span
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold"
+                    style={{
+                      backgroundColor: ((seatReservation?.category_color || (registration as any).seat_details?.category_color || '#18CFFC') + '22'),
+                      color: (seatReservation?.category_color || (registration as any).seat_details?.category_color || '#18CFFC'),
+                      border: `1px solid ${((seatReservation?.category_color || (registration as any).seat_details?.category_color || '#18CFFC') + '55')}`,
+                    }}
+                  >
+                    {seatReservation?.category_name || (registration as any).seat_details?.category_name}
+                  </span>
+                )}
+                <span className="px-2.5 py-1 rounded-lg bg-[#18CFFC]/20 border border-[#18CFFC]/50 text-white font-mono font-bold text-sm tracking-wide">
+                  {seatReservation?.display_label || (registration as any).seat_details?.display_label || (registration as any).seat_label}
+                </span>
+              </div>
+            </div>
+            {(seatReservation?.section || (registration as any).seat_details?.section) && (
+              <div className="text-[11px] text-zinc-400 mt-1">
+                Section: {seatReservation?.section || (registration as any).seat_details?.section}
               </div>
             )}
           </div>

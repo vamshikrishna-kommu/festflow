@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
-import { AlertCircle, AlertTriangle, Users, FileSpreadsheet, ShieldAlert, Lock } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Users, FileSpreadsheet, ShieldAlert, Lock, LayoutGrid } from 'lucide-react'
 import { Button, PageHeader, Modal, ModalBody, ModalFooter, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { EventForm } from '@/components/events/EventForm'
@@ -230,6 +230,26 @@ export default function EditEventPage() {
                 </Link>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Quick Link: Seat Management if reserved seating */}
+        {event.registration_mode === 'reserved_seating' && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#18CFFC]/10 via-[#0D56FB]/10 to-[#7F1AFB]/10 border border-[#18CFFC]/30 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#18CFFC]/20 border border-[#18CFFC]/40 flex items-center justify-center text-[#18CFFC]">
+                <LayoutGrid size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">Reserved Seating Enabled</h4>
+                <p className="text-xs text-zinc-400">Configure room layout, seat pricing categories, and view live bookings.</p>
+              </div>
+            </div>
+            <Link to={`/club/events/${event.id}/seats`}>
+              <Button variant="primary" size="sm">
+                Manage Seats →
+              </Button>
+            </Link>
           </div>
         )}
 
