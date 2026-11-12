@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react'
-import { Ticket, IndianRupee, ArrowRight, X } from 'lucide-react'
+import { IndianRupee, ArrowRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HoldCountdown } from './HoldCountdown'
 import type { SeatWithAvailability, ReserveSeatsSuccess } from '@/types/seating'
@@ -106,13 +106,13 @@ export function SeatSelectionSummary({
                 >
                   {isHeld ? (
                     <>
-                      Proceed to Payment
+                      Continue to Details
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </>
                   ) : (
                     <>
-                      Reserve Seats
-                      <Ticket className="w-4 h-4 ml-1" />
+                      Hold Seats & Continue
+                      <ArrowRight className="w-4 h-4 ml-1" />
                     </>
                   )}
                 </Button>

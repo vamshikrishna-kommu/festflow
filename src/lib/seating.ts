@@ -173,6 +173,89 @@ export async function releaseHold(reservationIds: string[]): Promise<boolean> {
 }
 
 /**
+ * Confirm seat reservations for a registration (used for free events or payment confirmation).
+ */
+export async function confirmSeatReservations(
+  registrationId: string,
+  paymentSubmissionId: string | null = null
+): Promise<boolean> {
+  if (!isSupabaseConfigured) return true
+
+  const { error } = await dbRpc('confirm_seat_reservations_on_payment', {
+    p_registration_id: registrationId,
+    p_payment_submission_id: paymentSubmissionId,
+  })
+
+  if (error) {
+    console.warn('[seating] confirmSeatReservations error:', error.message)
+    return false
+  }
+  return true
+}
+
+/**
+ * Fetch seat details by their UUIDs.
+ */
+export async function fetchSeatsByIds(seatIds: string[]): Promise<SeatWithAvailability[]> {
+  if (!isSupabaseConfigured || !seatIds.length) return []
+
+  const { data: seats, error } = await dbTable('seats').select('*').in('id', seatIds)
+  if (error || !seats) {
+    console.warn('[seating] fetchSeatsByIds error:', error?.message)
+    return []
+  }
+
+  const categoryIds = Array.from(new Set(seats.map((s: any) => s.category_id).filter(Boolean))) as string[]
+  const categoryMap: Record<string, SeatCategory> = {}
+  if (categoryIds.length) {
+    const { data: categories } = await dbTable('seat_categories').select('*').in('id', categoryIds)
+    for (const c of categories || []) categoryMap[c.id] = c
+  }
+
+  return (seats as any[]).map((s) => ({
+    ...s,
+    status: s.is_aisle_gap ? 'aisle_gap' : s.is_blocked ? 'blocked' : 'available',
+    category: s.category_id ? categoryMap[s.category_id] ?? null : null,
+  }))
+}
+
+// ── Session Storage Persistence for Multi-Stage Journey ──────────────────────
+
+const SESSION_PREFIX = 'festflow_seat_session_'
+
+export function saveBookingSession(eventId: string, session: any) {
+  try {
+    sessionStorage.setItem(`${SESSION_PREFIX}${eventId}`, JSON.stringify(session))
+  } catch {
+    // ignore
+  }
+}
+
+export function loadBookingSession(eventId: string): any | null {
+  try {
+    const raw = sessionStorage.getItem(`${SESSION_PREFIX}${eventId}`)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    // Check if session hold has expired
+    if (parsed.heldUntil && new Date(parsed.heldUntil).getTime() <= Date.now()) {
+      clearBookingSession(eventId)
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+export function clearBookingSession(eventId: string) {
+  try {
+    sessionStorage.removeItem(`${SESSION_PREFIX}${eventId}`)
+  } catch {
+    // ignore
+  }
+}
+
+/**
  * Fetch the student's own active reservations for an event.
  */
 export async function fetchMyReservations(eventId: string): Promise<SeatReservation[]> {

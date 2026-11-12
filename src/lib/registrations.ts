@@ -53,6 +53,7 @@ export async function registerForEvent(
     participantDetails?: Record<string, any>
     ticketTierId?: string
     seatReservationId?: string
+    seatReservationIds?: string[]
   }
 ): Promise<RegistrationResponse> {
   if (isSupabaseConfigured) {
@@ -61,6 +62,7 @@ export async function registerForEvent(
         ...(options?.participantDetails || {}),
         ...(options?.ticketTierId ? { ticket_tier_id: options.ticketTierId } : {}),
         ...(options?.seatReservationId ? { seat_reservation_id: options.seatReservationId } : {}),
+        ...(options?.seatReservationIds?.length ? { seat_reservation_ids: options.seatReservationIds } : {}),
       }
 
       // Canonical 5-parameter signature matching PostgreSQL function:
@@ -94,16 +96,22 @@ export async function registerForEvent(
         }
       }
 
-      // If a seat reservation was passed, link registration <-> seat_reservation
-      if (res.success && res.registration_id && options?.seatReservationId) {
+      // If seat reservation(s) were passed, link registration <-> seat_reservations
+      const seatIdsToLink = options?.seatReservationIds?.length
+        ? options.seatReservationIds
+        : options?.seatReservationId
+          ? [options.seatReservationId]
+          : []
+
+      if (res.success && res.registration_id && seatIdsToLink.length) {
         try {
           await (supabase.from('registrations' as any) as any)
-            .update({ seat_reservation_id: options.seatReservationId })
+            .update({ seat_reservation_id: seatIdsToLink[0] })
             .eq('id', res.registration_id)
 
           await (supabase.from('seat_reservations' as any) as any)
             .update({ registration_id: res.registration_id })
-            .eq('id', options.seatReservationId)
+            .in('id', seatIdsToLink)
         } catch {
           // ignore
         }

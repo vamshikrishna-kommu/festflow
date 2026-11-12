@@ -268,7 +268,67 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/events/:slug/seats/details',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/events/:slug/seats/payment',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/events/:slug/seats/success',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
         path: '/events/:slug/book-seats',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/events/:slug/book-seats/details',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/events/:slug/book-seats/payment',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>
+              <SeatBookingPage />
+            </ProtectedRoute>
+          </Suspense>
+        ),
+      },
+      {
+        path: '/events/:slug/book-seats/success',
         element: (
           <Suspense fallback={<PageLoader />}>
             <ProtectedRoute allowedRoles={['student', 'club_member', 'platform_admin']}>

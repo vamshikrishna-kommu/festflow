@@ -197,3 +197,38 @@ export interface LayoutValidationError {
   field: string
   message: string
 }
+
+// ── Booking Journey & Multi-Seat Types ────────────────────────────────────────
+
+export interface SeatParticipant {
+  seat_id: string
+  display_label: string
+  category_name?: string
+  category_color?: string
+  price?: number
+  student_name: string
+  email: string
+  phone?: string
+  college_name?: string
+  id_card_number?: string
+  grad_year?: string
+  is_lead?: boolean
+}
+
+export interface BookingSession {
+  eventId: string
+  eventSlug: string
+  reservationIds: string[]
+  seatIds: string[]
+  seats: ReserveSeatItem[]
+  totalPrice: number
+  heldUntil: string
+  registrationId?: string
+  ticketCode?: string
+  participants?: SeatParticipant[]
+  customResponses?: Record<string, any>
+  stage?: BookingStage
+}
+
+export type BookingStage = 'seats' | 'details' | 'payment' | 'success'
+

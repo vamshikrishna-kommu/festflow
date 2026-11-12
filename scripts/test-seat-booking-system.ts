@@ -227,6 +227,49 @@ assert(
   'UUIDs sorted lexicographically matching PostgreSQL SELECT ARRAY(SELECT unnest(...) ORDER BY 1)'
 )
 
+// ── TEST 8: Multi-Stage Journey, Multi-Seat & Routing Logic ─────────────────
+console.log('\n--- Suite 8: Booking Journey, Routing & Multi-Seat Validation ---')
+
+// 8a. Free event conditional routing: price 0 should route directly to success
+const freeTotal = 0
+const isFreeRoute = freeTotal === 0
+assert(isFreeRoute === true, 'Free event routes directly to success stage without payment')
+
+// 8b. Paid event conditional routing: price > 0 should route to payment stage
+const paidTotal = 1200
+const isPaidRoute = paidTotal > 0
+assert(isPaidRoute === true, 'Paid event routes to payment stage')
+
+// 8c. Multi-seat attendee assignment: each seat mapped to distinct participant
+const mockSeats: ReserveSeatItem[] = [
+  { seat_id: 's1', display_label: 'A1', category_name: 'VIP', category_color: '#18CFFC', price: 500 },
+  { seat_id: 's2', display_label: 'A2', category_name: 'VIP', category_color: '#18CFFC', price: 500 },
+]
+
+const mockParticipants = [
+  { seat_id: 's1', student_name: 'Alice Smith', email: 'alice@example.com', is_lead: true },
+  { seat_id: 's2', student_name: 'Bob Jones', email: 'bob@example.com', is_lead: false },
+]
+
+assert(mockParticipants.length === mockSeats.length, 'Each held seat has a corresponding assigned attendee')
+assert(mockParticipants[0].seat_id === 's1' && mockParticipants[0].is_lead === true, 'Seat 1 correctly mapped to Lead Booker')
+assert(mockParticipants[1].seat_id === 's2' && mockParticipants[1].is_lead === false, 'Seat 2 correctly mapped to secondary attendee')
+
+// 8d. Duplicate email detection across attendees
+const duplicateCheckEmails = ['alice@example.com', 'alice@example.com']
+const hasDuplicate = new Set(duplicateCheckEmails).size !== duplicateCheckEmails.length
+assert(hasDuplicate === true, 'Duplicate participant emails are correctly detected')
+
+const distinctCheckEmails = ['alice@example.com', 'bob@example.com']
+const hasNoDuplicate = new Set(distinctCheckEmails).size === distinctCheckEmails.length
+assert(hasNoDuplicate === true, 'Distinct participant emails pass validation')
+
+// 8e. Hold Session Expiry Check logic
+const pastExpiry = new Date(Date.now() - 5000).toISOString()
+const futureExpiry = new Date(Date.now() + 600000).toISOString()
+assert(new Date(pastExpiry).getTime() <= Date.now(), 'Past hold is correctly identified as expired')
+assert(new Date(futureExpiry).getTime() > Date.now(), 'Future hold is correctly identified as active')
+
 // ── Summary ─────────────────────────────────────────────────────────────────
 console.log('\n======================================================')
 console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`)

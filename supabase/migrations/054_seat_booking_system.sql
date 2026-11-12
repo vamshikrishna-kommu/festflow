@@ -573,7 +573,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.confirm_seat_reservations_on_payment(
   p_registration_id       UUID,
-  p_payment_submission_id UUID
+  p_payment_submission_id UUID DEFAULT NULL
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -589,7 +589,7 @@ BEGIN
          updated_at            = now()
   WHERE  sr.student_id = (SELECT student_id FROM public.registrations WHERE id = p_registration_id)
     AND  sr.event_id   = (SELECT event_id   FROM public.registrations WHERE id = p_registration_id)
-    AND  sr.status IN ('payment_submitted', 'payment_under_review');
+    AND  sr.status IN ('held', 'payment_submitted', 'payment_under_review');
 END;
 $$;
 
