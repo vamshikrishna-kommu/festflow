@@ -21,6 +21,7 @@ import {
   Ticket,
 } from 'lucide-react'
 import { Badge, Button, Logo } from '@/components/ui'
+import { QRCodeSVG } from 'qrcode.react'
 import { resendPassEmail } from '@/lib/emails'
 import { writeCachedTicket, TICKET_CACHE_PREFIX } from '@/lib/ticketCache'
 import { ticketReveal, statusBadgePop } from '@/lib/animations'
@@ -480,13 +481,23 @@ export function DigitalTicketCard({
         <div className="p-6 pt-3 flex flex-col items-center text-center gap-4 bg-[#0E0E12]">
           {isConfirmed ? (
             <>
-              <div className="w-full max-w-xs p-5 rounded-2xl bg-[#14141A] border border-emerald-500/25 shadow-xl flex flex-col items-center gap-2.5">
+              <div className="w-full max-w-xs p-5 rounded-2xl bg-[#14141A] border border-emerald-500/25 shadow-xl flex flex-col items-center gap-3">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
                   <CheckCircle2 size={12} />
                   Verified Entry Pass
                 </div>
 
-                <span className="text-[11px] text-[var(--color-text-muted)] mt-1">
+                {/* Scannable Gate QR Code */}
+                <div className="p-3.5 bg-white rounded-2xl shadow-2xl flex items-center justify-center my-1">
+                  <QRCodeSVG
+                    value={registration.qr_token || currentPassCode}
+                    size={160}
+                    level="H"
+                    includeMargin={false}
+                  />
+                </div>
+
+                <span className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
                   Confirmed Pass Code
                 </span>
 
@@ -506,7 +517,7 @@ export function DigitalTicketCard({
               </div>
 
               <p className="text-[11px] text-zinc-500 max-w-xs leading-relaxed font-sans">
-                Keep this confirmed pass code handy for organizer verification. Valid strictly for the registered student attendee.
+                Scan this QR code or present the pass code at the venue gate for verified entry.
               </p>
             </>
           ) : isPendingApproval ? (

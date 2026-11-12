@@ -10,6 +10,7 @@ import {
   User,
 } from 'lucide-react'
 import { Button, Badge } from '@/components/ui'
+import { QRCodeSVG } from 'qrcode.react'
 import type { EventWithClub } from '@/types'
 import type { ReserveSeatItem, SeatParticipant } from '@/types/seating'
 
@@ -77,13 +78,25 @@ export function BookingSuccessStage({
         </p>
 
         {ticketCode && (
-          <div className="mt-5 inline-flex flex-col items-center p-3 rounded-2xl bg-[var(--color-surface-2)]/80 border border-white/10">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
-              Registration Reference
-            </span>
-            <span className="text-base font-mono font-black text-[#18CFFC] tracking-wider">
-              {ticketCode}
-            </span>
+          <div className="mt-5 flex flex-col items-center gap-3">
+            {isConfirmed && (
+              <div className="p-3.5 bg-white rounded-2xl shadow-xl inline-block">
+                <QRCodeSVG
+                  value={ticketCode}
+                  size={150}
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+            )}
+            <div className="inline-flex flex-col items-center p-3 rounded-2xl bg-[var(--color-surface-2)]/80 border border-white/10">
+              <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+                Registration Reference
+              </span>
+              <span className="text-base font-mono font-black text-[#18CFFC] tracking-wider">
+                {ticketCode}
+              </span>
+            </div>
           </div>
         )}
       </div>
