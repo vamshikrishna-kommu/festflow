@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router'
 import { motion } from 'motion/react'
 import {
@@ -460,20 +460,14 @@ export default function EventDetailPage() {
   )
 
   const clubName = event.club?.club_profile?.club_name || event.club?.display_name || 'Campus Club'
-  const posterSource = useMemo(() => {
-    if (bannerImgError) {
-      return CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
-    }
-    const rawCover = (event as any).cover_url
-    if (rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim()) {
-      return resolvePosterUrl(rawCover, event.category)
-    }
-    const rawPoster = event.poster_url
-    if (rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim()) {
-      return resolvePosterUrl(rawPoster, event.category)
-    }
-    return CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
-  }, [bannerImgError, (event as any).cover_url, event.poster_url, event.category])
+  const rawCover = (event as any).cover_url
+  const rawPoster = event.poster_url
+  const posterSource =
+    !bannerImgError && rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim()
+      ? resolvePosterUrl(rawCover, event.category)
+      : !bannerImgError && rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim()
+      ? resolvePosterUrl(rawPoster, event.category)
+      : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
 
   // Capacity Calculations & Urgency
   const totalCapacity = event.capacity || 100
