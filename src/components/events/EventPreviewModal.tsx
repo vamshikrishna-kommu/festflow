@@ -192,7 +192,9 @@ export function EventPreviewModal({
                   <span className="text-xs font-bold text-emerald-400">
                     {isFree ? 'Free Admission' : `INR ${price}`}
                   </span>
-                  <span className="text-[10px] text-[var(--color-text-muted)] block">Capacity: {capacity}</span>
+                  {(data as any).show_seat_availability !== false && (
+                    <span className="text-[10px] text-[var(--color-text-muted)] block">Capacity: {capacity}</span>
+                  )}
                 </div>
               </div>
             </div>

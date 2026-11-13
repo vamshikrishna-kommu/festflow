@@ -228,50 +228,62 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
           </div>
 
           {/* Capacity and Availability Bar (backed by genuine DB data) */}
-          <div className="mt-auto pt-2 border-t border-white/[0.06]">
-            <div className="flex items-center justify-between mb-1.5 text-[11px]">
-              <div className="flex items-center gap-1 text-zinc-400">
-                <Users size={11} aria-hidden="true" />
-                {registered > 0 ? (
-                  <span>
-                    {registered.toLocaleString()} / {event.capacity.toLocaleString()} seats
-                  </span>
+          {(event as any).show_seat_availability !== false ? (
+            <div className="mt-auto pt-2 border-t border-white/[0.06]">
+              <div className="flex items-center justify-between mb-1.5 text-[11px]">
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <Users size={11} aria-hidden="true" />
+                  {registered > 0 ? (
+                    <span>
+                      {registered.toLocaleString()} / {event.capacity.toLocaleString()} seats
+                    </span>
+                  ) : (
+                    <span>{event.capacity.toLocaleString()} seats capacity</span>
+                  )}
+                </div>
+
+                {isFull ? (
+                  <span className="font-semibold text-rose-400">Sold out</span>
+                ) : isNearFull && spots !== null ? (
+                  <span className="font-semibold text-amber-400">{spots} left</span>
                 ) : (
-                  <span>{event.capacity.toLocaleString()} seats capacity</span>
+                  <span className="text-emerald-400 font-medium">Open</span>
                 )}
               </div>
 
-              {isFull ? (
-                <span className="font-semibold text-rose-400">Sold out</span>
-              ) : isNearFull && spots !== null ? (
-                <span className="font-semibold text-amber-400">{spots} left</span>
-              ) : (
-                <span className="text-emerald-400 font-medium">Open</span>
+              {hasCapacity && (
+                <div
+                  className="h-1 rounded-full overflow-hidden bg-white/10"
+                  role="progressbar"
+                  aria-valuenow={registered}
+                  aria-valuemax={event.capacity}
+                  aria-label={`${registered} of ${event.capacity} spots filled`}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: registered > 0 ? `${Math.max(fillPct, 4)}%` : '0%',
+                      background: isFull
+                        ? '#f43f5e'
+                        : isNearFull
+                        ? '#f59e0b'
+                        : 'linear-gradient(90deg, #18CFFC, #07A4FC, #7F1AFB)',
+                    }}
+                  />
+                </div>
               )}
             </div>
-
-            {hasCapacity && (
-              <div
-                className="h-1 rounded-full overflow-hidden bg-white/10"
-                role="progressbar"
-                aria-valuenow={registered}
-                aria-valuemax={event.capacity}
-                aria-label={`${registered} of ${event.capacity} spots filled`}
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: registered > 0 ? `${Math.max(fillPct, 4)}%` : '0%',
-                    background: isFull
-                      ? '#f43f5e'
-                      : isNearFull
-                      ? '#f59e0b'
-                      : 'linear-gradient(90deg, #18CFFC, #07A4FC, #7F1AFB)',
-                  }}
-                />
+          ) : (
+            <div className="mt-auto pt-2 border-t border-white/[0.06]">
+              <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <Users size={11} aria-hidden="true" />
+                  <span>Registration Open</span>
+                </div>
+                <span className="text-emerald-400 font-medium">Open</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </motion.article>
     </Link>

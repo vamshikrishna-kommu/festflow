@@ -497,16 +497,18 @@ export default function EventDetailPage() {
       ? localStorage.getItem(`festflow_custom_poster_${event.id}`) ||
         localStorage.getItem(`festflow_custom_poster_${event.slug}`)
       : null
-  const rawPoster = cachedPoster || event.poster_url
-  const rawCover = (event as any).cover_url
-  const hasCustomPoster = Boolean(rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim())
-  const hasCustomCover = Boolean(rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim())
+
+  // Prioritize DB poster_url first. Only if DB poster_url is absent or empty, fall back to non-stock cached poster
+  const dbPoster = event.poster_url && event.poster_url !== 'null' && event.poster_url !== 'undefined' && String(event.poster_url).trim() ? event.poster_url : null
+  const dbCover = (event as any).cover_url && (event as any).cover_url !== 'null' && (event as any).cover_url !== 'undefined' && String((event as any).cover_url).trim() ? (event as any).cover_url : null
+  const validCached = cachedPoster && !cachedPoster.includes('images.unsplash.com') ? cachedPoster : null
+
+  const rawPoster = dbPoster || dbCover || validCached
+  const hasCustomPoster = Boolean(rawPoster)
 
   const posterSource =
     !bannerImgError && hasCustomPoster
       ? resolvePosterUrl(rawPoster, event.category)
-      : !bannerImgError && hasCustomCover
-      ? resolvePosterUrl(rawCover, event.category)
       : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
 
   // Capacity Calculations & Urgency (Backed by real database seat reservations & holds)
@@ -672,7 +674,7 @@ export default function EventDetailPage() {
               fetchPriority="high"
               decoding="async"
               onError={() => {
-                if (!bannerImgError && !posterSource.startsWith('data:') && !posterSource.startsWith('blob:')) {
+                if (!bannerImgError) {
                   setBannerImgError(true)
                 }
               }}
@@ -1136,31 +1138,49 @@ export default function EventDetailPage() {
               </div>
 
               {/* Real-time Urgency & Capacity Progress Bar */}
-              <div className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-400 flex items-center gap-1 font-medium">
-                    <Users size={13} className="text-[#18CFFC]" /> Seat Availability
-                  </span>
-                  <span className="font-mono text-white font-bold">
-                    {remainingSeats} left of {totalCapacity}
-                  </span>
+              {event.show_seat_availability !== false ? (
+                <div className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-400 flex items-center gap-1 font-medium">
+                      <Users size={13} className="text-[#18CFFC]" /> Seat Availability
+                    </span>
+                    <span className="font-mono text-white font-bold">
+                      {remainingSeats} left of {totalCapacity}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden border border-white/5">
+                    <div
+                      className={`h-full transition-all duration-500 rounded-full ${
+                        capacityPercent >= 85
+                          ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+                          : 'bg-gradient-to-r from-[#18CFFC] to-[#07A4FC]'
+                      }`}
+                      style={{ width: `${capacityPercent}%` }}
+                    />
+                  </div>
+                  {capacityPercent >= 80 && remainingSeats > 0 && (
+                    <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                      🔥 Filling fast! Only {remainingSeats} seat{remainingSeats > 1 ? 's' : ''} left
+                    </span>
+                  )}
                 </div>
-                <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden border border-white/5">
-                  <div
-                    className={`h-full transition-all duration-500 rounded-full ${
-                      capacityPercent >= 85
-                        ? 'bg-gradient-to-r from-amber-500 to-rose-500'
-                        : 'bg-gradient-to-r from-[#18CFFC] to-[#07A4FC]'
-                    }`}
-                    style={{ width: `${capacityPercent}%` }}
-                  />
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-400 flex items-center gap-1.5 font-medium">
+                      <Users size={13} className="text-[#18CFFC]" /> Registration
+                    </span>
+                    <Badge variant={canRegister ? 'success' : 'neutral'}>
+                      {canRegister ? 'Open for Booking' : 'Closed'}
+                    </Badge>
+                  </div>
+                  {canEditEvent && (
+                    <span className="text-[10px] text-zinc-500 italic block">
+                      Seat count hidden from participants (Organizer view: {remainingSeats} left of {totalCapacity})
+                    </span>
+                  )}
                 </div>
-                {capacityPercent >= 80 && remainingSeats > 0 && (
-                  <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
-                    🔥 Filling fast! Only {remainingSeats} seat{remainingSeats > 1 ? 's' : ''} left
-                  </span>
-                )}
-              </div>
+              )}
 
               {/* Specifications */}
               <div className="flex flex-col gap-2.5 text-xs text-zinc-300">

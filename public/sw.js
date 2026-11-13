@@ -1,7 +1,7 @@
 // FestFlow Production Service Worker
-// Version: 1.0.3 (Resilient Fallback & Zero-Crash Response Guard)
+// Version: 1.0.4 (Zero-Crash Response Guard & Cross-Origin Non-Interference)
 
-const CACHE_NAME = 'festflow-core-v5';
+const CACHE_NAME = 'festflow-core-v6';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [

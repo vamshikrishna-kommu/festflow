@@ -37,6 +37,7 @@ import { EVENT_CATEGORIES } from '@/lib/mock-data'
 import {
   getDefaultPoster,
   resolvePosterUrl,
+  uploadEventPoster,
   generateSlug,
   validateEventConfig,
   resolveEventTimezone,
@@ -187,6 +188,9 @@ export function EventForm({
   const [registrationMode, setRegistrationMode] = useState<'standard' | 'reserved_seating'>(
     (initialData as any)?.registration_mode || 'standard'
   )
+  const [showSeatAvailability, setShowSeatAvailability] = useState<boolean>(
+    (initialData as any)?.show_seat_availability ?? true
+  )
   const [coverUrl, setCoverUrl] = useState<string>(initialData?.cover_url || '')
   const [pageLayout, setPageLayout] = useState<EventPageSection[]>(
     initialData?.page_layout || []
@@ -283,6 +287,27 @@ export function EventForm({
         }
       } else {
         setPosterError('Could not process image file.')
+      }
+
+      // 2. Parallel upload to Supabase Storage bucket 'event-posters' if available
+      const uploadFolder = targetClubId || initialData?.club_id || user?.id
+      if (uploadFolder) {
+        try {
+          const storageRes = await uploadEventPoster(file, uploadFolder)
+          if (storageRes.url && !storageRes.error && storageRes.url.startsWith('http')) {
+            setPosterUrl(storageRes.url)
+            if (typeof window !== 'undefined') {
+              if (initialData?.id) {
+                try { localStorage.setItem(`festflow_custom_poster_${initialData.id}`, storageRes.url) } catch {}
+              }
+              if (initialData?.slug) {
+                try { localStorage.setItem(`festflow_custom_poster_${initialData.slug}`, storageRes.url) } catch {}
+              }
+            }
+          }
+        } catch {
+          // ignore - finalDataUrl already safely in place
+        }
       }
     } catch {
       try {
@@ -381,19 +406,25 @@ export function EventForm({
       finalPoster = getDefaultPoster(category)
     }
 
-    if (typeof window !== 'undefined' && finalPoster) {
-      if (initialData?.id) {
-        try {
-          localStorage.setItem(`festflow_custom_poster_${initialData.id}`, finalPoster)
-        } catch {
-          // ignore
+    if (typeof window !== 'undefined') {
+      const isCustomPoster = Boolean(
+        finalPoster &&
+        !finalPoster.startsWith('blob:') &&
+        !finalPoster.includes('images.unsplash.com')
+      )
+      if (isCustomPoster) {
+        if (initialData?.id) {
+          try { localStorage.setItem(`festflow_custom_poster_${initialData.id}`, finalPoster) } catch {}
         }
-      }
-      if (finalSlug) {
-        try {
-          localStorage.setItem(`festflow_custom_poster_${finalSlug}`, finalPoster)
-        } catch {
-          // ignore
+        if (finalSlug) {
+          try { localStorage.setItem(`festflow_custom_poster_${finalSlug}`, finalPoster) } catch {}
+        }
+      } else if (finalPoster.includes('images.unsplash.com')) {
+        if (initialData?.id) {
+          try { localStorage.removeItem(`festflow_custom_poster_${initialData.id}`) } catch {}
+        }
+        if (finalSlug) {
+          try { localStorage.removeItem(`festflow_custom_poster_${finalSlug}`) } catch {}
         }
       }
     }
@@ -445,6 +476,7 @@ export function EventForm({
       waitlist_enabled: waitlistEnabled,
       is_unlisted: isUnlisted,
       registration_mode: registrationMode,
+      show_seat_availability: showSeatAvailability,
       page_layout: pageLayout,
       status: action === 'publish' ? 'published' : mode === 'edit' ? status : 'draft',
     }
@@ -465,6 +497,12 @@ export function EventForm({
 
     if (!user?.id || !targetClubId) {
       setErrors({ title: 'You must be signed in with an active club workspace to save or publish an event.' })
+      window.scrollTo({ top: 120, behavior: 'smooth' })
+      return
+    }
+
+    if (uploadingPoster) {
+      setErrors({ title: 'Please wait a moment while your event banner finishes compressing and uploading.' })
       window.scrollTo({ top: 120, behavior: 'smooth' })
       return
     }
@@ -565,9 +603,7 @@ export function EventForm({
                   alt="Banner Preview"
                   className="w-full h-full object-cover"
                   onError={() => {
-                    if (!posterUrl.startsWith('data:') && !posterUrl.startsWith('blob:')) {
-                      setPreviewImgError(true)
-                    }
+                    setPreviewImgError(true)
                   }}
                 />
                 <button
@@ -586,18 +622,31 @@ export function EventForm({
             ) : posterUrl && previewImgError ? (
               <div className="flex flex-col items-center justify-center p-2 text-center bg-amber-500/10 h-full w-full">
                 <AlertCircle size={18} className="text-amber-400 mb-1" />
-                <span className="text-[10px] text-amber-200 font-medium">Link inaccessible</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPosterUrl(getDefaultPoster(category))
-                    setCoverUrl('')
-                    setPreviewImgError(false)
-                  }}
-                  className="text-[10px] text-[#18CFFC] hover:underline font-semibold mt-1 cursor-pointer"
-                >
-                  Load {category ? category.toUpperCase() : 'Tech'} Stock
-                </button>
+                <span className="text-[10px] text-amber-200 font-medium">Image unavailable</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (fileInputRef.current) fileInputRef.current.value = ''
+                      fileInputRef.current?.click()
+                    }}
+                    className="text-[10px] text-[#18CFFC] hover:underline font-semibold cursor-pointer"
+                  >
+                    Upload from device
+                  </button>
+                  <span className="text-[10px] text-zinc-600">•</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPosterUrl(getDefaultPoster(category))
+                      setCoverUrl('')
+                      setPreviewImgError(false)
+                    }}
+                    className="text-[10px] text-zinc-400 hover:text-white font-medium cursor-pointer"
+                  >
+                    Use Stock
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-1 text-[var(--color-text-muted)]">
@@ -1529,6 +1578,28 @@ export function EventForm({
                 </option>
               </select>
             </div>
+          </div>
+
+          {/* Show Seat Availability Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold text-[var(--color-text-primary)] flex items-center gap-1.5">
+                <Users size={14} className="text-[#18CFFC]" />
+                Show Seat Availability to Participants
+              </span>
+              <span className="text-[11px] text-[var(--color-text-muted)]">
+                Display live remaining seats ("N left of M") and capacity fill bar. When disabled, the seat counting is completely hidden from participants and attendees.
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+              <input
+                type="checkbox"
+                checked={showSeatAvailability}
+                onChange={(e) => setShowSeatAvailability(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-[var(--color-surface-3)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#18CFFC]"></div>
+            </label>
           </div>
 
           {/* Pricing Toggle */}

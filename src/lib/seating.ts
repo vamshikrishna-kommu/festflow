@@ -174,8 +174,33 @@ export async function fetchEventSeatCounts(
   }
 
   try {
+    // 1. Authoritative SECURITY DEFINER RPC: accurately counts across all attendees, bypassing student-isolation RLS
+    const { data: rpcCounts, error: rpcErr } = await (supabase.rpc as any)('get_event_seat_counts', {
+      p_event_id: eventId,
+    })
+
+    if (!rpcErr && rpcCounts && typeof rpcCounts.total === 'number') {
+      const total = rpcCounts.total > 0 ? rpcCounts.total : defaultCapacity
+      const occupied = rpcCounts.occupied || 0
+      const remaining = rpcCounts.remaining ?? Math.max(0, total - occupied)
+      return { total, occupied, remaining }
+    }
+
     if (mode === 'reserved_seating') {
-      // 1. Get layout capacity
+      // 2. Fallback to existing get_seat_availability RPC (SECURITY DEFINER from migration 054)
+      const { data: seatMap, error: seatMapErr } = await (supabase.rpc as any)('get_seat_availability', {
+        p_event_id: eventId,
+      })
+
+      if (!seatMapErr && Array.isArray(seatMap) && seatMap.length > 0) {
+        const bookableSeats = seatMap.filter((s: any) => !s.is_aisle_gap && !s.is_blocked)
+        const total = bookableSeats.length > 0 ? bookableSeats.length : defaultCapacity
+        const occupied = bookableSeats.filter((s: any) => s.status && s.status !== 'available').length
+        const remaining = Math.max(0, total - occupied)
+        return { total, occupied, remaining }
+      }
+
+      // 3. Fallback table query
       const layoutRes = await dbTable('seat_layouts')
         .select('total_capacity, id')
         .eq('event_id', eventId)
@@ -193,7 +218,7 @@ export async function fetchEventSeatCounts(
         if (count && count > 0) total = count
       }
 
-      // 2. Count occupied/held seats
+      // Count occupied/held seats
       const nowIso = new Date().toISOString()
       const { data: reservations } = await dbTable('seat_reservations')
         .select('id, status, held_until')

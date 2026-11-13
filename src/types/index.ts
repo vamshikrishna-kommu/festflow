@@ -65,6 +65,7 @@ export type EventRecord = Database['public']['Tables']['events']['Row'] & {
   announcements_enabled?: boolean
   addons_enabled?: boolean
   registration_mode?: 'standard' | 'reserved_seating'
+  show_seat_availability?: boolean
 }
 export type EventInsert = Database['public']['Tables']['events']['Insert'] & {
   cover_url?: string | null
@@ -86,6 +87,7 @@ export type EventInsert = Database['public']['Tables']['events']['Insert'] & {
   announcements_enabled?: boolean
   addons_enabled?: boolean
   registration_mode?: 'standard' | 'reserved_seating'
+  show_seat_availability?: boolean
 }
 export type EventUpdate = Partial<EventInsert>
 export type RegistrationRecord = Database['public']['Tables']['registrations']['Row'] & {
