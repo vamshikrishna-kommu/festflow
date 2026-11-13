@@ -29,12 +29,15 @@ export async function compressImage(
 
   return new Promise((resolve) => {
     const reader = new FileReader()
-    reader.readAsDataURL(file)
 
     reader.onload = (event) => {
-      const img = new Image()
-      img.src = event.target?.result as string
+      const result = event.target?.result as string
+      if (!result) {
+        resolve(file)
+        return
+      }
 
+      const img = new Image()
       img.onload = () => {
         let width = img.width
         let height = img.height
@@ -87,9 +90,11 @@ export async function compressImage(
       }
 
       img.onerror = () => resolve(file)
+      img.src = result
     }
 
     reader.onerror = () => resolve(file)
+    reader.readAsDataURL(file)
   })
 }
 
@@ -101,6 +106,18 @@ export function getAspectRatioStyle(width: number, height: number): React.CSSPro
   return {
     aspectRatio: `${width} / ${height}`,
   }
+}
+
+/**
+ * Directly reads any file as a standard Data URL without canvas transformations.
+ */
+export function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve((e.target?.result as string) || '')
+    reader.onerror = () => resolve('')
+    reader.readAsDataURL(file)
+  })
 }
 
 /**
@@ -120,12 +137,15 @@ export async function compressImageToDataUrl(
 
   return new Promise((resolve) => {
     const reader = new FileReader()
-    reader.readAsDataURL(file)
 
     reader.onload = (event) => {
-      const img = new Image()
-      img.src = event.target?.result as string
+      const result = event.target?.result as string
+      if (!result) {
+        resolve('')
+        return
+      }
 
+      const img = new Image()
       img.onload = () => {
         let width = img.width
         let height = img.height
@@ -145,7 +165,7 @@ export async function compressImageToDataUrl(
 
         const ctx = canvas.getContext('2d')
         if (!ctx) {
-          resolve((event.target?.result as string) || '')
+          resolve(result)
           return
         }
 
@@ -157,17 +177,24 @@ export async function compressImageToDataUrl(
         try {
           dataUrl = canvas.toDataURL(format, quality)
         } catch {
-          dataUrl = canvas.toDataURL('image/jpeg', quality)
+          try {
+            dataUrl = canvas.toDataURL('image/jpeg', quality)
+          } catch {
+            dataUrl = result
+          }
         }
-        resolve(dataUrl || (event.target?.result as string) || '')
+        resolve(dataUrl || result)
       }
 
       img.onerror = () => {
-        resolve((event.target?.result as string) || '')
+        resolve(result)
       }
+
+      img.src = result
     }
 
     reader.onerror = () => resolve('')
+    reader.readAsDataURL(file)
   })
 }
 

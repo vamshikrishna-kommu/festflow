@@ -44,6 +44,7 @@ import {
   zonedDatetimeInputToIso,
   isoToZonedDatetimeInput,
 } from '@/lib/events'
+import { readFileAsDataUrl } from '@/lib/imageOptimization'
 import { EventPreviewModal } from './EventPreviewModal'
 import { EventPageBuilder } from './EventPageBuilder'
 import { useAuth } from '@/context/AuthContext'
@@ -246,11 +247,14 @@ export function EventForm({
     setUploadingPoster(true)
     setPosterError(null)
 
-    // Immediate preview so the user instantly sees their selected photo
+    // Immediate preview: read as Data URL so the user immediately sees the real image
+    let localData = ''
     try {
-      const localPreview = URL.createObjectURL(file)
-      setPosterUrl(localPreview)
-      setPreviewImgError(false)
+      localData = await readFileAsDataUrl(file)
+      if (localData) {
+        setPosterUrl(localData)
+        setPreviewImgError(false)
+      }
     } catch {
       // ignore
     }
@@ -258,7 +262,7 @@ export function EventForm({
     const res = await uploadEventPoster(file, effectiveUploadClubId)
     setUploadingPoster(false)
 
-    if (res.error && !res.url) {
+    if (res.error && !res.url && !localData) {
       setPosterError(res.error)
     } else if (res.url) {
       setPosterUrl(res.url)

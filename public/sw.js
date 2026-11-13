@@ -1,7 +1,7 @@
 // FestFlow Production Service Worker
-// Version: 1.0.0 (Phase 9 PWA & Offline Support)
+// Version: 1.0.1 (Resilient Cross-Origin & Offline Support)
 
-const CACHE_NAME = 'festflow-core-v2';
+const CACHE_NAME = 'festflow-core-v3';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [
@@ -50,7 +50,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Strict Security: NEVER cache auth requests, payment submissions, or live Supabase API endpoints
+  // 2. Never intercept third-party or cross-origin requests (Unsplash, Supabase, Google, Dicebear, CDNs)
+  // Let the browser handle external requests natively without service worker overhead or CSP cross-talk
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // 3. Strict Security: NEVER cache auth requests, payment submissions, or live Supabase API endpoints
   if (
     url.hostname.includes('supabase.co') ||
     url.pathname.includes('/auth/v1/') ||
@@ -61,7 +67,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Navigation requests (HTML pages): Network-first with offline.html fallback
+  // 4. Navigation requests (HTML pages): Network-first with offline.html fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => {
@@ -73,7 +79,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Static assets (CSS, JS, WebFonts, images in /assets/*): Stale-While-Revalidate
+  // 5. Static assets (CSS, JS, WebFonts, images in /assets/*): Stale-While-Revalidate
   if (
     url.origin === self.location.origin &&
     (url.pathname.startsWith('/assets/') ||
@@ -100,18 +106,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: Network with Cache Fallback
+  // 6. Default: Network with Cache Fallback for same-origin resources
   event.respondWith(
     caches.match(request).then((cached) => {
-      return (
-        cached ||
-        fetch(request).catch(() => {
-          // If offline and requesting an image, return transparent pixel fallback
-          if (request.destination === 'image') {
-            return new Response('', { headers: { 'Content-Type': 'image/svg+xml' } });
-          }
-        })
-      );
+      if (cached) return cached;
+      return fetch(request).catch(() => {
+        // If offline and requesting an image, return transparent pixel fallback
+        if (request.destination === 'image') {
+          return new Response(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+            { headers: { 'Content-Type': 'image/svg+xml' } }
+          );
+        }
+        if (request.mode === 'navigate') {
+          return caches.match(OFFLINE_URL);
+        }
+        return new Response('Network unavailable', { status: 503, statusText: 'Service Unavailable' });
+      });
     })
   );
 });

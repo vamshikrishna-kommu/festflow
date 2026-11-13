@@ -1,6 +1,6 @@
 import { supabase, supabasePublic, isSupabaseConfigured } from '@/lib/supabase'
 import type { EventRecord, EventInsert, EventUpdate, EventWithClub, Event, EventCategory } from '@/types'
-import { compressImage, compressImageToDataUrl } from '@/lib/imageOptimization'
+import { compressImage, compressImageToDataUrl, readFileAsDataUrl } from '@/lib/imageOptimization'
 
 const LOCAL_STORAGE_EVENTS_KEY = 'festflow_managed_events'
 
@@ -360,10 +360,10 @@ export async function uploadEventPoster(
     return { url: null, error: 'Only JPEG, PNG, WEBP, or GIF images are allowed' }
   }
 
-  // Pre-generate optimized inline data URL as guaranteed fallback
-  let fallbackDataUrl = ''
+  // Guaranteed resilient inline data URL
+  let guaranteedDataUrl = ''
   try {
-    fallbackDataUrl = await compressImageToDataUrl(file, {
+    guaranteedDataUrl = await compressImageToDataUrl(file, {
       maxWidth: 1600,
       maxHeight: 900,
       quality: 0.82,
@@ -371,6 +371,13 @@ export async function uploadEventPoster(
     })
   } catch {
     // ignore
+  }
+  if (!guaranteedDataUrl) {
+    try {
+      guaranteedDataUrl = await readFileAsDataUrl(file)
+    } catch {
+      // ignore
+    }
   }
 
   if (isSupabaseConfigured) {
@@ -402,8 +409,8 @@ export async function uploadEventPoster(
 
       if (uploadError) {
         console.warn('[FestFlow Storage] Storage upload note:', uploadError.message, '- Using optimized inline photo data fallback.')
-        if (fallbackDataUrl) {
-          return { url: fallbackDataUrl, error: null }
+        if (guaranteedDataUrl) {
+          return { url: guaranteedDataUrl, error: null }
         }
         return { url: null, error: uploadError.message }
       }
@@ -435,19 +442,25 @@ export async function uploadEventPoster(
         }
       }
 
-      // If public URL returned 403/400 (e.g. private bucket or unmigrated RLS), use optimized data URL
+      // If public URL returned 403/400 (e.g. private bucket or unmigrated RLS), use guaranteed data URL
       console.warn('[FestFlow Storage] Public storage URL not reachable via public read. Using optimized inline photo.')
-      return { url: fallbackDataUrl || publicUrl, error: null }
+      if (guaranteedDataUrl) {
+        return { url: guaranteedDataUrl, error: null }
+      }
+      return { url: publicUrl, error: null }
     } catch (err) {
       console.warn('[FestFlow Storage] Upload exception:', err, '- falling back to direct photo encoding.')
-      if (fallbackDataUrl) {
-        return { url: fallbackDataUrl, error: null }
+      if (guaranteedDataUrl) {
+        return { url: guaranteedDataUrl, error: null }
       }
       return { url: null, error: err instanceof Error ? err.message : 'Upload failed' }
     }
   } else {
-    // Simulation fallback: read as data URL
-    return { url: fallbackDataUrl || null, error: fallbackDataUrl ? null : 'Failed to read image locally' }
+    // Simulation fallback
+    if (!guaranteedDataUrl) {
+      guaranteedDataUrl = await readFileAsDataUrl(file)
+    }
+    return { url: guaranteedDataUrl || null, error: guaranteedDataUrl ? null : 'Failed to read image locally' }
   }
 }
 
