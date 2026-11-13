@@ -447,7 +447,8 @@ export async function uploadEventPoster(
       if (guaranteedDataUrl) {
         return { url: guaranteedDataUrl, error: null }
       }
-      return { url: publicUrl, error: null }
+      const directData = await readFileAsDataUrl(file)
+      return { url: directData || publicUrl, error: null }
     } catch (err) {
       console.warn('[FestFlow Storage] Upload exception:', err, '- falling back to direct photo encoding.')
       if (guaranteedDataUrl) {

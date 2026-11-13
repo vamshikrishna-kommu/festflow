@@ -460,13 +460,13 @@ export default function EventDetailPage() {
   )
 
   const clubName = event.club?.club_profile?.club_name || event.club?.display_name || 'Campus Club'
-  const rawCover = (event as any).cover_url
   const rawPoster = event.poster_url
+  const rawCover = (event as any).cover_url
   const posterSource =
-    !bannerImgError && rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim()
-      ? resolvePosterUrl(rawCover, event.category)
-      : !bannerImgError && rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim()
+    !bannerImgError && rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim()
       ? resolvePosterUrl(rawPoster, event.category)
+      : !bannerImgError && rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim()
+      ? resolvePosterUrl(rawCover, event.category)
       : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
 
   // Capacity Calculations & Urgency

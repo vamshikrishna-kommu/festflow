@@ -44,7 +44,7 @@ import {
   zonedDatetimeInputToIso,
   isoToZonedDatetimeInput,
 } from '@/lib/events'
-import { readFileAsDataUrl } from '@/lib/imageOptimization'
+import { readFileAsDataUrl, compressImageToDataUrl } from '@/lib/imageOptimization'
 import { EventPreviewModal } from './EventPreviewModal'
 import { EventPageBuilder } from './EventPageBuilder'
 import { useAuth } from '@/context/AuthContext'
@@ -246,25 +246,40 @@ export function EventForm({
 
     setUploadingPoster(true)
     setPosterError(null)
+    setPreviewImgError(false)
 
-    // Immediate preview: read as Data URL so the user immediately sees the real image
-    let localData = ''
+    // 1. Immediately compress the selected file to a compact, high-quality WebP Data URL (~90KB)
+    let optimizedData = ''
     try {
-      localData = await readFileAsDataUrl(file)
-      if (localData) {
-        setPosterUrl(localData)
+      optimizedData = await compressImageToDataUrl(file, {
+        maxWidth: 1600,
+        maxHeight: 900,
+        quality: 0.82,
+        format: 'image/webp',
+      })
+      if (optimizedData) {
+        setPosterUrl(optimizedData)
         setPreviewImgError(false)
+      } else {
+        const rawData = await readFileAsDataUrl(file)
+        if (rawData) {
+          setPosterUrl(rawData)
+          setPreviewImgError(false)
+        }
       }
     } catch {
-      // ignore
+      // fallback
     }
 
+    // 2. Attempt Supabase Storage upload in parallel
     const res = await uploadEventPoster(file, effectiveUploadClubId)
     setUploadingPoster(false)
 
-    if (res.error && !res.url && !localData) {
-      setPosterError(res.error)
-    } else if (res.url) {
+    // Only adopt storage URL if valid and verified
+    if (res.url && !res.error && res.url.startsWith('http')) {
+      setPosterUrl(res.url)
+      setPreviewImgError(false)
+    } else if (res.url && !res.error) {
       setPosterUrl(res.url)
       setPreviewImgError(false)
     }
@@ -321,9 +336,9 @@ export function EventForm({
     const regCloseIso = registrationClose ? zonedDatetimeInputToIso(registrationClose, timezone) : null
     const finalSlug = initialData?.slug || generateSlug(title)
     const finalPoster =
-      previewImgError || !posterUrl.trim() || posterUrl.startsWith('blob:')
-        ? getDefaultPoster(category)
-        : posterUrl.trim()
+      posterUrl.trim() && !posterUrl.startsWith('blob:')
+        ? posterUrl.trim()
+        : getDefaultPoster(category)
 
     const depts = departmentsInput
       .split(',')
