@@ -104,6 +104,74 @@ export function getAspectRatioStyle(width: number, height: number): React.CSSPro
 }
 
 /**
+ * Compresses an image client-side directly to a lightweight Base64 Data URL.
+ * Produces an ultra-compact (~80KB - 200KB) WebP or JPEG string safe for inline storage.
+ */
+export async function compressImageToDataUrl(
+  file: File,
+  options: CompressImageOptions = {}
+): Promise<string> {
+  const {
+    maxWidth = 1600,
+    maxHeight = 900,
+    quality = 0.82,
+    format = 'image/webp',
+  } = options
+
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target?.result as string
+
+      img.onload = () => {
+        let width = img.width
+        let height = img.height
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width)
+          width = maxWidth
+        }
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height)
+          height = maxHeight
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve((event.target?.result as string) || '')
+          return
+        }
+
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.drawImage(img, 0, 0, width, height)
+
+        let dataUrl = ''
+        try {
+          dataUrl = canvas.toDataURL(format, quality)
+        } catch {
+          dataUrl = canvas.toDataURL('image/jpeg', quality)
+        }
+        resolve(dataUrl || (event.target?.result as string) || '')
+      }
+
+      img.onerror = () => {
+        resolve((event.target?.result as string) || '')
+      }
+    }
+
+    reader.onerror = () => resolve('')
+  })
+}
+
+/**
  * Optimizes an image URL for mobile delivery:
  * - Detects Unsplash URLs and applies width, format=auto (delivering WebP/AVIF), quality=75
  * - Strips unnecessary resolution bloat on mobile screens

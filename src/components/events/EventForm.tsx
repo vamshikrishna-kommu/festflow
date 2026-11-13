@@ -211,6 +211,7 @@ export function EventForm({
   const [posterUrl, setPosterUrl] = useState<string>(initialData?.poster_url || '')
   const [uploadingPoster, setUploadingPoster] = useState(false)
   const [posterError, setPosterError] = useState<string | null>(null)
+  const [previewImgError, setPreviewImgError] = useState(false)
 
   // Preview Modal state
   const [showPreview, setShowPreview] = useState(false)
@@ -245,13 +246,23 @@ export function EventForm({
     setUploadingPoster(true)
     setPosterError(null)
 
+    // Immediate preview so the user instantly sees their selected photo
+    try {
+      const localPreview = URL.createObjectURL(file)
+      setPosterUrl(localPreview)
+      setPreviewImgError(false)
+    } catch {
+      // ignore
+    }
+
     const res = await uploadEventPoster(file, effectiveUploadClubId)
     setUploadingPoster(false)
 
-    if (res.error) {
+    if (res.error && !res.url) {
       setPosterError(res.error)
     } else if (res.url) {
       setPosterUrl(res.url)
+      setPreviewImgError(false)
     }
   }
 
@@ -305,7 +316,10 @@ export function EventForm({
     const regStartIso = registrationStart ? zonedDatetimeInputToIso(registrationStart, timezone) : null
     const regCloseIso = registrationClose ? zonedDatetimeInputToIso(registrationClose, timezone) : null
     const finalSlug = initialData?.slug || generateSlug(title)
-    const finalPoster = posterUrl || getDefaultPoster(category)
+    const finalPoster =
+      previewImgError || !posterUrl.trim() || posterUrl.startsWith('blob:')
+        ? getDefaultPoster(category)
+        : posterUrl.trim()
 
     const depts = departmentsInput
       .split(',')
@@ -460,18 +474,48 @@ export function EventForm({
         </label>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="relative w-full sm:w-48 h-28 rounded-xl overflow-hidden bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] shrink-0 flex items-center justify-center">
-            {posterUrl ? (
+            {uploadingPoster && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xs text-white">
+                <div className="w-5 h-5 border-2 border-[#18CFFC] border-t-transparent rounded-full animate-spin mb-1" />
+                <span className="text-[10px] text-[#18CFFC] font-medium">Processing…</span>
+              </div>
+            )}
+            {posterUrl && !previewImgError ? (
               <>
-                <img src={resolvePosterUrl(posterUrl, category)} alt="Banner Preview" className="w-full h-full object-cover" />
+                <img
+                  key={posterUrl}
+                  src={resolvePosterUrl(posterUrl, category)}
+                  alt="Banner Preview"
+                  className="w-full h-full object-cover"
+                  onError={() => setPreviewImgError(true)}
+                />
                 <button
                   type="button"
-                  onClick={() => setPosterUrl('')}
+                  onClick={() => {
+                    setPosterUrl('')
+                    setPreviewImgError(false)
+                  }}
                   className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-rose-600 transition-colors"
                   title="Remove custom image"
                 >
                   <X size={12} />
                 </button>
               </>
+            ) : posterUrl && previewImgError ? (
+              <div className="flex flex-col items-center justify-center p-2 text-center bg-amber-500/10 h-full w-full">
+                <AlertCircle size={18} className="text-amber-400 mb-1" />
+                <span className="text-[10px] text-amber-200 font-medium">Link inaccessible</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPosterUrl(getDefaultPoster(category))
+                    setPreviewImgError(false)
+                  }}
+                  className="text-[10px] text-[#18CFFC] hover:underline font-semibold mt-1 cursor-pointer"
+                >
+                  Load {category ? category.toUpperCase() : 'Tech'} Stock
+                </button>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-1 text-[var(--color-text-muted)]">
                 <ImageIcon size={22} />
@@ -488,19 +532,32 @@ export function EventForm({
               accept="image/jpeg,image/png,image/webp,image/gif"
               className="hidden"
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPoster}
-              leftIcon={<Upload size={14} />}
-              className="min-h-[44px]"
-            >
-              {uploadingPoster ? 'Uploading…' : 'Upload Banner (Max 5MB)'}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPoster}
+                leftIcon={<Upload size={14} />}
+                className="min-h-[44px]"
+              >
+                {uploadingPoster ? 'Uploading…' : 'Upload Banner (Max 5MB)'}
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPosterUrl(getDefaultPoster(category))
+                  setPreviewImgError(false)
+                  setPosterError(null)
+                }}
+                className="px-3 py-2 text-xs text-zinc-400 hover:text-white rounded-lg border border-white/10 hover:border-white/20 transition-colors min-h-[44px]"
+              >
+                Use {category ? category.toUpperCase() : 'Tech'} Stock Photo
+              </button>
+            </div>
             <p className="text-[11px] text-[var(--color-text-muted)]">
-              Supports JPEG, PNG, WEBP up to 5MB. 16:9 ratio recommended.
+              Supports JPEG, PNG, WEBP up to 5MB. 16:9 ratio recommended. Auto-optimized before upload.
             </p>
             {posterError && <p className="text-xs text-rose-400">{posterError}</p>}
           </div>

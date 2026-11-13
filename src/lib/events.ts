@@ -1,5 +1,6 @@
 import { supabase, supabasePublic, isSupabaseConfigured } from '@/lib/supabase'
 import type { EventRecord, EventInsert, EventUpdate, EventWithClub, Event, EventCategory } from '@/types'
+import { compressImage, compressImageToDataUrl } from '@/lib/imageOptimization'
 
 const LOCAL_STORAGE_EVENTS_KEY = 'festflow_managed_events'
 
@@ -359,6 +360,19 @@ export async function uploadEventPoster(
     return { url: null, error: 'Only JPEG, PNG, WEBP, or GIF images are allowed' }
   }
 
+  // Pre-generate optimized inline data URL as guaranteed fallback
+  let fallbackDataUrl = ''
+  try {
+    fallbackDataUrl = await compressImageToDataUrl(file, {
+      maxWidth: 1600,
+      maxHeight: 900,
+      quality: 0.82,
+      format: 'image/webp',
+    })
+  } catch {
+    // ignore
+  }
+
   if (isSupabaseConfigured) {
     try {
       let targetFolder = clubId?.trim()
@@ -367,34 +381,73 @@ export async function uploadEventPoster(
         targetFolder = authData.user?.id || 'common'
       }
 
-      const rawExt = file.name.split('.').pop() || 'jpg'
-      const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+      // Optimize file dimensions before uploading to reduce network payload
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1600,
+        maxHeight: 900,
+        quality: 0.82,
+        format: 'image/webp',
+      })
+
+      const rawExt = compressedFile.name.split('.').pop() || 'webp'
+      const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'webp'
       const filePath = `${targetFolder}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from('event-posters')
-        .upload(filePath, file, {
+        .upload(filePath, compressedFile, {
           cacheControl: '3600',
           upsert: true,
         })
 
       if (uploadError) {
+        console.warn('[FestFlow Storage] Storage upload note:', uploadError.message, '- Using optimized inline photo data fallback.')
+        if (fallbackDataUrl) {
+          return { url: fallbackDataUrl, error: null }
+        }
         return { url: null, error: uploadError.message }
       }
 
       const { data } = supabase.storage.from('event-posters').getPublicUrl(filePath)
-      return { url: data.publicUrl, error: null }
+      const publicUrl = data?.publicUrl
+
+      // Check if public storage URL is truly accessible to public viewers
+      if (publicUrl) {
+        const isPubliclyAccessible = await new Promise<boolean>((resolve) => {
+          const testImg = new Image()
+          const timer = setTimeout(() => {
+            testImg.src = ''
+            resolve(false)
+          }, 2000)
+          testImg.onload = () => {
+            clearTimeout(timer)
+            resolve(true)
+          }
+          testImg.onerror = () => {
+            clearTimeout(timer)
+            resolve(false)
+          }
+          testImg.src = publicUrl
+        })
+
+        if (isPubliclyAccessible) {
+          return { url: publicUrl, error: null }
+        }
+      }
+
+      // If public URL returned 403/400 (e.g. private bucket or unmigrated RLS), use optimized data URL
+      console.warn('[FestFlow Storage] Public storage URL not reachable via public read. Using optimized inline photo.')
+      return { url: fallbackDataUrl || publicUrl, error: null }
     } catch (err) {
+      console.warn('[FestFlow Storage] Upload exception:', err, '- falling back to direct photo encoding.')
+      if (fallbackDataUrl) {
+        return { url: fallbackDataUrl, error: null }
+      }
       return { url: null, error: err instanceof Error ? err.message : 'Upload failed' }
     }
   } else {
     // Simulation fallback: read as data URL
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve({ url: reader.result as string, error: null })
-      reader.onerror = () => resolve({ url: null, error: 'Failed to read file locally' })
-      reader.readAsDataURL(file)
-    })
+    return { url: fallbackDataUrl || null, error: fallbackDataUrl ? null : 'Failed to read image locally' }
   }
 }
 
