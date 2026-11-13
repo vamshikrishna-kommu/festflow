@@ -462,10 +462,13 @@ export default function EventDetailPage() {
   const clubName = event.club?.club_profile?.club_name || event.club?.display_name || 'Campus Club'
   const rawPoster = event.poster_url
   const rawCover = (event as any).cover_url
+  const hasCustomPoster = Boolean(rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim())
+  const hasCustomCover = Boolean(rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim())
+
   const posterSource =
-    !bannerImgError && rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim()
+    !bannerImgError && hasCustomPoster
       ? resolvePosterUrl(rawPoster, event.category)
-      : !bannerImgError && rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim()
+      : !bannerImgError && hasCustomCover
       ? resolvePosterUrl(rawCover, event.category)
       : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
 
@@ -632,23 +635,37 @@ export default function EventDetailPage() {
         )}
 
         {/* ── Editorial Cinematic Hero Poster Banner ───────────────────────── */}
-        <div className="relative w-full h-64 sm:h-84 md:h-[430px] rounded-3xl overflow-hidden border border-white/[0.08] mb-6 sm:mb-8 shadow-2xl group bg-gradient-to-br from-zinc-900 via-[#121218] to-black">
-          <img
-            key={posterSource}
-            src={getOptimizedImageUrl(posterSource, 1080)}
-            srcSet={getImageSrcSet(posterSource)}
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1080px"
-            alt={event.title}
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-            onError={() => {
-              if (!bannerImgError && !posterSource.startsWith('data:')) {
-                setBannerImgError(true)
-              }
-            }}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-          />
+        <div className="relative w-full h-64 sm:h-84 md:h-[430px] rounded-3xl overflow-hidden border border-white/[0.08] mb-6 sm:mb-8 shadow-2xl group bg-gradient-to-br from-indigo-950/40 via-zinc-900 to-black">
+          {/* Ambient backdrop glow so banner is never a pitch-black void */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 via-transparent to-purple-600/10 pointer-events-none" />
+
+          {posterSource ? (
+            <img
+              key={posterSource}
+              src={posterSource.startsWith('data:') ? posterSource : getOptimizedImageUrl(posterSource, 1080)}
+              srcSet={posterSource.startsWith('data:') ? undefined : getImageSrcSet(posterSource)}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1080px"
+              alt={event.title}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              onError={() => {
+                if (!bannerImgError && !posterSource.startsWith('data:')) {
+                  setBannerImgError(true)
+                }
+              }}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#121218] via-zinc-900 to-black p-6">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-cyan-400 mb-3 shadow-inner">
+                <Sparkles size={32} />
+              </div>
+              <span className="text-sm font-semibold text-zinc-400 tracking-wider uppercase font-mono">
+                {event.category} Experience
+              </span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none" />
 
           {/* Badges Overlay */}

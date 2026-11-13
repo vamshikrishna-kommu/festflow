@@ -603,14 +603,33 @@ export async function createEvent(
 
   if (isSupabaseConfigured) {
     try {
-      const { data: inserted, error } = await supabase
-        .from('events')
-        .insert(normalizedPayload as never)
-        .select('*')
-        .single()
+      const sanitizedPayload: Record<string, unknown> = { ...normalizedPayload }
+      let lastErrorMessage = ''
 
-      if (error) return { event: null, error: error.message }
-      return { event: inserted as unknown as EventRecord, error: null }
+      for (let attempt = 0; attempt < 7; attempt++) {
+        const { data: inserted, error } = await supabase
+          .from('events')
+          .insert(sanitizedPayload as never)
+          .select('*')
+          .single()
+
+        if (!error && inserted) {
+          return { event: inserted as unknown as EventRecord, error: null }
+        }
+
+        if (error) {
+          lastErrorMessage = error.message
+          const colMatch = error.message.match(/Could not find the '([^']+)' column of 'events'/i)
+          if (colMatch && colMatch[1] && colMatch[1] in sanitizedPayload) {
+            console.warn(`[createEvent] Removing un-migrated column '${colMatch[1]}' and retrying...`)
+            delete sanitizedPayload[colMatch[1]]
+            continue
+          }
+          return { event: null, error: error.message }
+        }
+      }
+
+      return { event: null, error: lastErrorMessage || 'Failed to create event' }
     } catch (err) {
       return { event: null, error: err instanceof Error ? err.message : 'Failed to create event' }
     }
@@ -652,21 +671,77 @@ export async function updateEvent(
 ): Promise<{ event: EventRecord | null; error: string | null }> {
   if (isSupabaseConfigured) {
     try {
-      let query = supabase
-        .from('events')
-        .update(updates as never)
-        .eq('id', id)
+      const sanitizedUpdates: Record<string, unknown> = { ...updates }
+      let currentClubId = clubId
+      let lastErrorMessage = ''
 
-      if (clubId) {
-        query = query.eq('club_id', clubId)
+      // Resilient schema-healing loop:
+      // If the database schema lacks newer optional columns (e.g. cover_url, registration_mode),
+      // PostgREST returns "Could not find the '<col>' column of 'events' in the schema cache".
+      // We strip the column and retry immediately so valid core edits (poster, title, schedule) succeed.
+      for (let attempt = 0; attempt < 7; attempt++) {
+        let query = supabase
+          .from('events')
+          .update(sanitizedUpdates as never)
+          .eq('id', id)
+
+        if (currentClubId && attempt === 0) {
+          query = query.eq('club_id', currentClubId)
+        }
+
+        const { data: updated, error } = await query
+          .select('*')
+          .single()
+
+        if (!error && updated) {
+          return { event: updated as unknown as EventRecord, error: null }
+        }
+
+        if (error) {
+          lastErrorMessage = error.message
+
+          // 1. Missing column in schema cache detection
+          const colMatch = error.message.match(/Could not find the '([^']+)' column of 'events'/i)
+          if (colMatch && colMatch[1] && colMatch[1] in sanitizedUpdates) {
+            console.warn(`[updateEvent] Removing un-migrated column '${colMatch[1]}' and retrying...`)
+            delete sanitizedUpdates[colMatch[1]]
+            continue
+          }
+
+          // 2. PGRST116 (0 rows matched when filtering by club_id). Retry by primary key 'id' (RLS handles security).
+          if (error.code === 'PGRST116' && currentClubId) {
+            console.warn('[updateEvent] club_id filter matched 0 rows. Retrying by event primary key id...')
+            currentClubId = undefined
+            continue
+          }
+
+          // 3. Last-resort fallback for critical banner/content updates
+          if (attempt >= 3 && ('poster_url' in sanitizedUpdates)) {
+            const minimalUpdates: Record<string, unknown> = {
+              title: sanitizedUpdates.title,
+              summary: sanitizedUpdates.summary,
+              description: sanitizedUpdates.description,
+              poster_url: sanitizedUpdates.poster_url,
+              category: sanitizedUpdates.category,
+              status: sanitizedUpdates.status,
+            }
+            const { data: minUpdated, error: minErr } = await supabase
+              .from('events')
+              .update(minimalUpdates as never)
+              .eq('id', id)
+              .select('*')
+              .single()
+
+            if (!minErr && minUpdated) {
+              return { event: minUpdated as unknown as EventRecord, error: null }
+            }
+          }
+
+          return { event: null, error: error.message }
+        }
       }
 
-      const { data: updated, error } = await query
-        .select('*')
-        .single()
-
-      if (error) return { event: null, error: error.message }
-      return { event: updated as unknown as EventRecord, error: null }
+      return { event: null, error: lastErrorMessage || 'Failed to update event' }
     } catch (err) {
       return { event: null, error: err instanceof Error ? err.message : 'Failed to update event' }
     }

@@ -122,16 +122,16 @@ export function readFileAsDataUrl(file: File): Promise<string> {
 
 /**
  * Compresses an image client-side directly to a lightweight Base64 Data URL.
- * Produces an ultra-compact (~80KB - 200KB) WebP or JPEG string safe for inline storage.
+ * Produces an ultra-compact (~40KB - 80KB) WebP or JPEG string safe for inline storage.
  */
 export async function compressImageToDataUrl(
   file: File,
   options: CompressImageOptions = {}
 ): Promise<string> {
   const {
-    maxWidth = 1600,
-    maxHeight = 900,
-    quality = 0.82,
+    maxWidth = 1280,
+    maxHeight = 720,
+    quality = 0.76,
     format = 'image/webp',
   } = options
 

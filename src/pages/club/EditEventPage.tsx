@@ -116,6 +116,7 @@ export default function EditEventPage() {
 
     if (res.error) {
       setServerError(res.error)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else if (res.event) {
       if (action === 'publish') {
         navigate(`/events/${res.event.slug}`, { replace: true })

@@ -242,18 +242,20 @@ export function EventForm({
     setPreviewImgError(false)
 
     try {
-      // 1. Immediately compress the selected file to a compact, ultra-crisp WebP Data URL (~70-90KB)
+      // 1. Immediately compress the selected file to a compact, ultra-crisp WebP Data URL (~40-60KB)
       const optimizedData = await compressImageToDataUrl(file, {
-        maxWidth: 1600,
-        maxHeight: 900,
-        quality: 0.82,
+        maxWidth: 1280,
+        maxHeight: 720,
+        quality: 0.76,
         format: 'image/webp',
       })
 
       const finalDataUrl = optimizedData || (await readFileAsDataUrl(file))
       if (finalDataUrl) {
         setPosterUrl(finalDataUrl)
+        setCoverUrl('')
         setPreviewImgError(false)
+        setPosterError(null)
       } else {
         setPosterError('Could not process image file.')
       }
@@ -262,7 +264,9 @@ export function EventForm({
         const rawData = await readFileAsDataUrl(file)
         if (rawData) {
           setPosterUrl(rawData)
+          setCoverUrl('')
           setPreviewImgError(false)
+          setPosterError(null)
         }
       } catch {
         setPosterError('Failed to read image file from device.')
@@ -496,12 +500,17 @@ export function EventForm({
                   src={resolvePosterUrl(posterUrl, category)}
                   alt="Banner Preview"
                   className="w-full h-full object-cover"
-                  onError={() => setPreviewImgError(true)}
+                  onError={() => {
+                    if (!posterUrl.startsWith('data:')) {
+                      setPreviewImgError(true)
+                    }
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => {
                     setPosterUrl('')
+                    setCoverUrl('')
                     setPreviewImgError(false)
                   }}
                   className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-rose-600 transition-colors"
@@ -518,6 +527,7 @@ export function EventForm({
                   type="button"
                   onClick={() => {
                     setPosterUrl(getDefaultPoster(category))
+                    setCoverUrl('')
                     setPreviewImgError(false)
                   }}
                   className="text-[10px] text-[#18CFFC] hover:underline font-semibold mt-1 cursor-pointer"
@@ -533,7 +543,7 @@ export function EventForm({
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 flex-1">
             <input
               type="file"
               ref={fileInputRef}
@@ -554,12 +564,13 @@ export function EventForm({
                 leftIcon={<Upload size={14} />}
                 className="min-h-[44px]"
               >
-                {uploadingPoster ? 'Uploading…' : 'Upload Banner (Max 5MB)'}
+                {uploadingPoster ? 'Compressing & Storing…' : 'Upload Banner (Max 5MB)'}
               </Button>
               <button
                 type="button"
                 onClick={() => {
                   setPosterUrl(getDefaultPoster(category))
+                  setCoverUrl('')
                   setPreviewImgError(false)
                   setPosterError(null)
                 }}
@@ -567,6 +578,21 @@ export function EventForm({
               >
                 Use {category ? category.toUpperCase() : 'Tech'} Stock Photo
               </button>
+            </div>
+            {/* Direct Image URL input option */}
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="text"
+                placeholder="Or paste direct image URL (https://...)"
+                value={posterUrl.startsWith('data:') ? '' : posterUrl}
+                onChange={(e) => {
+                  const val = e.target.value.trim()
+                  setPosterUrl(val)
+                  setCoverUrl('')
+                  setPreviewImgError(false)
+                }}
+                className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC]"
+              />
             </div>
             <p className="text-[11px] text-[var(--color-text-muted)]">
               Supports JPEG, PNG, WEBP up to 5MB. 16:9 ratio recommended. Auto-optimized before upload.
