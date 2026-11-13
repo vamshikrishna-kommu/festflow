@@ -21,6 +21,35 @@ export function getDefaultPoster(category: EventCategory): string {
   return CATEGORY_POSTERS[category] || CATEGORY_POSTERS.tech
 }
 
+/**
+ * Resolves an event poster or cover URL into an authoritative, displayable public URL.
+ * Handles storage relative paths (e.g. "uuid/filename.png"), full URLs, and category defaults.
+ */
+export function resolvePosterUrl(url: string | null | undefined, category?: EventCategory): string {
+  if (!url || url === 'null' || url === 'undefined' || !url.trim()) {
+    return category ? getDefaultPoster(category) : ''
+  }
+  const trimmed = url.trim()
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed
+  }
+  // Supabase storage object path
+  if (isSupabaseConfigured) {
+    try {
+      const { data } = supabase.storage.from('event-posters').getPublicUrl(trimmed)
+      if (data?.publicUrl) return data.publicUrl
+    } catch {
+      // fallback
+    }
+  }
+  return category ? getDefaultPoster(category) : trimmed
+}
+
 export function generateSlug(title: string): string {
   const base = title
     .toLowerCase()
@@ -319,10 +348,10 @@ function saveLocalEvents(events: EventRecord[]) {
 // ── Upload Poster to Supabase Storage ────────────────────────────────────────
 export async function uploadEventPoster(
   file: File,
-  clubId: string
+  clubId?: string
 ): Promise<{ url: string | null; error: string | null }> {
-  if (file.size > 5 * 1024 * 1024) {
-    return { url: null, error: 'File size must be 5MB or less' }
+  if (file.size > 10 * 1024 * 1024) {
+    return { url: null, error: 'File size must be 10MB or less' }
   }
 
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -332,14 +361,21 @@ export async function uploadEventPoster(
 
   if (isSupabaseConfigured) {
     try {
-      const ext = file.name.split('.').pop() || 'jpg'
-      const filePath = `${clubId}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`
+      let targetFolder = clubId?.trim()
+      if (!targetFolder || targetFolder === 'null' || targetFolder === 'undefined') {
+        const { data: authData } = await supabase.auth.getUser()
+        targetFolder = authData.user?.id || 'common'
+      }
+
+      const rawExt = file.name.split('.').pop() || 'jpg'
+      const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+      const filePath = `${targetFolder}/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from('event-posters')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false,
+          upsert: true,
         })
 
       if (uploadError) {
@@ -967,7 +1003,7 @@ export function mapRecordToUiEvent(record: EventRecord | EventWithClub): Event {
     time: timeFormatted,
     location: record.venue_address || 'Campus Campus',
     venue: record.venue_name,
-    coverImage: record.poster_url || getDefaultPoster(record.category),
+    coverImage: resolvePosterUrl(record.poster_url || (record as any).cover_url, record.category),
     description: record.description,
     isFree: record.is_free,
     price: record.is_free ? undefined : Number(record.price),

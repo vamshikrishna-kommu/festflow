@@ -37,6 +37,7 @@ import { EVENT_CATEGORIES } from '@/lib/mock-data'
 import {
   uploadEventPoster,
   getDefaultPoster,
+  resolvePosterUrl,
   generateSlug,
   validateEventConfig,
   resolveEventTimezone,
@@ -235,7 +236,8 @@ export function EventForm({
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!targetClubId) {
+    const effectiveUploadClubId = targetClubId || clubProfile?.profile_id || activeClubId || user?.id || ''
+    if (!effectiveUploadClubId) {
       setPosterError('No active club workspace selected for poster upload.')
       return
     }
@@ -243,7 +245,7 @@ export function EventForm({
     setUploadingPoster(true)
     setPosterError(null)
 
-    const res = await uploadEventPoster(file, targetClubId)
+    const res = await uploadEventPoster(file, effectiveUploadClubId)
     setUploadingPoster(false)
 
     if (res.error) {
@@ -460,7 +462,7 @@ export function EventForm({
           <div className="relative w-full sm:w-48 h-28 rounded-xl overflow-hidden bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] shrink-0 flex items-center justify-center">
             {posterUrl ? (
               <>
-                <img src={posterUrl} alt="Banner Preview" className="w-full h-full object-cover" />
+                <img src={resolvePosterUrl(posterUrl, category)} alt="Banner Preview" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setPosterUrl('')}

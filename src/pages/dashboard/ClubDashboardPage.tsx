@@ -40,6 +40,7 @@ import {
   resolveEventTimezone,
 } from '@/lib/events'
 import { getClubPaymentSubmissions } from '@/lib/payments'
+import { getClubRegistrations } from '@/lib/registrations'
 import { ROLE_LABELS } from '@/lib/clubMembers'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { ClubCouponsModal } from '@/components/club/ClubCouponsModal'
@@ -151,43 +152,13 @@ export default function ClubDashboardPage() {
     setEvents(loadedEvents)
     setSubmissions(canViewPayments && paymentsRes.submissions ? paymentsRes.submissions : [])
 
-    // Load registrations across this club's events when user holds roster/report permission
-    const authorizedEventIds = loadedEvents
-      .filter(
-        (e) =>
-          canViewRegistrationsClub ||
-          canViewReportsClub ||
-          hasEventPermission(e.id, 'registrations.view', e.club_id) ||
-          hasEventPermission(e.id, 'reports.view', e.club_id)
-      )
-      .map((e) => e.id)
-
-    if (authorizedEventIds.length === 0) {
+    // Load registrations across this club's events using resilient multi-tier queries
+    const clubEventIds = loadedEvents.map((e) => e.id)
+    if (clubEventIds.length === 0) {
       setAllRegistrations([])
-    } else if (isSupabaseConfigured) {
-      try {
-        const { data: regData } = await (supabase.from('registrations') as any)
-          .select('id, event_id, status, created_at, ticket_code, cancellation_request_status')
-          .in('event_id', authorizedEventIds)
-          .order('created_at', { ascending: false })
-
-        if (regData) {
-          setAllRegistrations(regData)
-        }
-      } catch (e: any) {
-        console.warn('[FestFlow Dashboard] Registrations query note:', e.message)
-      }
     } else {
-      // Local fallback
-      try {
-        const raw = localStorage.getItem('festflow_local_registrations')
-        if (raw) {
-          const parsed = JSON.parse(raw) as RegistrationRecord[]
-          setAllRegistrations(parsed.filter((r) => authorizedEventIds.includes(r.event_id)))
-        }
-      } catch {
-        // fallback
-      }
+      const { registrations: clubRegs } = await getClubRegistrations(clubId, clubEventIds)
+      setAllRegistrations(clubRegs || [])
     }
 
     setLoading(false)
@@ -198,6 +169,25 @@ export default function ClubDashboardPage() {
       loadClubData()
     }
   }, [clubId, isRoleLoading, activeClubRole, canViewPayments, canViewRegistrationsClub, canViewReportsClub, eventAssignments])
+
+  // Real-time synchronization: when a student books or cancels, refresh dashboard automatically
+  useEffect(() => {
+    if (!clubId || !isSupabaseConfigured) return
+    const channel = supabase
+      .channel(`club-dashboard-regs-${clubId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'registrations' },
+        () => {
+          loadClubData()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [clubId])
 
   const now = new Date()
 
@@ -345,7 +335,23 @@ export default function ClubDashboardPage() {
   const totalRegistrationsCount = filteredRegistrations.length
   const confirmedRegistrations = useMemo(() => filteredRegistrations.filter((r) => r.status === 'confirmed'), [filteredRegistrations])
   const confirmedCount = confirmedRegistrations.length
-  const capacityUtilization = totalCapacity > 0 ? Math.round((totalRegistrationsCount / totalCapacity) * 100) : 0
+
+  // Authoritative total seats occupied: accounts for multi-seat reserved seating & teams
+  const totalSeatsOccupied = useMemo(() => {
+    return filteredRegistrations.reduce((sum, r) => {
+      if (r.status === 'cancelled' || r.status === 'rejected') return sum
+      const details = (r as any).participant_details
+      const seatCount =
+        details?.seat_details?.total_seats ||
+        details?.seat_allocations?.length ||
+        (Array.isArray((r as any).team_members) && (r as any).team_members.length > 0
+          ? (r as any).team_members.length
+          : 1)
+      return sum + Math.max(1, Number(seatCount) || 1)
+    }, 0)
+  }, [filteredRegistrations])
+
+  const capacityUtilization = totalCapacity > 0 ? Math.min(100, Math.round((totalSeatsOccupied / totalCapacity) * 100)) : 0
 
   // Payments Metrics
   const pendingPayments = useMemo(
@@ -394,10 +400,21 @@ export default function ClubDashboardPage() {
     // 1. Latest registrations
     filteredRegistrations.slice(0, 8).forEach((r) => {
       const evt = events.find((e) => e.id === r.event_id)
+      const studentName =
+        (r as any).student?.display_name ||
+        (r as any).participant_details?.full_name ||
+        (r as any).participant_details?.name ||
+        (r as any).participant_details?.lead_booker_name
+      const title = r.team_name
+        ? `Team: ${r.team_name}`
+        : studentName
+        ? `${studentName} (#${r.ticket_code})`
+        : `Pass Registered #${r.ticket_code}`
+
       list.push({
         id: `act_reg_${r.id}`,
         type: 'registration',
-        title: r.team_name ? `Team Registered: ${r.team_name}` : `Pass Registered #${r.ticket_code}`,
+        title,
         subtitle: evt?.title || 'Campus Event',
         timestamp: r.created_at,
         status: r.status,
@@ -550,8 +567,19 @@ export default function ClubDashboardPage() {
   const renderManagedEventCard = (evt: EventRecord) => {
     const evtRegs = allRegistrations.filter((r) => r.event_id === evt.id)
     const evtConfirmed = evtRegs.filter((r) => r.status === 'confirmed').length
+    const evtSeats = evtRegs.reduce((sum, r) => {
+      if (r.status === 'cancelled' || r.status === 'rejected') return sum
+      const details = (r as any).participant_details
+      const seatCount =
+        details?.seat_details?.total_seats ||
+        details?.seat_allocations?.length ||
+        (Array.isArray((r as any).team_members) && (r as any).team_members.length > 0
+          ? (r as any).team_members.length
+          : 1)
+      return sum + Math.max(1, Number(seatCount) || 1)
+    }, 0)
     const capacity = evt.capacity || 100
-    const fillPct = Math.min(100, Math.round((evtConfirmed / capacity) * 100))
+    const fillPct = Math.min(100, Math.round((evtSeats / capacity) * 100))
     const phase = getEventLifecyclePhase(evt)
     const badgeMeta = LIFECYCLE_BADGE_META[phase]
     const isArchive = phase === 'completed' || phase === 'cancelled'
@@ -598,7 +626,7 @@ export default function ClubDashboardPage() {
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-400">Confirmed Passes:</span>
             <span className="font-mono text-white">
-              <strong>{evtConfirmed}</strong> / {capacity} seats ({fillPct}% cap)
+              <strong>{evtConfirmed}</strong> pass{evtConfirmed === 1 ? '' : 'es'} ({evtSeats} seats • {fillPct}%)
             </span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
@@ -1123,7 +1151,7 @@ export default function ClubDashboardPage() {
             {
               label: 'Capacity Fill Rate',
               value: loading ? '…' : `${capacityUtilization}%`,
-              subtitle: `${totalRegistrationsCount} of ${totalCapacity} total seats`,
+              subtitle: `${totalSeatsOccupied} of ${totalCapacity} total seats`,
               icon: BarChart3,
               color: 'text-sky-400',
               badgeStyle: 'bg-sky-500/10 border-sky-500/20 text-sky-400',

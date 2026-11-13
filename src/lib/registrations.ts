@@ -1342,3 +1342,124 @@ export async function toggleParticipantAttendance(
     }
   }
 }
+
+/**
+ * Robustly queries all registrations across a club's managed events.
+ * Provides multi-tier fallback protection so missing optional columns or
+ * relationship errors never crash the organizer dashboard.
+ */
+export async function getClubRegistrations(
+  clubId: string,
+  eventIds?: string[]
+): Promise<{ registrations: RegistrationRecord[]; error: string | null }> {
+  if (!clubId) {
+    return { registrations: [], error: null }
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      let targetEventIds = eventIds || []
+      if (targetEventIds.length === 0) {
+        // Query events owned by this club
+        const { data: evts } = await (supabase.from('events') as any)
+          .select('id')
+          .eq('club_id', clubId)
+        targetEventIds = ((evts as any[]) || []).map((e: any) => e.id)
+      }
+
+      if (targetEventIds.length === 0) {
+        return { registrations: [], error: null }
+      }
+
+      // Tier 1: Comprehensive query with student profile join & seat/cancellation info
+      const primaryRes = await supabase
+        .from('registrations')
+        .select(`
+          id,
+          event_id,
+          student_id,
+          ticket_code,
+          status,
+          team_name,
+          team_id,
+          team_members,
+          participant_details,
+          unit_price,
+          seat_reservation_id,
+          cancellation_request_status,
+          created_at,
+          updated_at,
+          student:profiles!registrations_student_id_fkey (
+            display_name,
+            email,
+            avatar_url
+          )
+        `)
+        .in('event_id', targetEventIds)
+        .order('created_at', { ascending: false })
+
+      if (!primaryRes.error && primaryRes.data) {
+        return { registrations: primaryRes.data as unknown as RegistrationRecord[], error: null }
+      }
+
+      // Tier 2: Resilient query without foreign key alias or optional columns
+      const fallbackRes = await supabase
+        .from('registrations')
+        .select(`
+          id,
+          event_id,
+          student_id,
+          ticket_code,
+          status,
+          team_name,
+          team_id,
+          team_members,
+          participant_details,
+          unit_price,
+          seat_reservation_id,
+          created_at,
+          updated_at
+        `)
+        .in('event_id', targetEventIds)
+        .order('created_at', { ascending: false })
+
+      if (!fallbackRes.error && fallbackRes.data) {
+        return { registrations: fallbackRes.data as unknown as RegistrationRecord[], error: null }
+      }
+
+      // Tier 3: Core minimal query (guaranteed columns)
+      const minimalRes = await supabase
+        .from('registrations')
+        .select('id, event_id, student_id, ticket_code, status, created_at')
+        .in('event_id', targetEventIds)
+        .order('created_at', { ascending: false })
+
+      if (!minimalRes.error && minimalRes.data) {
+        return { registrations: minimalRes.data as unknown as RegistrationRecord[], error: null }
+      }
+
+      return {
+        registrations: [],
+        error: primaryRes.error?.message || fallbackRes.error?.message || minimalRes.error?.message || 'Failed to fetch registrations',
+      }
+    } catch (err) {
+      console.warn('[FestFlow] getClubRegistrations note:', err)
+      return { registrations: [], error: err instanceof Error ? err.message : 'Query failed' }
+    }
+  } else {
+    // Local simulation fallback
+    try {
+      const raw = localStorage.getItem('festflow_local_registrations')
+      if (raw) {
+        const parsed = JSON.parse(raw) as RegistrationRecord[]
+        const filtered = eventIds?.length
+          ? parsed.filter((r) => eventIds.includes(r.event_id))
+          : parsed
+        return { registrations: filtered, error: null }
+      }
+    } catch {
+      // ignore
+    }
+    return { registrations: [], error: null }
+  }
+}

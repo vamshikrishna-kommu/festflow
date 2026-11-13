@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router'
 import { motion } from 'motion/react'
 import {
@@ -36,7 +36,7 @@ import {
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter } from '@/components/ui'
-import { getEventBySlug, CATEGORY_POSTERS, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
+import { getEventBySlug, CATEGORY_POSTERS, mapRecordToUiEvent, isEventCompleted, resolvePosterUrl } from '@/lib/events'
 import { getOptimizedImageUrl, getImageSrcSet } from '@/lib/imageOptimization'
 import { checkStudentRegistrationForEvent, registerForEvent } from '@/lib/registrations'
 import { RequestCancellationModal } from '@/components/registration/RequestCancellationModal'
@@ -460,12 +460,20 @@ export default function EventDetailPage() {
   )
 
   const clubName = event.club?.club_profile?.club_name || event.club?.display_name || 'Campus Club'
-  const posterSource =
-    !bannerImgError && (event as any).cover_url
-      ? (event as any).cover_url
-      : !bannerImgError && event.poster_url
-      ? event.poster_url
-      : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
+  const posterSource = useMemo(() => {
+    if (bannerImgError) {
+      return CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
+    }
+    const rawCover = (event as any).cover_url
+    if (rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim()) {
+      return resolvePosterUrl(rawCover, event.category)
+    }
+    const rawPoster = event.poster_url
+    if (rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim()) {
+      return resolvePosterUrl(rawPoster, event.category)
+    }
+    return CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
+  }, [bannerImgError, (event as any).cover_url, event.poster_url, event.category])
 
   // Capacity Calculations & Urgency
   const totalCapacity = event.capacity || 100
@@ -630,8 +638,9 @@ export default function EventDetailPage() {
         )}
 
         {/* ── Editorial Cinematic Hero Poster Banner ───────────────────────── */}
-        <div className="relative w-full h-64 sm:h-84 md:h-[430px] rounded-3xl overflow-hidden border border-white/[0.08] mb-6 sm:mb-8 shadow-2xl group">
+        <div className="relative w-full h-64 sm:h-84 md:h-[430px] rounded-3xl overflow-hidden border border-white/[0.08] mb-6 sm:mb-8 shadow-2xl group bg-gradient-to-br from-zinc-900 via-[#121218] to-black">
           <img
+            key={posterSource}
             src={getOptimizedImageUrl(posterSource, 1080)}
             srcSet={getImageSrcSet(posterSource)}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1080px"
@@ -639,10 +648,14 @@ export default function EventDetailPage() {
             loading="eager"
             fetchPriority="high"
             decoding="async"
-            onError={() => setBannerImgError(true)}
+            onError={() => {
+              if (!bannerImgError) {
+                setBannerImgError(true)
+              }
+            }}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none" />
 
           {/* Badges Overlay */}
           <div className="absolute top-3 left-3 sm:top-5 sm:left-5 flex flex-wrap gap-1.5 sm:gap-2 max-w-[calc(100%-1.5rem)]">
@@ -1033,12 +1046,7 @@ export default function EventDetailPage() {
                       <div>
                         <div className="w-full h-24 rounded-xl overflow-hidden mb-2 bg-[#14141A]">
                           <img
-                            src={
-                              rel.cover_url ||
-                              rel.poster_url ||
-                              (CATEGORY_POSTERS as Record<string, string>)[rel.category] ||
-                              CATEGORY_POSTERS.tech
-                            }
+                            src={resolvePosterUrl(rel.poster_url || rel.cover_url, rel.category as any)}
                             alt={rel.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
