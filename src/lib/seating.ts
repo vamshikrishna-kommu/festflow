@@ -31,16 +31,30 @@ const dbRpc = (rpcName: string, args: Record<string, any>) => (supabase.rpc as a
 export async function fetchSeatLayout(eventId: string): Promise<SeatLayoutFull | null> {
   if (!isSupabaseConfigured) return null
 
-  const { data: layout, error: layoutError } = await dbTable('seat_layouts')
+  let { data: layout, error: layoutError } = await dbTable('seat_layouts')
     .select('*')
     .eq('event_id', eventId)
     .eq('is_published', true)
     .maybeSingle()
 
-  if (layoutError || !layout) {
-    if (layoutError) console.warn('[seating] fetchSeatLayout error:', layoutError.message)
+  if (!layout) {
+    // Resilient fallback: If layout is not explicitly flagged is_published, check any layout for this event
+    const fallback = await dbTable('seat_layouts')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (fallback.data) {
+      layout = fallback.data
+    }
+  }
+
+  if (layoutError && !layout) {
+    console.warn('[seating] fetchSeatLayout notice:', layoutError.message)
     return null
   }
+  if (!layout) return null
 
   const [{ data: categories }, { data: seats }] = await Promise.all([
     dbTable('seat_categories')
@@ -111,9 +125,28 @@ export async function fetchSeatAvailability(eventId: string): Promise<SeatAvaila
 
   const { data, error } = await dbRpc('get_seat_availability', { p_event_id: eventId })
 
-  if (error) {
-    console.warn('[seating] fetchSeatAvailability error:', error.message)
-    return {}
+  if (error || !Array.isArray(data) || data.length === 0) {
+    if (error) console.warn('[seating] fetchSeatAvailability RPC fallback:', error.message)
+    try {
+      const nowIso = new Date().toISOString()
+      const { data: resData } = await dbTable('seat_reservations')
+        .select('seat_id, status, held_until, student_id')
+        .eq('event_id', eventId)
+        .in('status', ['held', 'payment_submitted', 'payment_under_review', 'confirmed'])
+
+      const map: SeatAvailabilityMap = {}
+      for (const row of resData || []) {
+        if (row.status === 'held' && row.held_until && row.held_until <= nowIso) continue
+        map[row.seat_id] = {
+          status: row.status,
+          held_until: row.held_until ?? null,
+          is_mine: false,
+        }
+      }
+      return map
+    } catch {
+      return {}
+    }
   }
 
   const map: SeatAvailabilityMap = {}
@@ -126,6 +159,70 @@ export async function fetchSeatAvailability(eventId: string): Promise<SeatAvaila
     }
   }
   return map
+}
+
+/**
+ * Accurately compute real-time seat counts and remaining availability for students & event details
+ */
+export async function fetchEventSeatCounts(
+  eventId: string,
+  mode?: string,
+  defaultCapacity: number = 100
+): Promise<{ total: number; occupied: number; remaining: number }> {
+  if (!isSupabaseConfigured) {
+    return { total: defaultCapacity, occupied: 0, remaining: defaultCapacity }
+  }
+
+  try {
+    if (mode === 'reserved_seating') {
+      // 1. Get layout capacity
+      const layoutRes = await dbTable('seat_layouts')
+        .select('total_capacity, id')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      let total = layoutRes.data?.total_capacity || defaultCapacity
+      if ((!total || total === 100) && layoutRes.data?.id) {
+        const { count } = await dbTable('seats')
+          .select('id', { count: 'exact', head: true })
+          .eq('layout_id', layoutRes.data.id)
+          .eq('is_blocked', false)
+          .eq('is_aisle_gap', false)
+        if (count && count > 0) total = count
+      }
+
+      // 2. Count occupied/held seats
+      const nowIso = new Date().toISOString()
+      const { data: reservations } = await dbTable('seat_reservations')
+        .select('id, status, held_until')
+        .eq('event_id', eventId)
+        .in('status', ['held', 'payment_submitted', 'payment_under_review', 'confirmed'])
+
+      const activeReservations = (reservations || []).filter((r: any) => {
+        if (r.status === 'held' && r.held_until && r.held_until <= nowIso) return false
+        return true
+      })
+
+      const occupied = activeReservations.length
+      const remaining = Math.max(0, total - occupied)
+      return { total, occupied, remaining }
+    } else {
+      // Standard registration count
+      const { count } = await (supabase.from('registrations') as any)
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .in('status', ['confirmed', 'pending_approval', 'pending_payment'])
+
+      const occupied = count || 0
+      const remaining = Math.max(0, defaultCapacity - occupied)
+      return { total: defaultCapacity, occupied, remaining }
+    }
+  } catch (err) {
+    console.warn('[seating] fetchEventSeatCounts error:', err)
+    return { total: defaultCapacity, occupied: 0, remaining: defaultCapacity }
+  }
 }
 
 // ── Reservations ──────────────────────────────────────────────────────────────

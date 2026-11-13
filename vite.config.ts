@@ -21,18 +21,15 @@ export default defineConfig({
           if (id.includes('node_modules/exceljs')) {
             return 'vendor-excel'
           }
-          if (
-            id.includes('node_modules/motion')
-          ) {
-            return 'vendor-animations'
-          }
           if (id.includes('node_modules/@supabase')) {
             return 'vendor-supabase'
           }
           if (
             id.includes('node_modules/react') ||
             id.includes('node_modules/react-dom') ||
-            id.includes('node_modules/react-router')
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/scheduler') ||
+            id.includes('node_modules/motion')
           ) {
             return 'vendor-react'
           }

@@ -976,3 +976,105 @@ BEGIN
 END;
 $$;
 
+-- ── 8. Resilient Seat Booking & Live Availability ─────────────────────────────
+
+-- Auto-publish layouts for published events so students always see seats
+UPDATE public.seat_layouts sl
+SET is_published = true
+WHERE EXISTS (
+  SELECT 1 FROM public.events e
+  WHERE e.id = sl.event_id AND e.status = 'published'
+) AND (sl.is_published IS NULL OR sl.is_published = false);
+
+-- Resilient get_seat_availability RPC
+CREATE OR REPLACE FUNCTION public.get_seat_availability(
+  p_event_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_result JSONB;
+BEGIN
+  -- Reclaim stale holds first
+  PERFORM public.reclaim_expired_seat_holds(p_event_id);
+
+  SELECT jsonb_agg(
+    jsonb_build_object(
+      'seat_id',         s.id,
+      'display_label',   s.display_label,
+      'row_identifier',  s.row_identifier,
+      'column_position', s.column_position,
+      'section',         s.section,
+      'is_blocked',      s.is_blocked,
+      'is_accessible',   s.is_accessible,
+      'is_aisle_gap',    s.is_aisle_gap,
+      'category_id',     s.category_id,
+      'status',
+        CASE
+          WHEN s.is_aisle_gap THEN 'aisle_gap'
+          WHEN s.is_blocked   THEN 'blocked'
+          WHEN sr.id IS NOT NULL THEN sr.status
+          ELSE 'available'
+        END,
+      'held_until', sr.held_until,
+      'is_mine',    (sr.student_id = auth.uid())
+    )
+  )
+  INTO v_result
+  FROM        public.seats s
+  JOIN        public.seat_layouts sl
+                ON  sl.id         = s.layout_id
+                AND sl.event_id   = p_event_id
+                AND (sl.is_published = true OR EXISTS (SELECT 1 FROM public.events e WHERE e.id = p_event_id AND e.status = 'published'))
+  LEFT JOIN   public.seat_reservations sr
+                ON  sr.seat_id  = s.id
+                AND sr.event_id = p_event_id
+                AND sr.status IN ('held', 'payment_submitted', 'payment_under_review', 'confirmed');
+
+  RETURN COALESCE(v_result, '[]'::JSONB);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_seat_availability(UUID) TO anon, authenticated, service_role;
+
+-- Allow club organizers to view seat reservations for their events
+DROP POLICY IF EXISTS "Students can view own seat reservations" ON public.seat_reservations;
+DROP POLICY IF EXISTS "Clubs and students can view seat reservations" ON public.seat_reservations;
+CREATE POLICY "Clubs and students can view seat reservations"
+  ON public.seat_reservations FOR SELECT
+  TO authenticated
+  USING (
+    student_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.events e
+      WHERE e.id = seat_reservations.event_id
+        AND (
+          e.club_id = auth.uid()
+          OR EXISTS (
+            SELECT 1 FROM public.club_profiles cp
+            WHERE cp.profile_id = e.club_id
+              AND cp.profile_id = auth.uid()
+          )
+          OR public.has_event_permission(auth.uid(), e.club_id, e.id, 'registrations.view')
+          OR public.check_is_platform_admin(auth.uid())
+        )
+    )
+  );
+
+-- Enable Realtime for seat_reservations
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'seat_reservations'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.seat_reservations;
+  END IF;
+END;
+$$;
+

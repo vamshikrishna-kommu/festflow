@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router'
-import { motion } from 'motion/react'
 import {
   Calendar,
   Clock,
@@ -39,10 +38,11 @@ import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter } from '@/c
 import { getEventBySlug, CATEGORY_POSTERS, mapRecordToUiEvent, isEventCompleted, resolvePosterUrl } from '@/lib/events'
 import { getOptimizedImageUrl, getImageSrcSet } from '@/lib/imageOptimization'
 import { checkStudentRegistrationForEvent, registerForEvent } from '@/lib/registrations'
+import { fetchEventSeatCounts } from '@/lib/seating'
 import { RequestCancellationModal } from '@/components/registration/RequestCancellationModal'
 import { subscribeToStatusChanges } from '@/lib/sync'
 import { useAuth } from '@/context/AuthContext'
-import { fadeIn } from '@/lib/animations'
+import { supabase } from '@/lib/supabase'
 import { EventRegistrationModal } from '@/components/events/EventRegistrationModal'
 import { JoinTeamModal } from '@/components/team/JoinTeamModal'
 import { EventShareModal } from '@/components/events/EventShareModal'
@@ -139,6 +139,13 @@ export default function EventDetailPage() {
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false)
   const [waitlistMessage, setWaitlistMessage] = useState<string | null>(null)
 
+  // Real-time seat counts & availability state
+  const [liveSeats, setLiveSeats] = useState<{ total: number; occupied: number; remaining: number } | null>(null)
+
+  const refreshSeatCounts = (eventId: string, mode?: string, cap: number = 100) => {
+    fetchEventSeatCounts(eventId, mode, cap).then(setLiveSeats)
+  }
+
   // Listen for ?join=1 or ?code=XYZ in URL to auto-open Join Team modal
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -183,6 +190,7 @@ export default function EventDetailPage() {
       } else {
         setEvent(res.event)
         loadPhase6Data(res.event.id, res.event.category)
+        refreshSeatCounts(res.event.id, res.event.registration_mode, res.event.capacity)
       }
     })
 
@@ -190,6 +198,30 @@ export default function EventDetailPage() {
       mounted = false
     }
   }, [slug])
+
+  // Real-time listener for seat reservations and registrations
+  useEffect(() => {
+    if (!event?.id) return
+    refreshSeatCounts(event.id, event.registration_mode, event.capacity)
+
+    const channel = supabase
+      .channel(`event-seats-live-${event.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'seat_reservations', filter: `event_id=eq.${event.id}` },
+        () => refreshSeatCounts(event.id, event.registration_mode, event.capacity)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'registrations', filter: `event_id=eq.${event.id}` },
+        () => refreshSeatCounts(event.id, event.registration_mode, event.capacity)
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [event?.id, event?.registration_mode, event?.capacity])
 
   // Check if current logged-in student has already registered
   const refreshRegistration = (silent = false) => {
@@ -477,11 +509,11 @@ export default function EventDetailPage() {
       ? resolvePosterUrl(rawCover, event.category)
       : CATEGORY_POSTERS[event.category] || CATEGORY_POSTERS.tech
 
-  // Capacity Calculations & Urgency
-  const totalCapacity = event.capacity || 100
-  const occupiedCount = (event as any).registered_count || (ticketTiers.reduce((acc, t) => acc + (t.sold_count || 0), 0) || 0)
-  const remainingSeats = Math.max(0, totalCapacity - occupiedCount)
-  const capacityPercent = Math.min(100, Math.round((occupiedCount / totalCapacity) * 100))
+  // Capacity Calculations & Urgency (Backed by real database seat reservations & holds)
+  const totalCapacity = liveSeats?.total && liveSeats.total > 0 ? liveSeats.total : (event.capacity || 100)
+  const occupiedCount = liveSeats ? liveSeats.occupied : ((event as any).registered_count || (ticketTiers.reduce((acc, t) => acc + (t.sold_count || 0), 0) || 0))
+  const remainingSeats = liveSeats ? liveSeats.remaining : Math.max(0, totalCapacity - occupiedCount)
+  const capacityPercent = totalCapacity > 0 ? Math.min(100, Math.round((occupiedCount / totalCapacity) * 100)) : 0
 
   // Pinned Announcement
   const pinnedAnnouncement = announcements.find((a) => a.is_pinned)
@@ -552,11 +584,8 @@ export default function EventDetailPage() {
 
         {/* ── Pinned Live Announcement Alert Banner (if exists) ────────────── */}
         {pinnedAnnouncement && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-[#18CFFC]/20 via-[#0E0E12] to-[#7F1AFB]/20 border border-[#18CFFC]/50 text-white flex items-start gap-3 text-xs sm:text-sm shadow-lg shadow-[#18CFFC]/10"
+          <div
+            className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-[#18CFFC]/20 via-[#0E0E12] to-[#7F1AFB]/20 border border-[#18CFFC]/50 text-white flex items-start gap-3 text-xs sm:text-sm shadow-lg shadow-[#18CFFC]/10 animate-in fade-in duration-300"
           >
             <Sparkles size={20} className="text-[#18CFFC] shrink-0 mt-0.5 animate-pulse" />
             <div>
@@ -567,61 +596,49 @@ export default function EventDetailPage() {
                 {pinnedAnnouncement.content}
               </p>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* ── Status Notice Banners ────────────────────────────────────────── */}
         {isCancelled && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className="mb-6 p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-3 text-sm"
+          <div
+            className="mb-6 p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-3 text-sm animate-in fade-in duration-300"
           >
             <AlertTriangle size={20} className="shrink-0" />
             <div>
               <strong className="block font-semibold">Event Cancelled</strong>
               This event has been marked as cancelled by the organizer. Registrations are closed.
             </div>
-          </motion.div>
+          </div>
         )}
 
         {isRegClosedStatus && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center gap-3 text-sm"
+          <div
+            className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center gap-3 text-sm animate-in fade-in duration-300"
           >
             <AlertTriangle size={20} className="shrink-0" />
             <div>
               <strong className="block font-semibold">Registration Closed</strong>
               The organizer has closed registrations for this event. No new passes can be claimed.
             </div>
-          </motion.div>
+          </div>
         )}
 
         {isCompleted && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className="mb-6 p-4 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-300 flex items-center gap-3 text-sm"
+          <div
+            className="mb-6 p-4 rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-300 flex items-center gap-3 text-sm animate-in fade-in duration-300"
           >
             <CheckCircle2 size={20} className="shrink-0" />
             <div>
               <strong className="block font-semibold">Event Concluded</strong>
               This event has successfully concluded. Thank you to all attendees.
             </div>
-          </motion.div>
+          </div>
         )}
 
         {isDraft && (
-          <motion.div
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center justify-between gap-3 text-sm"
+          <div
+            className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center justify-between gap-3 text-sm animate-in fade-in duration-300"
           >
             <div className="flex items-center gap-2">
               <Info size={18} className="shrink-0" />
@@ -636,39 +653,44 @@ export default function EventDetailPage() {
                 </Button>
               </Link>
             )}
-          </motion.div>
+          </div>
         )}
 
         {/* ── Editorial Cinematic Hero Poster Banner ───────────────────────── */}
         <div className="relative w-full h-64 sm:h-84 md:h-[430px] rounded-3xl overflow-hidden border border-white/[0.08] mb-6 sm:mb-8 shadow-2xl group bg-gradient-to-br from-indigo-950/40 via-zinc-900 to-black">
           {/* Ambient backdrop glow so banner is never a pitch-black void */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 via-transparent to-purple-600/10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/15 via-transparent to-purple-600/15 pointer-events-none" />
 
-          {posterSource ? (
+          {posterSource && !bannerImgError ? (
             <img
               key={posterSource}
-              src={posterSource.startsWith('data:') ? posterSource : getOptimizedImageUrl(posterSource, 1080)}
-              srcSet={posterSource.startsWith('data:') ? undefined : getImageSrcSet(posterSource)}
+              src={posterSource.startsWith('data:') || posterSource.startsWith('blob:') ? posterSource : getOptimizedImageUrl(posterSource, 1080)}
+              srcSet={posterSource.startsWith('data:') || posterSource.startsWith('blob:') ? undefined : getImageSrcSet(posterSource)}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1080px"
               alt={event.title}
               loading="eager"
               fetchPriority="high"
               decoding="async"
               onError={() => {
-                if (!bannerImgError && !posterSource.startsWith('data:')) {
+                if (!bannerImgError && !posterSource.startsWith('data:') && !posterSource.startsWith('blob:')) {
                   setBannerImgError(true)
                 }
               }}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#121218] via-zinc-900 to-black p-6">
-              <div className="w-16 h-16 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-cyan-400 mb-3 shadow-inner">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#121218] via-zinc-900 to-black p-6 relative overflow-hidden">
+              <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-purple-600/20 blur-3xl pointer-events-none" />
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.08] border border-white/15 flex items-center justify-center text-cyan-400 mb-3 shadow-lg relative z-10">
                 <Sparkles size={32} />
               </div>
-              <span className="text-sm font-semibold text-zinc-400 tracking-wider uppercase font-mono">
+              <span className="text-sm font-bold text-white tracking-widest uppercase font-mono relative z-10">
                 {event.category} Experience
               </span>
+              <p className="text-xs text-zinc-400 mt-1 max-w-sm text-center relative z-10">
+                {event.title}
+              </p>
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none" />

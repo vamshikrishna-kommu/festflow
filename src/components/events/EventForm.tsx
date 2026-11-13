@@ -237,9 +237,17 @@ export function EventForm({
     const file = e.target.files?.[0]
     if (!file) return
 
-    setUploadingPoster(true)
-    setPosterError(null)
+    // 0. Instantly preview the chosen image using a local object URL (0ms latency, zero delay)
+    try {
+      const instantBlobUrl = URL.createObjectURL(file)
+      setPosterUrl(instantBlobUrl)
+    } catch {
+      // ignore
+    }
+    setCoverUrl('')
     setPreviewImgError(false)
+    setPosterError(null)
+    setUploadingPoster(true)
 
     try {
       // 1. Immediately compress the selected file to a compact, ultra-crisp WebP Data URL (~40-60KB)
@@ -363,10 +371,15 @@ export function EventForm({
     const regStartIso = registrationStart ? zonedDatetimeInputToIso(registrationStart, timezone) : null
     const regCloseIso = registrationClose ? zonedDatetimeInputToIso(registrationClose, timezone) : null
     const finalSlug = initialData?.slug || generateSlug(title)
-    const finalPoster =
-      posterUrl.trim() && !posterUrl.startsWith('blob:')
-        ? posterUrl.trim()
-        : getDefaultPoster(category)
+    let finalPoster = posterUrl.trim()
+    if (finalPoster.startsWith('blob:')) {
+      const cached =
+        (typeof window !== 'undefined' && initialData?.id && localStorage.getItem(`festflow_custom_poster_${initialData.id}`)) ||
+        (typeof window !== 'undefined' && finalSlug && localStorage.getItem(`festflow_custom_poster_${finalSlug}`))
+      finalPoster = cached || getDefaultPoster(category)
+    } else if (!finalPoster) {
+      finalPoster = getDefaultPoster(category)
+    }
 
     if (typeof window !== 'undefined' && finalPoster) {
       if (initialData?.id) {
@@ -548,11 +561,11 @@ export function EventForm({
               <>
                 <img
                   key={posterUrl}
-                  src={resolvePosterUrl(posterUrl, category)}
+                  src={posterUrl.startsWith('blob:') || posterUrl.startsWith('data:') ? posterUrl : resolvePosterUrl(posterUrl, category)}
                   alt="Banner Preview"
                   className="w-full h-full object-cover"
                   onError={() => {
-                    if (!posterUrl.startsWith('data:')) {
+                    if (!posterUrl.startsWith('data:') && !posterUrl.startsWith('blob:')) {
                       setPreviewImgError(true)
                     }
                   }}

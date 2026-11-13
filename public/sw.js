@@ -1,7 +1,7 @@
 // FestFlow Production Service Worker
-// Version: 1.0.2 (Cache-Busting & Clean Navigation)
+// Version: 1.0.3 (Resilient Fallback & Zero-Crash Response Guard)
 
-const CACHE_NAME = 'festflow-core-v4';
+const CACHE_NAME = 'festflow-core-v5';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [
@@ -91,12 +91,23 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return cache.match(request).then((cachedResponse) => {
-          const fetchPromise = fetch(request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              cache.put(request, networkResponse.clone());
-            }
-            return networkResponse;
-          }).catch(() => cachedResponse);
+          const fetchPromise = fetch(request)
+            .then((networkResponse) => {
+              if (networkResponse && networkResponse.status === 200) {
+                cache.put(request, networkResponse.clone());
+              }
+              return networkResponse;
+            })
+            .catch(() => {
+              if (cachedResponse) return cachedResponse;
+              if (request.destination === 'image') {
+                return new Response(
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+                  { headers: { 'Content-Type': 'image/svg+xml' } }
+                );
+              }
+              return new Response('', { status: 504, statusText: 'Gateway Timeout' });
+            });
 
           return cachedResponse || fetchPromise;
         });
@@ -118,7 +129,9 @@ self.addEventListener('fetch', (event) => {
           );
         }
         if (request.mode === 'navigate') {
-          return caches.match(OFFLINE_URL);
+          return caches.match(OFFLINE_URL).then((offlineRes) => {
+            return offlineRes || new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+          });
         }
         return new Response('Network unavailable', { status: 503, statusText: 'Service Unavailable' });
       });

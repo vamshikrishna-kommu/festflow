@@ -92,6 +92,7 @@ export default function ClubDashboardPage() {
   const [events, setEvents] = useState<EventRecord[]>([])
   const [submissions, setSubmissions] = useState<PaymentSubmissionWithDetails[]>([])
   const [allRegistrations, setAllRegistrations] = useState<RegistrationRecord[]>([])
+  const [seatReservations, setSeatReservations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filter States
@@ -156,9 +157,29 @@ export default function ClubDashboardPage() {
     const clubEventIds = loadedEvents.map((e) => e.id)
     if (clubEventIds.length === 0) {
       setAllRegistrations([])
+      setSeatReservations([])
     } else {
       const { registrations: clubRegs } = await getClubRegistrations(clubId, clubEventIds)
       setAllRegistrations(clubRegs || [])
+
+      // Also query active/confirmed seat reservations for cinema reserved seating events
+      if (isSupabaseConfigured) {
+        try {
+          const { data: seatData } = await (supabase.from('seat_reservations') as any)
+            .select('id, event_id, seat_id, status, held_until, registration_id')
+            .in('event_id', clubEventIds)
+            .in('status', ['held', 'payment_submitted', 'payment_under_review', 'confirmed'])
+
+          const nowIso = new Date().toISOString()
+          const activeSeats = (seatData || []).filter((s: any) => {
+            if (s.status === 'held' && s.held_until && s.held_until <= nowIso) return false
+            return true
+          })
+          setSeatReservations(activeSeats)
+        } catch {
+          setSeatReservations([])
+        }
+      }
     }
 
     setLoading(false)
@@ -178,6 +199,13 @@ export default function ClubDashboardPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'registrations' },
+        () => {
+          loadClubData()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'seat_reservations' },
         () => {
           loadClubData()
         }
@@ -332,13 +360,12 @@ export default function ClubDashboardPage() {
   )
 
   const totalCapacity = useMemo(() => filteredEvents.reduce((sum, e) => sum + (e.capacity || 0), 0), [filteredEvents])
-  const totalRegistrationsCount = filteredRegistrations.length
   const confirmedRegistrations = useMemo(() => filteredRegistrations.filter((r) => r.status === 'confirmed'), [filteredRegistrations])
   const confirmedCount = confirmedRegistrations.length
 
-  // Authoritative total seats occupied: accounts for multi-seat reserved seating & teams
+  // Authoritative total seats occupied: accounts for multi-seat reserved seating, holds, and teams
   const totalSeatsOccupied = useMemo(() => {
-    return filteredRegistrations.reduce((sum, r) => {
+    const regSeats = filteredRegistrations.reduce((sum, r) => {
       if (r.status === 'cancelled' || r.status === 'rejected') return sum
       const details = (r as any).participant_details
       const seatCount =
@@ -349,7 +376,26 @@ export default function ClubDashboardPage() {
           : 1)
       return sum + Math.max(1, Number(seatCount) || 1)
     }, 0)
-  }, [filteredRegistrations])
+
+    // Include active cinema seat reservations that might not have a confirmed registration record yet
+    const standaloneSeatReservations = seatReservations.filter((sr) => {
+      if (selectedEventFilter !== 'all' && sr.event_id !== selectedEventFilter) return false
+      if (sr.registration_id && filteredRegistrations.some((r) => r.id === sr.registration_id)) return false
+      return true
+    })
+
+    return regSeats + standaloneSeatReservations.length
+  }, [filteredRegistrations, seatReservations, selectedEventFilter])
+
+  const totalRegistrationsCount = useMemo(() => {
+    const regCount = filteredRegistrations.length
+    const standaloneCount = new Set(
+      seatReservations
+        .filter((sr) => (selectedEventFilter === 'all' || sr.event_id === selectedEventFilter) && (!sr.registration_id || !filteredRegistrations.some(r => r.id === sr.registration_id)))
+        .map(sr => sr.student_id || sr.id)
+    ).size
+    return regCount + standaloneCount
+  }, [filteredRegistrations, seatReservations, selectedEventFilter])
 
   const capacityUtilization = totalCapacity > 0 ? Math.min(100, Math.round((totalSeatsOccupied / totalCapacity) * 100)) : 0
 
