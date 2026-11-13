@@ -643,7 +643,7 @@ export default function EventDetailPage() {
             fetchPriority="high"
             decoding="async"
             onError={() => {
-              if (!bannerImgError) {
+              if (!bannerImgError && !posterSource.startsWith('data:')) {
                 setBannerImgError(true)
               }
             }}

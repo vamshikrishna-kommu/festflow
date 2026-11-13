@@ -1,11 +1,10 @@
 // FestFlow Production Service Worker
-// Version: 1.0.1 (Resilient Cross-Origin & Offline Support)
+// Version: 1.0.2 (Cache-Busting & Clean Navigation)
 
-const CACHE_NAME = 'festflow-core-v3';
+const CACHE_NAME = 'festflow-core-v4';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [
-  '/',
   '/offline.html',
   '/manifest.webmanifest',
   '/favicon.svg',

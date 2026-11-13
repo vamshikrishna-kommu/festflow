@@ -35,7 +35,6 @@ import {
 import { Button, Badge } from '@/components/ui'
 import { EVENT_CATEGORIES } from '@/lib/mock-data'
 import {
-  uploadEventPoster,
   getDefaultPoster,
   resolvePosterUrl,
   generateSlug,
@@ -238,50 +237,41 @@ export function EventForm({
     const file = e.target.files?.[0]
     if (!file) return
 
-    const effectiveUploadClubId = targetClubId || clubProfile?.profile_id || activeClubId || user?.id || ''
-    if (!effectiveUploadClubId) {
-      setPosterError('No active club workspace selected for poster upload.')
-      return
-    }
-
     setUploadingPoster(true)
     setPosterError(null)
     setPreviewImgError(false)
 
-    // 1. Immediately compress the selected file to a compact, high-quality WebP Data URL (~90KB)
-    let optimizedData = ''
     try {
-      optimizedData = await compressImageToDataUrl(file, {
+      // 1. Immediately compress the selected file to a compact, ultra-crisp WebP Data URL (~70-90KB)
+      const optimizedData = await compressImageToDataUrl(file, {
         maxWidth: 1600,
         maxHeight: 900,
         quality: 0.82,
         format: 'image/webp',
       })
-      if (optimizedData) {
-        setPosterUrl(optimizedData)
+
+      const finalDataUrl = optimizedData || (await readFileAsDataUrl(file))
+      if (finalDataUrl) {
+        setPosterUrl(finalDataUrl)
         setPreviewImgError(false)
       } else {
+        setPosterError('Could not process image file.')
+      }
+    } catch {
+      try {
         const rawData = await readFileAsDataUrl(file)
         if (rawData) {
           setPosterUrl(rawData)
           setPreviewImgError(false)
         }
+      } catch {
+        setPosterError('Failed to read image file from device.')
       }
-    } catch {
-      // fallback
-    }
-
-    // 2. Attempt Supabase Storage upload in parallel
-    const res = await uploadEventPoster(file, effectiveUploadClubId)
-    setUploadingPoster(false)
-
-    // Only adopt storage URL if valid and verified
-    if (res.url && !res.error && res.url.startsWith('http')) {
-      setPosterUrl(res.url)
-      setPreviewImgError(false)
-    } else if (res.url && !res.error) {
-      setPosterUrl(res.url)
-      setPreviewImgError(false)
+    } finally {
+      setUploadingPoster(false)
+      if (e.target) {
+        e.target.value = ''
+      }
     }
   }
 
@@ -556,7 +546,10 @@ export function EventForm({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  if (fileInputRef.current) fileInputRef.current.value = ''
+                  fileInputRef.current?.click()
+                }}
                 disabled={uploadingPoster}
                 leftIcon={<Upload size={14} />}
                 className="min-h-[44px]"
