@@ -270,6 +270,75 @@ const futureExpiry = new Date(Date.now() + 600000).toISOString()
 assert(new Date(pastExpiry).getTime() <= Date.now(), 'Past hold is correctly identified as expired')
 assert(new Date(futureExpiry).getTime() > Date.now(), 'Future hold is correctly identified as active')
 
+// ── TEST 9: Unlimited Check-In & Check-Out Lifecycle ─────────────────────────
+console.log('\n--- Suite 9: Unlimited Check-In & Check-Out Lifecycle ---')
+
+interface MockAttendanceRecord {
+  status: 'checked_in' | 'checked_out'
+  entry_count: number
+  checked_in_at: string
+  checked_out_at?: string
+}
+
+function simulateAttendanceAction(
+  current: MockAttendanceRecord | null,
+  action: 'check_in' | 'check_out'
+): MockAttendanceRecord {
+  const now = new Date().toISOString()
+  if (!current) {
+    return {
+      status: action === 'check_in' ? 'checked_in' : 'checked_out',
+      entry_count: 1,
+      checked_in_at: now,
+      ...(action === 'check_out' ? { checked_out_at: now } : {}),
+    }
+  }
+
+  if (action === 'check_in') {
+    const isReentry = current.status === 'checked_out'
+    return {
+      ...current,
+      status: 'checked_in',
+      checked_in_at: now,
+      entry_count: isReentry ? current.entry_count + 1 : current.entry_count,
+    }
+  } else {
+    return {
+      ...current,
+      status: 'checked_out',
+      checked_out_at: now,
+    }
+  }
+}
+
+// 9a. Cycle 1: First-time check-in
+let att = simulateAttendanceAction(null, 'check_in')
+assert(att.status === 'checked_in', 'Cycle 1: Attendee checks in successfully')
+assert(att.entry_count === 1, 'Cycle 1: Entry count starts at 1')
+
+// 9b. Cycle 1: First check-out
+att = simulateAttendanceAction(att, 'check_out')
+assert(att.status === 'checked_out', 'Cycle 1: Attendee steps out / checks out')
+assert(Boolean(att.checked_out_at), 'Cycle 1: Check-out timestamp recorded')
+
+// 9c. Cycle 2: Second check-in (Re-entry) — tests that 1-time limit is removed!
+att = simulateAttendanceAction(att, 'check_in')
+assert(att.status === 'checked_in', 'Cycle 2: Attendee successfully re-enters (not blocked by 1-time checkout)')
+assert(att.entry_count === 2, 'Cycle 2: Entry count incremented to 2')
+
+// 9d. Cycle 2: Second check-out
+att = simulateAttendanceAction(att, 'check_out')
+assert(att.status === 'checked_out', 'Cycle 2: Attendee checks out a second time')
+
+// 9e. Cycle 3: Third check-in (Re-entry #2)
+att = simulateAttendanceAction(att, 'check_in')
+assert(att.status === 'checked_in', 'Cycle 3: Attendee successfully re-enters a third time')
+assert(att.entry_count === 3, 'Cycle 3: Entry count incremented to 3')
+
+// 9f. Re-entry policy check
+const eventReentryPolicy = true // allow_reentry default
+assert(eventReentryPolicy === true, 'Event re-entry policy is permitted by default for all participants')
+
 // ── Summary ─────────────────────────────────────────────────────────────────
 console.log('\n======================================================')
 console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`)

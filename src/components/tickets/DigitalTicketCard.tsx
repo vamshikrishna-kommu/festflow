@@ -19,13 +19,17 @@ import {
   AlertCircle,
   X,
   Ticket,
+  LogOut,
+  LogIn,
+  Loader2,
 } from 'lucide-react'
 import { Badge, Button, Logo } from '@/components/ui'
 import { QRCodeSVG } from 'qrcode.react'
 import { resendPassEmail } from '@/lib/emails'
 import { writeCachedTicket, TICKET_CACHE_PREFIX } from '@/lib/ticketCache'
 import { ticketReveal, statusBadgePop } from '@/lib/animations'
-import type { RegistrationWithEvent } from '@/types'
+import { toggleParticipantAttendance } from '@/lib/registrations'
+import type { RegistrationWithEvent, AttendanceStatus } from '@/types'
 
 interface DigitalTicketCardProps {
   registration: RegistrationWithEvent
@@ -54,6 +58,47 @@ export function DigitalTicketCard({
   const [resending, setResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendNotice, setResendNotice] = useState<{ message: string; isError?: boolean } | null>(null)
+
+  // Live Participant Attendance State (Unlimited Check-In & Check-Out)
+  const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus>(
+    (registration as any)?.attendance_status || 'not_checked_in'
+  )
+  const [entryCount, setEntryCount] = useState<number>(
+    (registration as any)?.check_in?.entry_count ||
+      (registration as any)?.check_ins?.[0]?.entry_count ||
+      1
+  )
+  const [isTogglingAttendance, setIsTogglingAttendance] = useState(false)
+  const [attendanceNotice, setAttendanceNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    if ((registration as any)?.attendance_status) {
+      setAttendanceStatus((registration as any).attendance_status)
+    }
+  }, [registration])
+
+  const handleToggleAttendance = async (action: 'check_in' | 'check_out') => {
+    setIsTogglingAttendance(true)
+    setAttendanceNotice(null)
+    try {
+      const res = await toggleParticipantAttendance(registration.id, action)
+      if (res.success && res.attendance_status) {
+        setAttendanceStatus(res.attendance_status)
+        if (res.entry_count) setEntryCount(res.entry_count)
+        setAttendanceNotice(
+          action === 'check_in'
+            ? `Checked in (Entry #${res.entry_count || entryCount})! Welcome inside.`
+            : 'Checked out. You can re-enter at any time!'
+        )
+      } else {
+        setAttendanceNotice(res.message || 'Unable to update attendance status.')
+      }
+    } catch {
+      setAttendanceNotice('Network error updating attendance.')
+    } finally {
+      setIsTogglingAttendance(false)
+    }
+  }
 
   const ticketCardRef = useRef<HTMLDivElement>(null)
   const event = registration.event || null
@@ -342,9 +387,16 @@ export function DigitalTicketCard({
 
             {/* Status Badge */}
             <motion.div variants={statusBadgePop} initial="initial" animate="animate">
-              {(registration as any)?.attendance_status === 'checked_in' ||
-              (registration as any)?.attendance_status === 'checked_out' ? (
-                <Badge variant="success">Attendance Recorded</Badge>
+              {attendanceStatus === 'checked_in' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Inside Venue · Entry #{entryCount}
+                </span>
+              ) : attendanceStatus === 'checked_out' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  Stepped Out · Re-entry Open
+                </span>
               ) : isConfirmed ? (
                 <Badge variant="success">Confirmed Pass</Badge>
               ) : null}
@@ -514,6 +566,88 @@ export function DigitalTicketCard({
                     <Copy size={15} className="text-zinc-400" />
                   )}
                 </button>
+              </div>
+
+              {/* Live Venue Attendance & Re-Entry Module */}
+              <div className="w-full max-w-xs p-4 rounded-2xl bg-[#14141E] border border-white/10 flex flex-col items-center gap-3 text-center shadow-lg">
+                <div className="flex items-center justify-between w-full text-xs">
+                  <span className="text-zinc-400 font-medium">Venue Status:</span>
+                  {attendanceStatus === 'checked_in' ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Inside Venue · Entry #{entryCount}
+                    </span>
+                  ) : attendanceStatus === 'checked_out' ? (
+                    <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      Stepped Out
+                    </span>
+                  ) : (
+                    <span className="text-zinc-300 font-medium">Ready for Entry</span>
+                  )}
+                </div>
+
+                <div className="w-full">
+                  {attendanceStatus === 'checked_in' ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isTogglingAttendance}
+                      onClick={() => handleToggleAttendance('check_out')}
+                      className="w-full text-xs border-amber-500/30 hover:border-amber-500/60 text-amber-300 hover:bg-amber-500/10 min-h-[38px] cursor-pointer"
+                    >
+                      {isTogglingAttendance ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Step Out / Check Out
+                    </Button>
+                  ) : attendanceStatus === 'checked_out' ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      disabled={isTogglingAttendance}
+                      onClick={() => handleToggleAttendance('check_in')}
+                      className="w-full text-xs min-h-[38px] cursor-pointer"
+                    >
+                      {isTogglingAttendance ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Re-enter / Check In
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      disabled={isTogglingAttendance}
+                      onClick={() => handleToggleAttendance('check_in')}
+                      className="w-full text-xs min-h-[38px] cursor-pointer"
+                    >
+                      {isTogglingAttendance ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Check In to Venue
+                    </Button>
+                  )}
+                </div>
+
+                <p className="text-[10px] text-zinc-500 leading-tight">
+                  You can check out and re-enter at any time during the event. Re-entry is always permitted with zero limits.
+                </p>
+
+                {attendanceNotice && (
+                  <p className="text-[11px] text-[#18CFFC] font-medium leading-tight">
+                    {attendanceNotice}
+                  </p>
+                )}
               </div>
 
               <p className="text-[11px] text-zinc-500 max-w-xs leading-relaxed font-sans">

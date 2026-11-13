@@ -1246,3 +1246,99 @@ export async function getEventRegistrations(
     return { registrations: list, error: null }
   }
 }
+
+// ── Participant Self-Service Attendance (Unlimited Check-In & Check-Out) ─────
+export interface ToggleAttendanceResponse {
+  success: boolean
+  attendance_status?: 'checked_in' | 'checked_out' | 'not_checked_in'
+  entry_count?: number
+  message?: string
+  checked_in_at?: string
+  checked_out_at?: string
+}
+
+export async function toggleParticipantAttendance(
+  registrationId: string,
+  action: 'check_in' | 'check_out'
+): Promise<ToggleAttendanceResponse> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await (supabase.rpc as any)('participant_toggle_attendance', {
+        p_registration_id: registrationId,
+        p_action: action,
+      })
+
+      if (error) {
+        console.warn('[attendance] participant_toggle_attendance RPC error:', error.message)
+        return {
+          success: false,
+          message: error.message,
+        }
+      }
+
+      const res = data as any
+      return {
+        success: Boolean(res?.success),
+        attendance_status: res?.attendance_status || (action === 'check_in' ? 'checked_in' : 'checked_out'),
+        entry_count: res?.entry_count || 1,
+        message: res?.message,
+        checked_in_at: res?.checked_in_at,
+        checked_out_at: res?.checked_out_at,
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err?.message || 'Failed to update attendance status.',
+      }
+    }
+  }
+
+  // Simulation mode / local storage fallback
+  try {
+    const rawCheckins = localStorage.getItem('festflow_local_checkins')
+    const checkins = rawCheckins ? JSON.parse(rawCheckins) : []
+    const existingIndex = checkins.findIndex((c: any) => c.registration_id === registrationId)
+    const now = new Date().toISOString()
+
+    let newEntryCount = 1
+    if (existingIndex >= 0) {
+      const existing = checkins[existingIndex]
+      newEntryCount =
+        action === 'check_in' && existing.status === 'checked_out'
+          ? (existing.entry_count || 1) + 1
+          : existing.entry_count || 1
+
+      checkins[existingIndex] = {
+        ...existing,
+        status: action === 'check_in' ? 'checked_in' : 'checked_out',
+        ...(action === 'check_in' ? { checked_in_at: now } : { checked_out_at: now }),
+        entry_count: newEntryCount,
+      }
+    } else {
+      checkins.push({
+        id: `ci_${Date.now()}`,
+        registration_id: registrationId,
+        status: action === 'check_in' ? 'checked_in' : 'checked_out',
+        checked_in_at: now,
+        ...(action === 'check_out' ? { checked_out_at: now } : {}),
+        entry_count: 1,
+      })
+    }
+
+    localStorage.setItem('festflow_local_checkins', JSON.stringify(checkins))
+    return {
+      success: true,
+      attendance_status: action === 'check_in' ? 'checked_in' : 'checked_out',
+      entry_count: newEntryCount,
+      message:
+        action === 'check_in'
+          ? `Checked in (Entry #${newEntryCount})`
+          : 'Checked out. You can re-enter at any time.',
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || 'Local attendance update error',
+    }
+  }
+}
