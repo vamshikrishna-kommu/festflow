@@ -669,6 +669,17 @@ export async function updateEvent(
   updates: EventUpdate,
   clubId?: string
 ): Promise<{ event: EventRecord | null; error: string | null }> {
+  if (typeof window !== 'undefined' && updates.poster_url) {
+    try {
+      localStorage.setItem(`festflow_custom_poster_${id}`, updates.poster_url)
+      if (updates.slug) {
+        localStorage.setItem(`festflow_custom_poster_${updates.slug}`, updates.poster_url)
+      }
+    } catch {
+      // ignore quota
+    }
+  }
+
   if (isSupabaseConfigured) {
     try {
       const sanitizedUpdates: Record<string, unknown> = { ...updates }
@@ -790,6 +801,12 @@ export async function getEventById(
       }
 
       if (error) return { event: null, error: error.message }
+      if (data && typeof window !== 'undefined') {
+        const cached = localStorage.getItem(`festflow_custom_poster_${id}`)
+        if (cached) {
+          (data as any).poster_url = cached
+        }
+      }
       return { event: data as unknown as EventRecord | null, error: null }
     } catch (err) {
       return { event: null, error: err instanceof Error ? err.message : 'Failed to load event' }
@@ -857,8 +874,21 @@ export async function getEventBySlug(
         }
       }
 
+      const eventRecord = res.data as unknown as EventRecord
+      let resolvedPoster = eventRecord.poster_url
+
+      if (typeof window !== 'undefined') {
+        const cached =
+          localStorage.getItem(`festflow_custom_poster_${eventRecord.id}`) ||
+          localStorage.getItem(`festflow_custom_poster_${slug}`)
+        if (cached) {
+          resolvedPoster = cached
+        }
+      }
+
       const mapped: EventWithClub = {
-        ...(res.data as unknown as EventRecord),
+        ...eventRecord,
+        poster_url: resolvedPoster,
         club: clubObj
           ? {
               display_name: (clubObj.display_name as string) || 'Campus Club',

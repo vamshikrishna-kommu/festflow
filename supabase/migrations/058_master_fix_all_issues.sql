@@ -177,6 +177,38 @@ UPDATE public.events
 SET allow_reentry = true
 WHERE allow_reentry = false;
 
+-- ── 2.5. Resilient Events Update RLS Policy (Guarantees Owners Can Edit Events) ─
+DROP POLICY IF EXISTS "clubs can update own events" ON public.events;
+DROP POLICY IF EXISTS "Clubs can update their own events" ON public.events;
+
+CREATE POLICY "clubs can update own events"
+  ON public.events FOR UPDATE
+  TO authenticated
+  USING (
+    club_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.club_profiles cp
+      WHERE cp.profile_id = events.club_id
+        AND cp.profile_id = auth.uid()
+    )
+    OR public.has_event_permission(auth.uid(), club_id, id, 'events.edit')
+    OR public.has_event_permission(auth.uid(), club_id, id, 'events.publish')
+    OR public.has_event_permission(auth.uid(), club_id, id, 'events.cancel')
+    OR public.check_is_platform_admin(auth.uid())
+  )
+  WITH CHECK (
+    club_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.club_profiles cp
+      WHERE cp.profile_id = events.club_id
+        AND cp.profile_id = auth.uid()
+    )
+    OR public.has_event_permission(auth.uid(), club_id, id, 'events.edit')
+    OR public.has_event_permission(auth.uid(), club_id, id, 'events.publish')
+    OR public.has_event_permission(auth.uid(), club_id, id, 'events.cancel')
+    OR public.check_is_platform_admin(auth.uid())
+  );
+
 -- ── 3. Drop Ambiguous Overloads of register_for_event ──────────────────────────
 DROP FUNCTION IF EXISTS public.register_for_event(uuid, text, jsonb, jsonb, jsonb, uuid);
 
@@ -943,3 +975,4 @@ BEGIN
   END IF;
 END;
 $$;
+

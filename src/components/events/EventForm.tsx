@@ -256,6 +256,23 @@ export function EventForm({
         setCoverUrl('')
         setPreviewImgError(false)
         setPosterError(null)
+
+        if (typeof window !== 'undefined') {
+          if (initialData?.id) {
+            try {
+              localStorage.setItem(`festflow_custom_poster_${initialData.id}`, finalDataUrl)
+            } catch {
+              // ignore quota
+            }
+          }
+          if (initialData?.slug) {
+            try {
+              localStorage.setItem(`festflow_custom_poster_${initialData.slug}`, finalDataUrl)
+            } catch {
+              // ignore quota
+            }
+          }
+        }
       } else {
         setPosterError('Could not process image file.')
       }
@@ -267,6 +284,23 @@ export function EventForm({
           setCoverUrl('')
           setPreviewImgError(false)
           setPosterError(null)
+
+          if (typeof window !== 'undefined') {
+            if (initialData?.id) {
+              try {
+                localStorage.setItem(`festflow_custom_poster_${initialData.id}`, rawData)
+              } catch {
+                // ignore
+              }
+            }
+            if (initialData?.slug) {
+              try {
+                localStorage.setItem(`festflow_custom_poster_${initialData.slug}`, rawData)
+              } catch {
+                // ignore
+              }
+            }
+          }
         }
       } catch {
         setPosterError('Failed to read image file from device.')
@@ -333,6 +367,23 @@ export function EventForm({
       posterUrl.trim() && !posterUrl.startsWith('blob:')
         ? posterUrl.trim()
         : getDefaultPoster(category)
+
+    if (typeof window !== 'undefined' && finalPoster) {
+      if (initialData?.id) {
+        try {
+          localStorage.setItem(`festflow_custom_poster_${initialData.id}`, finalPoster)
+        } catch {
+          // ignore
+        }
+      }
+      if (finalSlug) {
+        try {
+          localStorage.setItem(`festflow_custom_poster_${finalSlug}`, finalPoster)
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     const depts = departmentsInput
       .split(',')
@@ -624,7 +675,13 @@ export function EventForm({
 
   return (
     <>
-      <form className="flex flex-col gap-6 sm:gap-8 w-full max-w-4xl mx-auto text-left pb-24 md:pb-8" noValidate>
+      <form
+        className="flex flex-col gap-6 sm:gap-8 w-full max-w-4xl mx-auto text-left pb-24 md:pb-8"
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault()
+        }}
+      >
         {serverError && (
           <motion.div
             initial={{ opacity: 0, y: -6 }}

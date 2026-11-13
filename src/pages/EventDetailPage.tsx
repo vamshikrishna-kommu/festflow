@@ -460,7 +460,12 @@ export default function EventDetailPage() {
   )
 
   const clubName = event.club?.club_profile?.club_name || event.club?.display_name || 'Campus Club'
-  const rawPoster = event.poster_url
+  const cachedPoster =
+    typeof window !== 'undefined' && event
+      ? localStorage.getItem(`festflow_custom_poster_${event.id}`) ||
+        localStorage.getItem(`festflow_custom_poster_${event.slug}`)
+      : null
+  const rawPoster = cachedPoster || event.poster_url
   const rawCover = (event as any).cover_url
   const hasCustomPoster = Boolean(rawPoster && rawPoster !== 'null' && rawPoster !== 'undefined' && String(rawPoster).trim())
   const hasCustomCover = Boolean(rawCover && rawCover !== 'null' && rawCover !== 'undefined' && String(rawCover).trim())
