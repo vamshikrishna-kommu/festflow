@@ -19,16 +19,12 @@ import {
   AlertCircle,
   X,
   Ticket,
-  LogOut,
-  LogIn,
-  Loader2,
 } from 'lucide-react'
 import { Badge, Button, Logo } from '@/components/ui'
 import { QRCodeSVG } from 'qrcode.react'
 import { resendPassEmail } from '@/lib/emails'
 import { writeCachedTicket, TICKET_CACHE_PREFIX } from '@/lib/ticketCache'
 import { ticketReveal, statusBadgePop } from '@/lib/animations'
-import { toggleParticipantAttendance } from '@/lib/registrations'
 import type { RegistrationWithEvent, AttendanceStatus } from '@/types'
 
 interface DigitalTicketCardProps {
@@ -59,46 +55,20 @@ export function DigitalTicketCard({
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendNotice, setResendNotice] = useState<{ message: string; isError?: boolean } | null>(null)
 
-  // Live Participant Attendance State (Unlimited Check-In & Check-Out)
+  // Gate Attendance State (Verified by Event Organizers at Venue)
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus>(
     (registration as any)?.attendance_status || 'not_checked_in'
   )
-  const [entryCount, setEntryCount] = useState<number>(
+  const entryCount: number =
     (registration as any)?.check_in?.entry_count ||
-      (registration as any)?.check_ins?.[0]?.entry_count ||
-      1
-  )
-  const [isTogglingAttendance, setIsTogglingAttendance] = useState(false)
-  const [attendanceNotice, setAttendanceNotice] = useState<string | null>(null)
+    (registration as any)?.check_ins?.[0]?.entry_count ||
+    1
 
   useEffect(() => {
     if ((registration as any)?.attendance_status) {
       setAttendanceStatus((registration as any).attendance_status)
     }
   }, [registration])
-
-  const handleToggleAttendance = async (action: 'check_in' | 'check_out') => {
-    setIsTogglingAttendance(true)
-    setAttendanceNotice(null)
-    try {
-      const res = await toggleParticipantAttendance(registration.id, action)
-      if (res.success && res.attendance_status) {
-        setAttendanceStatus(res.attendance_status)
-        if (res.entry_count) setEntryCount(res.entry_count)
-        setAttendanceNotice(
-          action === 'check_in'
-            ? `Checked in (Entry #${res.entry_count || entryCount})! Welcome inside.`
-            : 'Checked out. You can re-enter at any time!'
-        )
-      } else {
-        setAttendanceNotice(res.message || 'Unable to update attendance status.')
-      }
-    } catch {
-      setAttendanceNotice('Network error updating attendance.')
-    } finally {
-      setIsTogglingAttendance(false)
-    }
-  }
 
   const ticketCardRef = useRef<HTMLDivElement>(null)
   const event = registration.event || null
@@ -568,10 +538,10 @@ export function DigitalTicketCard({
                 </button>
               </div>
 
-              {/* Live Venue Attendance & Re-Entry Module */}
-              <div className="w-full max-w-xs p-4 rounded-2xl bg-[#14141E] border border-white/10 flex flex-col items-center gap-3 text-center shadow-lg">
+              {/* Verified Venue Gate Status (Controlled exclusively by event staff & organizers) */}
+              <div className="w-full max-w-xs p-3.5 rounded-2xl bg-[#14141E] border border-white/10 flex flex-col items-center gap-2 text-center shadow-lg">
                 <div className="flex items-center justify-between w-full text-xs">
-                  <span className="text-zinc-400 font-medium">Venue Status:</span>
+                  <span className="text-zinc-400 font-medium">Gate Status:</span>
                   {attendanceStatus === 'checked_in' ? (
                     <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -583,71 +553,20 @@ export function DigitalTicketCard({
                       Stepped Out
                     </span>
                   ) : (
-                    <span className="text-zinc-300 font-medium">Ready for Entry</span>
-                  )}
-                </div>
-
-                <div className="w-full">
-                  {attendanceStatus === 'checked_in' ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isTogglingAttendance}
-                      onClick={() => handleToggleAttendance('check_out')}
-                      className="w-full text-xs border-amber-500/30 hover:border-amber-500/60 text-amber-300 hover:bg-amber-500/10 min-h-[38px] cursor-pointer"
-                    >
-                      {isTogglingAttendance ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                      ) : (
-                        <LogOut className="w-3.5 h-3.5 mr-1.5" />
-                      )}
-                      Step Out / Check Out
-                    </Button>
-                  ) : attendanceStatus === 'checked_out' ? (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      disabled={isTogglingAttendance}
-                      onClick={() => handleToggleAttendance('check_in')}
-                      className="w-full text-xs min-h-[38px] cursor-pointer"
-                    >
-                      {isTogglingAttendance ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                      ) : (
-                        <LogIn className="w-3.5 h-3.5 mr-1.5" />
-                      )}
-                      Re-enter / Check In
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      disabled={isTogglingAttendance}
-                      onClick={() => handleToggleAttendance('check_in')}
-                      className="w-full text-xs min-h-[38px] cursor-pointer"
-                    >
-                      {isTogglingAttendance ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                      ) : (
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                      )}
-                      Check In to Venue
-                    </Button>
+                    <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      Ready for Entry
+                    </span>
                   )}
                 </div>
 
                 <p className="text-[10px] text-zinc-500 leading-tight">
-                  You can check out and re-enter at any time during the event. Re-entry is always permitted with zero limits.
+                  {attendanceStatus === 'checked_in'
+                    ? 'Verified inside venue. Present this pass at the gate when stepping out or re-entering.'
+                    : attendanceStatus === 'checked_out'
+                    ? 'Stepped out. Present this pass at the gate for verified re-entry.'
+                    : 'Check-in is verified by event organizers at the venue entrance gate.'}
                 </p>
-
-                {attendanceNotice && (
-                  <p className="text-[11px] text-[#18CFFC] font-medium leading-tight">
-                    {attendanceNotice}
-                  </p>
-                )}
               </div>
 
               <p className="text-[11px] text-zinc-500 max-w-xs leading-relaxed font-sans">
