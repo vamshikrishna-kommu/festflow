@@ -51,14 +51,17 @@ export function HeroSection() {
             animate="visible"
             className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left z-10"
           >
-            {/* Platform Eyebrow Badge */}
+            {/* Platform Eyebrow Badge linking to Cinematic Product Story */}
             <motion.div variants={reduced ? undefined : fadeIn} className="mb-4 sm:mb-5">
-              <span className="inline-flex items-center gap-2 rounded-full pl-2.5 pr-4 py-1.5 text-xs font-semibold text-[#18CFFC] bg-[#14141A] border border-[#18CFFC]/30 shadow-[0_0_18px_rgba(24,207,252,0.20)]">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] shrink-0">
+              <Link
+                to="/cinematic"
+                className="group inline-flex items-center gap-2 rounded-full pl-2.5 pr-4 py-1.5 text-xs font-semibold text-[#18CFFC] bg-[#14141A] border border-[#18CFFC]/30 hover:border-[#18CFFC] shadow-[0_0_18px_rgba(24,207,252,0.20)] hover:shadow-[0_0_24px_rgba(24,207,252,0.35)] transition-all"
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] shrink-0 group-hover:scale-110 transition-transform">
                   <Sparkles size={11} className="text-white" aria-hidden="true" />
                 </span>
-                <span>The Modern Event OS for Colleges · 0% Fee</span>
-              </span>
+                <span>Experience FestFlow Cinematic Product Story →</span>
+              </Link>
             </motion.div>
 
             {/* Cinematic Editorial Headline */}

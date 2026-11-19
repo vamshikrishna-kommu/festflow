@@ -1,7 +1,7 @@
 // FestFlow Production Service Worker
-// Version: 1.0.4 (Zero-Crash Response Guard & Cross-Origin Non-Interference)
+// Version: 1.0.5 (Purge legacy cached bundles & enforce organizer-only gate status)
 
-const CACHE_NAME = 'festflow-core-v6';
+const CACHE_NAME = 'festflow-core-v7';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [
@@ -24,13 +24,13 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: Purge obsolete cache versions
+// Activate: Purge obsolete FestFlow cache versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((name) => {
-          if (name !== CACHE_NAME) {
+          if (name.startsWith('festflow-core-') && name !== CACHE_NAME) {
             return caches.delete(name);
           }
         })

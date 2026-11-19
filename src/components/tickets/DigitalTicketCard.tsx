@@ -562,9 +562,9 @@ export function DigitalTicketCard({
 
                 <p className="text-[10px] text-zinc-500 leading-tight">
                   {attendanceStatus === 'checked_in'
-                    ? 'Verified inside venue. Present this pass at the gate when stepping out or re-entering.'
+                    ? 'Your attendance is verified by authorized event organizers at the venue.'
                     : attendanceStatus === 'checked_out'
-                    ? 'Stepped out. Present this pass at the gate for verified re-entry.'
+                    ? 'Your attendance status is maintained by authorized event organizers.'
                     : 'Check-in is verified by event organizers at the venue entrance gate.'}
                 </p>
               </div>

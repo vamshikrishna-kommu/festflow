@@ -21,6 +21,7 @@ import { registerServiceWorker } from '@/lib/pwa'
 // Lazy-load pages for code splitting
 const LandingPage          = lazy(() => import('@/pages/LandingPage'))
 const DiscoverPage         = lazy(() => import('@/pages/DiscoverPage'))
+const CinematicExperiencePage = lazy(() => import('@/pages/CinematicExperiencePage'))
 const EventDetailPage      = lazy(() => import('@/pages/EventDetailPage'))
 const NotFoundPage         = lazy(() => import('@/pages/NotFoundPage'))
 
@@ -246,6 +247,38 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <DiscoverPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/cinematic',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CinematicExperiencePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/story',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CinematicExperiencePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/experience',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CinematicExperiencePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/reel',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CinematicExperiencePage />
           </Suspense>
         ),
       },

@@ -51,14 +51,15 @@ interface NavItem {
 
 const PUBLIC_NAV_LINKS: NavItem[] = [
   { label: 'Discover', href: '/discover' },
+  { label: 'Cinematic Story ✦', href: '/cinematic' },
   { label: 'Community', href: '/community' },
-  { label: 'Features', href: '/#scene-03-journey' },
   { label: 'For Clubs', href: '/club/signup' },
   { label: 'Contact', href: '/contact' },
 ]
 
 const STUDENT_NAV_LINKS: NavItem[] = [
   { label: 'Discover', href: '/discover' },
+  { label: 'Cinematic Story ✦', href: '/cinematic' },
   { label: 'Community', href: '/community' },
   { label: 'My Dashboard', href: '/student/dashboard' },
 ]
