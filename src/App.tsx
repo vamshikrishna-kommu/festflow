@@ -21,7 +21,6 @@ import { registerServiceWorker } from '@/lib/pwa'
 // Lazy-load pages for code splitting
 const LandingPage          = lazy(() => import('@/pages/LandingPage'))
 const DiscoverPage         = lazy(() => import('@/pages/DiscoverPage'))
-const AboutPage            = lazy(() => import('@/pages/AboutPage'))
 const EventDetailPage      = lazy(() => import('@/pages/EventDetailPage'))
 const NotFoundPage         = lazy(() => import('@/pages/NotFoundPage'))
 
@@ -247,14 +246,6 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <DiscoverPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: '/about',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AboutPage />
           </Suspense>
         ),
       },

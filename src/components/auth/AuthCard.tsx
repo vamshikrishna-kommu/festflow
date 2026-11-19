@@ -39,71 +39,64 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="relative p-[1px] rounded-[var(--radius-card)] bg-gradient-to-br from-[#18CFFC]/35 via-white/10 to-[#7F1AFB]/35 shadow-[0_24px_64px_rgba(0,0,0,0.85)] overflow-hidden"
+          className="w-full rounded-[var(--radius-card)] border border-white/10 bg-[#0E0E12]/90 backdrop-blur-xl shadow-[0_24px_64px_rgba(0,0,0,0.8)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-w-0"
         >
-          <div className="w-full rounded-[calc(var(--radius-card)-1px)] bg-[#0E0E12]/95 backdrop-blur-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-w-0">
-            {/* Left branding panel — visible on desktop */}
+          {/* Left branding panel — visible on desktop */}
+          <div
+            className="hidden lg:flex lg:col-span-5 flex-col justify-between p-8 sm:p-10 border-r border-white/10 relative overflow-hidden text-left bg-[#14141A]"
+          >
+            {/* Background subtle radial */}
             <div
-              className="hidden lg:flex lg:col-span-5 flex-col justify-between p-8 sm:p-10 border-r border-white/10 relative overflow-hidden text-left bg-[#14141A]/70"
-            >
-              {/* Background subtle radial */}
-              <div
-                className="absolute -top-24 -left-24 w-72 h-72 rounded-full pointer-events-none"
-                style={{
-                  background: 'radial-gradient(circle, rgba(127, 26, 251, 0.22) 0%, rgba(24, 207, 252, 0.12) 50%, transparent 70%)',
-                }}
-              />
+              className="absolute -top-24 -left-24 w-72 h-72 rounded-full pointer-events-none"
+              style={{
+                background: 'radial-gradient(circle, rgba(127, 26, 251, 0.22) 0%, rgba(24, 207, 252, 0.12) 50%, transparent 70%)',
+              }}
+            />
 
-              <div className="relative z-10">
-                <Link to="/" className="inline-flex flex-col items-start gap-1 mb-8 group" aria-label="FestFlow home">
-                  <Logo variant="navbar" />
-                  <span className="text-[11px] font-mono tracking-wider text-[#18CFFC] mt-1 font-semibold uppercase">
-                    One Platform. Every Campus Event.
-                  </span>
-                </Link>
+            <div className="relative z-10">
+              <Link to="/" className="inline-flex items-center mb-8" aria-label="FestFlow home">
+                <Logo variant="navbar" />
+              </Link>
 
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="font-display font-bold text-xl text-white mb-2">
-                      {isClub ? 'Campus Club Management' : 'All Your Campus Passes'}
-                    </h2>
-                    <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                      {isClub
-                        ? 'Create events, manage registrations, coordinate team roles, and verify UPI transactions directly.'
-                        : 'Discover campus hackathons, symposiums, and cultural fests with automated digital passes.'}
-                    </p>
-                  </div>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-display font-bold text-xl text-white mb-2">
+                    {isClub ? 'Campus Club Management' : 'All Your Campus Passes'}
+                  </h2>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                    {isClub
+                      ? 'Create events, manage registrations, coordinate team roles, and verify UPI transactions directly.'
+                      : 'Discover campus hackathons, symposiums, and cultural fests with automated digital passes.'}
+                  </p>
+                </div>
 
-                  <div className="space-y-4 pt-2">
-                    {[
-                      { icon: '✦', text: '0% platform fee for college events' },
-                      { icon: '⚡', text: 'Digital QR passes for campus entry' },
-                      { icon: '🔒', text: 'Direct UPI collection to club accounts' },
-                    ].map(({ icon, text }) => (
-                      <div key={text} className="flex items-center gap-3 text-xs text-[var(--color-text-secondary)]">
-                        <span className="text-[#18CFFC] font-bold">{icon}</span>
-                        <span>{text}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-4 pt-2">
+                  {[
+                    { icon: '✦', text: '0% platform fee for college events' },
+                    { icon: '⚡', text: 'Digital QR passes for campus entry' },
+                    { icon: '🔒', text: 'Direct UPI collection to club accounts' },
+                  ].map(({ icon, text }) => (
+                    <div key={text} className="flex items-center gap-3 text-xs text-[var(--color-text-secondary)]">
+                      <span className="text-[#18CFFC] font-bold">{icon}</span>
+                      <span>{text}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              <p className="relative z-10 text-[11px] text-[var(--color-text-muted)] pt-8 font-mono">
-                One Platform. Every Campus Event.
-              </p>
             </div>
 
-            {/* Right form panel */}
-            <div className="lg:col-span-7 p-4 sm:p-8 lg:p-10 flex flex-col justify-center text-left w-full min-w-0">
-              {/* Mobile logo header */}
-              <div className="lg:hidden mb-6 flex flex-col items-center text-center gap-1.5">
-                <Link to="/" aria-label="FestFlow home" className="flex flex-col items-center gap-1">
-                  <Logo variant="navbar" />
-                  <span className="text-[11px] font-mono tracking-wider text-[#18CFFC] font-semibold">
-                    One Platform. Every Campus Event.
-                  </span>
-                </Link>
+            <p className="relative z-10 text-[11px] text-[var(--color-text-muted)] pt-8">
+              Built for college clubs and student communities.
+            </p>
+          </div>
+
+          {/* Right form panel */}
+          <div className="lg:col-span-7 p-4 sm:p-8 lg:p-10 flex flex-col justify-center text-left w-full min-w-0">
+            {/* Mobile logo header */}
+            <div className="lg:hidden mb-6 flex flex-col items-center text-center gap-2">
+              <Link to="/" aria-label="FestFlow home">
+                <Logo variant="navbar" />
+              </Link>
               <Badge variant="brand">
                 {isClub ? 'Club Portal' : 'Student Hub'}
               </Badge>
@@ -212,8 +205,7 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
               </div>
             )}
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
       </div>
     </div>
   )

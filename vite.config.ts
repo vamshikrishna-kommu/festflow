@@ -18,15 +18,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          if (id.includes('node_modules/three') || id.includes('node_modules/@react-three')) {
-            return 'vendor-three'
-          }
-          if (id.includes('node_modules/gsap') || id.includes('node_modules/@gsap')) {
-            return 'vendor-gsap'
-          }
-          if (id.includes('node_modules/lenis')) {
-            return 'vendor-lenis'
-          }
           if (id.includes('node_modules/exceljs')) {
             return 'vendor-excel'
           }

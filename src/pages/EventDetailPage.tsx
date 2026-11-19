@@ -32,7 +32,6 @@ import {
   Video,
   Sliders,
   Trophy,
-  Armchair,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button, Badge, CategoryBadge, Modal, ModalBody, ModalFooter } from '@/components/ui'
@@ -134,7 +133,6 @@ export default function EventDetailPage() {
   const [relatedEvents, setRelatedEvents] = useState<RelatedEventSummary[]>([])
   const [showOrganizerModal, setShowOrganizerModal] = useState(false)
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'speakers' | 'venue' | 'rules'>('overview')
 
   // Phase 8 Waitlist States
   const [waitlistStatus, setWaitlistStatus] = useState<EventWaitlistStatus | null>(null)
@@ -660,12 +658,10 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {/* ── Editorial Panoramic Hero Poster Banner ───────────────────────── */}
-        <div className="relative w-full h-72 sm:h-96 md:h-[460px] rounded-3xl overflow-hidden border border-white/[0.1] mb-6 sm:mb-8 shadow-2xl group bg-gradient-to-br from-[#0E0E12] via-[#14141A] to-[#08080A]">
-          {/* Panoramic Ambient Backdrop Flares */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#18CFFC]/20 via-transparent to-[#7F1AFB]/20 pointer-events-none" />
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#18CFFC]/15 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-[#ED47FC]/15 blur-3xl pointer-events-none" />
+        {/* ── Editorial Cinematic Hero Poster Banner ───────────────────────── */}
+        <div className="relative w-full h-64 sm:h-84 md:h-[430px] rounded-3xl overflow-hidden border border-white/[0.08] mb-6 sm:mb-8 shadow-2xl group bg-gradient-to-br from-indigo-950/40 via-zinc-900 to-black">
+          {/* Ambient backdrop glow so banner is never a pitch-black void */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/15 via-transparent to-purple-600/15 pointer-events-none" />
 
           {posterSource && !bannerImgError ? (
             <img
@@ -686,7 +682,9 @@ export default function EventDetailPage() {
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#121218] via-zinc-900 to-black p-6 relative overflow-hidden">
-              <div className="w-16 h-16 rounded-2xl bg-white/[0.08] border border-white/15 flex items-center justify-center text-[#18CFFC] mb-3 shadow-lg relative z-10">
+              <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-purple-600/20 blur-3xl pointer-events-none" />
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.08] border border-white/15 flex items-center justify-center text-cyan-400 mb-3 shadow-lg relative z-10">
                 <Sparkles size={32} />
               </div>
               <span className="text-sm font-bold text-white tracking-widest uppercase font-mono relative z-10">
@@ -697,10 +695,10 @@ export default function EventDetailPage() {
               </p>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/20 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none" />
 
           {/* Badges Overlay */}
-          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex flex-wrap gap-2 max-w-[calc(100%-1.5rem)] z-10">
+          <div className="absolute top-3 left-3 sm:top-5 sm:left-5 flex flex-wrap gap-1.5 sm:gap-2 max-w-[calc(100%-1.5rem)]">
             <CategoryBadge category={event.category} />
             {event.event_type === 'online' && (
               <Badge variant="cyan" className="text-xs flex items-center gap-1 shadow-md">
@@ -729,33 +727,9 @@ export default function EventDetailPage() {
             )}
           </div>
 
-          {/* Organizer Avatar Badge Pill in Banner */}
-          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
-            <Link
-              to={event.club_id ? `/community/clubs/${event.club_id}` : '#'}
-              className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 hover:border-[#18CFFC]/50 transition-all text-xs text-white shadow-xl group/org"
-            >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 text-[10px] font-bold overflow-hidden">
-                {event.club?.club_profile?.logo_url ? (
-                  <img
-                    src={event.club.club_profile.logo_url}
-                    alt={clubName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Building2 size={13} />
-                )}
-              </div>
-              <span className="font-semibold text-white group-hover/org:text-[#18CFFC] transition-colors max-w-[130px] sm:max-w-[180px] truncate">
-                {clubName}
-              </span>
-              <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
-            </Link>
-          </div>
-
           {/* Title on Poster */}
-          <div className="absolute bottom-5 sm:bottom-8 left-5 right-5 sm:left-8 sm:right-8 z-10">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold font-display text-white tracking-tight leading-snug drop-shadow-xl line-clamp-2">
+          <div className="absolute bottom-5 sm:bottom-8 left-5 right-5 sm:left-8 sm:right-8">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold font-display text-white tracking-tight leading-snug drop-shadow-lg line-clamp-2">
               {event.title}
             </h1>
             {event.summary && (
@@ -768,537 +742,389 @@ export default function EventDetailPage() {
 
         {/* ── Main Content & Registration Layout ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Left 2 Cols: Editorial Details & Tabbed Experience Sections */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            {/* ── Modern Navigation Tabs ────────────────────────────────────────── */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-white/[0.08] pb-3">
-              {[
-                { id: 'overview', label: 'Overview', icon: Sparkles },
-                { id: 'schedule', label: 'Schedule', icon: Clock, count: schedules.length },
-                { id: 'speakers', label: 'Speakers & Guests', icon: Users, count: speakers.length },
-                { id: 'venue', label: 'Venue & Seating', icon: Armchair },
-                { id: 'rules', label: 'Rules & FAQs', icon: FileText, count: Array.isArray((event as any).faqs) ? (event as any).faqs.length : undefined },
-              ].map((tab) => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
-                      isActive
-                        ? 'bg-gradient-to-r from-[#18CFFC]/20 via-[#07A4FC]/20 to-[#7F1AFB]/20 text-white border border-[#18CFFC]/40 shadow-sm shadow-[#18CFFC]/20'
-                        : 'text-zinc-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
-                    }`}
-                  >
-                    <Icon size={14} className={isActive ? 'text-[#18CFFC]' : 'text-zinc-400'} />
-                    <span>{tab.label}</span>
-                    {typeof tab.count === 'number' && tab.count > 0 && (
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-[#18CFFC]/30 text-white' : 'bg-white/10 text-zinc-400'}`}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
+          {/* Left 2 Cols: Editorial Details & Phase 6 Experience Sections */}
+          <div className="lg:col-span-2 flex flex-col gap-8">
+            {/* Organizer Card */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 shadow-md shadow-[#18CFFC]/20">
+                  <Building2 size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-sm sm:text-base text-white">
+                      {clubName}
+                    </span>
+                    <ShieldCheck size={16} className="text-emerald-400" />
+                  </div>
+                  <span className="text-xs text-zinc-400">
+                    Official Student Organization Host
+                  </span>
+                </div>
+              </div>
+
+              {(canEditEvent || canViewRoster) && (
+                <div className="flex items-center gap-2">
+                  {canEditEvent && (
+                    <button
+                      type="button"
+                      onClick={() => setShowOrganizerModal(true)}
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                    >
+                      <Sliders size={14} className="text-[#18CFFC]" />
+                      <span>Manage Hub</span>
+                    </button>
+                  )}
+                  {canViewRoster && (
+                    <Link to={`/club/events/${event.id}/registrations`}>
+                      <Button variant="outline" size="sm" leftIcon={<Users size={14} />}>
+                        Attendees
+                      </Button>
+                    </Link>
+                  )}
+                  {canEditEvent && (
+                    <Link to={`/club/events/${event.id}/edit`}>
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* TAB 1: OVERVIEW */}
-            {activeTab === 'overview' && (
-              <div className="flex flex-col gap-8">
-                {/* Organizer Card */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-center justify-between gap-4 shadow-sm">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 shadow-md shadow-[#18CFFC]/20">
-                      <Building2 size={24} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm sm:text-base text-white">
-                          {clubName}
-                        </span>
-                        <ShieldCheck size={16} className="text-emerald-400" />
-                      </div>
-                      <span className="text-xs text-zinc-400">
-                        Official Student Organization Host
-                      </span>
-                    </div>
-                  </div>
+            {/* Quick Timing & Venue Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3.5 shadow-sm">
+                <div className="p-2.5 rounded-xl bg-[#14141A] text-[#18CFFC] shrink-0 border border-white/[0.06]">
+                  <Calendar size={20} />
+                </div>
+                <div className="text-xs min-w-0">
+                  <span className="text-zinc-500 block mb-0.5 font-medium">Date & Time</span>
+                  <strong className="text-white font-semibold block truncate">
+                    {formattedDate}
+                  </strong>
+                  <span className="text-zinc-400">
+                    {formattedStartTime} – {formattedEndTime} ({event.timezone || 'IST'})
+                  </span>
+                </div>
+              </div>
 
-                  {(canEditEvent || canViewRoster) && (
-                    <div className="flex items-center gap-2">
-                      {canEditEvent && (
-                        <button
-                          type="button"
-                          onClick={() => setShowOrganizerModal(true)}
-                          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
-                        >
-                          <Sliders size={14} className="text-[#18CFFC]" />
-                          <span>Manage Hub</span>
-                        </button>
-                      )}
-                      {canViewRoster && (
-                        <Link to={`/club/events/${event.id}/registrations`}>
-                          <Button variant="outline" size="sm" leftIcon={<Users size={14} />}>
-                            Attendees
-                          </Button>
-                        </Link>
-                      )}
-                      {canEditEvent && (
-                        <Link to={`/club/events/${event.id}/edit`}>
-                          <Button variant="ghost" size="sm">
-                            Edit
-                          </Button>
-                        </Link>
-                      )}
-                    </div>
-                  )}
+              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3.5 shadow-sm">
+                <div className="p-2.5 rounded-xl bg-[#14141A] text-[#18CFFC] shrink-0 border border-white/[0.06]">
+                  {event.event_type === 'online' ? <Globe size={20} /> : <MapPin size={20} />}
+                </div>
+                <div className="text-xs min-w-0">
+                  <span className="text-zinc-500 block mb-0.5 font-medium">
+                    {event.event_type === 'online' ? 'Session Format' : 'Venue Location'}
+                  </span>
+                  <strong className="text-white font-semibold block truncate">
+                    {event.venue_name || (event.event_type === 'online' ? 'Virtual Meeting' : 'Campus Venue')}
+                  </strong>
+                  <span className="text-zinc-400 truncate block">
+                    {event.event_type === 'online'
+                      ? 'Encrypted Virtual Access Portal'
+                      : (event.venue_address || 'Campus Campus')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Virtual / Hybrid Meeting Portal (Phase 6) ────────────────── */}
+            {(event.event_type === 'online' || event.event_type === 'hybrid') && (
+              <EventVirtualJoinSection
+                eventId={event.id}
+                eventType={event.event_type}
+                eventData={{
+                  start_date: event.start_date,
+                  end_date: event.end_date,
+                  access_window_minutes: (event as any).access_window_minutes || 30,
+                  meeting_platform: (event as any).meeting_platform,
+                  meeting_url: (event as any).meeting_url,
+                  joining_instructions: (event as any).joining_instructions,
+                  club_id: event.club_id,
+                }}
+                userId={user?.id}
+                isConfirmedAttendee={existingReg?.status === 'confirmed'}
+              />
+            )}
+
+            {/* ── Live Event Announcements (Phase 6) ───────────────────────── */}
+            {announcements.length > 0 && (
+              <EventAnnouncementsSection announcements={announcements} />
+            )}
+
+            {/* ── Multiple Ticket Categories & Passes (Phase 6) ────────────── */}
+            {ticketTiers.length > 0 && (
+              <EventTicketTiersSection
+                tiers={ticketTiers}
+                selectedTierId={selectedTierId}
+                onSelectTier={setSelectedTierId}
+                disabled={Boolean(existingReg)}
+                isCancelled={isCancelled}
+                isCompleted={isCompleted}
+              />
+            )}
+
+            {/* Team Rules Callout (if team event) */}
+            {event.participation_type === 'team' && (
+              <div className="p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col gap-3 shadow-sm">
+                <div className="flex items-center gap-2 text-[#18CFFC]">
+                  <Users size={18} />
+                  <h3 className="font-bold text-sm font-heading text-white">
+                    Team Participation Rules
+                  </h3>
                 </div>
 
-                {/* Quick Timing & Venue Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3.5 shadow-sm">
-                    <div className="p-2.5 rounded-xl bg-[#14141A] text-[#18CFFC] shrink-0 border border-white/[0.06]">
-                      <Calendar size={20} />
-                    </div>
-                    <div className="text-xs min-w-0">
-                      <span className="text-zinc-500 block mb-0.5 font-medium">Date & Time</span>
-                      <strong className="text-white font-semibold block truncate">
-                        {formattedDate}
-                      </strong>
-                      <span className="text-zinc-400">
-                        {formattedStartTime} – {formattedEndTime} ({event.timezone || 'IST'})
-                      </span>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-zinc-300">
+                  <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
+                    <span className="text-zinc-500 block mb-0.5">Required Team Size</span>
+                    <strong className="text-white font-mono">
+                      {event.min_team_size} to {event.max_team_size} members
+                    </strong>
                   </div>
-
-                  <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-start gap-3.5 shadow-sm">
-                    <div className="p-2.5 rounded-xl bg-[#14141A] text-[#18CFFC] shrink-0 border border-white/[0.06]">
-                      {event.event_type === 'online' ? <Globe size={20} /> : <MapPin size={20} />}
-                    </div>
-                    <div className="text-xs min-w-0">
-                      <span className="text-zinc-500 block mb-0.5 font-medium">
-                        {event.event_type === 'online' ? 'Session Format' : 'Venue Location'}
-                      </span>
-                      <strong className="text-white font-semibold block truncate">
-                        {event.venue_name || (event.event_type === 'online' ? 'Virtual Meeting' : 'Campus Venue')}
-                      </strong>
-                      <span className="text-zinc-400 truncate block">
-                        {event.event_type === 'online'
-                          ? 'Encrypted Virtual Access Portal'
-                          : (event.venue_address || 'Campus Venue')}
-                      </span>
-                    </div>
+                  <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
+                    <span className="text-zinc-500 block mb-0.5">Leader Inclusion</span>
+                    <strong className="text-white">
+                      {event.leader_counts_towards_size ? 'Leader is counted in size' : 'Excludes team leader'}
+                    </strong>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
+                    <span className="text-zinc-500 block mb-0.5">Registration Mode</span>
+                    <strong className="text-white">
+                      {event.team_registration_mode === 'leader_adds_members' ? 'Leader registers team' : 'Members join via code'}
+                    </strong>
                   </div>
                 </div>
-
-                {/* Virtual / Hybrid Meeting Portal */}
-                {(event.event_type === 'online' || event.event_type === 'hybrid') && (
-                  <EventVirtualJoinSection
-                    eventId={event.id}
-                    eventType={event.event_type}
-                    eventData={{
-                      start_date: event.start_date,
-                      end_date: event.end_date,
-                      access_window_minutes: (event as any).access_window_minutes || 30,
-                      meeting_platform: (event as any).meeting_platform,
-                      meeting_url: (event as any).meeting_url,
-                      joining_instructions: (event as any).joining_instructions,
-                      club_id: event.club_id,
-                    }}
-                    userId={user?.id}
-                    isConfirmedAttendee={existingReg?.status === 'confirmed'}
-                  />
-                )}
-
-                {/* Live Event Announcements */}
-                {announcements.length > 0 && (
-                  <EventAnnouncementsSection announcements={announcements} />
-                )}
-
-                {/* Ticket Categories & Passes */}
-                {ticketTiers.length > 0 && (
-                  <EventTicketTiersSection
-                    tiers={ticketTiers}
-                    selectedTierId={selectedTierId}
-                    onSelectTier={setSelectedTierId}
-                    disabled={Boolean(existingReg)}
-                    isCancelled={isCancelled}
-                    isCompleted={isCompleted}
-                  />
-                )}
-
-                {/* Team Rules Callout */}
-                {event.participation_type === 'team' && (
-                  <div className="p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col gap-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-[#18CFFC]">
-                      <Users size={18} />
-                      <h3 className="font-bold text-sm font-heading text-white">
-                        Team Participation Rules
-                      </h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-zinc-300">
-                      <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
-                        <span className="text-zinc-500 block mb-0.5">Required Team Size</span>
-                        <strong className="text-white font-mono">
-                          {event.min_team_size} to {event.max_team_size} members
-                        </strong>
-                      </div>
-                      <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
-                        <span className="text-zinc-500 block mb-0.5">Leader Inclusion</span>
-                        <strong className="text-white">
-                          {event.leader_counts_towards_size ? 'Leader is counted in size' : 'Excludes team leader'}
-                        </strong>
-                      </div>
-                      <div className="p-3 rounded-xl bg-[#14141A] border border-white/[0.06]">
-                        <span className="text-zinc-500 block mb-0.5">Registration Mode</span>
-                        <strong className="text-white">
-                          {event.team_registration_mode === 'leader_adds_members' ? 'Leader registers team' : 'Members join via code'}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Event Description */}
-                <div className="flex flex-col gap-3">
-                  <h2 className="text-lg font-bold font-heading text-white">
-                    About this Event
-                  </h2>
-                  <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line bg-[#0E0E12] p-6 rounded-2xl border border-white/[0.08] shadow-sm font-sans">
-                    {event.description}
-                  </div>
-                </div>
-
-                {/* Prizes & Rewards */}
-                {Array.isArray((event as any).prizes) && (event as any).prizes.length > 0 && (
-                  <div className="flex flex-col gap-3">
-                    <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                      <Trophy size={18} className="text-amber-400" />
-                      Prizes & Rewards
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {(event as any).prizes.map((prz: any, i: number) => (
-                        <div
-                          key={i}
-                          className="p-4 rounded-xl bg-gradient-to-b from-[#14141A] to-[#0E0E12] border border-white/[0.08] flex flex-col items-center text-center shadow-sm"
-                        >
-                          <span className="text-xs font-mono text-amber-400 font-bold mb-1">
-                            {prz.rank}
-                          </span>
-                          <span className="text-sm font-bold text-white mb-1">{prz.title}</span>
-                          <span className="text-lg font-extrabold text-[#18CFFC]">{prz.amount}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Official Merchandise & Add-ons */}
-                {addons.length > 0 && (
-                  <EventAddonsSection addons={addons} />
-                )}
-
-                {/* Related Events */}
-                {relatedEvents.length > 0 && (
-                  <div className="flex flex-col gap-3 pt-6 border-t border-white/[0.08]">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-base font-bold font-heading text-white">
-                          Explore More Campus Events
-                        </h3>
-                        <p className="text-xs text-zinc-400">
-                          Other recommended {event.category} events on FestFlow
-                        </p>
-                      </div>
-                      <Link
-                        to="/discover"
-                        className="text-xs text-[#18CFFC] hover:underline font-semibold"
-                      >
-                        View All
-                      </Link>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {relatedEvents.map((rel) => (
-                        <Link
-                          key={rel.id}
-                          to={`/events/${rel.slug}`}
-                          className="group p-3 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-[#18CFFC]/50 transition-all flex flex-col justify-between gap-2 shadow-sm"
-                        >
-                          <div>
-                            <div className="w-full h-24 rounded-xl overflow-hidden mb-2 bg-[#14141A]">
-                              <img
-                                src={resolvePosterUrl(rel.poster_url || rel.cover_url, rel.category as any)}
-                                alt={rel.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              />
-                            </div>
-                            <h4 className="text-xs font-bold text-white group-hover:text-[#18CFFC] transition-colors line-clamp-1">
-                              {rel.title}
-                            </h4>
-                            <span className="text-[10px] text-zinc-400 block truncate">
-                              {new Date(rel.start_date).toLocaleDateString('en-IN', {
-                                month: 'short',
-                                day: 'numeric',
-                              })}{' '}
-                              • {rel.venue_name}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-[10px] pt-1 border-t border-white/[0.06]">
-                            <span className="text-zinc-500 uppercase">{rel.category}</span>
-                            <span className="font-bold text-white">
-                              {rel.is_free ? 'Free' : `₹${rel.price}`}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* TAB 2: SCHEDULE */}
-            {activeTab === 'schedule' && (
-              <div className="flex flex-col gap-6">
-                <div className="p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-white text-base font-display">Event Timeline</h3>
-                    <p className="text-xs text-zinc-400 mt-0.5">{formattedDate} • {formattedStartTime} – {formattedEndTime}</p>
-                  </div>
-                  <Badge variant="cyan" className="text-xs font-mono">{event.timezone || 'IST'}</Badge>
+            {/* Event Description */}
+            <div className="flex flex-col gap-3">
+              <h2 className="text-lg font-bold font-heading text-white">
+                About this Event
+              </h2>
+              <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line bg-[#0E0E12] p-6 rounded-2xl border border-white/[0.08] shadow-sm font-sans">
+                {event.description}
+              </div>
+            </div>
+
+            {/* ── Event Schedule & Timeline (Phase 6) ──────────────────────── */}
+            {schedules.length > 0 && (
+              <EventScheduleSection schedules={schedules} />
+            )}
+
+            {/* ── Featured Speakers & Judges (Phase 6) ─────────────────────── */}
+            {speakers.length > 0 && (
+              <EventSpeakersSection speakers={speakers} />
+            )}
+
+            {/* ── Event Moments Gallery (Phase 6) ──────────────────────────── */}
+            {galleryImages.length > 0 && (
+              <EventGallerySection images={galleryImages} />
+            )}
+
+            {/* ── Competition Leaderboard & Standings (Phase 6) ────────────── */}
+            {(Boolean((event as any).leaderboard_enabled) || leaderboardEntries.length > 0) && (
+              <EventLeaderboardSection
+                entries={leaderboardEntries}
+                title={(event as any).leaderboard_title || 'Competition Standings'}
+                isOrganizer={canEditEvent}
+              />
+            )}
+
+            {/* ── Official Merchandise & Add-ons (Phase 6) ─────────────────── */}
+            {addons.length > 0 && (
+              <EventAddonsSection addons={addons} />
+            )}
+
+            {/* Event Rules & Code of Conduct */}
+            {event.rules && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] flex items-center gap-2">
+                  <FileText size={18} className="text-[#18CFFC]" /> Rules & Code of Conduct
+                </h2>
+                <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line bg-[#0E0E12] p-6 rounded-2xl border border-white/[0.08] shadow-sm">
+                  {event.rules}
                 </div>
-
-                {schedules.length > 0 ? (
-                  <EventScheduleSection schedules={schedules} />
-                ) : (
-                  <div className="p-8 rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-center">
-                    <Clock size={32} className="text-[#18CFFC] mx-auto mb-3 opacity-60" />
-                    <h4 className="font-semibold text-white text-sm">Detailed Schedule Coming Soon</h4>
-                    <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                      The organizing team is finalizing the hour-by-hour itinerary. Check back closer to event date.
-                    </p>
-                  </div>
-                )}
-
-                {(event.event_type === 'online' || event.event_type === 'hybrid') && (
-                  <EventVirtualJoinSection
-                    eventId={event.id}
-                    eventType={event.event_type}
-                    eventData={{
-                      start_date: event.start_date,
-                      end_date: event.end_date,
-                      access_window_minutes: (event as any).access_window_minutes || 30,
-                      meeting_platform: (event as any).meeting_platform,
-                      meeting_url: (event as any).meeting_url,
-                      joining_instructions: (event as any).joining_instructions,
-                      club_id: event.club_id,
-                    }}
-                    userId={user?.id}
-                    isConfirmedAttendee={existingReg?.status === 'confirmed'}
-                  />
-                )}
               </div>
             )}
 
-            {/* TAB 3: SPEAKERS & GUESTS */}
-            {activeTab === 'speakers' && (
-              <div className="flex flex-col gap-6">
-                {speakers.length > 0 ? (
-                  <EventSpeakersSection speakers={speakers} />
-                ) : (
-                  <div className="p-8 rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-center">
-                    <Users size={32} className="text-[#18CFFC] mx-auto mb-3 opacity-60" />
-                    <h4 className="font-semibold text-white text-sm">Keynote Speakers & Performers</h4>
-                    <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                      Special guests and workshop leaders will be revealed by the club organizers in upcoming announcements.
-                    </p>
-                  </div>
-                )}
-
-                {(Boolean((event as any).leaderboard_enabled) || leaderboardEntries.length > 0) && (
-                  <EventLeaderboardSection
-                    entries={leaderboardEntries}
-                    title={(event as any).leaderboard_title || 'Competition Standings'}
-                    isOrganizer={canEditEvent}
-                  />
-                )}
-
-                {galleryImages.length > 0 && (
-                  <EventGallerySection images={galleryImages} />
-                )}
+            {/* Eligibility & Guidelines */}
+            {event.eligibility && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] flex items-center gap-2">
+                  <Sparkles size={18} className="text-amber-400" /> Eligibility & Requirements
+                </h2>
+                <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08] flex items-start gap-3 shadow-sm">
+                  <span>{event.eligibility}</span>
+                </div>
               </div>
             )}
 
-            {/* TAB 4: VENUE & SEATING */}
-            {activeTab === 'venue' && (
-              <div className="flex flex-col gap-6">
-                <div className="p-6 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC] flex items-center justify-center">
-                      <MapPin size={22} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-white text-base font-display">
-                        {event.venue_name || (event.event_type === 'online' ? 'Virtual Meeting Space' : 'Campus Venue')}
-                      </h3>
-                      <p className="text-xs text-zinc-400">{event.venue_address || 'Main Campus Auditorium & Event Grounds'}</p>
-                    </div>
-                  </div>
-
-                  {event.registration_mode === 'reserved_seating' && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-[#18CFFC]/15 to-[#7F1AFB]/15 border border-[#18CFFC]/30 flex items-start gap-3">
-                      <Armchair size={22} className="text-[#18CFFC] shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="block text-sm font-semibold text-white">
-                          Auditorium Reserved Seating Enabled
-                        </strong>
-                        <p className="text-xs text-zinc-300 mt-0.5 leading-relaxed">
-                          This event features interactive row-and-column seat reservations. You will pick your exact seat during registration checkout.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Seat Capacity Card */}
-                <div className="p-6 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col gap-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-white flex items-center gap-2">
-                      <Users size={16} className="text-[#18CFFC]" />
-                      Hall Capacity & Occupancy
-                    </span>
-                    <span className="font-mono text-zinc-300 font-bold">
-                      {remainingSeats} seats available ({occupiedCount} reserved)
-                    </span>
-                  </div>
-                  <div className="w-full h-3 rounded-full bg-black/40 overflow-hidden border border-white/5">
+            {/* ── Prizes & Rewards (if configured) ─────────────────────────── */}
+            {Array.isArray((event as any).prizes) && (event as any).prizes.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                  <Trophy size={18} className="text-amber-400" />
+                  Prizes & Rewards
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(event as any).prizes.map((prz: any, i: number) => (
                     <div
-                      className={`h-full transition-all duration-500 rounded-full ${
-                        capacityPercent >= 85
-                          ? 'bg-gradient-to-r from-amber-500 to-rose-500 shadow-md shadow-rose-500/20'
-                          : 'bg-gradient-to-r from-[#18CFFC] to-[#07A4FC] shadow-md shadow-[#18CFFC]/20'
-                      }`}
-                      style={{ width: `${capacityPercent}%` }}
-                    />
-                  </div>
+                      key={i}
+                      className="p-4 rounded-xl bg-gradient-to-b from-[#14141A] to-[#0E0E12] border border-white/[0.08] flex flex-col items-center text-center shadow-sm"
+                    >
+                      <span className="text-xs font-mono text-amber-400 font-bold mb-1">
+                        {prz.rank}
+                      </span>
+                      <span className="text-sm font-bold text-white mb-1">{prz.title}</span>
+                      <span className="text-lg font-extrabold text-[#18CFFC]">{prz.amount}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* TAB 5: RULES & FAQS */}
-            {activeTab === 'rules' && (
-              <div className="flex flex-col gap-6">
-                {/* Event Rules & Code of Conduct */}
-                {event.rules && (
-                  <div className="flex flex-col gap-3">
-                    <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] flex items-center gap-2">
-                      <FileText size={18} className="text-[#18CFFC]" /> Rules & Code of Conduct
-                    </h2>
-                    <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line bg-[#0E0E12] p-6 rounded-2xl border border-white/[0.08] shadow-sm">
-                      {event.rules}
-                    </div>
-                  </div>
-                )}
+            {/* ── Structured FAQs Accordion (Phase 6) ──────────────────────── */}
+            {Array.isArray((event as any).faqs) && (event as any).faqs.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
+                  <HelpCircle size={18} className="text-[#ED47FC]" />
+                  Frequently Asked Questions
+                </h2>
+                <div className="bg-[#0E0E12] p-4 sm:p-5 rounded-2xl border border-white/[0.08] flex flex-col gap-2.5">
+                  {(event as any).faqs.map((faq: any, i: number) => {
+                    const isOpen = activeFaqIndex === i
+                    return (
+                      <div
+                        key={i}
+                        className="p-3.5 rounded-xl bg-[#14141A] border border-white/[0.06] transition-all cursor-pointer"
+                        onClick={() => setActiveFaqIndex(isOpen ? null : i)}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <h4 className="text-xs sm:text-sm font-semibold text-white">
+                            {faq.question}
+                          </h4>
+                          {isOpen ? (
+                            <ChevronUp size={16} className="text-[#18CFFC] shrink-0" />
+                          ) : (
+                            <ChevronDown size={16} className="text-zinc-500 shrink-0" />
+                          )}
+                        </div>
+                        {isOpen && (
+                          <p className="text-xs text-zinc-300 leading-relaxed mt-2 pt-2 border-t border-white/[0.06] font-sans">
+                            {faq.answer}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
-                {/* Eligibility & Guidelines */}
-                {event.eligibility && (
-                  <div className="flex flex-col gap-3">
-                    <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] flex items-center gap-2">
-                      <Sparkles size={18} className="text-amber-400" /> Eligibility & Requirements
-                    </h2>
-                    <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed bg-[#0E0E12] p-5 rounded-2xl border border-white/[0.08] flex items-start gap-3 shadow-sm">
-                      <span>{event.eligibility}</span>
-                    </div>
-                  </div>
-                )}
+            {/* Organizer Contact Info */}
+            {(event.contact_email || event.contact_phone) && (
+              <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <span className="text-zinc-400 font-medium">Have questions? Reach the host directly:</span>
+                <div className="flex items-center gap-4 flex-wrap">
+                  {event.contact_email && (
+                    <a
+                      href={`mailto:${event.contact_email}`}
+                      className="flex items-center gap-1.5 text-[#18CFFC] hover:underline font-medium"
+                    >
+                      <Mail size={14} /> {event.contact_email}
+                    </a>
+                  )}
+                  {event.contact_phone && (
+                    <a
+                      href={`tel:${event.contact_phone}`}
+                      className="flex items-center gap-1.5 text-[#7F1AFB] hover:underline font-medium"
+                    >
+                      <Phone size={14} /> {event.contact_phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
-                {/* Structured FAQs Accordion */}
-                {Array.isArray((event as any).faqs) && (event as any).faqs.length > 0 && (
-                  <div className="flex flex-col gap-3">
-                    <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                      <HelpCircle size={18} className="text-[#ED47FC]" />
-                      Frequently Asked Questions
-                    </h2>
-                    <div className="bg-[#0E0E12] p-4 sm:p-5 rounded-2xl border border-white/[0.08] flex flex-col gap-2.5">
-                      {(event as any).faqs.map((faq: any, i: number) => {
-                        const isOpen = activeFaqIndex === i
-                        return (
-                          <div
-                            key={i}
-                            className="p-3.5 rounded-xl bg-[#14141A] border border-white/[0.06] transition-all cursor-pointer"
-                            onClick={() => setActiveFaqIndex(isOpen ? null : i)}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <h4 className="text-xs sm:text-sm font-semibold text-white">
-                                {faq.question}
-                              </h4>
-                              {isOpen ? (
-                                <ChevronUp size={16} className="text-[#18CFFC] shrink-0" />
-                              ) : (
-                                <ChevronDown size={16} className="text-zinc-500 shrink-0" />
-                              )}
-                            </div>
-                            {isOpen && (
-                              <p className="text-xs text-zinc-300 leading-relaxed mt-2 pt-2 border-t border-white/[0.06] font-sans">
-                                {faq.answer}
-                              </p>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
+            {/* Event Community Q&A and Discussions */}
+            <EventDiscussionSection
+              eventId={event.id}
+              clubId={event.club_id}
+              isOrganizer={canModerateDiscussion}
+            />
 
-                {/* Organizer Contact Info */}
-                {(event.contact_email || event.contact_phone) && (
-                  <div className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <span className="text-zinc-400 font-medium">Have questions? Reach the host directly:</span>
-                    <div className="flex items-center gap-4 flex-wrap">
-                      {event.contact_email && (
-                        <a
-                          href={`mailto:${event.contact_email}`}
-                          className="flex items-center gap-1.5 text-[#18CFFC] hover:underline font-medium"
-                        >
-                          <Mail size={14} /> {event.contact_email}
-                        </a>
-                      )}
-                      {event.contact_phone && (
-                        <a
-                          href={`tel:${event.contact_phone}`}
-                          className="flex items-center gap-1.5 text-[#7F1AFB] hover:underline font-medium"
-                        >
-                          <Phone size={14} /> {event.contact_phone}
-                        </a>
-                      )}
-                    </div>
+            {/* ── Related Events Recommendations (Phase 6) ────────────────── */}
+            {relatedEvents.length > 0 && (
+              <div className="flex flex-col gap-3 pt-6 border-t border-white/[0.08]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold font-heading text-white">
+                      Explore More Campus Events
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Other recommended {event.category} events on FestFlow
+                    </p>
                   </div>
-                )}
+                  <Link
+                    to="/discover"
+                    className="text-xs text-[#18CFFC] hover:underline font-semibold"
+                  >
+                    View All
+                  </Link>
+                </div>
 
-                {/* Event Community Q&A and Discussions */}
-                <EventDiscussionSection
-                  eventId={event.id}
-                  clubId={event.club_id}
-                  isOrganizer={canModerateDiscussion}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {relatedEvents.map((rel) => (
+                    <Link
+                      key={rel.id}
+                      to={`/events/${rel.slug}`}
+                      className="group p-3 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-[#18CFFC]/50 transition-all flex flex-col justify-between gap-2 shadow-sm"
+                    >
+                      <div>
+                        <div className="w-full h-24 rounded-xl overflow-hidden mb-2 bg-[#14141A]">
+                          <img
+                            src={resolvePosterUrl(rel.poster_url || rel.cover_url, rel.category as any)}
+                            alt={rel.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                        <h4 className="text-xs font-bold text-white group-hover:text-[#18CFFC] transition-colors line-clamp-1">
+                          {rel.title}
+                        </h4>
+                        <span className="text-[10px] text-zinc-400 block truncate">
+                          {new Date(rel.start_date).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}{' '}
+                          • {rel.venue_name}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] pt-1 border-t border-white/[0.06]">
+                        <span className="text-zinc-500 uppercase">{rel.category}</span>
+                        <span className="font-bold text-white">
+                          {rel.is_free ? 'Free' : `₹${rel.price}`}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           {/* Right 1 Col: Registration & Ticket Card */}
           <div className="flex flex-col gap-6">
-            <div className="p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.12] hover:border-[#18CFFC]/30 transition-all shadow-2xl flex flex-col gap-5 lg:sticky lg:top-24">
+            <div className="p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.1] shadow-2xl flex flex-col gap-5 lg:sticky lg:top-28">
               {/* Fee & Tier Indicator */}
               <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                 <div>
-                  <span className="text-xs text-zinc-400 font-medium block">
+                  <span className="text-xs text-zinc-500 font-medium block">
                     {selectedTier ? selectedTier.name : 'Admission Fee'}
                   </span>
-                  <span className="text-2xl sm:text-3xl font-extrabold font-display text-white">
+                  <span className="text-2xl sm:text-3xl font-extrabold font-heading text-white">
                     {displayIsFree ? (
                       <span className="text-emerald-400">Free Entry</span>
                     ) : (
@@ -1306,7 +1132,7 @@ export default function EventDetailPage() {
                     )}
                   </span>
                 </div>
-                <Badge variant={displayIsFree ? 'success' : 'purple'} className="shadow-md">
+                <Badge variant={displayIsFree ? 'success' : 'purple'}>
                   {displayIsFree ? 'Complimentary' : selectedTier ? selectedTier.tier_type.toUpperCase() : 'Ticketed'}
                 </Badge>
               </div>
@@ -1315,10 +1141,10 @@ export default function EventDetailPage() {
               {event.show_seat_availability !== false ? (
                 <div className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col gap-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-300 flex items-center gap-1.5 font-medium">
+                    <span className="text-zinc-400 flex items-center gap-1 font-medium">
                       <Users size={13} className="text-[#18CFFC]" /> Seat Availability
                     </span>
-                    <span className="font-mono text-white font-bold px-2 py-0.5 rounded-md bg-white/10 text-[11px]">
+                    <span className="font-mono text-white font-bold">
                       {remainingSeats} left of {totalCapacity}
                     </span>
                   </div>
