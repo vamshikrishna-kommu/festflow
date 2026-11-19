@@ -90,8 +90,10 @@ export function Navbar() {
     switchWorkspace,
   } = useAuth()
 
+  // Scroll listener: transparent at top, blur-glass when scrolled > 80px
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 24)
+    const handler = () => setScrolled(window.scrollY > 80)
+    handler()
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
@@ -166,7 +168,7 @@ export function Navbar() {
 
   return (
     <>
-      {/* Scroll progress bar */}
+      {/* Scroll progress bar with brand neon gradient */}
       <motion.div
         className="fixed top-0 left-0 z-[60] h-[2px] origin-left pointer-events-none"
         style={{
@@ -180,10 +182,10 @@ export function Navbar() {
         variants={navbarSlide}
         initial="hidden"
         animate="visible"
-        className={`sticky top-0 z-50 w-full transition-all duration-300 border-b ${
+        className={`sticky top-0 z-50 w-full transition-all duration-300 ${
           scrolled
-            ? 'glass border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]'
-            : 'bg-[#08080A]/90 backdrop-blur-md border-white/[0.06]'
+            ? 'bg-[#08080A]/80 backdrop-blur-xl border-b border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]'
+            : 'bg-transparent border-b border-transparent backdrop-blur-none'
         }`}
       >
         {isProduction && !isSupabaseConfigured && (
@@ -198,9 +200,23 @@ export function Navbar() {
             aria-label="Main navigation"
             className="flex items-center justify-between h-16 sm:h-18"
           >
-            {/* Logo */}
-            <Link to="/" className="flex items-center shrink-0" aria-label="FestFlow home">
-              <Logo variant="navbar" />
+            {/* Logo area with brand emblem and font-display (Sora) wordmark */}
+            <Link
+              to="/"
+              className="group flex items-center gap-2.5 sm:gap-3 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18CFFC]/50 rounded-xl"
+              aria-label="FestFlow home"
+            >
+              <Logo
+                variant="navbar"
+                alt="FestFlow logo"
+                containerClassName="transition-all duration-300 group-hover:scale-105 group-hover:border-[#18CFFC]/40 group-hover:shadow-[0_0_18px_rgba(24,207,252,0.35)]"
+              />
+              <span
+                className="font-display font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent group-hover:from-white group-hover:to-[#18CFFC] transition-all duration-300"
+                style={{ fontFamily: 'var(--font-display, "Sora", sans-serif)' }}
+              >
+                FestFlow
+              </span>
             </Link>
 
             {/* Desktop links */}
@@ -216,26 +232,47 @@ export function Navbar() {
                   <li key={link.href} className="relative">
                     <NavLink
                       to={link.href}
-                      className={({ isActive }) =>
-                        `relative px-3.5 py-2 rounded-xl text-sm font-medium transition-colors duration-200 inline-block ${
-                          isActive && (link.href === '/discover' || link.href === '/student/dashboard' || link.href === '/club/dashboard')
-                            ? 'text-white font-semibold'
-                            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]/60'
+                      className={({ isActive }) => {
+                        const isMainActive =
+                          isActive &&
+                          (link.href === '/discover' ||
+                            link.href === '/student/dashboard' ||
+                            link.href === '/club/dashboard' ||
+                            link.href === '/community' ||
+                            link.href === '/club/events' ||
+                            link.href === '/club/members' ||
+                            link.href === '/club/payments')
+                        return `group relative px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-300 inline-flex items-center justify-center border border-transparent ${
+                          isMainActive
+                            ? 'text-white font-semibold drop-shadow-[0_0_12px_rgba(24,207,252,0.4)]'
+                            : 'text-zinc-300 hover:text-white hover:bg-[#18CFFC]/[0.08] hover:border-[#18CFFC]/20 hover:shadow-[0_0_16px_rgba(24,207,252,0.18)]'
                         }`
-                      }
+                      }}
                     >
                       {({ isActive }) => {
-                        const isMainActive = isActive && (link.href === '/discover' || link.href === '/student/dashboard' || link.href === '/club/dashboard')
+                        const isMainActive =
+                          isActive &&
+                          (link.href === '/discover' ||
+                            link.href === '/student/dashboard' ||
+                            link.href === '/club/dashboard' ||
+                            link.href === '/community' ||
+                            link.href === '/club/events' ||
+                            link.href === '/club/members' ||
+                            link.href === '/club/payments')
                         return (
                           <>
-                            {isMainActive && (
-                              <motion.span
-                                layoutId="nav-active-indicator"
-                                className="absolute inset-0 rounded-xl bg-[var(--color-surface-3)] border border-[oklch(100%_0_0_/_0.12)] shadow-sm -z-0"
-                                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                              />
-                            )}
-                            <span className="relative z-10">{link.label}</span>
+                            <span className="relative z-10 transition-colors duration-200 group-hover:drop-shadow-[0_0_8px_rgba(24,207,252,0.5)]">
+                              {link.label}
+                            </span>
+                            {/* Animated underline using CSS transform scaleX */}
+                            <span
+                              aria-hidden="true"
+                              className={`absolute bottom-0.5 left-2.5 right-2.5 h-[2px] rounded-full transition-transform duration-300 origin-center ${
+                                isMainActive
+                                  ? 'scale-x-100 bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] shadow-[0_0_10px_rgba(24,207,252,0.8)]'
+                                  : 'scale-x-0 group-hover:scale-x-100 bg-gradient-to-r from-[#18CFFC]/80 to-[#7F1AFB]/80 opacity-0 group-hover:opacity-100 shadow-[0_0_8px_rgba(24,207,252,0.5)]'
+                              }`}
+                            />
                           </>
                         )
                       }}
@@ -633,191 +670,194 @@ export function Navbar() {
         </div>
       </motion.header>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            id="mobile-menu"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Mobile navigation"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] md:hidden flex flex-col"
-            style={{ background: 'rgba(8, 8, 10, 0.98)' }}
+      {/* Mobile menu container with smooth slide-down animation using CSS transitions */}
+      <div
+        id="mobile-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation"
+        className={`fixed inset-0 z-[60] md:hidden flex flex-col transition-all duration-300 ease-in-out ${
+          mobileOpen
+            ? 'translate-y-0 opacity-100 pointer-events-auto'
+            : '-translate-y-full opacity-0 pointer-events-none'
+        }`}
+        style={{ background: 'rgba(8, 8, 10, 0.98)' }}
+      >
+        {/* Backdrop blur */}
+        <div className="absolute inset-0 backdrop-blur-xl pointer-events-none" />
+
+        {/* Mobile drawer dedicated top bar */}
+        <div className="relative z-10 flex items-center justify-between px-4 py-3.5 border-b border-[oklch(100%_0_0_/_0.08)] shrink-0">
+          <Link
+            to="/"
+            onClick={() => setMobileOpen(false)}
+            className="group flex items-center gap-2.5 shrink-0"
+            aria-label="FestFlow home"
           >
-            {/* Backdrop blur */}
-            <div className="absolute inset-0 backdrop-blur-xl" />
-
-            {/* Mobile drawer dedicated top bar */}
-            <div className="relative z-10 flex items-center justify-between px-4 py-3.5 border-b border-[oklch(100%_0_0_/_0.08)] shrink-0">
-              <Link to="/" onClick={() => setMobileOpen(false)} aria-label="FestFlow home">
-                <Logo variant="navbar" />
-              </Link>
-              <button
-                type="button"
-                aria-label="Close menu"
-                className="p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-10 flex flex-col flex-1 px-5 py-6 pb-safe overflow-y-auto"
+            <Logo variant="navbar" alt="FestFlow logo" />
+            <span
+              className="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent group-hover:to-[#18CFFC] transition-all"
+              style={{ fontFamily: 'var(--font-display, "Sora", sans-serif)' }}
             >
-              {/* Authenticated User Header in Mobile Drawer */}
-              {session && (
-                <div className="flex items-center gap-3 px-3 py-3 mb-3 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)]">
-                  <span className="w-10 h-10 rounded-full gradient-brand text-white text-sm font-bold flex items-center justify-center shrink-0 shadow-sm">
-                    {userInitial}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{userDisplayName}</p>
-                    <p className="text-xs text-[var(--color-text-muted)] truncate">{session.user.email}</p>
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <Badge variant={isClubWorkspace ? 'purple' : 'cyan'} className="text-[10px] py-0 px-2 font-medium">
-                        {isClubWorkspace
-                          ? (activeClubRole ? `Club: ${activeClubRole.replace('_', ' ')}` : 'Club Organizer')
-                          : 'Student'}
-                      </Badge>
-                      {isDualEligible && (
-                        <Badge variant="default" className="text-[9px] py-0 px-1.5 opacity-80">
-                          Dual Access
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+              FestFlow
+            </span>
+          </Link>
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Drawer scrollable content */}
+        <div className="relative z-10 flex flex-col flex-1 px-5 py-6 pb-safe overflow-y-auto">
+          {/* Authenticated User Header in Mobile Drawer */}
+          {session && (
+            <div className="flex items-center gap-3 px-3 py-3 mb-3 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)]">
+              <span className="w-10 h-10 rounded-full gradient-brand text-white text-sm font-bold flex items-center justify-center shrink-0 shadow-sm">
+                {userInitial}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{userDisplayName}</p>
+                <p className="text-xs text-[var(--color-text-muted)] truncate">{session.user.email}</p>
+                <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                  <Badge variant={isClubWorkspace ? 'purple' : 'cyan'} className="text-[10px] py-0 px-2 font-medium">
+                    {isClubWorkspace
+                      ? (activeClubRole ? `Club: ${activeClubRole.replace('_', ' ')}` : 'Club Organizer')
+                      : 'Student'}
+                  </Badge>
+                  {isDualEligible && (
+                    <Badge variant="default" className="text-[9px] py-0 px-1.5 opacity-80">
+                      Dual Access
+                    </Badge>
+                  )}
                 </div>
-              )}
+              </div>
+            </div>
+          )}
 
-              {/* Mobile Dual Workspace Switcher */}
-              {session && (
-                <Suspense fallback={null}>
-                  <WorkspaceSwitcher variant="mobile" onNavigate={() => setMobileOpen(false)} />
-                </Suspense>
-              )}
+          {/* Mobile Dual Workspace Switcher */}
+          {session && (
+            <Suspense fallback={null}>
+              <WorkspaceSwitcher variant="mobile" onNavigate={() => setMobileOpen(false)} />
+            </Suspense>
+          )}
 
-              {/* Role-Aware Nav links */}
-              <ul className="flex flex-col gap-1 mb-8" role="list">
-                {activeNavLinks.map((link, i) => (
-                  <motion.li
-                    key={link.href}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.05 + i * 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <NavLink
-                      to={link.href}
-                      onClick={() => {
-                        document.body.style.overflow = ''
-                        setMobileOpen(false)
-                      }}
-                      className="flex items-center justify-between px-4 py-3.5 min-h-[52px] rounded-2xl text-lg font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] active:bg-[var(--color-surface-3)] transition-colors"
-                    >
-                      {link.label}
-                      <ChevronRight size={18} className="text-[var(--color-text-muted)]" />
-                    </NavLink>
-                  </motion.li>
-                ))}
-              </ul>
+          {/* Role-Aware Nav links */}
+          <ul className="flex flex-col gap-1.5 mb-8" role="list">
+            {activeNavLinks.map((link) => (
+              <li key={link.href}>
+                <NavLink
+                  to={link.href}
+                  onClick={() => {
+                    document.body.style.overflow = ''
+                    setMobileOpen(false)
+                  }}
+                  className={({ isActive }) =>
+                    `group flex items-center justify-between px-4 py-3.5 min-h-[52px] rounded-2xl text-base font-semibold transition-all duration-200 border border-transparent ${
+                      isActive
+                        ? 'text-white bg-[#18CFFC]/10 border-[#18CFFC]/30 shadow-[0_0_15px_rgba(24,207,252,0.15)]'
+                        : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] hover:border-white/10 active:bg-[var(--color-surface-3)]'
+                    }`
+                  }
+                >
+                  <span>{link.label}</span>
+                  <ChevronRight size={18} className="text-[var(--color-text-muted)] group-hover:text-[#18CFFC] transition-colors" />
+                </NavLink>
+              </li>
+            ))}
+          </ul>
 
-              {/* Auth area actions */}
-              <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-[oklch(100%_0_0_/_0.08)]">
-                {session ? (
-                  <>
-                    {role === 'platform_admin' && (
-                      <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)}>
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10 mb-2"
-                          leftIcon={<ShieldCheck size={16} />}
-                        >
-                          Super Admin Console
-                        </Button>
-                      </Link>
-                    )}
-                    {isClubWorkspace ? (
-                      <>
-                        {hasClubPermission('club.view') && (
-                          <Link to="/club/dashboard" onClick={() => setMobileOpen(false)}>
-                            <Button variant="primary" size="lg" className="w-full" leftIcon={<LayoutDashboard size={16} />}>
-                              Club Dashboard
-                            </Button>
-                          </Link>
-                        )}
-                        {hasClubPermission('members.view') && (
-                          <Link to="/club/members" onClick={() => setMobileOpen(false)}>
-                            <Button variant="outline" size="lg" className="w-full" leftIcon={<Users size={16} />}>
-                              Team & Permissions
-                            </Button>
-                          </Link>
-                        )}
-                        {hasClubPermission('events.create') && (
-                          <Link to="/club/events/new" onClick={() => setMobileOpen(false)}>
-                            <Button variant="outline" size="lg" className="w-full" leftIcon={<Plus size={16} />}>
-                              Create New Event
-                            </Button>
-                          </Link>
-                        )}
-                      </>
-                    ) : (
-                      <Link to="/student/dashboard" onClick={() => setMobileOpen(false)}>
-                        <Button variant="primary" size="lg" className="w-full" leftIcon={<LayoutDashboard size={16} />}>
-                          Go to My Dashboard
-                        </Button>
-                      </Link>
-                    )}
-
+          {/* Auth area actions */}
+          <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-[oklch(100%_0_0_/_0.08)]">
+            {session ? (
+              <>
+                {role === 'platform_admin' && (
+                  <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)}>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="lg"
-                      className="w-full text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                      onClick={async () => {
-                        setMobileOpen(false)
-                        await signOut()
-                        navigate('/')
-                      }}
-                      leftIcon={<LogOut size={16} />}
+                      className="w-full text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10 mb-2"
+                      leftIcon={<ShieldCheck size={16} />}
                     >
-                      Sign Out
+                      Super Admin Console
                     </Button>
+                  </Link>
+                )}
+                {isClubWorkspace ? (
+                  <>
+                    {hasClubPermission('club.view') && (
+                      <Link to="/club/dashboard" onClick={() => setMobileOpen(false)}>
+                        <Button variant="primary" size="lg" className="w-full" leftIcon={<LayoutDashboard size={16} />}>
+                          Club Dashboard
+                        </Button>
+                      </Link>
+                    )}
+                    {hasClubPermission('members.view') && (
+                      <Link to="/club/members" onClick={() => setMobileOpen(false)}>
+                        <Button variant="outline" size="lg" className="w-full" leftIcon={<Users size={16} />}>
+                          Team & Permissions
+                        </Button>
+                      </Link>
+                    )}
+                    {hasClubPermission('events.create') && (
+                      <Link to="/club/events/new" onClick={() => setMobileOpen(false)}>
+                        <Button variant="outline" size="lg" className="w-full" leftIcon={<Plus size={16} />}>
+                          Create New Event
+                        </Button>
+                      </Link>
+                    )}
                   </>
                 ) : (
-                  <>
-                    <Link to="/student/login" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" size="lg" className="w-full" leftIcon={<GraduationCap size={16} />}>
-                        Student Login
-                      </Button>
-                    </Link>
-                    <Link to="/club/login" onClick={() => setMobileOpen(false)}>
-                      <Button variant="ghost" size="lg" className="w-full border border-[oklch(100%_0_0_/_0.1)]" leftIcon={<Building2 size={16} />}>
-                        Club Login
-                      </Button>
-                    </Link>
-                    <Link to="/club/signup" onClick={() => setMobileOpen(false)}>
-                      <Button variant="primary" size="lg" className="w-full shine-on-hover" rightIcon={<ChevronRight size={16} />}>
-                        Start a Club — Free
-                      </Button>
-                    </Link>
-                    <Link to="/student/signup" onClick={() => setMobileOpen(false)} className="text-center text-sm text-[var(--color-brand-cyan)] hover:underline py-1">
-                      New student? Sign up free →
-                    </Link>
-                  </>
+                  <Link to="/student/dashboard" onClick={() => setMobileOpen(false)}>
+                    <Button variant="primary" size="lg" className="w-full" leftIcon={<LayoutDashboard size={16} />}>
+                      Go to My Dashboard
+                    </Button>
+                  </Link>
                 )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  className="w-full text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                  onClick={async () => {
+                    setMobileOpen(false)
+                    await signOut()
+                    navigate('/')
+                  }}
+                  leftIcon={<LogOut size={16} />}
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/student/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" size="lg" className="w-full" leftIcon={<GraduationCap size={16} />}>
+                    Student Login
+                  </Button>
+                </Link>
+                <Link to="/club/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="ghost" size="lg" className="w-full border border-[oklch(100%_0_0_/_0.1)]" leftIcon={<Building2 size={16} />}>
+                    Club Login
+                  </Button>
+                </Link>
+                <Link to="/club/signup" onClick={() => setMobileOpen(false)}>
+                  <Button variant="primary" size="lg" className="w-full shine-on-hover" rightIcon={<ChevronRight size={16} />}>
+                    Start a Club — Free
+                  </Button>
+                </Link>
+                <Link to="/student/signup" onClick={() => setMobileOpen(false)} className="text-center text-sm text-[var(--color-brand-cyan)] hover:underline py-1">
+                  New student? Sign up free →
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Student Settings Modal (loaded on demand when opened) */}
       {studentSettingsOpen && (

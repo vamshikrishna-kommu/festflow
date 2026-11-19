@@ -16,3 +16,4 @@ BEGIN
     EXECUTE 'DROP FUNCTION public.participant_toggle_attendance(UUID, TEXT);';
   END IF;
 END $$;
+

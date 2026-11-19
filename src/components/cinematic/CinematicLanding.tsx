@@ -1,37 +1,75 @@
 /**
- * FESTFLOW MOBILE FILM 2.0 — MASTER CINEMATIC ORCHESTRATOR
+ * FESTFLOW CINEMATIC 4.0 — MASTER 10-WORLD ORCHESTRATOR
+ * Codename: FESTFLOW INFINITE
  *
- * Implements the 5-Scene Interactive Product Film Standard:
- * 1. Scene 01: Brand Reveal (Logo, energy beam, headline)
- * 2. Scene 02: Discover Campus Events (FestFlow discovery preview)
- * 3. Scene 03: The Student Journey (Central smartphone 6-step sequential scrub)
- * 4. Scene 04: The Organizer Experience (Mobile club command center 4-stage scrub)
- * 5. Scene 05: The Final Reveal (Converged experience, logo focal point, CTAs)
+ * Implements the 10-World Grand Cinematic Continuum:
+ * 1. World 01: The Void / FestFlow Awakens (#world-01-void)
+ * 2. Campus Chapter Ticker (University chapters & student societies ribbon)
+ * 3. World 02: The Campus Reveals Itself (#world-02-campus)
+ * 4. World 03: Human Energy / Campus Comes Alive (#world-03-human)
+ * 5. World 04: The Event Multiverse (#world-04-multiverse)
+ * 6. World 05: Discover / Enter the Event (#world-05-discover)
+ * 7. World 06: The Student Journey (#world-06-student)
+ * 8. World 07: The Organizer Command Center (#world-07-organizer)
+ * 9. World 08: The Connected Campus Network (#world-08-network)
+ * 10. World 09: The Infinite Event Space (#world-09-infinite)
+ * 11. World 10: The Final Brand Reveal (#world-10-final)
+ * 12. Live Campus Calendar Feed (#events)
  *
- * Features:
- * - Direct scroll-driven bidirectional GSAP ScrollTrigger timelines (scroll down = forward, scroll up = reverse)
- * - Native browser scrolling preserved (no wheel interception, no scroll hijacking)
- * - Safe viewport handling for 320px to 430px mobile widths
- * - Live campus events feed integration with explicit loading, error+retry, empty, and populated states
- * - Full reduced motion support
- * - Context-aware Skip-to-Join control that hides automatically upon reaching Scene 05
+ * Technical Guarantees:
+ * - Centralized Lenis smooth scroll setup synced to GSAP ticker via initLenis / destroyLenis
+ * - Full-bleed dynamic InfiniteUniverseCanvas background reacting to continuous masterProgress (0 to 1)
+ * - Suspense and WebGLFallback wrapper for resilient GPU rendering
+ * - Web Audio procedural sound engine toggle (AudioAmbienceToggle)
+ * - Safe viewport handling for 320px to 4K resolutions with zero horizontal overflow (overflow-x-clip)
+ * - Context-aware Quick Skip Control targeting World 10 (#world-10-final)
+ * - Accessible reduced-motion support across all 10 worlds
  */
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react'
 import { Link } from 'react-router'
-import { Calendar, ChevronRight, ArrowRight, FastForward, AlertCircle, RefreshCw } from 'lucide-react'
+import {
+  Calendar,
+  ChevronRight,
+  ArrowRight,
+  FastForward,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { ScrollTrigger } from '@/lib/gsap'
+import { initLenis, destroyLenis, ScrollTrigger } from '@/lib/motion'
 import { listPublishedEvents, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import type { Event as UiEvent } from '@/types'
 import { Button, EmptyState } from '@/components/ui'
 import { EventGrid } from '@/components/sections/EventGrid'
+import { scrollToWorld } from './CinematicShared'
+import { WebGLFallback } from './WebGLFallback'
+import { AudioAmbienceToggle } from './AudioAmbienceToggle'
 
-import { getNavbarOffset } from './CinematicShared'
-import { Scene01BrandReveal } from './Scene01BrandReveal'
-import { Scene02DiscoverEvents } from './Scene02DiscoverEvents'
-import { Scene03StudentJourney } from './Scene03StudentJourney'
-import { Scene04OrganizerExperience } from './Scene04OrganizerExperience'
-import { Scene05FinalReveal } from './Scene05FinalReveal'
+// 10 Worlds Sequential Imports
+import { World01TheVoid } from './World01TheVoid'
+import { World02CampusReveal } from './World02CampusReveal'
+import { World03HumanEnergy } from './World03HumanEnergy'
+import { World04EventMultiverse } from './World04EventMultiverse'
+import { World05DiscoverPortal } from './World05DiscoverPortal'
+import { World06StudentJourney } from './World06StudentJourney'
+import { World07OrganizerCommand } from './World07OrganizerCommand'
+import { World08ConnectedNetwork } from './World08ConnectedNetwork'
+import { World09InfiniteSpace } from './World09InfiniteSpace'
+import { World10FinalReveal } from './World10FinalReveal'
+
+// Lazy load InfiniteUniverseCanvas with graceful fallback
+const InfiniteUniverseCanvas = lazy(async () => {
+  try {
+    const mod = await import('./InfiniteUniverseCanvas')
+    return { default: mod.InfiniteUniverseCanvas || mod.default }
+  } catch {
+    return {
+      default: (props: { className?: string; reducedMotion?: boolean; scrollProgress?: number }) => (
+        <WebGLFallback type="hero" {...props} />
+      ),
+    }
+  }
+})
 
 const CLUB_COMMUNITIES = [
   'Technical Chapters',
@@ -61,14 +99,20 @@ function CampusChapterTicker() {
       <div className="relative overflow-hidden">
         <div
           className="ticker-track"
-          style={reduced ? { justifyContent: 'center', flexWrap: 'wrap', gap: '1.25rem', animation: 'none' } : {}}
+          style={
+            reduced
+              ? { justifyContent: 'center', flexWrap: 'wrap', gap: '1.25rem', animation: 'none' }
+              : {}
+          }
         >
           {items.map((name, i) => (
             <span
               key={`${name}-${i}`}
               className="whitespace-nowrap text-xs font-semibold text-zinc-400 hover:text-white transition-colors px-4 shrink-0 flex items-center gap-1.5"
             >
-              <span className="text-[#18CFFC]" aria-hidden="true">✦</span>
+              <span className="text-[#18CFFC]" aria-hidden="true">
+                ✦
+              </span>
               {name}
             </span>
           ))}
@@ -84,8 +128,41 @@ export function CinematicLanding() {
   const [loading, setLoading] = useState(true)
   const [eventsError, setEventsError] = useState<string | null>(null)
   const [showSkip, setShowSkip] = useState(false)
+  const [masterProgress, setMasterProgress] = useState(0)
+
   const masterContainerRef = useRef<HTMLDivElement>(null)
   const requestIdRef = useRef(0)
+
+  // Initialize smooth scrolling with Lenis synced to GSAP ticker
+  useEffect(() => {
+    if (reducedMotion) return
+    const lenis = initLenis()
+
+    return () => {
+      destroyLenis(lenis)
+    }
+  }, [reducedMotion])
+
+  // Continuous master scroll progress calculation (0 to 1) for InfiniteUniverseCanvas
+  useEffect(() => {
+    if (reducedMotion) return
+    const container = masterContainerRef.current
+    if (!container) return
+
+    const st = ScrollTrigger.create({
+      trigger: container,
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: true,
+      onUpdate: (self) => {
+        setMasterProgress(self.progress)
+      },
+    })
+
+    return () => {
+      st.kill()
+    }
+  }, [reducedMotion])
 
   const loadLiveEvents = useCallback(async () => {
     const reqId = ++requestIdRef.current
@@ -118,21 +195,21 @@ export function CinematicLanding() {
   useEffect(() => {
     void loadLiveEvents()
     return () => {
-      // Invalidate any in-flight request on unmount
       requestIdRef.current += 1
     }
   }, [loadLiveEvents])
 
+  // Context-aware Skip-to-Join button visibility handler targeting World 10 (#world-10-final)
   useEffect(() => {
     const updateSkipVisibility = () => {
       const pastIntro = window.scrollY > 280
-      const finalEl = document.getElementById('scene-05-final')
+      const finalEl = document.getElementById('world-10-final')
       if (!finalEl) {
         setShowSkip(pastIntro)
         return
       }
       const rect = finalEl.getBoundingClientRect()
-      // Hide Skip control once Scene 05 enters upper viewport, keeping it hidden across #events and Footer
+      // Hide Skip control once World 10 enters viewport, keeping it hidden across #events and Footer
       const beforeFinal = rect.top > window.innerHeight * 0.65
       setShowSkip(pastIntro && beforeFinal)
     }
@@ -147,20 +224,32 @@ export function CinematicLanding() {
   }, [reducedMotion])
 
   const handleSkipToFinal = () => {
-    const el = document.getElementById('scene-05-final')
-    if (!el) return
-    const navbarOffset = getNavbarOffset()
-    const targetTop = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - navbarOffset))
-    window.scrollTo({
-      top: targetTop,
-      behavior: 'auto',
-    })
+    scrollToWorld('world-10-final')
     ScrollTrigger.update()
   }
 
   return (
-    <div ref={masterContainerRef} className="relative w-full bg-[#08080A] text-white overflow-x-clip">
-      {/* Context-aware Quick Skip Control — hides automatically upon reaching Scene 05, #events, or Footer */}
+    <div
+      ref={masterContainerRef}
+      className="relative w-full bg-[#08080A] text-white overflow-x-clip"
+    >
+      {/* ─── MASTER 3D BACKGROUND UNIVERSE CANVAS ─── */}
+      <Suspense fallback={<WebGLFallback type="hero" reducedMotion={reducedMotion} />}>
+        <InfiniteUniverseCanvas
+          scrollProgress={masterProgress}
+          reducedMotion={reducedMotion}
+        />
+      </Suspense>
+
+      {/* ─── FLOATING AUDIO AMBIENCE TOGGLE (Web Audio procedural synthesis) ─── */}
+      <aside
+        aria-label="Sound ambience toggle"
+        className="fixed top-20 right-3.5 sm:top-24 sm:right-6 z-40 transition-opacity duration-200"
+      >
+        <AudioAmbienceToggle showLabel={false} />
+      </aside>
+
+      {/* ─── CONTEXT-AWARE QUICK SKIP CONTROL (Targets World 10) ─── */}
       {showSkip && (
         <aside
           aria-label="Skip to final actions"
@@ -169,32 +258,47 @@ export function CinematicLanding() {
           <button
             type="button"
             onClick={handleSkipToFinal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 min-[360px]:px-3.5 min-[360px]:py-2 rounded-full text-[11px] min-[360px]:text-xs font-bold text-white bg-[#14141A]/95 hover:bg-[#1C1C24] border border-white/25 backdrop-blur-md shadow-2xl transition-all duration-200 hover:border-[#18CFFC]/60 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 min-[360px]:px-4 min-[360px]:py-2.5 rounded-full text-[11px] min-[360px]:text-xs font-bold text-white bg-[#14141A]/95 hover:bg-[#1C1C24] border border-white/25 backdrop-blur-md shadow-2xl transition-all duration-200 hover:border-[#18CFFC]/60 hover:shadow-[0_0_20px_rgba(24,207,252,0.25)] cursor-pointer"
             aria-label="Skip to final actions"
           >
-            <FastForward size={12} className="text-[#18CFFC]" />
+            <FastForward size={13} className="text-[#18CFFC]" />
             <span>Skip to Join</span>
           </button>
         </aside>
       )}
 
-      {/* ─── SCENE 01: FestFlow Brand Reveal ─── */}
-      <Scene01BrandReveal reducedMotion={reducedMotion} />
+      {/* ─── WORLD 01: The Void / FestFlow Awakens ─── */}
+      <World01TheVoid reducedMotion={reducedMotion} />
 
       {/* ─── Campus Chapter Ticker ─── */}
       <CampusChapterTicker />
 
-      {/* ─── SCENE 02: Discover Campus Events ─── */}
-      <Scene02DiscoverEvents reducedMotion={reducedMotion} />
+      {/* ─── WORLD 02: The Campus Reveals Itself ─── */}
+      <World02CampusReveal reducedMotion={reducedMotion} />
 
-      {/* ─── SCENE 03: The Student Journey ─── */}
-      <Scene03StudentJourney reducedMotion={reducedMotion} />
+      {/* ─── WORLD 03: Human Energy / Campus Comes Alive ─── */}
+      <World03HumanEnergy reducedMotion={reducedMotion} />
 
-      {/* ─── SCENE 04: The Organizer Experience ─── */}
-      <Scene04OrganizerExperience reducedMotion={reducedMotion} />
+      {/* ─── WORLD 04: The Event Multiverse ─── */}
+      <World04EventMultiverse reducedMotion={reducedMotion} />
 
-      {/* ─── SCENE 05: The Final Reveal ─── */}
-      <Scene05FinalReveal reducedMotion={reducedMotion} />
+      {/* ─── WORLD 05: Discover / Enter the Event ─── */}
+      <World05DiscoverPortal reducedMotion={reducedMotion} />
+
+      {/* ─── WORLD 06: The Student Journey ─── */}
+      <World06StudentJourney reducedMotion={reducedMotion} />
+
+      {/* ─── WORLD 07: The Organizer Command Center ─── */}
+      <World07OrganizerCommand reducedMotion={reducedMotion} />
+
+      {/* ─── WORLD 08: The Connected Campus Network ─── */}
+      <World08ConnectedNetwork reducedMotion={reducedMotion} />
+
+      {/* ─── WORLD 09: The Infinite Event Space ─── */}
+      <World09InfiniteSpace reducedMotion={reducedMotion} />
+
+      {/* ─── WORLD 10: The Final Brand Reveal ─── */}
+      <World10FinalReveal reducedMotion={reducedMotion} />
 
       {/* ─── LIVE CAMPUS EVENTS CALENDAR ─── */}
       <section
@@ -204,13 +308,13 @@ export function CinematicLanding() {
       >
         <div className="mb-8 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-[#18CFFC] bg-[#14141A] border border-[#18CFFC]/30 mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-[#18CFFC] bg-[#14141A] border border-[#18CFFC]/30 mb-3 font-mono">
               <Calendar size={13} />
               <span>Live Campus Calendar</span>
             </div>
             <h2
               id="live-events-heading"
-              className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight"
+              className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight font-display"
             >
               Upcoming campus{' '}
               <span
@@ -224,8 +328,8 @@ export function CinematicLanding() {
                 events.
               </span>
             </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed max-w-xl">
-              Published campus events synced directly from FestFlow organizers.
+            <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed max-w-xl font-body">
+              Published campus events synced directly from FestFlow student organizers.
             </p>
           </div>
 
@@ -239,7 +343,11 @@ export function CinematicLanding() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" aria-busy="true" aria-label="Loading upcoming campus events">
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+            aria-busy="true"
+            aria-label="Loading upcoming campus events"
+          >
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
@@ -255,11 +363,12 @@ export function CinematicLanding() {
             <div className="w-11 h-11 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto mb-3">
               <AlertCircle size={20} />
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-white mb-1.5">
+            <h3 className="text-base sm:text-lg font-bold text-white mb-1.5 font-display">
               Unable to Load Campus Events
             </h3>
-            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed mb-5">
-              We couldn&apos;t connect to the live campus event feed right now. Check your connection and try again.
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed mb-5 font-body">
+              We couldn&apos;t connect to the live campus event feed right now. Check your connection
+              and try again.
             </p>
             <div className="flex flex-col sm:flex-row gap-2.5 justify-center">
               <Button
@@ -303,7 +412,12 @@ export function CinematicLanding() {
 
         <div className="mt-8 flex justify-center sm:hidden">
           <Link to="/discover" className="w-full max-w-sm">
-            <Button variant="outline" size="md" className="w-full" rightIcon={<ChevronRight size={16} />}>
+            <Button
+              variant="outline"
+              size="md"
+              className="w-full"
+              rightIcon={<ChevronRight size={16} />}
+            >
               Explore all campus events
             </Button>
           </Link>
@@ -312,3 +426,5 @@ export function CinematicLanding() {
     </div>
   )
 }
+
+export default CinematicLanding

@@ -1,6 +1,181 @@
 import type { ReactNode } from 'react'
 
 /**
+ * Standard scene props interface used across all cinematic scenes in FestFlow 3.0
+ */
+export interface SceneProps {
+  reducedMotion: boolean
+  className?: string
+  id?: string
+}
+
+/**
+ * Array of all 10 cinematic world IDs in sequential order (FestFlow Infinite 4.0)
+ */
+export const WORLD_IDS = [
+  'world-01-void',
+  'world-02-campus',
+  'world-03-human',
+  'world-04-multiverse',
+  'world-05-discover',
+  'world-06-student',
+  'world-07-organizer',
+  'world-08-network',
+  'world-09-infinite',
+  'world-10-final',
+] as const
+
+export type WorldId = (typeof WORLD_IDS)[number]
+
+export interface WorldMetadata {
+  id: WorldId
+  title: string
+  subtitle?: string
+  badge?: string
+}
+
+export const WORLD_CONFIGS: Record<WorldId, WorldMetadata> = {
+  'world-01-void': {
+    id: 'world-01-void',
+    title: 'The Void / Awakens',
+    subtitle: 'Where Campus Life Begins',
+    badge: 'World 01',
+  },
+  'world-02-campus': {
+    id: 'world-02-campus',
+    title: 'The Campus Reveals Itself',
+    subtitle: 'A Living Collegiate Ecosystem',
+    badge: 'World 02',
+  },
+  'world-03-human': {
+    id: 'world-03-human',
+    title: 'Human Energy',
+    subtitle: 'The Pulse of Student Ambition',
+    badge: 'World 03',
+  },
+  'world-04-multiverse': {
+    id: 'world-04-multiverse',
+    title: 'The Event Multiverse',
+    subtitle: 'Four Dimensions of Experience',
+    badge: 'World 04',
+  },
+  'world-05-discover': {
+    id: 'world-05-discover',
+    title: 'Discover / Enter Portal',
+    subtitle: 'Find What Moves You',
+    badge: 'World 05',
+  },
+  'world-06-student': {
+    id: 'world-06-student',
+    title: 'The Student Journey',
+    subtitle: 'From Discovery to Gate Pass',
+    badge: 'World 06',
+  },
+  'world-07-organizer': {
+    id: 'world-07-organizer',
+    title: 'The Organizer Command Center',
+    subtitle: 'Spatial Operations & Direct Settlement',
+    badge: 'World 07',
+  },
+  'world-08-network': {
+    id: 'world-08-network',
+    title: 'The Connected Campus Network',
+    subtitle: 'Interconnected Collegiate Society',
+    badge: 'World 08',
+  },
+  'world-09-infinite': {
+    id: 'world-09-infinite',
+    title: 'The Infinite Event Space',
+    subtitle: 'Architectural Portal Convergence',
+    badge: 'World 09',
+  },
+  'world-10-final': {
+    id: 'world-10-final',
+    title: 'The Final Brand Reveal',
+    subtitle: 'One Platform. Every Campus Event.',
+    badge: 'World 10',
+  },
+}
+
+export function isValidWorldId(id: string): id is WorldId {
+  return (WORLD_IDS as readonly string[]).includes(id)
+}
+
+/**
+ * Array of all 7 cinematic scene IDs in sequential order (Backward Compatibility)
+ */
+export const SCENE_IDS = [
+  'scene-01-brand',
+  'scene-02-discover',
+  'scene-03-journey',
+  'scene-04-organizer',
+  'scene-05-community',
+  'scene-06-tickets',
+  'scene-07-final',
+] as const
+
+export type SceneId = (typeof SCENE_IDS)[number]
+
+export interface SceneMetadata {
+  id: SceneId
+  title: string
+  subtitle?: string
+  badge?: string
+}
+
+export const SCENE_CONFIGS: Record<SceneId, SceneMetadata> = {
+  'scene-01-brand': {
+    id: 'scene-01-brand',
+    title: 'Brand Reveal',
+    subtitle: 'Where Campus Life Unfolds',
+    badge: 'Scene 01',
+  },
+  'scene-02-discover': {
+    id: 'scene-02-discover',
+    title: 'Discover Campus Events',
+    subtitle: 'Real-time Live Feed',
+    badge: 'Scene 02',
+  },
+  'scene-03-journey': {
+    id: 'scene-03-journey',
+    title: 'The Student Journey',
+    subtitle: 'Seamless Registration & Entry',
+    badge: 'Scene 03',
+  },
+  'scene-04-organizer': {
+    id: 'scene-04-organizer',
+    title: 'The Organizer Experience',
+    subtitle: 'Command Center & Realtime Analytics',
+    badge: 'Scene 04',
+  },
+  'scene-05-community': {
+    id: 'scene-05-community',
+    title: 'Campus Communities',
+    subtitle: 'Connecting Societies & Students',
+    badge: 'Scene 05',
+  },
+  'scene-06-tickets': {
+    id: 'scene-06-tickets',
+    title: 'FastPass & QR Tickets',
+    subtitle: 'Offline-ready Entry Check-in',
+    badge: 'Scene 06',
+  },
+  'scene-07-final': {
+    id: 'scene-07-final',
+    title: 'The Final Reveal',
+    subtitle: 'Elevate Your College Experience',
+    badge: 'Scene 07',
+  },
+}
+
+/**
+ * Returns whether a given string is a valid SceneId
+ */
+export function isValidSceneId(id: string): id is SceneId {
+  return (SCENE_IDS as readonly string[]).includes(id)
+}
+
+/**
  * Resolves sticky site Navbar height dynamically so pinned ScrollTrigger stages
  * never slide underneath or jump past the header across mobile/desktop breakpoints.
  */
@@ -91,3 +266,28 @@ export function MobileMockupChassis({
   )
 }
 
+/**
+ * Helper to smoothly scroll to a world by world ID
+ */
+export function scrollToWorld(worldId: WorldId | string): void {
+  scrollToScene(worldId)
+}
+
+/**
+ * Helper to smoothly scroll to a scene by scene ID
+ */
+export function scrollToScene(sceneId: SceneId | string): void {
+  if (typeof document === 'undefined') return
+  const el = document.getElementById(sceneId)
+  if (!el) return
+  const offset = getNavbarOffset()
+  const bodyRect = document.body.getBoundingClientRect().top
+  const elementRect = el.getBoundingClientRect().top
+  const elementPosition = elementRect - bodyRect
+  const offsetPosition = elementPosition - offset
+
+  window.scrollTo({
+    top: offsetPosition,
+    behavior: 'smooth',
+  })
+}

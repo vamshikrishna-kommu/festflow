@@ -1,7 +1,7 @@
 // FestFlow Production Service Worker
-// Version: 1.0.4 (Zero-Crash Response Guard & Cross-Origin Non-Interference)
+// Version: 1.0.5 (Cinematic 4.0 Infinite Universe Cache Refresh)
 
-const CACHE_NAME = 'festflow-core-v6';
+const CACHE_NAME = 'festflow-core-v7';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_PRECACHE = [

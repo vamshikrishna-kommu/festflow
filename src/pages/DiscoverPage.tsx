@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import {
   Search,
   SlidersHorizontal,
@@ -9,11 +9,16 @@ import {
   Compass,
   LayoutGrid,
   Map,
+  Flame,
+  Armchair,
+  Ticket,
+  ChevronRight,
+  Filter,
 } from 'lucide-react'
 import { PageShell } from '@/components/layout/PageShell'
 import { EventCard } from '@/components/sections/EventCard'
 import { EventDiscoveryMap } from '@/components/events/EventDiscoveryMap'
-import { Button, EmptyState } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { SEOHead } from '@/components/seo/SEOHead'
 import { staggerContainer, fadeUp } from '@/lib/animations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
@@ -27,24 +32,25 @@ const PAGE_SIZE = 12
 export default function DiscoverPage() {
   const reduced = useReducedMotion()
 
-  const [rawEvents, setRawEvents]   = useState<Event[]>([])
-  const [totalCount, setTotalCount] = useState(0)
-  const [loading, setLoading]       = useState(true)
+  const [rawEvents, setRawEvents]     = useState<Event[]>([])
+  const [totalCount, setTotalCount]   = useState(0)
+  const [loading, setLoading]         = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError]           = useState<string | null>(null)
+  const [error, setError]             = useState<string | null>(null)
 
-  const [viewMode, setViewMode]           = useState<'grid' | 'map'>('grid')
-  const [search, setSearch]               = useState('')
+  const [viewMode, setViewMode]             = useState<'grid' | 'map'>('grid')
+  const [search, setSearch]                 = useState('')
   // Debounce search query to eliminate network storms on every keystroke
   const debouncedSearch = useDebounce(search, 300)
   const activeRequestId = useRef(0)
 
-  const [category, setCategory]           = useState<CategoryFilter>('all')
-  const [participationFilter, setParticipationFilter] = useState<'all' | 'individual' | 'team'>('all')
-  const [pricingFilter, setPricingFilter] = useState<'all' | 'free' | 'paid'>('all')
-  const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'closing_soon' | 'this_week'>('all')
-  const [collegeFilter, setCollegeFilter] = useState<string>('all')
-  const [offset, setOffset]               = useState(0)
+  const [category, setCategory]                         = useState<CategoryFilter>('all')
+  const [participationFilter, setParticipationFilter]   = useState<'all' | 'individual' | 'team'>('all')
+  const [pricingFilter, setPricingFilter]               = useState<'all' | 'free' | 'paid'>('all')
+  const [urgencyFilter, setUrgencyFilter]               = useState<'all' | 'closing_soon' | 'this_week'>('all')
+  const [seatingOnly, setSeatingOnly]                   = useState(false)
+  const [collegeFilter, setCollegeFilter]               = useState<string>('all')
+  const [offset, setOffset]                             = useState(0)
 
   // Derive unique college / campus venues from verified events
   const availableColleges = useMemo(() => {
@@ -102,7 +108,7 @@ export default function DiscoverPage() {
     fetchEvents(true, next)
   }
 
-  // Client-side refinement for completed status, participation type, pricing, college, and closing-soon filters
+  // Client-side refinement for completed status, participation type, pricing, college, seating and closing-soon filters
   const displayedEvents = useMemo(() => {
     const now = Date.now()
     const fiveDaysMs = 5 * 24 * 60 * 60 * 1000
@@ -124,6 +130,14 @@ export default function DiscoverPage() {
       if (pricingFilter === 'paid' && evt.isFree) {
         return false
       }
+      if (seatingOnly) {
+        // Events with reserved seating
+        const hasSeatTag = Array.isArray(evt.tags) && evt.tags.some(t => t.toLowerCase().includes('seat') || t.toLowerCase().includes('auditorium'))
+        const isAuditoriumVenue = evt.venue?.toLowerCase().includes('auditorium') || evt.venue?.toLowerCase().includes('hall')
+        if (!hasSeatTag && !isAuditoriumVenue) {
+          return false
+        }
+      }
       if (collegeFilter !== 'all') {
         const matchesVenue = evt.venue?.toLowerCase().includes(collegeFilter.toLowerCase())
         const matchesAllowed = Array.isArray(evt.allowedColleges) && evt.allowedColleges.some((c) => c.toLowerCase().includes(collegeFilter.toLowerCase()))
@@ -144,10 +158,17 @@ export default function DiscoverPage() {
       }
       return true
     })
-  }, [rawEvents, participationFilter, pricingFilter, collegeFilter, urgencyFilter])
+  }, [rawEvents, participationFilter, pricingFilter, collegeFilter, urgencyFilter, seatingOnly])
 
   const hasMore = rawEvents.length < totalCount
-  const hasFilters = search.trim() || category !== 'all' || participationFilter !== 'all' || pricingFilter !== 'all' || collegeFilter !== 'all' || urgencyFilter !== 'all'
+  const hasFilters =
+    search.trim() ||
+    category !== 'all' ||
+    participationFilter !== 'all' ||
+    pricingFilter !== 'all' ||
+    collegeFilter !== 'all' ||
+    urgencyFilter !== 'all' ||
+    seatingOnly
 
   const clearAllFilters = () => {
     setSearch('')
@@ -156,6 +177,7 @@ export default function DiscoverPage() {
     setPricingFilter('all')
     setCollegeFilter('all')
     setUrgencyFilter('all')
+    setSeatingOnly(false)
   }
 
   return (
@@ -165,15 +187,16 @@ export default function DiscoverPage() {
         description="Find upcoming college hackathons, technical symposiums, workshops, and fests across verified campus clubs on FestFlow."
         canonicalPath="/discover"
       />
+
       {/* ── Page Hero Header ─────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden border-b border-white/[0.06] pb-8 sm:pb-12 text-left bg-gradient-to-b from-[#0E0E12] to-[#08080A]">
+      <div className="relative overflow-hidden border-b border-white/[0.08] pb-10 sm:pb-14 text-left bg-gradient-to-b from-[#0E0E12] via-[#08080A] to-[#08080A]">
         {/* Subtle background glow */}
         <div
           aria-hidden="true"
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 70% 90% at 50% -10%, rgba(24, 207, 252, 0.12) 0%, rgba(127, 26, 251, 0.05) 45%, transparent 75%)',
+              'radial-gradient(ellipse 75% 90% at 50% -10%, rgba(24, 207, 252, 0.16) 0%, rgba(127, 26, 251, 0.08) 45%, transparent 75%)',
           }}
         />
         <div aria-hidden="true" className="absolute inset-0 grid-pattern opacity-15 pointer-events-none" />
@@ -182,29 +205,33 @@ export default function DiscoverPage() {
           variants={staggerContainer}
           initial={reduced ? 'visible' : 'hidden'}
           animate="visible"
-          className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8"
+          className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10"
         >
           <motion.div
             variants={reduced ? undefined : fadeUp}
-            className="flex items-center gap-2 mb-2"
+            className="flex items-center gap-2 mb-3"
           >
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC]">
-              <Sparkles size={12} aria-hidden="true" /> Campus Directory
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC] backdrop-blur-md">
+              <Sparkles size={12} aria-hidden="true" className="animate-pulse" /> Campus Discovery Hub
             </div>
           </motion.div>
 
           <motion.h1
             variants={reduced ? undefined : fadeUp}
-            className="font-heading font-extrabold text-3xl sm:text-4xl md:text-5xl text-white mb-3 tracking-tight"
+            className="font-display font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white mb-4 tracking-tight leading-[1.1]"
           >
-            Discover Events
+            Explore Campus{' '}
+            <span className="bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#ED47FC] bg-clip-text text-transparent">
+              Experiences
+            </span>
           </motion.h1>
 
           <motion.p
             variants={reduced ? undefined : fadeUp}
-            className="max-w-xl text-sm sm:text-base text-zinc-400 leading-relaxed font-sans"
+            className="max-w-2xl text-sm sm:text-base text-[var(--color-text-secondary)] font-body leading-relaxed"
           >
-            Explore upcoming hackathons, cultural fests, workshops, esports tournaments, and academic symposiums published by campus clubs.
+            Discover hackathons, cultural festivals, academic symposiums, gaming tournaments, and
+            workshops hosted by verified collegiate clubs.
           </motion.p>
         </motion.div>
       </div>
@@ -212,17 +239,18 @@ export default function DiscoverPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 w-full text-left">
         {/* ── Search & Controls Bar ──────────────────────────────────── */}
         <div
-          className="sticky top-16 z-30 py-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-6 border-b border-white/[0.08]"
-          style={{ background: 'rgba(8, 8, 10, 0.92)', backdropFilter: 'blur(20px)' }}
+          className="sticky top-16 z-30 py-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-6 border-b border-white/[0.08] shadow-2xl shadow-black/40"
+          style={{ background: 'rgba(8, 8, 10, 0.94)', backdropFilter: 'blur(24px)' }}
         >
-          <div className="flex flex-col gap-3 max-w-7xl mx-auto">
-            {/* Search Input Row */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-              <div className="relative flex-1 max-w-lg">
+          <div className="flex flex-col gap-3.5 max-w-7xl mx-auto">
+            {/* Search Input Row & Sub-Filters */}
+            <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+              {/* Search with subtle glow on focus */}
+              <div className="relative flex-1 max-w-xl group">
                 <Search
-                  size={16}
+                  size={17}
                   aria-hidden="true"
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#18CFFC] transition-colors pointer-events-none"
                 />
                 <input
                   id="event-search"
@@ -231,13 +259,13 @@ export default function DiscoverPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   aria-label="Search campus events"
-                  className="w-full h-11 pl-10 pr-10 rounded-xl bg-[#14141A] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] focus:ring-2 focus:ring-[#18CFFC]/20 transition-all shadow-inner"
+                  className="w-full h-11 pl-10 pr-10 rounded-xl bg-[#14141A] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] focus:ring-2 focus:ring-[#18CFFC]/25 focus:shadow-[0_0_24px_rgba(24,207,252,0.22)] transition-all shadow-inner"
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch('')}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
                     aria-label="Clear search"
                   >
                     <X size={15} />
@@ -245,8 +273,50 @@ export default function DiscoverPage() {
                 )}
               </div>
 
-              {/* Sub-Filters: Participation & Pricing */}
+              {/* Sub-Filters: Participation, Pricing, High-Contrast Badges */}
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0 py-0.5">
+                {/* High Contrast Badges: Free Pass */}
+                <button
+                  type="button"
+                  onClick={() => setPricingFilter(pricingFilter === 'free' ? 'all' : 'free')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                    pricingFilter === 'free'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50 shadow-md shadow-emerald-500/20'
+                      : 'bg-[#14141A] text-zinc-400 border-white/[0.08] hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <Ticket size={13} className={pricingFilter === 'free' ? 'text-emerald-300' : 'text-zinc-400'} />
+                  <span>Free Pass</span>
+                </button>
+
+                {/* High Contrast Badges: Reserved Seating */}
+                <button
+                  type="button"
+                  onClick={() => setSeatingOnly(!seatingOnly)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                    seatingOnly
+                      ? 'bg-[#0D56FB]/25 text-[#18CFFC] border-[#18CFFC]/50 shadow-md shadow-[#18CFFC]/20'
+                      : 'bg-[#14141A] text-zinc-400 border-white/[0.08] hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <Armchair size={13} className={seatingOnly ? 'text-[#18CFFC]' : 'text-zinc-400'} />
+                  <span>Reserved Seating</span>
+                </button>
+
+                {/* High Contrast Badges: Urgent / Filling Fast */}
+                <button
+                  type="button"
+                  onClick={() => setUrgencyFilter(urgencyFilter === 'closing_soon' ? 'all' : 'closing_soon')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                    urgencyFilter === 'closing_soon'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-md shadow-amber-500/20'
+                      : 'bg-[#14141A] text-zinc-400 border-white/[0.08] hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <Flame size={13} className={urgencyFilter === 'closing_soon' ? 'text-amber-300 animate-bounce' : 'text-zinc-400'} />
+                  <span>Urgent / Closing Soon</span>
+                </button>
+
                 {/* Participation filter */}
                 <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs">
                   {(['all', 'individual', 'team'] as const).map((mode) => (
@@ -255,55 +325,13 @@ export default function DiscoverPage() {
                       type="button"
                       whileTap={{ scale: 0.94 }}
                       onClick={() => setParticipationFilter(mode)}
-                      className={`px-3 py-1.5 rounded-lg font-medium transition-all capitalize cursor-pointer text-xs ${
+                      className={`px-2.5 py-1 rounded-lg font-medium transition-all capitalize cursor-pointer text-xs ${
                         participationFilter === mode
-                          ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10'
+                          ? 'bg-[#262632] text-white font-semibold shadow-sm border border-white/10'
                           : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       {mode === 'all' ? 'All Formats' : mode === 'team' ? 'Team' : 'Solo'}
-                    </motion.button>
-                  ))}
-                </div>
-
-                {/* Pricing filter */}
-                <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs">
-                  {(['all', 'free', 'paid'] as const).map((price) => (
-                    <motion.button
-                      key={price}
-                      type="button"
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => setPricingFilter(price)}
-                      className={`px-3 py-1.5 rounded-lg font-medium transition-all capitalize cursor-pointer text-xs ${
-                        pricingFilter === price
-                          ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {price === 'all' ? 'Any Price' : price === 'free' ? 'Free Pass' : 'Ticketed'}
-                    </motion.button>
-                  ))}
-                </div>
-
-                {/* Urgency & Registration Deadlines filter */}
-                <div className="flex items-center rounded-xl bg-[#14141A] p-1 border border-white/[0.08] text-xs">
-                  {([
-                    { id: 'all', label: 'All Dates' },
-                    { id: 'closing_soon', label: 'Closing Soon' },
-                    { id: 'this_week', label: 'This Week' },
-                  ] as const).map(({ id, label }) => (
-                    <motion.button
-                      key={id}
-                      type="button"
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => setUrgencyFilter(id)}
-                      className={`px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer text-xs ${
-                        urgencyFilter === id
-                          ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10 text-amber-300'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {label}
                     </motion.button>
                   ))}
                 </div>
@@ -314,7 +342,7 @@ export default function DiscoverPage() {
                     <select
                       value={collegeFilter}
                       onChange={(e) => setCollegeFilter(e.target.value)}
-                      className="bg-transparent text-xs text-zinc-300 focus:outline-none cursor-pointer py-1 max-w-[150px] truncate"
+                      className="bg-transparent text-xs text-zinc-300 focus:outline-none cursor-pointer py-1 max-w-[140px] truncate"
                       aria-label="Filter events by campus or college"
                     >
                       <option value="all" className="bg-[#14141A] text-white">All Campuses</option>
@@ -357,33 +385,43 @@ export default function DiscoverPage() {
               </div>
             </div>
 
-            {/* Category Filter Chips — Horizontal Scroll */}
-            <div
-              role="group"
-              aria-label="Filter by category"
-              className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x -mx-4 px-4 sm:mx-0 sm:px-0 py-1"
-            >
-              {EVENT_CATEGORIES.map(({ value, label }) => {
-                const isSelected = category === value
-                return (
-                  <motion.button
-                    key={value}
-                    type="button"
-                    id={`cat-filter-${value}`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setCategory(value)}
-                    aria-pressed={isSelected}
-                    className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-xl text-xs font-semibold border transition-all duration-200 capitalize flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white border-[#18CFFC]/50 shadow-md shadow-[#18CFFC]/25'
-                        : 'bg-[#0E0E12] border-white/[0.08] text-zinc-400 hover:border-white/20 hover:text-white'
-                    }`}
-                  >
-                    <span>{label}</span>
-                  </motion.button>
-                )
-              })}
+            {/* Category Filter Pills — Horizontal Scroll with Mask Fade */}
+            <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+              {/* Fade gradient indicators on edges */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#08080A] to-transparent z-10 sm:hidden" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#08080A] to-transparent z-10 sm:hidden" />
+
+              <div
+                role="group"
+                aria-label="Filter by category"
+                className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x py-1"
+                style={{
+                  maskImage:
+                    'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
+                }}
+              >
+                {EVENT_CATEGORIES.map(({ value, label }) => {
+                  const isSelected = category === value
+                  return (
+                    <motion.button
+                      key={value}
+                      type="button"
+                      id={`cat-filter-${value}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setCategory(value)}
+                      aria-pressed={isSelected}
+                      className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-xl text-xs font-semibold border transition-all duration-200 capitalize flex items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white border-[#18CFFC]/50 shadow-md shadow-[#18CFFC]/25'
+                          : 'bg-[#14141A] border-white/[0.08] text-zinc-400 hover:border-white/20 hover:text-white'
+                      }`}
+                    >
+                      <span>{label}</span>
+                    </motion.button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Results Count & Active Filters Indicator */}
@@ -406,7 +444,7 @@ export default function DiscoverPage() {
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="text-xs text-[#18CFFC] hover:underline flex items-center gap-1 font-sans font-medium"
+                  className="text-xs text-[#18CFFC] hover:text-[#18CFFC]/80 flex items-center gap-1 font-sans font-medium transition-colors"
                 >
                   <X size={12} /> Clear all filters
                 </button>
@@ -423,72 +461,124 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {/* ── Campus Radar Map View ──────────────────────────────────────── */}
-        {viewMode === 'map' && (
-          <div className="mb-8">
-            <EventDiscoveryMap events={displayedEvents} />
-          </div>
-        )}
-
-        {/* ── Content Grid / Skeletons / Empty State ────────────────────────── */}
-        {viewMode === 'grid' && (loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="h-80 rounded-2xl bg-[#0E0E12] animate-pulse border border-white/[0.06]"
-              />
-            ))}
-          </div>
-        ) : displayedEvents.length > 0 ? (
-          <>
-            <motion.ul
-              variants={staggerContainer}
-              initial={reduced ? 'visible' : 'hidden'}
-              animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
-              role="list"
+        {/* ── View Transitions: Grid vs Radar Map ─────────────────────────── */}
+        <AnimatePresence mode="wait">
+          {viewMode === 'map' ? (
+            <motion.div
+              key="radar-map-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="mb-8"
             >
-              {displayedEvents.map((event, idx) => (
-                <li key={event.id} className="h-full">
-                  <EventCard event={event} animated priority={idx < 2} />
-                </li>
-              ))}
-            </motion.ul>
+              <EventDiscoveryMap events={displayedEvents} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="event-grid-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+            >
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                  {[...Array(8)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-80 rounded-2xl bg-[#0E0E12] animate-pulse border border-white/[0.06]"
+                    />
+                  ))}
+                </div>
+              ) : displayedEvents.length > 0 ? (
+                <>
+                  <motion.ul
+                    variants={staggerContainer}
+                    initial={reduced ? 'visible' : 'hidden'}
+                    animate="visible"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+                    role="list"
+                  >
+                    {displayedEvents.map((event, idx) => (
+                      <li key={event.id} className="h-full">
+                        <EventCard event={event} animated priority={idx < 2} />
+                      </li>
+                    ))}
+                  </motion.ul>
 
-            {hasMore && (
-              <div className="mt-12 flex justify-center">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  isLoading={loadingMore}
-                  leftIcon={<RefreshCw size={15} className={loadingMore ? 'animate-spin' : ''} />}
-                >
-                  Load More Events
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <EmptyState
-            icon={Compass}
-            title={hasFilters ? 'No Matching Events Found' : 'No Events Published Yet'}
-            description={
-              hasFilters
-                ? 'No events match your current filter criteria. Try adjusting your search term, format, or category.'
-                : 'Campus organizers have not published any upcoming public events yet. Check back soon!'
-            }
-            action={
-              hasFilters ? (
-                <Button variant="outline" size="sm" onClick={clearAllFilters}>
-                  Clear All Filters
-                </Button>
-              ) : undefined
-            }
-          />
-        ))}
+                  {hasMore && (
+                    <div className="mt-12 flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                        isLoading={loadingMore}
+                        leftIcon={<RefreshCw size={15} className={loadingMore ? 'animate-spin' : ''} />}
+                      >
+                        Load More Events
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Branded Premium Empty State */
+                <div className="relative py-16 px-6 sm:px-12 rounded-3xl bg-[#0E0E12] border border-white/[0.08] text-center overflow-hidden my-8">
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background:
+                        'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(24, 207, 252, 0.08) 0%, rgba(127, 26, 251, 0.04) 50%, transparent 80%)',
+                    }}
+                  />
+
+                  <div className="relative max-w-md mx-auto flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/20 border border-[#18CFFC]/30 flex items-center justify-center text-[#18CFFC] mb-5 shadow-lg shadow-[#18CFFC]/10">
+                      <Compass size={32} />
+                    </div>
+
+                    <h3 className="font-display font-bold text-xl sm:text-2xl text-white mb-2">
+                      {hasFilters ? 'No Campus Events Found' : 'No Events Published Yet'}
+                    </h3>
+
+                    <p className="text-sm text-[var(--color-text-secondary)] font-body leading-relaxed mb-6">
+                      {hasFilters
+                        ? 'No events match your current combination of category, format, or search criteria. Try relaxing your filters or resetting them below.'
+                        : 'Student clubs are currently preparing upcoming experiences. Check back soon for the next festival or technical symposium.'}
+                    </p>
+
+                    {hasFilters && (
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <Button
+                          size="sm"
+                          onClick={clearAllFilters}
+                          className="bg-gradient-to-r from-[#18CFFC] to-[#0D56FB] text-white hover:brightness-110 font-semibold px-5"
+                        >
+                          <Filter size={14} />
+                          Reset All Filters
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            clearAllFilters()
+                            setCategory('tech')
+                          }}
+                          className="border-white/10 text-zinc-300 hover:text-white text-xs"
+                        >
+                          Browse Technical
+                          <ChevronRight size={13} />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </PageShell>
   )

@@ -173,7 +173,7 @@ export default function StudentLoginPage() {
               className={`w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
                 errors.email
                   ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-2 focus:ring-[#18CFFC]/25 focus:shadow-[0_0_16px_rgba(24,207,252,0.18)]'
               }`}
             />
             <Mail
