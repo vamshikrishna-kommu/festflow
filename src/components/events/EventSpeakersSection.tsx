@@ -30,11 +30,11 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-            <Users size={18} className="text-[#7F1AFB]" />
+          <h2 className="text-lg font-bold font-heading text-gray-900 flex items-center gap-2">
+            <Users size={18} className="text-blue-600" />
             Distinguished Speakers & Judges
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Industry professionals, faculty mentors, and competition evaluators
           </p>
         </div>
@@ -44,7 +44,7 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
         {speakers.map((spk) => (
           <div
             key={spk.id}
-            className="p-4 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-white/20 transition-all flex flex-col justify-between gap-3 text-left shadow-sm group"
+            className="p-4 rounded-xl bg-white border border-gray-200 hover:border-gray-300 transition-all flex flex-col justify-between gap-3 text-left shadow-xs group"
           >
             <div>
               {/* Avatar & Role */}
@@ -53,10 +53,10 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
                   <img
                     src={spk.avatar_url}
                     alt={spk.name}
-                    className="w-14 h-14 rounded-2xl object-cover border border-white/10 group-hover:border-[#18CFFC]/50 transition-colors shadow-md"
+                    className="w-14 h-14 rounded-xl object-cover border border-gray-200 group-hover:border-blue-300 transition-colors"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#18CFFC]/20 via-[#7F1AFB]/30 to-[#ED47FC]/20 flex items-center justify-center text-white font-extrabold text-lg border border-white/10 group-hover:border-[#18CFFC]/50 transition-colors">
+                  <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 font-extrabold text-lg border border-blue-200">
                     {spk.name.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -64,11 +64,11 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
               </div>
 
               {/* Name & Title */}
-              <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-[#18CFFC] transition-colors">
+              <h3 className="font-bold text-sm sm:text-base text-gray-900 group-hover:text-blue-600 transition-colors">
                 {spk.name}
               </h3>
               {(spk.designation || spk.organization) && (
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {spk.designation}
                   {spk.designation && spk.organization ? ' • ' : ''}
                   {spk.organization}
@@ -77,7 +77,7 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
 
               {/* Bio snippet */}
               {spk.bio && (
-                <p className="text-xs text-zinc-400/90 mt-2 line-clamp-3 leading-relaxed font-sans">
+                <p className="text-xs text-gray-600 mt-2 line-clamp-3 leading-relaxed font-sans">
                   {spk.bio}
                 </p>
               )}
@@ -85,13 +85,13 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
 
             {/* Social Links */}
             {spk.social_links && Object.keys(spk.social_links).length > 0 && (
-              <div className="flex items-center gap-2 pt-2.5 border-t border-white/[0.06]">
+              <div className="flex items-center gap-2 pt-2.5 border-t border-gray-100">
                 {spk.social_links.linkedin && (
                   <a
                     href={spk.social_links.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-[#0077B5]/20 text-zinc-400 hover:text-[#0077B5] transition-colors flex items-center gap-1 text-[11px]"
+                    className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-700 transition-colors flex items-center gap-1 text-[11px]"
                     aria-label={`${spk.name} LinkedIn`}
                   >
                     <ExternalLink size={12} />
@@ -103,7 +103,7 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
                     href={spk.social_links.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-sky-500/20 text-zinc-400 hover:text-sky-400 transition-colors flex items-center gap-1 text-[11px]"
+                    className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-sky-50 text-gray-600 hover:text-sky-700 transition-colors flex items-center gap-1 text-[11px]"
                     aria-label={`${spk.name} Twitter`}
                   >
                     <ExternalLink size={12} />
@@ -115,7 +115,7 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
                     href={spk.social_links.github}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors flex items-center gap-1 text-[11px]"
+                    className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-1 text-[11px]"
                     aria-label={`${spk.name} GitHub`}
                   >
                     <ExternalLink size={12} />
@@ -127,7 +127,7 @@ export function EventSpeakersSection({ speakers }: EventSpeakersSectionProps) {
                     href={spk.social_links.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-[#18CFFC]/20 text-zinc-400 hover:text-[#18CFFC] transition-colors flex items-center gap-1 text-[11px]"
+                    className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-700 transition-colors flex items-center gap-1 text-[11px]"
                     aria-label={`${spk.name} Website`}
                   >
                     <Globe size={12} />

@@ -480,7 +480,9 @@ export async function getTeamInvitationPreview(
   let isMatched = false
   let safeEmail = ''
   try {
-    const rawAuth = localStorage.getItem('festflow_mock_session') || localStorage.getItem('sb-current-user')
+    const rawAuth = !isSupabaseConfigured
+      ? localStorage.getItem('festflow_simulated_auth') || localStorage.getItem('sb-current-user')
+      : null
     if (rawAuth) {
       const parsed = JSON.parse(rawAuth)
       const callerEmail = parsed?.user?.email || parsed?.email
@@ -935,7 +937,9 @@ export async function acceptTeamInvitation(params: {
   let callerId = ''
   let callerEmail = ''
   try {
-    const rawAuth = localStorage.getItem('festflow_mock_session') || localStorage.getItem('sb-current-user')
+    const rawAuth = !isSupabaseConfigured
+      ? localStorage.getItem('festflow_simulated_auth') || localStorage.getItem('sb-current-user')
+      : null
     if (rawAuth) {
       const parsed = JSON.parse(rawAuth)
       callerId = parsed?.user?.id || parsed?.id || ''
@@ -1195,7 +1199,9 @@ export async function inviteTeamMember(params: {
 
   // Check if leader is trying to invite themselves
   try {
-    const rawAuth = localStorage.getItem('festflow_mock_session') || localStorage.getItem('sb-current-user')
+    const rawAuth = !isSupabaseConfigured
+      ? localStorage.getItem('festflow_simulated_auth') || localStorage.getItem('sb-current-user')
+      : null
     if (rawAuth) {
       const parsed = JSON.parse(rawAuth)
       const callerEmail = (parsed?.user?.email || parsed?.email || '').toLowerCase().trim()

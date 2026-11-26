@@ -334,7 +334,7 @@ export async function reviewRegistrationCancellation(params: {
 // ── Query Cancellation Requests ──────────────────────────────────────────────
 export async function getStudentCancellationRequests(
   studentId: string
-): Promise<{ success: boolean; requests: RegistrationCancellationRequestRecord[] }> {
+): Promise<{ success: boolean; requests: RegistrationCancellationRequestRecord[]; error?: string }> {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -343,11 +343,12 @@ export async function getStudentCancellationRequests(
         .eq('student_id', studentId)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        return { success: true, requests: data as RegistrationCancellationRequestRecord[] }
+      if (error) {
+        return { success: false, requests: [], error: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, requests: (data as RegistrationCancellationRequestRecord[]) || [] }
+    } catch (err: any) {
+      return { success: false, requests: [], error: err?.message || 'Failed to load cancellation requests.' }
     }
   }
 
@@ -357,7 +358,7 @@ export async function getStudentCancellationRequests(
 
 export async function getEventCancellationRequests(
   eventId: string
-): Promise<{ success: boolean; requests: RegistrationCancellationRequestRecord[] }> {
+): Promise<{ success: boolean; requests: RegistrationCancellationRequestRecord[]; error?: string }> {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -366,11 +367,12 @@ export async function getEventCancellationRequests(
         .eq('event_id', eventId)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        return { success: true, requests: data as RegistrationCancellationRequestRecord[] }
+      if (error) {
+        return { success: false, requests: [], error: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, requests: (data as RegistrationCancellationRequestRecord[]) || [] }
+    } catch (err: any) {
+      return { success: false, requests: [], error: err?.message || 'Failed to load cancellation requests.' }
     }
   }
 

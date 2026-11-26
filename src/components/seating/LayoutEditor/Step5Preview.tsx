@@ -55,8 +55,8 @@ export function Step5Preview({ config }: Props) {
 
       {/* Stage */}
       {config.stage_position === 'front' && (
-        <div className="w-full h-10 bg-gradient-to-r from-[#18CFFC]/20 via-[#0D56FB]/20 to-[#7F1AFB]/20 rounded-xl border border-white/10 flex items-center justify-center">
-          <span className="text-xs font-semibold tracking-widest text-[#18CFFC] uppercase">◀ STAGE / SCREEN ▶</span>
+        <div className="w-full h-10 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center">
+          <span className="text-xs font-semibold tracking-widest text-blue-700 uppercase">◀ STAGE / SCREEN ▶</span>
         </div>
       )}
 
@@ -65,7 +65,7 @@ export function Step5Preview({ config }: Props) {
         <div className="min-w-fit space-y-1.5 pb-2">
           {rows.map((row) => (
             <div key={row.row_identifier} className="flex items-center gap-2">
-              <div className="w-6 text-center text-xs font-bold text-[var(--color-text-muted)]">
+              <div className="w-6 text-center text-xs font-bold text-gray-500">
                 {row.row_identifier}
               </div>
               <div className="flex items-center gap-1 flex-wrap">
@@ -73,19 +73,19 @@ export function Step5Preview({ config }: Props) {
                   if (seat.is_aisle_gap) {
                     return <div key={seat.id} className="w-4 h-7" />
                   }
-                  const catColor = seat.category?.color ?? '#18CFFC'
+                  const catColor = seat.category?.color ?? '#2563EB'
                   return (
                     <div
                       key={seat.id}
                       className={`w-7 h-7 rounded flex items-center justify-center text-[9px] font-bold border transition-transform ${
                         seat.is_blocked
-                          ? 'opacity-30 border-gray-600 bg-gray-800'
+                          ? 'opacity-60 border-gray-300 bg-gray-200 text-gray-500'
                           : 'border-transparent cursor-pointer hover:scale-110'
                       }`}
                       style={
                         seat.is_blocked
                           ? undefined
-                          : { backgroundColor: catColor + '33', borderColor: catColor + '66', color: catColor }
+                          : { backgroundColor: catColor + '22', borderColor: catColor + '88', color: catColor }
                       }
                       title={`${seat.display_label}${seat.category ? ` — ${seat.category.name}` : ''}`}
                     >
@@ -100,18 +100,18 @@ export function Step5Preview({ config }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="p-4 bg-[var(--color-surface-2)] rounded-xl border border-white/5">
-        <h3 className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wide mb-3">Legend</h3>
+      <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Legend</h3>
         <div className="flex flex-wrap gap-4">
           {config.categories.map((cat) => (
-            <span key={cat.tempId} className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-              <span className="w-4 h-4 rounded" style={{ backgroundColor: cat.color + '55', border: `2px solid ${cat.color}` }} />
+            <span key={cat.tempId} className="flex items-center gap-2 text-sm text-gray-700">
+              <span className="w-4 h-4 rounded" style={{ backgroundColor: cat.color + '33', border: `2px solid ${cat.color}` }} />
               {cat.name}
               {cat.price > 0 ? ` · ₹${cat.price}` : ' · Free'}
             </span>
           ))}
-          <span className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-            <span className="w-4 h-4 rounded bg-gray-800 opacity-40 border border-gray-600" />
+          <span className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="w-4 h-4 rounded bg-gray-200 border border-gray-300" />
             Blocked
           </span>
         </div>

@@ -106,49 +106,49 @@ export async function getStudentPublicProfile(
           .eq('student_id', studentId)
           .maybeSingle(),
       ])
+      if (uRes.error) {
+        return { success: false, message: uRes.error.message }
+      }
       baseUser = uRes.data
       studentDetails = sRes.data
       teammateDoc = tRes.data
-    } catch {
-      // fallback
+      if (!baseUser) {
+        return { success: false, message: 'Student profile not found.' }
+      }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to load student profile.' }
     }
-  }
-
-  // Fallback to local storage or mocked profile in development
-  if (inMemoryStudentProfiles.has(studentId)) {
-    const m = inMemoryStudentProfiles.get(studentId)
-    baseUser = {
-      id: studentId,
-      display_name: m.profile?.display_name || m.user?.user_metadata?.display_name || 'Student',
-      avatar_url: m.profile?.avatar_url || null,
-    }
-    studentDetails = m.studentProfile || {}
-  } else if (!baseUser && typeof localStorage !== 'undefined') {
-    const rawMock = localStorage.getItem('festflow_simulated_auth')
-    if (rawMock) {
-      try {
-        const parsed = JSON.parse(rawMock)
-        if (parsed.user?.id === studentId || parsed.profile?.id === studentId) {
-          baseUser = {
-            id: studentId,
-            display_name: parsed.profile?.display_name || parsed.user?.user_metadata?.display_name || 'Student',
-            avatar_url: parsed.profile?.avatar_url || null,
+  } else {
+    // Offline / Local Simulation Mode only
+    if (inMemoryStudentProfiles.has(studentId)) {
+      const m = inMemoryStudentProfiles.get(studentId)
+      baseUser = {
+        id: studentId,
+        display_name: m.profile?.display_name || m.user?.user_metadata?.display_name || 'Student',
+        avatar_url: m.profile?.avatar_url || null,
+      }
+      studentDetails = m.studentProfile || {}
+    } else if (typeof localStorage !== 'undefined') {
+      const rawMock = localStorage.getItem('festflow_simulated_auth')
+      if (rawMock) {
+        try {
+          const parsed = JSON.parse(rawMock)
+          if (parsed.user?.id === studentId || parsed.profile?.id === studentId) {
+            baseUser = {
+              id: studentId,
+              display_name: parsed.profile?.display_name || parsed.user?.user_metadata?.display_name || 'Student',
+              avatar_url: parsed.profile?.avatar_url || null,
+            }
+            studentDetails = parsed.studentProfile || {}
           }
-          studentDetails = parsed.studentProfile || {}
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
     }
-  }
-
-  if (!baseUser) {
-    baseUser = {
-      id: studentId,
-      display_name: 'Campus Scholar',
-      avatar_url: null,
+    if (!baseUser) {
+      return { success: false, message: 'Student profile not found.' }
     }
-    studentDetails = {}
   }
 
   const visibility = studentDetails?.visibility || 'public'
@@ -236,22 +236,26 @@ export async function getClubPublicProfile(
   let clubData: any = null
   if (isSupabaseConfigured) {
     try {
-      const { data } = await (supabase.from('club_profiles') as any)
+      const { data, error } = await (supabase.from('club_profiles') as any)
         .select('*')
         .eq('profile_id', clubId)
         .maybeSingle()
-      if (data) clubData = data
-    } catch {
-      // fallback
+      if (error) {
+        return { success: false, message: error.message }
+      }
+      if (!data) {
+        return { success: false, message: 'Club organization not found.' }
+      }
+      clubData = data
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to load club profile.' }
     }
-  }
-
-  if (!clubData) {
+  } else {
     clubData = {
       profile_id: clubId,
-      club_name: 'Campus Student Organization',
-      representative_name: 'Lead Organizer',
-      description: 'Official student organization hosted on FestFlow.',
+      club_name: 'Local Simulation Club',
+      representative_name: 'Club Organizer',
+      description: 'Local simulation club profile.',
       website_url: null,
       is_verified: false,
       category: 'General',
@@ -525,6 +529,9 @@ export async function getCampusActivityFeed(options: {
     // 1. Fetch Events
     if (filter === 'all' || filter === 'events') {
       const eventsRes = await listPublishedEvents({ limit: 10 })
+      if (eventsRes.error) {
+        return { success: false, items: [], message: eventsRes.error }
+      }
       const activeEvents = (eventsRes.events || []).filter((e) => !isEventCompleted(e))
       for (const ev of activeEvents) {
         feedItems.push({
@@ -556,14 +563,17 @@ export async function getCampusActivityFeed(options: {
       let announcements: ClubAnnouncementRecord[] = []
       if (isSupabaseConfigured) {
         try {
-          const { data } = await (supabase.from('club_announcements') as any)
+          const { data, error } = await (supabase.from('club_announcements') as any)
             .select('*, club:club_profiles(club_name, logo_url, is_verified)')
             .eq('is_members_only', false)
             .order('created_at', { ascending: false })
             .limit(10)
+          if (error) {
+            return { success: false, items: [], message: error.message }
+          }
           if (data) announcements = data as ClubAnnouncementRecord[]
-        } catch {
-          // ignore
+        } catch (err: any) {
+          return { success: false, items: [], message: err?.message || 'Failed to load club announcements.' }
         }
       } else {
         announcements = getLocalAnnouncements().filter((a) => !a.is_members_only)

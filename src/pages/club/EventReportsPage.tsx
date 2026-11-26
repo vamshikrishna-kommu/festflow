@@ -58,6 +58,7 @@ export default function EventReportsPage() {
   const [attendeesWithCheckIn, setAttendeesWithCheckIn] = useState<RegistrationWithCheckIn[]>([])
 
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [exportingType, setExportingType] = useState<string | null>(null)
@@ -130,6 +131,8 @@ export default function EventReportsPage() {
     if (!silent) setLoading(false)
     else setRefreshing(false)
 
+    const reportError = regRes.error || payRes.error || checkInRes.error || null
+    setLoadError(reportError)
     setEvent(eventRes.event)
     if (regRes.registrations) setRegistrations(regRes.registrations)
     setPayments(canFetchPayments && payRes.submissions ? payRes.submissions : [])
@@ -204,8 +207,8 @@ export default function EventReportsPage() {
     return (
       <PageShell>
         <div className="py-24 flex flex-col items-center justify-center text-center">
-          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
-          <span className="text-xs text-[var(--color-text-muted)] font-medium">
+          <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-3" />
+          <span className="text-xs text-gray-500 font-medium">
             Generating event report & analytics…
           </span>
         </div>
@@ -270,6 +273,20 @@ export default function EventReportsPage() {
           }
         />
 
+        {loadError && (
+          <Alert variant="error">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-sm">Unable to load complete analytics data</p>
+                <p className="text-xs opacity-90">{loadError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => loadData(true)}>
+                Retry
+              </Button>
+            </div>
+          </Alert>
+        )}
+
         {notice && (
           <Alert
             variant={notice.isError ? 'error' : 'success'}
@@ -283,48 +300,48 @@ export default function EventReportsPage() {
         {/* Executive Summary Metrics Grid */}
         <div className={`grid grid-cols-2 sm:grid-cols-3 ${canViewPayments ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 sm:gap-3`}>
           <Card className="p-3 sm:p-3.5 flex flex-col justify-between">
-            <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold text-gray-500 tracking-wider">
               Total Signed Up
             </span>
-            <div className="text-lg sm:text-2xl font-bold font-display text-[var(--color-text-primary)] mt-1">
+            <div className="text-lg sm:text-2xl font-bold font-display text-gray-900 mt-1">
               {loading ? '…' : totalRegistrations}
             </div>
           </Card>
 
           <Card className="p-3.5 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+            <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
               Confirmed Passes
             </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-emerald-400 mt-1">
+            <div className="text-xl sm:text-2xl font-bold font-display text-emerald-600 mt-1">
               {loading ? '…' : confirmedAttendees}
             </div>
           </Card>
 
           <Card className="p-3.5 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+            <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
               Pending Reviews
             </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-amber-400 mt-1">
+            <div className="text-xl sm:text-2xl font-bold font-display text-amber-600 mt-1">
               {loading ? '…' : pendingPaymentReviews}
             </div>
           </Card>
 
           {canViewPayments && (
             <Card className="p-3.5 flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
                 Total Revenue
               </span>
-              <div className="text-xl sm:text-2xl font-bold font-display text-emerald-300 mt-1">
+              <div className="text-xl sm:text-2xl font-bold font-display text-emerald-600 mt-1">
                 {loading ? '…' : `₹${totalRevenue.toLocaleString()}`}
               </div>
             </Card>
           )}
 
           <Card className="p-3.5 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-text-muted)] tracking-wider">
+            <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
               Cancelled
             </span>
-            <div className="text-xl sm:text-2xl font-bold font-display text-rose-400 mt-1">
+            <div className="text-xl sm:text-2xl font-bold font-display text-rose-600 mt-1">
               {loading ? '…' : cancelledRegistrations}
             </div>
           </Card>
@@ -335,10 +352,10 @@ export default function EventReportsPage() {
           <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h2 className="text-base font-bold font-display text-[var(--color-text-primary)]">
+              <h2 className="text-base font-bold font-display text-gray-900">
                 Official Administrative Exports
               </h2>
-              <p className="text-xs text-[var(--color-text-secondary)]">
+              <p className="text-xs text-gray-600">
                 Download formatted Excel workbooks (.xlsx) with frozen panes and zebra styling, or raw CSV spreadsheets.
               </p>
             </div>
@@ -346,20 +363,20 @@ export default function EventReportsPage() {
 
           <div className={`grid grid-cols-1 md:grid-cols-2 ${successfulCheckIns > 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
             {/* Export 1: All Registrations */}
-            <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[#18CFFC]/50 transition-colors">
+            <Card className="p-5 flex flex-col justify-between gap-4 border-gray-200 hover:border-blue-300 transition-colors">
               <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-[#18CFFC]/10 text-[#18CFFC] w-fit">
+                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 w-fit">
                   <Users size={20} />
                 </div>
-                <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                <h3 className="font-bold text-sm text-gray-900">
                   All Registrations Roster
                 </h3>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                <p className="text-xs text-gray-600 leading-relaxed">
                   Complete list of all registered students, ticket tokens, and status history ({totalRegistrations} rows).
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+              <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
                 <Button
                   variant="primary"
                   size="sm"
@@ -382,7 +399,7 @@ export default function EventReportsPage() {
                   disabled={!event || registrations.length === 0 || Boolean(exportingType)}
                   isLoading={exportingType === 'full_xlsx'}
                   leftIcon={<Download size={14} />}
-                  className="w-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-medium shadow-[0_2px_10px_rgba(255,87,34,0.3)]"
+                  className="w-full font-medium"
                 >
                   Download Excel (.xlsx)
                 </Button>
@@ -391,7 +408,7 @@ export default function EventReportsPage() {
                   size="sm"
                   onClick={() => event && exportRegistrationsListCsv(event, registrations)}
                   disabled={!event || registrations.length === 0 || Boolean(exportingType)}
-                  className="w-full text-xs text-[var(--color-text-secondary)]"
+                  className="w-full text-xs text-gray-700"
                 >
                   Download CSV
                 </Button>
@@ -400,20 +417,20 @@ export default function EventReportsPage() {
 
             {/* Export 2: Historical Attendance Archive (only rendered when historical records exist) */}
             {successfulCheckIns > 0 && (
-              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-emerald-500/50 transition-colors">
+              <Card className="p-5 flex flex-col justify-between gap-4 border-gray-200 hover:border-emerald-300 transition-colors">
                 <div className="space-y-1.5">
-                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 w-fit">
+                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 w-fit">
                     <Archive size={20} />
                   </div>
-                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h3 className="font-bold text-sm text-gray-900">
                     Historical Attendance Archive
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-xs text-gray-600 leading-relaxed">
                     Archived check-in timestamps recorded for prior event sessions ({successfulCheckIns} records).
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
                   <Button
                     variant="primary"
                     size="sm"
@@ -434,7 +451,7 @@ export default function EventReportsPage() {
                     disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
                     isLoading={exportingType === 'attendance_xlsx'}
                     leftIcon={<Download size={14} />}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 border-none text-white font-semibold"
                   >
                     Download Excel (.xlsx)
                   </Button>
@@ -443,7 +460,7 @@ export default function EventReportsPage() {
                     size="sm"
                     onClick={() => event && exportAttendanceReportCsv(event, attendeesWithCheckIn)}
                     disabled={!event || attendeesWithCheckIn.length === 0 || Boolean(exportingType)}
-                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                    className="w-full text-xs text-gray-700"
                   >
                     Download CSV
                   </Button>
@@ -453,20 +470,20 @@ export default function EventReportsPage() {
 
             {/* Export 3: Payment Reconciliation */}
             {canViewPayments && (
-              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-amber-500/50 transition-colors">
+              <Card className="p-5 flex flex-col justify-between gap-4 border-gray-200 hover:border-amber-300 transition-colors">
                 <div className="space-y-1.5">
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 w-fit">
+                  <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 w-fit">
                     <CreditCard size={20} />
                   </div>
-                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h3 className="font-bold text-sm text-gray-900">
                     Payment Reconciliation
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-xs text-gray-600 leading-relaxed">
                     Financial audit report with 12-digit UPI UTR references, approval timestamps, and amounts ({payments.length} rows).
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
                   <Button
                     variant="primary"
                     size="sm"
@@ -496,7 +513,7 @@ export default function EventReportsPage() {
                     size="sm"
                     onClick={() => event && exportPaymentReconciliationCsv(event, payments)}
                     disabled={!event || payments.length === 0 || Boolean(exportingType)}
-                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                    className="w-full text-xs text-gray-700"
                   >
                     Download CSV
                   </Button>
@@ -506,20 +523,20 @@ export default function EventReportsPage() {
 
             {/* Export 4: Confirmed Attendees or Team Roster */}
             {event?.participation_type === 'team' ? (
-              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-[#ED47FC]/50 transition-colors">
+              <Card className="p-5 flex flex-col justify-between gap-4 border-gray-200 hover:border-indigo-300 transition-colors">
                 <div className="space-y-1.5">
-                  <div className="p-2.5 rounded-xl bg-[#ED47FC]/10 text-[#FE7EE8] w-fit">
+                  <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 w-fit">
                     <Users size={20} />
                   </div>
-                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h3 className="font-bold text-sm text-gray-900">
                     Squads & Team Rosters
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-xs text-gray-600 leading-relaxed">
                     Dedicated breakdown of team leaders, invited members, and individual squad credentials.
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
                   <Button
                     variant="primary"
                     size="sm"
@@ -548,27 +565,27 @@ export default function EventReportsPage() {
                     size="sm"
                     onClick={() => event && exportConfirmedAttendeesCsv(event, registrations)}
                     disabled={!event || confirmedAttendees === 0 || Boolean(exportingType)}
-                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                    className="w-full text-xs text-gray-700"
                   >
                     Confirmed CSV
                   </Button>
                 </div>
               </Card>
             ) : (
-              <Card className="p-5 flex flex-col justify-between gap-4 border-[var(--color-surface-3)] hover:border-emerald-500/50 transition-colors">
+              <Card className="p-5 flex flex-col justify-between gap-4 border-gray-200 hover:border-emerald-300 transition-colors">
                 <div className="space-y-1.5">
-                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 w-fit">
+                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 w-fit">
                     <CheckCircle2 size={20} />
                   </div>
-                  <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h3 className="font-bold text-sm text-gray-900">
                     Confirmed Attendees
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-xs text-gray-600 leading-relaxed">
                     List of valid ticket holders eligible for entry, seat allocation, and catering ({confirmedAttendees} rows).
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-surface-3)]">
+                <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
                   <Button
                     variant="primary"
                     size="sm"
@@ -591,7 +608,7 @@ export default function EventReportsPage() {
                     disabled={!event || confirmedAttendees === 0 || Boolean(exportingType)}
                     isLoading={exportingType === 'confirmed_xlsx'}
                     leftIcon={<Download size={14} />}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 border-none text-white font-medium"
                   >
                     Download Excel (.xlsx)
                   </Button>
@@ -600,7 +617,7 @@ export default function EventReportsPage() {
                     size="sm"
                     onClick={() => event && exportConfirmedAttendeesCsv(event, registrations)}
                     disabled={!event || confirmedAttendees === 0 || Boolean(exportingType)}
-                    className="w-full text-xs text-[var(--color-text-secondary)]"
+                    className="w-full text-xs text-gray-700"
                   >
                     Download CSV
                   </Button>
@@ -617,20 +634,20 @@ export default function EventReportsPage() {
 
         {/* Section 2: Bulk Reminders & Communication Controls */}
         {canSendReminders && (
-        <Card className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-[var(--color-surface-3)]">
+        <Card className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-gray-200">
           <div className="space-y-1 max-w-xl">
             <div className="flex items-center gap-2">
-              <Mail size={18} className="text-[#18CFFC]" />
-              <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+              <Mail size={18} className="text-blue-600" />
+              <h3 className="font-bold text-sm text-gray-900">
                 Send Bulk Event Reminders
               </h3>
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               {isArchiveEvent
                 ? `This event has ${lifecyclePhase === 'cancelled' ? 'been cancelled' : 'already concluded'}. Pre-event reminder broadcasts are locked for archived events.`
                 : (
                   <>
-                    Send an automated event reminder to all <strong className="text-[var(--color-text-primary)]">{confirmedAttendees} confirmed pass holders</strong>. Notifications are queued safely with duplicate protection so attendees are not spammed.
+                    Send an automated event reminder to all <strong className="text-gray-900">{confirmedAttendees} confirmed pass holders</strong>. Notifications are queued safely with duplicate protection so attendees are not spammed.
                   </>
                 )}
             </p>
@@ -642,7 +659,7 @@ export default function EventReportsPage() {
             onClick={() => setShowReminderModal(true)}
             disabled={!event || confirmedAttendees === 0 || isArchiveEvent}
             leftIcon={<Send size={15} />}
-            className="shrink-0 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
+            className="shrink-0 font-semibold"
           >
             Preview & Send Reminder
           </Button>
@@ -659,14 +676,14 @@ export default function EventReportsPage() {
           <ModalBody>
             {event && (
               <div className="flex flex-col gap-4 text-left">
-                <div className="p-4 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs space-y-2">
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs space-y-2">
                   <p>
-                    <strong className="text-[var(--color-text-primary)]">Subject:</strong> Reminder: {event.title} is coming up!
+                    <strong className="text-gray-900">Subject:</strong> Reminder: {event.title} is coming up!
                   </p>
                   <p>
-                    <strong className="text-[var(--color-text-primary)]">Recipients:</strong> {confirmedAttendees} confirmed ticket holders
+                    <strong className="text-gray-900">Recipients:</strong> {confirmedAttendees} confirmed ticket holders
                   </p>
-                  <p className="text-[var(--color-text-muted)]">
+                  <p className="text-gray-500">
                     Event Date: {formattedDate} at {event.venue_name || 'Campus Venue'}
                   </p>
                 </div>
@@ -674,7 +691,7 @@ export default function EventReportsPage() {
                 <div>
                   <label
                     htmlFor="custom_note"
-                    className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5"
+                    className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1.5"
                   >
                     Custom Organizer Note (Optional)
                   </label>
@@ -684,7 +701,7 @@ export default function EventReportsPage() {
                     placeholder="e.g. Please bring your college ID card and arrive 15 minutes before opening."
                     value={customReminderNote}
                     onChange={(e) => setCustomReminderNote(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-white/10 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                   />
                 </div>
               </div>

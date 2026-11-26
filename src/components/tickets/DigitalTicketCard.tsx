@@ -343,14 +343,14 @@ export function DigitalTicketCard({
         variants={ticketReveal}
         initial="hidden"
         animate="visible"
-        className="relative rounded-3xl overflow-hidden border border-white/[0.1] shadow-2xl bg-gradient-to-b from-[#14141A] to-[#0E0E12] print:border-black print:text-black"
+        className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-lg bg-white print:border-black print:text-black"
       >
         {/* Top Header Banner */}
-        <div className="p-5 sm:p-6 pb-4 bg-gradient-to-r from-[#18CFFC]/20 via-[#7F1AFB]/15 to-transparent border-b border-white/[0.08]">
+        <div className="p-5 sm:p-6 pb-4 bg-gray-50/80 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <Logo variant="emblem" />
-              <span className="font-heading font-bold text-base text-white">
+              <span className="font-display font-semibold text-sm text-gray-900">
                 FestFlow Entry Pass
               </span>
             </div>
@@ -358,19 +358,19 @@ export function DigitalTicketCard({
             {/* Status Badge */}
             <motion.div variants={statusBadgePop} initial="initial" animate="animate">
               {attendanceStatus === 'checked_in' ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                   Inside Venue · Entry #{entryCount}
                 </span>
               ) : attendanceStatus === 'checked_out' ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  Stepped Out · Re-entry Open
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                  Checked Out
                 </span>
               ) : isConfirmed ? (
                 <Badge variant="success">Confirmed Pass</Badge>
               ) : null}
-              {isPendingApproval && <Badge variant="purple">Under Host Review</Badge>}
+              {isPendingApproval && <Badge variant="violet">Under Host Review</Badge>}
               {isPending && <Badge variant="amber">Payment Pending</Badge>}
               {isWaitlisted && <Badge variant="amber">Waitlisted</Badge>}
               {isRejected && <Badge variant="danger">Application Rejected</Badge>}
@@ -378,51 +378,51 @@ export function DigitalTicketCard({
             </motion.div>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold font-heading text-white leading-snug">
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-gray-900 leading-snug">
             {event?.title || 'FestFlow Entry Pass'}
           </h2>
-          <p className="text-xs text-zinc-400 mt-1">
-            Organized by{' '}
-            <span className="text-zinc-300 font-medium">
-              {event?.venue_name || 'Campus Venue'} • {(event?.category || 'General').toUpperCase()}
+          <p className="text-xs text-gray-500 mt-1">
+            Organized at{' '}
+            <span className="text-gray-800 font-medium">
+              {event?.venue_name || 'Campus Venue'} · {(event?.category || 'General').toUpperCase()}
             </span>
           </p>
         </div>
 
         {/* Middle Info Block */}
-        <div className="p-5 sm:p-6 grid grid-cols-2 gap-4 text-xs border-b border-white/[0.08]">
+        <div className="p-5 sm:p-6 grid grid-cols-2 gap-4 text-xs border-b border-gray-100 bg-white">
           <div>
-            <span className="text-zinc-500 flex items-center gap-1 mb-1 font-medium">
-              <User size={13} className="text-[#18CFFC]" /> {registration.team_role === 'leader' ? 'Squad Leader' : 'Pass Holder'}
+            <span className="text-gray-500 flex items-center gap-1 mb-1 font-medium">
+              <User size={13} className="text-blue-600" /> {registration.team_role === 'leader' ? 'Squad Leader' : 'Pass Holder'}
             </span>
-            <strong className="text-sm text-white font-semibold block truncate">
+            <strong className="text-sm text-gray-900 font-semibold block truncate">
               {attendee}
             </strong>
           </div>
 
           <div>
-            <span className="text-zinc-500 flex items-center gap-1 mb-1 font-medium">
-              <Calendar size={13} className="text-[#18CFFC]" /> Date
+            <span className="text-gray-500 flex items-center gap-1 mb-1 font-medium">
+              <Calendar size={13} className="text-blue-600" /> Date
             </span>
-            <strong className="text-sm text-white font-semibold block">
+            <strong className="text-sm text-gray-900 font-semibold block">
               {formattedDate}
             </strong>
           </div>
 
           <div>
-            <span className="text-zinc-500 flex items-center gap-1 mb-1 font-medium">
-              <Clock size={13} className="text-[#18CFFC]" /> Time
+            <span className="text-gray-500 flex items-center gap-1 mb-1 font-medium">
+              <Clock size={13} className="text-blue-600" /> Time
             </span>
-            <strong className="text-xs text-zinc-200 font-medium block">
+            <strong className="text-xs text-gray-800 font-medium block">
               {formattedTime} (IST)
             </strong>
           </div>
 
           <div>
-            <span className="text-zinc-500 flex items-center gap-1 mb-1 font-medium">
-              <MapPin size={13} className="text-[#18CFFC]" /> Venue
+            <span className="text-gray-500 flex items-center gap-1 mb-1 font-medium">
+              <MapPin size={13} className="text-blue-600" /> Venue
             </span>
-            <strong className="text-xs text-zinc-200 font-medium block truncate">
+            <strong className="text-xs text-gray-800 font-medium block truncate">
               {event?.venue_name || 'Campus Venue'}
             </strong>
           </div>
@@ -430,25 +430,25 @@ export function DigitalTicketCard({
 
         {/* Team Information Block */}
         {registration.team_name && (
-          <div className="p-4 bg-[#14141A] border-b border-white/[0.08] text-xs">
+          <div className="p-4 bg-gray-50/70 border-b border-gray-100 text-xs">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="flex items-center gap-1.5 text-[#18CFFC] font-bold">
+              <span className="flex items-center gap-1.5 text-blue-700 font-semibold">
                 <Users size={14} /> Team: {registration.team_name}
               </span>
-              <Badge variant="purple" className="text-[10px]">
+              <Badge variant="violet" className="text-[10px]">
                 {registration.team_role === 'leader' ? 'Squad Leader' : 'Team Member'}
               </Badge>
             </div>
             {hasTeamMembers && registration.team_role === 'leader' && (
-              <div className="text-[11px] text-zinc-400 mt-1.5">
-                <div className="text-[10px] text-zinc-500 font-medium mb-1">
+              <div className="text-[11px] text-gray-600 mt-1.5">
+                <div className="text-[10px] text-gray-500 font-medium mb-1">
                   Squad Roster (Individual passes delivered directly to each member):
                 </div>
-                <div className="flex flex-wrap gap-x-2 gap-y-1">
+                <div className="flex flex-wrap gap-1.5">
                   {teamMembers.map((m: any, i: number) => (
                     <span
                       key={i}
-                      className="bg-white/10 px-2 py-0.5 rounded-md text-[10px] text-zinc-300"
+                      className="bg-white border border-gray-200 px-2 py-0.5 rounded-md text-[10px] text-gray-700 font-medium"
                     >
                       • {m.name} {m.studentId ? `(${m.studentId})` : ''}
                     </span>
@@ -461,31 +461,24 @@ export function DigitalTicketCard({
 
         {/* Reserved Seat Information Block */}
         {(seatReservation || registration.seat_details || (registration as any).seat_label) && (
-          <div className="p-4 bg-[#14141A] border-b border-white/[0.08] text-xs">
+          <div className="p-4 bg-blue-50/50 border-b border-gray-100 text-xs">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[#18CFFC] font-bold">
+              <span className="flex items-center gap-1.5 text-blue-700 font-semibold">
                 <Ticket size={14} /> Reserved Seat
               </span>
               <div className="flex items-center gap-1.5">
                 {(seatReservation?.category_name || (registration as any).seat_details?.category_name) && (
-                  <span
-                    className="px-2 py-0.5 rounded text-[10px] font-semibold"
-                    style={{
-                      backgroundColor: ((seatReservation?.category_color || (registration as any).seat_details?.category_color || '#18CFFC') + '22'),
-                      color: (seatReservation?.category_color || (registration as any).seat_details?.category_color || '#18CFFC'),
-                      border: `1px solid ${((seatReservation?.category_color || (registration as any).seat_details?.category_color || '#18CFFC') + '55')}`,
-                    }}
-                  >
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-gray-200 text-gray-700">
                     {seatReservation?.category_name || (registration as any).seat_details?.category_name}
                   </span>
                 )}
-                <span className="px-2.5 py-1 rounded-lg bg-[#18CFFC]/20 border border-[#18CFFC]/50 text-white font-mono font-bold text-sm tracking-wide">
+                <span className="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-mono font-bold text-sm tracking-wide shadow-2xs">
                   {seatReservation?.display_label || (registration as any).seat_details?.display_label || (registration as any).seat_label}
                 </span>
               </div>
             </div>
             {(seatReservation?.section || (registration as any).seat_details?.section) && (
-              <div className="text-[11px] text-zinc-400 mt-1">
+              <div className="text-[11px] text-gray-600 mt-1">
                 Section: {seatReservation?.section || (registration as any).seat_details?.section}
               </div>
             )}
@@ -493,24 +486,24 @@ export function DigitalTicketCard({
         )}
 
         {/* Perforated Notched Cutouts */}
-        <div className="relative h-6 bg-[#08080A] flex items-center justify-between px-4 overflow-hidden">
-          <div className="w-5 h-5 rounded-full bg-[#08080A] border border-white/20 -ml-7 shadow-inner" />
-          <div className="flex-1 border-b-2 border-dashed border-white/15 mx-2" />
-          <div className="w-5 h-5 rounded-full bg-[#08080A] border border-white/20 -mr-7 shadow-inner" />
+        <div className="relative h-6 bg-white flex items-center justify-between px-4 overflow-hidden">
+          <div className="w-5 h-5 rounded-full bg-[#F7F8FA] border border-gray-200 -ml-7 shadow-inner" />
+          <div className="flex-1 border-b-2 border-dashed border-gray-200 mx-2" />
+          <div className="w-5 h-5 rounded-full bg-[#F7F8FA] border border-gray-200 -mr-7 shadow-inner" />
         </div>
 
         {/* Bottom Section: Confirmed Pass Reference & Verification */}
-        <div className="p-6 pt-3 flex flex-col items-center text-center gap-4 bg-[#0E0E12]">
+        <div className="p-6 pt-3 flex flex-col items-center text-center gap-4 bg-white">
           {isConfirmed ? (
             <>
-              <div className="w-full max-w-xs p-5 rounded-2xl bg-[#14141A] border border-emerald-500/25 shadow-xl flex flex-col items-center gap-3">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+              <div className="w-full max-w-xs p-5 rounded-xl bg-gray-50/70 border border-gray-200 flex flex-col items-center gap-3">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 size={12} />
                   Verified Entry Pass
                 </div>
 
                 {/* Scannable Gate QR Code */}
-                <div className="p-3.5 bg-white rounded-2xl shadow-2xl flex items-center justify-center my-1">
+                <div className="p-3 bg-white rounded-xl border border-gray-200 shadow-xs flex items-center justify-center my-1">
                   <QRCodeSVG
                     value={registration.qr_token || currentPassCode}
                     size={160}
@@ -519,7 +512,7 @@ export function DigitalTicketCard({
                   />
                 </div>
 
-                <span className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                <span className="text-[11px] text-gray-500 mt-0.5 font-medium">
                   Confirmed Pass Code
                 </span>
 
@@ -527,40 +520,40 @@ export function DigitalTicketCard({
                   type="button"
                   onClick={handleCopyCode}
                   title="Click to copy pass code"
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/50 border border-white/15 hover:border-[#18CFFC] text-base sm:text-lg font-mono font-extrabold tracking-wider text-white transition-all min-h-[44px] cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 hover:border-blue-600 text-base sm:text-lg font-mono font-bold tracking-wider text-gray-900 transition-colors min-h-[42px] cursor-pointer shadow-2xs"
                 >
                   <span>{currentPassCode}</span>
                   {copied ? (
-                    <CheckCircle2 size={15} className="text-emerald-400" />
+                    <CheckCircle2 size={15} className="text-emerald-600" />
                   ) : (
-                    <Copy size={15} className="text-zinc-400" />
+                    <Copy size={15} className="text-gray-400" />
                   )}
                 </button>
               </div>
 
-              {/* Verified Venue Gate Status (Controlled exclusively by event staff & organizers) */}
-              <div className="w-full max-w-xs p-3.5 rounded-2xl bg-[#14141E] border border-white/10 flex flex-col items-center gap-2 text-center shadow-lg">
+              {/* Verified Venue Gate Status (Read-Only, Controlled Exclusively by Event Organizers) */}
+              <div className="w-full max-w-xs p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col items-center gap-2 text-center">
                 <div className="flex items-center justify-between w-full text-xs">
-                  <span className="text-zinc-400 font-medium">Gate Status:</span>
+                  <span className="text-gray-600 font-medium">Gate Status:</span>
                   {attendanceStatus === 'checked_in' ? (
-                    <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       Inside Venue · Entry #{entryCount}
                     </span>
                   ) : attendanceStatus === 'checked_out' ? (
-                    <span className="text-amber-400 font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span className="text-amber-700 font-semibold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-600" />
                       Stepped Out
                     </span>
                   ) : (
-                    <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       Ready for Entry
                     </span>
                   )}
                 </div>
 
-                <p className="text-[10px] text-zinc-500 leading-tight">
+                <p className="text-[11px] text-gray-500 leading-tight">
                   {attendanceStatus === 'checked_in'
                     ? 'Your attendance is verified by authorized event organizers at the venue.'
                     : attendanceStatus === 'checked_out'
@@ -569,39 +562,39 @@ export function DigitalTicketCard({
                 </p>
               </div>
 
-              <p className="text-[11px] text-zinc-500 max-w-xs leading-relaxed font-sans">
-                Scan this QR code or present the pass code at the venue gate for verified entry.
+              <p className="text-[11px] text-gray-500 max-w-xs leading-relaxed">
+                Present this QR pass or confirmation code at the venue gate for verified entry.
               </p>
             </>
           ) : isPendingApproval ? (
             /* Pending Host Approval Lockout */
-            <div className="p-6 rounded-2xl bg-[#14141A] border border-[#18CFFC]/30 text-center flex flex-col items-center gap-3 w-full">
-              <div className="p-3 rounded-full bg-[#18CFFC]/15 text-[#18CFFC]">
-                <Clock size={28} />
+            <div className="p-6 rounded-xl bg-blue-50/50 border border-blue-200 text-center flex flex-col items-center gap-3 w-full">
+              <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <Clock size={26} />
               </div>
               <div>
-                <strong className="text-sm font-semibold text-white block mb-1 font-heading">
+                <strong className="text-sm font-semibold text-gray-900 block mb-1 font-display">
                   Application Under Host Review
                 </strong>
-                <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mb-3 font-sans">
+                <p className="text-xs text-gray-600 leading-relaxed max-w-xs mb-3">
                   The event organizer is currently reviewing your registration application. Your digital entry pass {event?.is_free ? 'will activate automatically once approved' : 'will unlock for payment once approved'}.
                 </p>
               </div>
-              <div className="text-[11px] font-mono text-zinc-400 bg-black/40 px-3 py-1 rounded-md border border-white/10">
+              <div className="text-[11px] font-mono text-gray-600 bg-white px-3 py-1 rounded-md border border-gray-200">
                 Ref: {registration.ticket_code}
               </div>
             </div>
           ) : isPending ? (
             /* Pending Payment Lockout */
-            <div className="p-6 rounded-2xl bg-[#14141A] border border-amber-500/20 text-center flex flex-col items-center gap-3 w-full">
-              <div className="p-3 rounded-full bg-amber-500/20 text-amber-400">
-                <Lock size={28} />
+            <div className="p-6 rounded-xl bg-amber-50/70 border border-amber-200 text-center flex flex-col items-center gap-3 w-full">
+              <div className="p-3 rounded-full bg-amber-100 text-amber-700">
+                <Lock size={26} />
               </div>
               <div>
-                <strong className="text-sm font-semibold text-amber-300 block mb-1 font-heading">
+                <strong className="text-sm font-semibold text-amber-950 block mb-1 font-display">
                   Pass Locked — Payment Verification Pending
                 </strong>
-                <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mb-3 font-sans">
+                <p className="text-xs text-amber-900 leading-relaxed max-w-xs mb-3">
                   Please complete the ticket fee payment to unlock your confirmed entry pass.
                 </p>
                 <Link to={`/student/payments/${registration.id}`}>
@@ -610,21 +603,21 @@ export function DigitalTicketCard({
                   </Button>
                 </Link>
               </div>
-              <div className="text-[11px] font-mono text-zinc-400 bg-black/40 px-3 py-1 rounded-md border border-white/10 mt-1">
+              <div className="text-[11px] font-mono text-gray-600 bg-white px-3 py-1 rounded-md border border-gray-200 mt-1">
                 Ref: {registration.ticket_code}
               </div>
             </div>
           ) : isRejected ? (
             /* Registration Application Declined */
-            <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center flex flex-col items-center gap-3 w-full">
-              <div className="p-3 rounded-full bg-rose-500/20 text-rose-400">
-                <XCircle size={28} />
+            <div className="p-6 rounded-xl bg-rose-50 border border-rose-200 text-center flex flex-col items-center gap-3 w-full">
+              <div className="p-3 rounded-full bg-rose-100 text-rose-600">
+                <XCircle size={26} />
               </div>
               <div>
-                <strong className="text-sm font-semibold text-rose-300 block mb-1">
+                <strong className="text-sm font-semibold text-rose-950 block mb-1">
                   Registration Application Declined
                 </strong>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mb-3">
+                <p className="text-xs text-rose-800 leading-relaxed max-w-xs mb-3">
                   {(registration as any).rejection_reason || 'The event organizer could not approve this registration.'}
                 </p>
                 {!event?.is_free && (
@@ -635,47 +628,45 @@ export function DigitalTicketCard({
                   </Link>
                 )}
               </div>
-              <div className="text-[11px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-3 py-1 rounded-md">
+              <div className="text-[11px] font-mono text-gray-600 bg-white border border-gray-200 px-3 py-1 rounded-md">
                 Ref: {registration.ticket_code}
               </div>
             </div>
           ) : isWaitlisted ? (
             /* Registration Waitlisted Notice */
-            <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-center flex flex-col items-center gap-3 w-full">
-              <div className="p-3 rounded-full bg-amber-500/20 text-amber-400">
-                <Clock size={28} />
+            <div className="p-6 rounded-xl bg-amber-50 border border-amber-200 text-center flex flex-col items-center gap-3 w-full">
+              <div className="p-3 rounded-full bg-amber-100 text-amber-700">
+                <Clock size={26} />
               </div>
               <div>
-                <strong className="text-sm font-semibold text-amber-300 block mb-1">
+                <strong className="text-sm font-semibold text-amber-950 block mb-1">
                   Registration Waitlisted
                 </strong>
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mb-3">
+                <p className="text-xs text-amber-900 leading-relaxed max-w-xs mb-3">
                   This event is at maximum capacity. You are placed on the organizer waitlist. If a confirmed seat becomes available, your status will update automatically.
                 </p>
               </div>
-              <div className="text-[11px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface-2)] px-3 py-1 rounded-md">
+              <div className="text-[11px] font-mono text-gray-600 bg-white border border-gray-200 px-3 py-1 rounded-md">
                 Ref: {registration.ticket_code}
               </div>
             </div>
           ) : (
             /* Cancelled Notice */
-            <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center flex flex-col items-center gap-2 w-full">
-              <XCircle size={28} className="text-rose-400" />
-              <strong className="text-sm font-semibold text-rose-300">
+            <div className="p-6 rounded-xl bg-rose-50 border border-rose-200 text-center flex flex-col items-center gap-2 w-full">
+              <XCircle size={26} className="text-rose-600" />
+              <strong className="text-sm font-semibold text-rose-950">
                 Registration Void / Cancelled
               </strong>
-              <p className="text-xs text-[var(--color-text-muted)] max-w-xs">
+              <p className="text-xs text-rose-800 max-w-xs">
                 This pass has been cancelled and is no longer valid for event entry.
               </p>
             </div>
           )}
 
-
-
           {/* Ticket ID & Security Footer */}
-          <div className="w-full pt-3 border-t border-[var(--color-surface-3)] flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">
-            <span className="flex items-center gap-1">
-              <ShieldCheck size={12} className="text-emerald-400" />
+          <div className="w-full pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+            <span className="flex items-center gap-1 font-medium">
+              <ShieldCheck size={13} className="text-blue-600" />
               Verified FestFlow Digital Pass
             </span>
             <span className="font-mono">ID: {registration.id.slice(0, 8)}…</span>
@@ -686,24 +677,24 @@ export function DigitalTicketCard({
       {/* ── Notification Banner ─────────────────────────────────────────── */}
       {resendNotice && (
         <div
-          className={`p-3 rounded-2xl border text-xs flex items-center justify-between gap-2 transition-all print:hidden ${
+          className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-2 transition-all print:hidden ${
             resendNotice.isError
-              ? 'bg-rose-500/10 border-rose-500/20 text-rose-300'
-              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+              ? 'bg-rose-50 border-rose-200 text-rose-800'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
           }`}
         >
           <div className="flex items-center gap-2">
             {resendNotice.isError ? (
-              <AlertCircle size={15} className="shrink-0 text-rose-400" />
+              <AlertCircle size={15} className="shrink-0 text-rose-600" />
             ) : (
-              <CheckCircle2 size={15} className="shrink-0 text-emerald-400" />
+              <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />
             )}
             <span>{resendNotice.message}</span>
           </div>
           <button
             type="button"
             onClick={() => setResendNotice(null)}
-            className="p-1 rounded-md hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-colors"
+            className="p-1 rounded-md hover:bg-black/5 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
             aria-label="Dismiss notice"
           >
             <X size={14} />
@@ -716,35 +707,35 @@ export function DigitalTicketCard({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 print:hidden">
           {event?.slug ? (
             <Link to={`/events/${event.slug}`} className="w-full sm:w-auto">
-              <Button variant="ghost" size="sm" className="w-full justify-center min-h-[44px]" leftIcon={<ExternalLink size={14} />}>
+              <Button variant="ghost" size="sm" className="w-full justify-center min-h-[40px]" leftIcon={<ExternalLink size={14} />}>
                 View Event Page
               </Button>
             </Link>
           ) : (
-            <span className="text-xs text-[var(--color-text-muted)] text-center sm:text-left">Event Details Unavailable</span>
+            <span className="text-xs text-gray-500 text-center sm:text-left">Event Details Unavailable</span>
           )}
 
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {isConfirmed && (
               <>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={handleDownloadPass}
                   leftIcon={<Download size={14} />}
                   title="Download offline image pass"
-                  className="flex-1 sm:flex-initial justify-center min-h-[44px]"
+                  className="flex-1 sm:flex-initial justify-center min-h-[40px]"
                 >
                   Download
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={handlePrint}
                   leftIcon={<Printer size={14} />}
                   title="Print paper entry badge"
-                  className="flex-1 sm:flex-initial justify-center min-h-[44px]"
+                  className="flex-1 sm:flex-initial justify-center min-h-[40px]"
                 >
                   Print
                 </Button>
@@ -756,7 +747,7 @@ export function DigitalTicketCard({
                   disabled={resending || resendCooldown > 0}
                   isLoading={resending}
                   leftIcon={<Mail size={14} />}
-                  className="text-[var(--color-brand-cyan)] hover:text-[var(--color-brand-cyan)]/80 flex-1 sm:flex-initial justify-center min-h-[44px]"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-1 sm:flex-initial justify-center min-h-[40px]"
                   title="Resend pass to registered email"
                 >
                   {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : 'Email Pass'}
@@ -766,16 +757,16 @@ export function DigitalTicketCard({
 
             {!isCancelled && !isRejected && onCancel && (
               (registration as any)?.attendance_status === 'checked_in' || (registration as any)?.attendance_status === 'checked_out' ? (
-                <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 w-full sm:w-auto text-center">
+                <span className="text-[11px] text-gray-500 italic px-2 w-full sm:w-auto text-center">
                   Attendance recorded (cancellation closed)
                 </span>
               ) : hasStarted ? (
-                <span className="text-[11px] text-[var(--color-text-muted)] italic px-2 w-full sm:w-auto text-center">
+                <span className="text-[11px] text-gray-500 italic px-2 w-full sm:w-auto text-center">
                   Event started (cancellation closed)
                 </span>
               ) : (registration as any)?.cancellation_request_status === 'pending' ? (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
-                  <Clock size={13} className="text-amber-400 shrink-0" />
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+                  <Clock size={13} className="text-amber-600 shrink-0" />
                   <span>Cancellation Requested (Pending Club Approval)</span>
                 </div>
               ) : (
@@ -783,7 +774,7 @@ export function DigitalTicketCard({
                   variant="ghost"
                   size="sm"
                   onClick={onCancel}
-                  className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 w-full sm:w-auto justify-center min-h-[44px]"
+                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 w-full sm:w-auto justify-center min-h-[40px]"
                 >
                   Request Cancellation
                 </Button>

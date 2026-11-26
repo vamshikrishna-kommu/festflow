@@ -51,9 +51,9 @@ export function Step2VisualEditor({ config, onChange }: Props) {
 
   const getSeatColor = (seat: LayoutEditorSeat): string => {
     if (seat.is_aisle_gap) return 'transparent'
-    if (seat.is_blocked) return '#374151'
+    if (seat.is_blocked) return '#9CA3AF'
     const catId = seat.category_id ?? ''
-    return categoryMap[catId]?.color ?? '#18CFFC'
+    return categoryMap[catId]?.color ?? '#2563EB'
   }
 
   const totalCapacity = getTotalCapacity(config)
@@ -82,8 +82,8 @@ export function Step2VisualEditor({ config, onChange }: Props) {
               onClick={() => setActiveTool(tool.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 activeTool === tool.id
-                  ? 'bg-[#18CFFC]/20 border-[#18CFFC] text-[#18CFFC]'
-                  : 'bg-[var(--color-surface-2)] border-white/10 text-[var(--color-text-secondary)] hover:border-white/20'
+                  ? 'bg-blue-50 border-blue-600 text-blue-700'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
               {tool.emoji} {tool.label}
@@ -94,8 +94,8 @@ export function Step2VisualEditor({ config, onChange }: Props) {
 
       {/* Stage indicator */}
       {config.stage_position === 'front' && (
-        <div className="w-full h-10 bg-gradient-to-r from-[#18CFFC]/20 via-[#0D56FB]/20 to-[#7F1AFB]/20 rounded-xl border border-white/10 flex items-center justify-center">
-          <span className="text-xs font-semibold tracking-widest text-[#18CFFC] uppercase">◀ STAGE / SCREEN ▶</span>
+        <div className="w-full h-10 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center">
+          <span className="text-xs font-semibold tracking-widest text-blue-700 uppercase">◀ STAGE / SCREEN ▶</span>
         </div>
       )}
 
@@ -129,15 +129,15 @@ export function Step2VisualEditor({ config, onChange }: Props) {
                         flex items-center justify-center transition-all duration-150
                         border-2 cursor-pointer
                         ${seat.is_blocked
-                          ? 'opacity-40 border-gray-600'
+                          ? 'opacity-60 border-gray-300'
                           : isSelected
-                          ? 'scale-110 border-white shadow-lg'
-                          : 'border-transparent hover:scale-105 hover:border-white/40'
+                          ? 'scale-110 border-blue-700 shadow-md ring-2 ring-blue-600/25'
+                          : 'border-transparent hover:scale-105 hover:border-gray-400'
                         }
                       `}
                       style={{
-                        backgroundColor: seat.is_blocked ? '#374151' : catColor + '33',
-                        borderColor: isSelected ? 'white' : seat.is_blocked ? '#374151' : catColor + '66',
+                        backgroundColor: seat.is_blocked ? '#E5E7EB' : catColor + '22',
+                        borderColor: isSelected ? '#1D4ED8' : seat.is_blocked ? '#D1D5DB' : catColor + '88',
                       }}
                     >
                       <span style={{ color: catColor }}>{seat.display_label.replace(seat.row_identifier, '')}</span>
@@ -153,14 +153,14 @@ export function Step2VisualEditor({ config, onChange }: Props) {
               <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                 <button
                   onClick={() => onChange(addSeatToRow(config, row.row_identifier))}
-                  className="w-6 h-6 rounded flex items-center justify-center bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-text-muted)] hover:text-[#18CFFC] transition-colors"
+                  className="w-6 h-6 rounded flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-blue-600 transition-colors"
                   title="Add seat"
                 >
                   <Plus className="w-3 h-3" />
                 </button>
                 <button
                   onClick={() => onChange(removeRow(config, row.row_identifier))}
-                  className="w-6 h-6 rounded flex items-center justify-center bg-[var(--color-surface-2)] hover:bg-red-900/40 text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
+                  className="w-6 h-6 rounded flex items-center justify-center bg-gray-100 hover:bg-rose-50 text-gray-500 hover:text-rose-600 transition-colors"
                   title="Remove row"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -173,21 +173,21 @@ export function Step2VisualEditor({ config, onChange }: Props) {
 
       {/* Back stage indicator */}
       {config.stage_position === 'back' && (
-        <div className="w-full h-10 bg-gradient-to-r from-[#18CFFC]/20 via-[#0D56FB]/20 to-[#7F1AFB]/20 rounded-xl border border-white/10 flex items-center justify-center">
-          <span className="text-xs font-semibold tracking-widest text-[#18CFFC] uppercase">◀ STAGE / SCREEN ▶</span>
+        <div className="w-full h-10 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center">
+          <span className="text-xs font-semibold tracking-widest text-blue-700 uppercase">◀ STAGE / SCREEN ▶</span>
         </div>
       )}
 
       {/* Add row */}
-      <div className="flex items-center gap-3 pt-2 border-t border-white/5">
-        <label className="text-sm text-[var(--color-text-muted)]">Seats per row:</label>
+      <div className="flex items-center gap-3 pt-2 border-t border-gray-200">
+        <label className="text-sm text-gray-600">Seats per row:</label>
         <input
           type="number"
           min={1}
           max={50}
           value={seatsPerNewRow}
           onChange={(e) => setSeatsPerNewRow(Math.max(1, Math.min(50, Number(e.target.value))))}
-          className="w-20 px-2 py-1.5 bg-[var(--color-surface-2)] border border-white/10 rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[#18CFFC]"
+          className="w-20 px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-blue-600"
         />
         <Button
           variant="outline"
@@ -200,9 +200,9 @@ export function Step2VisualEditor({ config, onChange }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-muted)]">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#18CFFC]/30 border border-[#18CFFC]/60" /> Available</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-700 opacity-40 border border-gray-600" /> Blocked</span>
+      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-400" /> Available</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-200 border border-gray-300" /> Blocked</span>
         <span className="flex items-center gap-1.5">♿ Accessible</span>
         <span className="flex items-center gap-1.5"><span className="w-5 h-3" /> Aisle Gap</span>
       </div>

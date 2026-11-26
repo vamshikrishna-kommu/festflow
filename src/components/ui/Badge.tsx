@@ -10,30 +10,32 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-white/[0.06] text-zinc-300 border border-white/10',
-  brand:   'bg-gradient-to-r from-[#18CFFC]/15 to-[#7F1AFB]/15 text-[#18CFFC] border border-[#18CFFC]/40 shadow-[0_0_14px_rgba(24,207,252,0.25)]',
-  cyan:    'bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/35 shadow-[0_0_12px_rgba(24,207,252,0.20)]',
-  blue:    'bg-[#07A4FC]/15 text-[#38BDF8] border border-[#07A4FC]/35 shadow-[0_0_12px_rgba(7,164,252,0.20)]',
-  violet:  'bg-[#7F1AFB]/15 text-[#C084FC] border border-[#7F1AFB]/35 shadow-[0_0_12px_rgba(127,26,251,0.20)]',
-  purple:  'bg-[#7F1AFB]/15 text-[#C084FC] border border-[#7F1AFB]/35 shadow-[0_0_12px_rgba(127,26,251,0.20)]',
-  magenta: 'bg-[#ED47FC]/15 text-[#FE7EE8] border border-[#ED47FC]/35 shadow-[0_0_12px_rgba(237,71,252,0.20)]',
-  pink:    'bg-[#ED47FC]/15 text-[#FE7EE8] border border-[#ED47FC]/35 shadow-[0_0_12px_rgba(237,71,252,0.20)]',
-  amber:   'bg-amber-500/15 text-amber-400 border border-amber-500/30',
-  success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
-  outline: 'bg-transparent text-zinc-300 border border-white/15',
-  danger:  'bg-rose-500/15 text-rose-400 border border-rose-500/30',
-  neutral: 'bg-white/[0.08] text-white border border-white/15',
+  default: 'bg-gray-100 text-gray-700 border border-gray-200/80',
+  brand:   'bg-blue-50 text-blue-700 border border-blue-200/90 font-medium',
+  cyan:    'bg-sky-50 text-sky-700 border border-sky-200',
+  blue:    'bg-blue-50 text-blue-700 border border-blue-200',
+  info:    'bg-blue-50 text-blue-700 border border-blue-200',
+  indigo:  'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  violet:  'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  purple:  'bg-purple-50 text-purple-700 border border-purple-200',
+  magenta: 'bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200',
+  pink:    'bg-pink-50 text-pink-700 border border-pink-200',
+  amber:   'bg-amber-50 text-amber-800 border border-amber-200',
+  success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  outline: 'bg-white text-gray-700 border border-gray-300',
+  danger:  'bg-rose-50 text-rose-700 border border-rose-200',
+  neutral: 'bg-gray-100 text-gray-800 border border-gray-200',
 }
 
 const CATEGORY_VARIANT_MAP: Record<string, BadgeVariant> = {
   hackathon: 'purple',
-  tech:      'cyan',
+  tech:      'blue',
   music:     'pink',
-  cultural:  'pink',
+  cultural:  'magenta',
   workshop:  'amber',
-  seminar:   'amber',
+  seminar:   'cyan',
   sports:    'success',
-  gaming:    'purple',
+  gaming:    'violet',
   art:       'amber',
   social:    'default',
 }
@@ -41,7 +43,7 @@ const CATEGORY_VARIANT_MAP: Record<string, BadgeVariant> = {
 export function Badge({ variant = 'default', children, className = '', pulse = false, dot = false }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-colors ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight transition-colors ${variantClasses[variant]} ${className}`}
     >
       {(pulse || dot) && (
         <span className="relative flex h-1.5 w-1.5">
@@ -58,6 +60,6 @@ export function Badge({ variant = 'default', children, className = '', pulse = f
 
 /** Convenience: automatically selects a variant from the event category string */
 export function CategoryBadge({ category }: { category: string }) {
-  const variant = CATEGORY_VARIANT_MAP[category] ?? 'default'
+  const variant = CATEGORY_VARIANT_MAP[category.toLowerCase()] ?? 'default'
   return <Badge variant={variant}>{category}</Badge>
 }

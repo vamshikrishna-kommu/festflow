@@ -96,34 +96,34 @@ export function ReviewEditModal({
             )}
 
             {/* Attendee Context */}
-            <div className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-bold text-white">
-                <User size={16} className="text-[#18CFFC]" />
+            <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                <User size={16} className="text-blue-600" />
                 <span>{studentName}</span>
-                <span className="text-xs font-normal text-zinc-400">({studentEmail})</span>
+                <span className="text-xs font-normal text-gray-500">({studentEmail})</span>
               </div>
-              <Badge variant="cyan" className="text-[10px]">
+              <Badge variant="info" className="text-[10px]">
                 Pass: #{registration?.ticket_code || 'TICKET'}
               </Badge>
             </div>
 
             {/* Side-by-Side Diff Comparison */}
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-zinc-300">Proposed Changes</span>
-              <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-black/40 border border-white/5">
+              <span className="text-xs font-semibold text-gray-700">Proposed Changes</span>
+              <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-gray-50 border border-gray-200">
                 {Object.entries(changes).map(([key, newVal]) => {
                   const oldVal = previous[key] || 'Not set'
                   const label = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
 
                   return (
-                    <div key={key} className="flex flex-col gap-1 text-xs border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                      <span className="text-zinc-400 font-semibold text-[11px]">{label}</span>
+                    <div key={key} className="flex flex-col gap-1 text-xs border-b border-gray-200 pb-2 last:border-0 last:pb-0">
+                      <span className="text-gray-500 font-semibold text-[11px]">{label}</span>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-300 line-through">
+                        <span className="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 line-through">
                           {String(oldVal)}
                         </span>
-                        <ArrowRight size={13} className="text-zinc-500" />
-                        <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 font-semibold">
+                        <ArrowRight size={13} className="text-gray-400" />
+                        <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
                           {String(newVal)}
                         </span>
                       </div>
@@ -134,21 +134,21 @@ export function ReviewEditModal({
             </div>
 
             {/* Student Reason */}
-            <div className="p-3 rounded-xl bg-[#14141A] border border-white/5 text-xs text-zinc-300">
-              <span className="font-semibold text-zinc-400 block mb-0.5">Attendee Reason:</span>
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700">
+              <span className="font-semibold text-gray-500 block mb-0.5">Attendee Reason:</span>
               <p className="italic">"{request.reason}"</p>
             </div>
 
             {/* Organizer Decision Note */}
             <div className="flex flex-col gap-1.5 text-xs">
-              <label className="text-zinc-300 font-semibold">Decision Note (Optional)</label>
+              <label className="text-gray-700 font-semibold">Decision Note (Optional)</label>
               <textarea
                 value={decisionNotes}
                 onChange={(e) => setDecisionNotes(e.target.value)}
                 placeholder="Reason for approval or rejection..."
                 rows={2}
                 disabled={loading}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC] resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 resize-none"
               />
             </div>
           </div>

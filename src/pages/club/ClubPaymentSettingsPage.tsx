@@ -268,7 +268,7 @@ export default function ClubPaymentSettingsPage() {
     return (
       <PageShell>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6 text-left">
-          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] border-b border-[var(--color-surface-3)] pb-4">
+          <div className="flex items-center gap-2 text-xs text-gray-500 border-b border-gray-200 pb-4">
             <Link
               to="/club/dashboard"
               className="hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
@@ -359,15 +359,15 @@ export default function ClubPaymentSettingsPage() {
         />
 
         {/* Section Navigation Tabs */}
-        <div className="flex items-center gap-2 p-1.5 bg-[#0E0E12] rounded-2xl border border-white/10 text-xs">
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl border border-gray-200 text-xs">
           {canManageClub && (
             <button
               type="button"
               onClick={() => handleTabChange('profile')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-medium transition-all cursor-pointer ${
                 activeTab === 'profile'
-                  ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
-                  : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
+                  ? 'bg-white text-gray-900 font-semibold shadow-xs border border-gray-200'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Building2 size={16} />
@@ -379,10 +379,10 @@ export default function ClubPaymentSettingsPage() {
             <button
               type="button"
               onClick={() => handleTabChange('payments')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-medium transition-all cursor-pointer ${
                 activeTab === 'payments'
-                  ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]'
-                  : 'text-[var(--color-text-muted)] hover:text-white hover:bg-white/5'
+                  ? 'bg-white text-gray-900 font-semibold shadow-xs border border-gray-200'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <CreditCard size={16} />
@@ -402,16 +402,16 @@ export default function ClubPaymentSettingsPage() {
         {activeTab === 'profile' && canManageClub && (
           <form onSubmit={handleSaveProfile}>
             <Card className="p-6 sm:p-8 flex flex-col gap-6">
-              <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                 <div>
-                  <h2 className="text-base font-bold text-[var(--color-text-primary)]">
+                  <h2 className="text-base font-bold text-gray-900">
                     Club Organization Details
                   </h2>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  <p className="text-xs text-gray-500 mt-0.5">
                     Visible to campus students across event badges, tickets, and college directory feeds.
                   </p>
                 </div>
-                <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/20">
+                <span className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
                   <Building2 size={18} />
                 </span>
               </div>
@@ -420,9 +420,9 @@ export default function ClubPaymentSettingsPage() {
               <div>
                 <label
                   htmlFor="club_name_input"
-                  className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                  className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2"
                 >
-                  Official Club / Organization Name <span className="text-rose-400">*</span>
+                  Official Club / Organization Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="club_name_input"
@@ -431,7 +431,7 @@ export default function ClubPaymentSettingsPage() {
                   placeholder="e.g. ACM Student Chapter, Robotics Club, IEEE Society"
                   value={clubNameInput}
                   onChange={(e) => setClubNameInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                  className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                 />
               </div>
 
@@ -439,12 +439,12 @@ export default function ClubPaymentSettingsPage() {
               <div>
                 <label
                   htmlFor="rep_name_input"
-                  className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                  className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2"
                 >
-                  Lead Representative / President <span className="text-rose-400">*</span>
+                  Lead Representative / President <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input
                     id="rep_name_input"
                     type="text"
@@ -452,10 +452,10 @@ export default function ClubPaymentSettingsPage() {
                     placeholder="e.g. Alex Chen"
                     value={repNameInput}
                     onChange={(e) => setRepNameInput(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                   />
                 </div>
-                <span className="text-[11px] text-[var(--color-text-muted)] mt-1.5 block">
+                <span className="text-[11px] text-gray-500 mt-1.5 block">
                   Official contact person authorized to manage events and verify attendee admission.
                 </span>
               </div>
@@ -464,19 +464,19 @@ export default function ClubPaymentSettingsPage() {
               <div>
                 <label
                   htmlFor="website_url_input"
-                  className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                  className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2"
                 >
                   Official Website or Linktree (Optional)
                 </label>
                 <div className="relative">
-                  <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none" />
+                  <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input
                     id="website_url_input"
                     type="url"
                     placeholder="https://robotics-festflow.edu"
                     value={websiteInput}
                     onChange={(e) => setWebsiteInput(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                   />
                 </div>
               </div>
@@ -485,7 +485,7 @@ export default function ClubPaymentSettingsPage() {
               <div>
                 <label
                   htmlFor="club_desc_input"
-                  className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                  className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2"
                 >
                   Club Mission & About (Optional)
                 </label>
@@ -495,12 +495,12 @@ export default function ClubPaymentSettingsPage() {
                   placeholder="Briefly describe your club, regular activities, and what students can expect when attending your events."
                   value={descriptionInput}
                   onChange={(e) => setDescriptionInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                  className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                 />
               </div>
 
               {/* Form Actions */}
-              <div className="pt-4 border-t border-[var(--color-surface-3)] flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
                 <Link to="/club/dashboard">
                   <Button type="button" variant="ghost" size="md">
                     Back to Dashboard
@@ -531,8 +531,8 @@ export default function ClubPaymentSettingsPage() {
 
               {loading ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin" />
-                  <span className="text-xs text-[var(--color-text-muted)]">Loading payment configuration…</span>
+                  <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin" />
+                  <span className="text-xs text-gray-500">Loading payment configuration…</span>
                 </div>
               ) : (
                 <>
@@ -540,9 +540,9 @@ export default function ClubPaymentSettingsPage() {
                   <div>
                     <label
                       htmlFor="upi_id"
-                      className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                      className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2"
                     >
-                      Club Official UPI ID <span className="text-rose-400">*</span>
+                      Club Official UPI ID <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -552,10 +552,10 @@ export default function ClubPaymentSettingsPage() {
                         placeholder="e.g. acm.chapter@okaxis or robotics.fest@icici"
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors font-mono"
+                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors font-mono"
                       />
                     </div>
-                    <span className="text-[11px] text-[var(--color-text-muted)] mt-1.5 block">
+                    <span className="text-[11px] text-gray-500 mt-1.5 block">
                       Format: username@bank. Make sure this UPI handle is active and linked to your club bank or organizer account.
                     </span>
                   </div>
@@ -564,9 +564,9 @@ export default function ClubPaymentSettingsPage() {
                   <div>
                     <label
                       htmlFor="account_name"
-                      className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                      className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2"
                     >
-                      Payee Display Name <span className="text-rose-400">*</span>
+                      Payee Display Name <span className="text-rose-500">*</span>
                     </label>
                     <input
                       id="account_name"
@@ -575,9 +575,9 @@ export default function ClubPaymentSettingsPage() {
                       placeholder="e.g. Campus Robotics Club or ACM Student Chapter"
                       value={accountName}
                       onChange={(e) => setAccountName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                     />
-                    <span className="text-[11px] text-[var(--color-text-muted)] mt-1.5 block">
+                    <span className="text-[11px] text-gray-500 mt-1.5 block">
                       This payee name will be shown to students on the payment checkout page so they can verify before confirming the transfer in their UPI app.
                     </span>
                   </div>
@@ -586,7 +586,7 @@ export default function ClubPaymentSettingsPage() {
                   <div>
                     <label
                       htmlFor="payment_instructions"
-                      className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2"
+                      className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2"
                     >
                       Custom Payment Instructions (Optional)
                     </label>
@@ -596,16 +596,16 @@ export default function ClubPaymentSettingsPage() {
                       placeholder="e.g. Please put your registration number in the payment note. Verification takes up to 2 hours."
                       value={paymentInstructions}
                       onChange={(e) => setPaymentInstructions(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                     />
                   </div>
 
                   {/* Optional QR Code Upload */}
-                  <div className="pt-2 border-t border-[var(--color-surface-3)]">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-2">
+                  <div className="pt-2 border-t border-gray-200">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
                       Custom UPI QR Code Image (Optional)
                     </label>
-                    <p className="text-xs text-[var(--color-text-muted)] mb-4">
+                    <p className="text-xs text-gray-500 mb-4">
                       If uploaded, students will see this official club QR image directly on screen to scan with any UPI app.
                     </p>
 
@@ -615,20 +615,20 @@ export default function ClubPaymentSettingsPage() {
                           <img
                             src={qrImageUrl}
                             alt="Club Payment QR"
-                            className="w-36 h-36 object-contain rounded-xl bg-white p-2 border border-[var(--color-surface-3)] shadow-md"
+                            className="w-36 h-36 object-contain rounded-xl bg-white p-2 border border-gray-200 shadow-xs"
                           />
                           <button
                             type="button"
                             onClick={() => setQrImageUrl(null)}
-                            className="absolute -top-2 -right-2 bg-rose-600 hover:bg-rose-500 text-white p-1 rounded-full text-xs shadow cursor-pointer"
+                            className="absolute -top-2 -right-2 bg-rose-600 hover:bg-rose-700 text-white p-1 rounded-full text-xs shadow cursor-pointer"
                             title="Remove QR Image"
                           >
                             ✕
                           </button>
                         </div>
                       ) : (
-                        <div className="w-36 h-36 rounded-xl border-2 border-dashed border-[var(--color-surface-3)] flex flex-col items-center justify-center text-[var(--color-text-muted)] bg-[var(--color-surface-1)] shrink-0">
-                          <QrCode size={36} className="opacity-40 mb-1" />
+                        <div className="w-36 h-36 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 bg-gray-50 shrink-0">
+                          <QrCode size={36} className="opacity-50 mb-1" />
                           <span className="text-[10px]">No Custom QR</span>
                         </div>
                       )}
@@ -652,7 +652,7 @@ export default function ClubPaymentSettingsPage() {
                             {uploadingQr ? 'Uploading QR…' : qrImageUrl ? 'Replace QR Code' : 'Upload Club QR Image'}
                           </Button>
                         </label>
-                        <span className="text-[11px] text-[var(--color-text-muted)]">
+                        <span className="text-[11px] text-gray-500">
                           PNG, JPG or WEBP up to 5MB.
                         </span>
                       </div>
@@ -660,7 +660,7 @@ export default function ClubPaymentSettingsPage() {
                   </div>
 
                   {/* Form Actions */}
-                  <div className="pt-4 border-t border-[var(--color-surface-3)] flex items-center justify-end gap-3">
+                  <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
                     <Link to="/club/dashboard">
                       <Button type="button" variant="ghost" size="md">
                         Back to Dashboard

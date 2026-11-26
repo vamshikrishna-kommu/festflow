@@ -49,30 +49,29 @@ export function VerificationNotice({ email, role, onBackToLogin }: VerificationN
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
+      initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.25 }}
       className="text-center flex flex-col items-center py-4"
     >
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/20 border border-[#18CFFC]/30 flex items-center justify-center mb-5 text-[#18CFFC] shadow-lg shadow-[#18CFFC]/10">
-        <Mail size={32} />
+      <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center mb-5 text-blue-600 shadow-xs">
+        <Mail size={28} />
       </div>
 
-      <h2 className="text-2xl font-bold font-display text-[var(--color-text-primary)] mb-2">
+      <h2 className="text-2xl font-bold font-display text-gray-900 mb-2">
         Verify your email
       </h2>
 
-      <p className="text-sm text-[var(--color-text-secondary)] max-w-sm mx-auto mb-4 leading-relaxed">
+      <p className="text-sm text-gray-600 max-w-sm mx-auto mb-4 leading-relaxed">
         We sent an activation link to{' '}
-        <strong className="text-[var(--color-text-primary)] font-medium break-all">{email}</strong>.
+        <strong className="text-gray-900 font-semibold break-all">{email}</strong>.
         Please click the link in your email to activate your {isClub ? 'club representative' : 'student'} account.
       </p>
 
-      {/* Info callout */}
-      <div className="w-full bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] rounded-xl p-3.5 mb-6 text-xs text-[var(--color-text-secondary)] text-left flex items-start gap-2.5">
-        <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+      <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 mb-6 text-xs text-gray-600 text-left flex items-start gap-2.5">
+        <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-semibold text-[var(--color-text-primary)] block mb-0.5">
+          <span className="font-semibold text-gray-900 block mb-0.5">
             {isClub ? 'Direct activation, no bureaucracy' : 'Instant campus pass'}
           </span>
           {isClub
@@ -85,8 +84,8 @@ export function VerificationNotice({ email, role, onBackToLogin }: VerificationN
         <div
           className={`w-full p-3 rounded-xl text-xs mb-4 flex items-center gap-2 ${
             resendStatus.isError
-              ? 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
-              : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
+              ? 'bg-rose-50 border border-rose-200 text-rose-800'
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
           }`}
         >
           {resendStatus.isError ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
@@ -94,10 +93,9 @@ export function VerificationNotice({ email, role, onBackToLogin }: VerificationN
         </div>
       )}
 
-      {/* Action buttons */}
       <div className="flex flex-col sm:flex-row gap-3 w-full">
         <Button
-          variant="outline"
+          variant="secondary"
           size="md"
           className="flex-1"
           onClick={handleResend}
@@ -117,10 +115,10 @@ export function VerificationNotice({ email, role, onBackToLogin }: VerificationN
         </Button>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-[var(--color-surface-3)] w-full text-center">
+      <div className="mt-6 pt-4 border-t border-gray-100 w-full text-center">
         <Link
           to="/discover"
-          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+          className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
         >
           Browse public events while you wait
         </Link>

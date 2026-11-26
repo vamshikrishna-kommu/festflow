@@ -21,9 +21,11 @@ const ALL_PERMISSIONS: { id: AdminPermission; label: string; desc: string }[] = 
 
 export default function AdminTeamPage() {
   const { profile } = useAuth()
-  const currentAdminEmail = profile?.email || 'admin@festflow.online'
+  const currentAdminEmail = profile?.email || 'platform_admin'
 
   const [team, setTeam] = useState<PlatformAdminRecord[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [bootstrapEmail, setBootstrapEmail] = useState('')
   const [bootstrapMessage, setBootstrapMessage] = useState<string | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState(false)
@@ -34,8 +36,13 @@ export default function AdminTeamPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<AdminPermission[]>([])
 
   const loadData = async () => {
-    const list = await getAdminTeam()
-    setTeam(list)
+    setLoadError(null)
+    try {
+      const list = await getAdminTeam()
+      setTeam(list)
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load administrator roster.')
+    }
   }
 
   useEffect(() => {
@@ -58,9 +65,18 @@ export default function AdminTeamPage() {
 
   const handleSavePermissions = async () => {
     if (!editAdmin) return
-    await updateAdminRole(editAdmin.id, selectedRole, selectedPermissions, currentAdminEmail)
-    setEditAdmin(null)
-    loadData()
+    setActionError(null)
+    try {
+      const res = await updateAdminRole(editAdmin.id, selectedRole, selectedPermissions, currentAdminEmail)
+      if (res && res.success === false) {
+        setActionError(res.error || 'Failed to update administrator permissions.')
+        return
+      }
+      setEditAdmin(null)
+      await loadData()
+    } catch (err: any) {
+      setActionError(err?.message || 'Failed to update administrator permissions.')
+    }
   }
 
   const handleBootstrap = async (e: React.FormEvent) => {
@@ -75,6 +91,8 @@ export default function AdminTeamPage() {
         setBootstrapEmail('')
         loadData()
       }
+    } catch (err: any) {
+      setBootstrapMessage(err?.message || 'Failed to add platform administrator.')
     } finally {
       setIsBootstrapping(false)
     }
@@ -85,16 +103,28 @@ export default function AdminTeamPage() {
       title="Administrator Team & Role Delegations"
       subtitle="Manage granular administrative privileges across Super Admins, Platform Moderators, and Support staff."
     >
+      {(loadError || actionError) && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-rose-600 shrink-0" />
+            <span>{actionError || loadError}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Admin Accounts Table */}
-      <div className="bg-[#0D0E15] border border-white/5 rounded-2xl overflow-hidden mb-8">
-        <div className="p-4 border-b border-white/5">
-          <h2 className="text-base font-bold text-white font-display">Active Administrative Staff</h2>
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-8 shadow-xs">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-base font-bold text-gray-900 font-display">Active Administrative Staff</h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/5 text-white/40 uppercase font-mono bg-white/[0.01]">
+              <tr className="border-b border-gray-200 text-gray-500 uppercase font-mono bg-gray-50">
                 <th className="p-4 font-semibold">Administrator</th>
                 <th className="p-4 font-semibold">Administrative Role</th>
                 <th className="p-4 font-semibold">Assigned Permissions</th>
@@ -102,25 +132,25 @@ export default function AdminTeamPage() {
                 <th className="p-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-gray-200">
               {team.map((adm) => (
-                <tr key={adm.id} className="hover:bg-white/[0.02]">
-                  <td className="p-4 font-medium text-white">
-                    <div className="font-semibold text-white">{adm.profile?.display_name || 'Administrator'}</div>
-                    <div className="text-[11px] text-white/50 font-mono">{adm.profile?.email || 'admin@festflow.online'}</div>
+                <tr key={adm.id} className="hover:bg-gray-50">
+                  <td className="p-4 font-medium text-gray-900">
+                    <div className="font-semibold text-gray-900">{adm.profile?.display_name || 'Administrator'}</div>
+                    <div className="text-[11px] text-gray-500 font-mono">{adm.profile?.email || '—'}</div>
                   </td>
                   <td className="p-4">
-                    <span className="px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase bg-[#18CFFC]/10 text-[#18CFFC] border border-[#18CFFC]/30">
+                    <span className="px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
                       {adm.role.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="p-4 text-white/60">
-                    <div className="font-mono text-[11px] text-white/80">
+                  <td className="p-4 text-gray-600">
+                    <div className="font-mono text-[11px] text-gray-700">
                       {adm.permissions.length} active permissions
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="px-2 py-0.5 rounded-full font-mono text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    <span className="px-2 py-0.5 rounded-full font-mono text-[10px] font-semibold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Active
                     </span>
                   </td>
@@ -142,24 +172,24 @@ export default function AdminTeamPage() {
       </div>
 
       {/* Initial Bootstrap Protocol Section */}
-      <div className="bg-[#0D0E15] border border-white/5 rounded-2xl p-6">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shrink-0">
             <KeyRound size={18} />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white font-display">
+            <h3 className="text-base font-bold text-gray-900 font-display">
               Initial Super Admin Bootstrap Protocol
             </h3>
-            <p className="text-xs text-white/50 mt-0.5 max-w-2xl leading-relaxed">
+            <p className="text-xs text-gray-600 mt-0.5 max-w-2xl leading-relaxed">
               If setting up a fresh FestFlow installation where no Super Admin exists yet, promote the first registered account. Once an administrator is provisioned, this protocol is permanently closed by server-side constraints.
             </p>
           </div>
         </div>
 
         {bootstrapMessage && (
-          <div className="mb-4 p-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white/80 flex items-center gap-2">
-            <AlertCircle size={14} className="text-[#18CFFC]" />
+          <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex items-center gap-2">
+            <AlertCircle size={14} className="text-blue-600" />
             <span>{bootstrapMessage}</span>
           </div>
         )}
@@ -171,7 +201,7 @@ export default function AdminTeamPage() {
             placeholder="Enter registered user email to promote…"
             value={bootstrapEmail}
             onChange={(e) => setBootstrapEmail(e.target.value)}
-            className="flex-1 p-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC]/50"
+            className="flex-1 p-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
           />
           <Button variant="primary" size="sm" type="submit" disabled={isBootstrapping}>
             {isBootstrapping ? 'Promoting…' : 'Execute Bootstrap'}
@@ -181,18 +211,18 @@ export default function AdminTeamPage() {
 
       {/* Edit Permissions Modal */}
       {editAdmin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-xl bg-[#0D0E15] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white font-display">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="w-full max-w-xl bg-white border border-gray-200 rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-gray-900 font-display">
               Configure Role & Permissions: {editAdmin.profile?.display_name || 'Administrator'}
             </h3>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Administrative Role</label>
+              <label className="text-xs text-gray-700 font-medium block mb-1">Administrative Role</label>
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value as AdminRole)}
-                className="w-full p-2.5 bg-[#08080A] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#18CFFC]/50"
+                className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               >
                 <option value="super_admin">Super Admin (Unrestricted platform access)</option>
                 <option value="platform_moderator">Platform Moderator (Events, clubs, reports)</option>
@@ -202,7 +232,7 @@ export default function AdminTeamPage() {
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-2">Granular Feature Permissions</label>
+              <label className="text-xs text-gray-700 font-medium block mb-2">Granular Feature Permissions</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {ALL_PERMISSIONS.map((perm) => {
                   const isChecked = selectedPermissions.includes(perm.id)
@@ -214,22 +244,22 @@ export default function AdminTeamPage() {
                         p-3 rounded-xl border text-xs cursor-pointer select-none transition-all flex items-start gap-2.5
                         ${
                           isChecked
-                            ? 'bg-[#18CFFC]/10 border-[#18CFFC]/40 text-white'
-                            : 'bg-white/[0.02] border-white/5 text-white/50 hover:bg-white/[0.04]'
+                            ? 'bg-blue-50/70 border-blue-300 text-gray-900'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                         }
                       `}
                     >
                       <div
                         className={`
                           w-4 h-4 rounded border flex items-center justify-center mt-0.5 shrink-0 transition-colors
-                          ${isChecked ? 'bg-[#18CFFC] border-[#18CFFC] text-black' : 'border-white/20'}
+                          ${isChecked ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 bg-white'}
                         `}
                       >
                         {isChecked && <Check size={11} strokeWidth={3} />}
                       </div>
                       <div>
-                        <div className="font-semibold text-white">{perm.label}</div>
-                        <div className="text-[10px] text-white/40 mt-0.5">{perm.desc}</div>
+                        <div className="font-semibold text-gray-900">{perm.label}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5">{perm.desc}</div>
                       </div>
                     </div>
                   )
@@ -237,7 +267,7 @@ export default function AdminTeamPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200">
               <Button variant="ghost" size="sm" onClick={() => setEditAdmin(null)}>
                 Cancel
               </Button>

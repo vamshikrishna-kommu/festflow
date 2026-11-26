@@ -133,7 +133,7 @@ export default function CinematicExperiencePage() {
     >
       <SEOHead
         title="FestFlow — Cinematic Product Experience"
-        description="Experience the complete collegiate event platform through an interconnected 3D campus journey, reserved seat selection, instant UPI verification, and verified passes."
+        description="Explore the collegiate event platform through an interactive 3D campus walkthrough: event discovery, reserved seat selection, direct UPI and manual UTR verification, and digital passes."
         canonicalPath="/cinematic"
       />
 

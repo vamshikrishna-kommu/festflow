@@ -44,8 +44,8 @@ export function KineticHeading({
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           className="mb-3.5 inline-block"
         >
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-[#18CFFC] bg-[#14141A] border border-[#18CFFC]/30 shadow-[0_0_12px_rgba(24,207,252,0.2)]">
-            {badgeIcon && <span className="text-[#FF8A3D]">{badgeIcon}</span>}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200">
+            {badgeIcon && <span>{badgeIcon}</span>}
             <span>{badgeText}</span>
           </span>
         </motion.div>

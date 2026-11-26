@@ -61,6 +61,7 @@ export default function ClubEventsListPage() {
 
   const [events, setEvents] = useState<EventRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<LifecycleTab>('all')
 
@@ -85,14 +86,24 @@ export default function ClubEventsListPage() {
     if (isRoleLoading) return
     if (!clubId) {
       setEvents([])
+      setLoadError(null)
       setLoading(false)
       return
     }
     setLoading(true)
-    const res = await listClubEvents(clubId)
-    setLoading(false)
-    if (res.events) {
-      setEvents(res.events)
+    setLoadError(null)
+    try {
+      const res = await listClubEvents(clubId)
+      if (res.error) {
+        setLoadError(res.error)
+      }
+      if (res.events) {
+        setEvents(res.events)
+      }
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load club events.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -247,7 +258,7 @@ export default function ClubEventsListPage() {
         )}
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[#0E0E12] rounded-2xl border border-white/[0.08] shadow-sm">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-xs">
           {/* Lifecycle Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs no-scrollbar touch-pan-x">
             {(['all', 'upcoming', 'ongoing', 'completed', 'draft', 'cancelled'] as const).map((st) => (
@@ -255,18 +266,18 @@ export default function ClubEventsListPage() {
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 min-h-[36px] flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 min-h-[36px] flex items-center gap-1.5 cursor-pointer ${
                   statusFilter === st
-                    ? 'bg-[#242430] text-white shadow-sm font-semibold border border-white/10'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                    ? 'bg-gray-900 text-white shadow-xs font-semibold'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <span>{LIFECYCLE_TAB_LABELS[st]}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                     statusFilter === st
-                      ? 'bg-[#18CFFC] text-white font-bold'
-                      : 'bg-white/10 text-zinc-400'
+                      ? 'bg-white text-gray-900 font-bold'
+                      : 'bg-gray-200 text-gray-600'
                   }`}
                 >
                   {statusCounts[st]}
@@ -282,14 +293,14 @@ export default function ClubEventsListPage() {
               placeholder="Search your events…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 px-3.5 pl-9 pr-8 rounded-xl text-xs bg-[#14141A] text-white border border-white/[0.08] focus:border-[#18CFFC] outline-none"
+              className="w-full h-10 px-3.5 pl-9 pr-8 rounded-xl text-xs bg-gray-50 text-gray-900 border border-gray-200 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
             />
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 cursor-pointer"
               >
                 <X size={14} />
               </button>
@@ -300,9 +311,21 @@ export default function ClubEventsListPage() {
         {/* Event List Content */}
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
-            <span className="text-xs text-[var(--color-text-muted)]">Loading club events…</span>
+            <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-3" />
+            <span className="text-xs text-gray-500">Loading club events…</span>
           </div>
+        ) : loadError ? (
+          <Alert variant="error" className="my-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-sm">Failed to load club events</p>
+                <p className="text-xs opacity-90">{loadError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadEvents}>
+                Retry
+              </Button>
+            </div>
+          </Alert>
         ) : filteredEvents.length === 0 ? (
           <EmptyState
             icon={Calendar}
@@ -351,8 +374,8 @@ export default function ClubEventsListPage() {
               <motion.div
                 key={evt.id}
                 variants={fadeIn}
-                className={`p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm ${
-                  isTerminal ? 'border-white/[0.05] opacity-90' : 'border-white/[0.08] hover:border-white/20'
+                className={`p-4 sm:p-5 rounded-xl bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs ${
+                  isTerminal ? 'border-gray-200 opacity-90' : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 {/* Left: Poster thumbnail + Details */}
@@ -360,39 +383,39 @@ export default function ClubEventsListPage() {
                   <img
                     src={evt.poster_url || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=200'}
                     alt={evt.title}
-                    className="w-20 h-20 sm:w-24 sm:h-20 rounded-xl object-cover shrink-0 border border-white/10"
+                    className="w-20 h-20 sm:w-24 sm:h-20 rounded-lg object-cover shrink-0 border border-gray-200"
                   />
                   <div className="flex flex-col gap-1 text-left min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {getStatusBadge(evt)}
-                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-300">
+                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-700">
                         {evt.category}
                       </span>
                       {evt.participation_type === 'team' && (
-                        <Badge variant="pink" className="text-[10px]">
+                        <Badge variant="indigo" className="text-[10px]">
                           Team
                         </Badge>
                       )}
-                      <span className="text-[11px] text-zinc-500 font-mono truncate max-w-[160px]">
+                      <span className="text-[11px] text-gray-500 font-mono truncate max-w-[160px]">
                         /{evt.slug}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-white hover:text-[#18CFFC] transition-colors truncate font-heading">
+                    <h3 className="text-base font-bold text-gray-900 hover:text-blue-600 transition-colors truncate font-heading">
                       <Link to={`/events/${evt.slug}`}>{evt.title}</Link>
                     </h3>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400 font-sans">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 font-sans">
                       <span className="flex items-center gap-1">
-                        <Calendar size={13} className="text-[#18CFFC]" /> {formattedDate} at {formattedTime}
+                        <Calendar size={13} className="text-blue-600" /> {formattedDate} at {formattedTime}
                       </span>
                       <span className="flex items-center gap-1 truncate">
-                        <MapPin size={13} className="text-[#18CFFC]" /> {evt.venue_name || 'Venue TBA'}
+                        <MapPin size={13} className="text-blue-600" /> {evt.venue_name || 'Venue TBA'}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Users size={13} /> {evt.capacity} seats
+                        <Users size={13} className="text-gray-400" /> {evt.capacity} seats
                       </span>
-                      <span className="font-semibold text-white font-mono">
+                      <span className="font-semibold text-gray-900 font-mono">
                         {evt.is_free ? 'Free' : `₹${evt.price}`}
                       </span>
                     </div>
@@ -409,7 +432,7 @@ export default function ClubEventsListPage() {
                   const canCancelEvt = hasEventPermission(evt.id, 'events.cancel', evt.club_id)
 
                   return (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-3 md:pt-0 border-t md:border-t-0 border-white/[0.08] w-full md:w-auto justify-start md:justify-end shrink-0">
+                    <div className="flex flex-wrap items-center gap-1.5 pt-3 md:pt-0 border-t md:border-t-0 border-gray-100 w-full md:w-auto justify-start md:justify-end shrink-0">
                       {/* View Attendees */}
                       {canViewRoster && (
                         <Link to={`/club/events/${evt.id}/registrations`} title="View registered attendees and passes">
@@ -431,7 +454,7 @@ export default function ClubEventsListPage() {
                       {/* Payments action for paid events */}
                       {!evt.is_free && canViewPayments && (
                         <Link to={`/club/payments?eventId=${evt.id}`} title="Verify attendee UPI payments">
-                          <Button variant="ghost" size="sm" leftIcon={<CreditCard size={14} />} className="text-amber-400 hover:text-amber-300">
+                          <Button variant="ghost" size="sm" leftIcon={<CreditCard size={14} />} className="text-amber-600 hover:text-amber-700 hover:bg-amber-50">
                             Payments
                           </Button>
                         </Link>
@@ -478,7 +501,7 @@ export default function ClubEventsListPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                          className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                           onClick={() => setCancellingEvent(evt)}
                           title="Cancel this published event"
                         >
@@ -529,10 +552,10 @@ export default function ClubEventsListPage() {
               {activeAndDraft.length > 0 && (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xs font-bold font-heading uppercase tracking-wider text-zinc-200">
+                    <h2 className="text-xs font-bold font-heading uppercase tracking-wider text-gray-900">
                       Active & Upcoming Events
                     </h2>
-                    <Badge variant="cyan" className="text-[10px]">
+                    <Badge variant="info" className="text-[10px]">
                       {activeAndDraft.length}
                     </Badge>
                   </div>
@@ -548,17 +571,17 @@ export default function ClubEventsListPage() {
               )}
 
               {completedArchive.length > 0 && (
-                <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.08]">
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xs font-bold font-heading uppercase tracking-wider text-zinc-300">
+                      <h2 className="text-xs font-bold font-heading uppercase tracking-wider text-gray-700">
                         Completed Events History
                       </h2>
                       <Badge variant="neutral" className="text-[10px]">
                         {completedArchive.length} Completed
                       </Badge>
                     </div>
-                    <span className="text-[11px] text-zinc-500">
+                    <span className="text-[11px] text-gray-500">
                       Historical registrations, payments, and attendance archives preserved.
                     </span>
                   </div>
@@ -574,9 +597,9 @@ export default function ClubEventsListPage() {
               )}
 
               {cancelledArchive.length > 0 && (
-                <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.08]">
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xs font-bold font-heading uppercase tracking-wider text-rose-300">
+                    <h2 className="text-xs font-bold font-heading uppercase tracking-wider text-rose-700">
                       Cancelled Events
                     </h2>
                     <Badge variant="danger" className="text-[10px]">
@@ -611,15 +634,15 @@ export default function ClubEventsListPage() {
         >
           <ModalBody>
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 text-rose-400">
-                <div className="p-2.5 rounded-xl bg-rose-500/15">
+              <div className="flex items-center gap-3 text-rose-600">
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200">
                   <AlertTriangle size={24} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h4 className="font-bold text-sm text-gray-900">
                     Cancel Event Listing
                   </h4>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                  <p className="text-xs text-gray-500">
                     This closes registrations, voids issued passes, and queues refund review for paid tickets.
                   </p>
                 </div>
@@ -631,17 +654,17 @@ export default function ClubEventsListPage() {
                 </Alert>
               )}
 
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
+              <p className="text-xs text-gray-600 leading-relaxed mt-1">
                 Are you sure you want to cancel{' '}
-                <strong className="text-[var(--color-text-primary)] font-semibold">
+                <strong className="text-gray-900 font-semibold">
                   "{cancellingEvent?.title}"
                 </strong>
                 ?
               </p>
 
               <div className="flex flex-col gap-1.5 text-xs">
-                <label className="text-zinc-300 font-semibold">
-                  Cancellation Reason <span className="text-rose-400">*</span>
+                <label className="text-gray-700 font-semibold">
+                  Cancellation Reason <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   value={cancelReason}
@@ -649,7 +672,7 @@ export default function ClubEventsListPage() {
                   placeholder="Provide an explanation for registered attendees..."
                   rows={3}
                   disabled={actionLoading}
-                  className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 resize-none"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15 resize-none"
                 />
               </div>
             </div>

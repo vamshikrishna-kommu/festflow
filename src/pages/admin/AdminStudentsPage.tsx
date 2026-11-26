@@ -1,6 +1,6 @@
 // Phase 7: Super Admin Student Management Page
 import { useState, useEffect } from 'react'
-import { Search, GraduationCap, Ticket, Calendar } from 'lucide-react'
+import { AlertTriangle, Search, GraduationCap, Ticket, Calendar } from 'lucide-react'
 import { AdminLayout } from '@/components/admin/AdminLayout'
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal'
 import { getAdminStudents, updateStudentStatus, type AdminStudentRecord } from '@/lib/admin'
@@ -9,10 +9,12 @@ import { useAuth } from '@/context/AuthContext'
 
 export default function AdminStudentsPage() {
   const { profile } = useAuth()
-  const adminEmail = profile?.email || 'admin@festflow.online'
+  const adminEmail = profile?.email || 'platform_admin'
 
   const [students, setStudents] = useState<AdminStudentRecord[]>([])
   const [search, setSearch] = useState('')
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Status Modal
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
@@ -20,8 +22,13 @@ export default function AdminStudentsPage() {
   const [actionType, setActionType] = useState<'suspend' | 'reactivate'>('suspend')
 
   const loadData = async () => {
-    const data = await getAdminStudents(search)
-    setStudents(data)
+    setLoadError(null)
+    try {
+      const data = await getAdminStudents(search)
+      setStudents(data)
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load student records.')
+    }
   }
 
   useEffect(() => {
@@ -36,10 +43,19 @@ export default function AdminStudentsPage() {
 
   const handleConfirmAction = async (reason: string) => {
     if (!targetStudent) return
-    await updateStudentStatus(targetStudent.id, actionType, reason, adminEmail)
-    setConfirmModalOpen(false)
-    setTargetStudent(null)
-    loadData()
+    setActionError(null)
+    try {
+      const res = await updateStudentStatus(targetStudent.id, actionType, reason, adminEmail)
+      if (res && res.success === false) {
+        setActionError(res.error || 'Failed to update student account status.')
+        return
+      }
+      setConfirmModalOpen(false)
+      setTargetStudent(null)
+      await loadData()
+    } catch (err: any) {
+      setActionError(err?.message || 'Failed to update student account status.')
+    }
   }
 
   return (
@@ -47,24 +63,36 @@ export default function AdminStudentsPage() {
       title="Student Attendees Management"
       subtitle="Search verified campus students, inspect registration activity, and manage account security standing."
     >
+      {(loadError || actionError) && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-rose-600 shrink-0" />
+            <span>{actionError || loadError}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Search Bar */}
-      <div className="flex items-center gap-3 bg-[#0D0E15] p-3 rounded-2xl border border-white/5">
-        <Search size={16} className="text-white/40 ml-2" />
+      <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-xs">
+        <Search size={16} className="text-gray-400 ml-2" />
         <input
           type="text"
           placeholder="Search students by name, email address, or college…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-transparent border-none text-xs text-white placeholder-white/40 focus:outline-none"
+          className="flex-1 bg-transparent border-none text-xs text-gray-900 placeholder-gray-400 focus:outline-none"
         />
       </div>
 
       {/* Students Table */}
-      <div className="bg-[#0D0E15] border border-white/5 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/5 text-white/40 uppercase font-mono bg-white/[0.01]">
+              <tr className="border-b border-gray-200 text-gray-500 uppercase font-mono bg-gray-50">
                 <th className="p-4 font-semibold">Student Name & Email</th>
                 <th className="p-4 font-semibold">College & Grad Year</th>
                 <th className="p-4 font-semibold">Fest Activity</th>
@@ -72,32 +100,32 @@ export default function AdminStudentsPage() {
                 <th className="p-4 font-semibold text-right">Access Controls</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-gray-200">
               {students.map((student) => (
-                <tr key={student.id} className="hover:bg-white/[0.02]">
-                  <td className="p-4 font-medium text-white flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#7F1AFB]/10 border border-[#7F1AFB]/20 text-[#7F1AFB] flex items-center justify-center shrink-0">
+                <tr key={student.id} className="hover:bg-gray-50">
+                  <td className="p-4 font-medium text-gray-900 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shrink-0">
                       <GraduationCap size={16} />
                     </div>
                     <div>
-                      <div className="font-semibold text-white">{student.display_name}</div>
-                      <div className="text-[11px] text-white/50 font-mono">{student.email}</div>
+                      <div className="font-semibold text-gray-900">{student.display_name}</div>
+                      <div className="text-[11px] text-gray-500 font-mono">{student.email}</div>
                     </div>
                   </td>
-                  <td className="p-4 text-white/70">
+                  <td className="p-4 text-gray-700">
                     <div>{student.college_name || 'Independent Student'}</div>
                     {student.graduation_year && (
-                      <div className="text-[10px] text-white/40 font-mono">Class of {student.graduation_year}</div>
+                      <div className="text-[10px] text-gray-500 font-mono">Class of {student.graduation_year}</div>
                     )}
                   </td>
-                  <td className="p-4 text-white/70 font-mono">
+                  <td className="p-4 text-gray-600 font-mono">
                     <span className="flex items-center gap-2">
                       <span className="flex items-center gap-1">
-                        <Calendar size={12} className="text-white/40" /> {student.registration_count ?? 0} registrations
+                        <Calendar size={12} className="text-gray-400" /> {student.registration_count ?? 0} registrations
                       </span>
-                      <span className="text-white/30">•</span>
+                      <span className="text-gray-300">•</span>
                       <span className="flex items-center gap-1">
-                        <Ticket size={12} className="text-white/40" /> {student.pass_count ?? 0} passes
+                        <Ticket size={12} className="text-gray-400" /> {student.pass_count ?? 0} passes
                       </span>
                     </span>
                   </td>
@@ -107,8 +135,8 @@ export default function AdminStudentsPage() {
                         px-2.5 py-0.5 rounded-full font-mono text-[10px] font-semibold uppercase border
                         ${
                           student.status === 'active'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
                         }
                       `}
                     >
@@ -120,7 +148,7 @@ export default function AdminStudentsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                        className="text-xs text-rose-700 border-rose-200 hover:bg-rose-50"
                         onClick={() => promptStatusChange(student, 'suspend')}
                       >
                         Suspend Account
@@ -129,7 +157,7 @@ export default function AdminStudentsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                        className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50"
                         onClick={() => promptStatusChange(student, 'reactivate')}
                       >
                         Reactivate Account

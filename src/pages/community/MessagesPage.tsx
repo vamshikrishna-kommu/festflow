@@ -27,6 +27,8 @@ import { blockUser, isUserBlocked } from '@/lib/moderation'
 import { ReportModal } from '@/components/community/ReportModal'
 
 export default function MessagesPage() {
+  const [threadError, setThreadError] = useState<string | null>(null)
+  const [sendError, setSendError] = useState<string | null>(null)
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const toUserId = searchParams.get('to')
@@ -114,6 +116,7 @@ export default function MessagesPage() {
 
       if (activeConv.id) {
         setLoadingMessages(true)
+        setThreadError(null)
         const res = await getConversationMessages(activeConv.id, user.id)
         setLoadingMessages(false)
         if (res.success) {
@@ -125,8 +128,11 @@ export default function MessagesPage() {
             prev.map((c) => (c.id === activeConv.id ? { ...c, unread_count: 0 } : c))
           )
           setTimeout(scrollToBottom, 100)
+        } else {
+          setThreadError(res.message || 'Unable to load messages for this conversation.')
         }
       } else {
+        setThreadError(null)
         setMessages([])
       }
     }
@@ -144,7 +150,7 @@ export default function MessagesPage() {
         : activeConv.participant_one
 
     const messageContent = text.trim()
-    setText('')
+    setSendError(null)
     setSending(true)
 
     const res = await sendMessage({
@@ -157,6 +163,7 @@ export default function MessagesPage() {
     setSending(false)
 
     if (res.success && res.messageRecord) {
+      setText('')
       setMessages((prev) => [...prev, res.messageRecord!])
       setTimeout(scrollToBottom, 100)
 
@@ -170,6 +177,8 @@ export default function MessagesPage() {
       if (refreshed.success) {
         setConversations(refreshed.conversations)
       }
+    } else {
+      setSendError(res.message || 'Message could not be sent. Please try again.')
     }
   }
 
@@ -197,7 +206,7 @@ export default function MessagesPage() {
           activeConv.participant_one === user?.id
             ? activeConv.participant_two
             : activeConv.participant_one,
-        display_name: 'Campus Student',
+        display_name: 'Participant',
         avatar_url: null,
       }
     : null
@@ -210,40 +219,40 @@ export default function MessagesPage() {
   return (
     <PageShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-left">
-        <div className="bg-[#0E0E12] border border-white/[0.08] rounded-3xl overflow-hidden shadow-2xl h-[78vh] flex flex-col md:flex-row">
+        <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-xs h-[78vh] flex flex-col md:flex-row">
           {/* Left Column: Conversations List */}
           <div
-            className={`w-full md:w-80 lg:w-96 border-r border-white/[0.08] flex flex-col ${
+            className={`w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col ${
               activeConv ? 'hidden md:flex' : 'flex'
             }`}
           >
             {/* Header & Search */}
-            <div className="p-4 border-b border-white/[0.08] space-y-3">
+            <div className="p-4 border-b border-gray-200 space-y-3">
               <div className="flex items-center justify-between">
-                <h1 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#18CFFC]" />
+                <h1 className="text-lg font-bold font-heading text-gray-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-blue-600" />
                   Messages
                 </h1>
-                <span className="text-xs font-mono text-[var(--color-text-muted)]">
+                <span className="text-xs font-mono text-gray-500">
                   {conversations.length} chats
                 </span>
               </div>
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search participants…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC]"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
               </div>
             </div>
 
             {/* Conversation Items */}
-            <div className="flex-1 overflow-y-auto divide-y divide-white/[0.04]">
+            <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
               {loadingConv ? (
-                <div className="p-8 text-center text-xs text-[var(--color-text-muted)] font-mono">
+                <div className="p-8 text-center text-xs text-gray-500 font-mono">
                   Loading chats…
                 </div>
               ) : filteredConversations.length > 0 ? (
@@ -264,11 +273,11 @@ export default function MessagesPage() {
                       }}
                       className={`w-full p-4 flex items-start gap-3 transition-colors text-left ${
                         isSelected
-                          ? 'bg-[#18CFFC]/10 border-l-4 border-[#18CFFC]'
-                          : 'hover:bg-white/[0.03]'
+                          ? 'bg-blue-50/70 border-l-4 border-blue-600'
+                          : 'hover:bg-gray-50'
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#0D56FB] to-[#7F1AFB] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
                         {participant?.avatar_url ? (
                           <img
                             src={participant.avatar_url}
@@ -282,20 +291,20 @@ export default function MessagesPage() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-xs font-bold text-white truncate font-heading">
+                          <h4 className="text-xs font-bold text-gray-900 truncate font-heading">
                             {participant?.display_name || 'Student'}
                           </h4>
-                          <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
+                          <span className="text-[10px] font-mono text-gray-500">
                             {msgDate}
                           </span>
                         </div>
-                        <p className="text-xs text-[var(--color-text-muted)] truncate">
+                        <p className="text-xs text-gray-500 truncate">
                           {conv.last_message_text || 'Conversation opened'}
                         </p>
                       </div>
 
                       {!!(conv as any).unread_count && (
-                        <span className="w-5 h-5 rounded-full bg-[#18CFFC] text-black text-[10px] font-mono font-bold flex items-center justify-center flex-shrink-0">
+                        <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-mono font-bold flex items-center justify-center flex-shrink-0">
                           {(conv as any).unread_count}
                         </span>
                       )}
@@ -304,10 +313,10 @@ export default function MessagesPage() {
                 })
               ) : (
                 <div className="p-8 text-center space-y-2">
-                  <User className="w-8 h-8 text-white/20 mx-auto" />
-                  <p className="text-xs text-[var(--color-text-muted)]">No conversations found.</p>
+                  <User className="w-8 h-8 text-gray-300 mx-auto" />
+                  <p className="text-xs text-gray-500">No conversations found.</p>
                   <Link to="/community/teammates">
-                    <Button variant="ghost" size="sm" className="text-xs text-[#18CFFC]">
+                    <Button variant="ghost" size="sm" className="text-xs text-blue-600">
                       Find teammates to connect
                     </Button>
                   </Link>
@@ -318,24 +327,24 @@ export default function MessagesPage() {
 
           {/* Right Column: Active Chat Thread */}
           <div
-            className={`flex-1 flex flex-col bg-[#08080A]/80 ${
+            className={`flex-1 flex flex-col bg-gray-50/60 ${
               !activeConv ? 'hidden md:flex' : 'flex'
             }`}
           >
             {activeConv ? (
               <>
                 {/* Active Chat Header */}
-                <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-[#0E0E12]/80">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setActiveConv(null)}
-                      className="md:hidden p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10"
+                      className="md:hidden p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </button>
 
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#0D56FB] to-[#7F1AFB] flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
                       {otherParticipant?.avatar_url ? (
                         <img
                           src={otherParticipant.avatar_url}
@@ -348,13 +357,13 @@ export default function MessagesPage() {
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-bold text-white font-heading">
-                        {otherParticipant?.display_name || 'Campus Student'}
+                      <h3 className="text-sm font-bold text-gray-900 font-heading">
+                        {otherParticipant?.display_name || 'Participant'}
                       </h3>
                       {otherParticipant?.id && (
                         <Link
                           to={`/profile/${otherParticipant.id}`}
-                          className="text-[11px] text-[#18CFFC] hover:underline flex items-center gap-1 font-mono"
+                          className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-mono"
                         >
                           View public profile
                           <ExternalLink className="w-3 h-3" />
@@ -369,7 +378,7 @@ export default function MessagesPage() {
                       type="button"
                       onClick={handleBlockUser}
                       disabled={isBlocked}
-                      className="p-2 rounded-xl text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      className="p-2 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                       title={isBlocked ? 'Participant Blocked' : 'Block User'}
                     >
                       <ShieldAlert className="w-4 h-4" />
@@ -377,7 +386,7 @@ export default function MessagesPage() {
                     <button
                       type="button"
                       onClick={() => setReportModalOpen(true)}
-                      className="p-2 rounded-xl text-white/40 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                      className="p-2 rounded-xl text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                       title="Report Conversation"
                     >
                       <Flag className="w-4 h-4" />
@@ -387,7 +396,7 @@ export default function MessagesPage() {
 
                 {/* Blocked State Notice */}
                 {isBlocked && (
-                  <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                  <div className="px-4 py-2 bg-rose-50 border-b border-rose-200 text-rose-700 text-xs flex items-center gap-2">
                     <ShieldAlert className="w-4 h-4 flex-shrink-0" />
                     <span>
                       Messaging is blocked between you and this participant. You cannot send or receive new messages.
@@ -397,8 +406,13 @@ export default function MessagesPage() {
 
                 {/* Messages View */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                  {threadError && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                      {threadError}
+                    </div>
+                  )}
                   {loadingMessages ? (
-                    <div className="h-full flex items-center justify-center text-xs text-[var(--color-text-muted)] font-mono">
+                    <div className="h-full flex items-center justify-center text-xs text-gray-500 font-mono">
                       Loading messages…
                     </div>
                   ) : messages.length > 0 ? (
@@ -416,20 +430,20 @@ export default function MessagesPage() {
                           <div
                             className={`max-w-[78%] sm:max-w-md p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                               isMe
-                                ? 'bg-gradient-to-r from-[#0D56FB] to-[#7F1AFB] text-white rounded-br-xs shadow-md'
-                                : 'bg-[#181822] text-white/90 border border-white/[0.08] rounded-bl-xs'
+                                ? 'bg-blue-600 text-white rounded-br-xs shadow-xs'
+                                : 'bg-white text-gray-900 border border-gray-200 rounded-bl-xs shadow-2xs'
                             }`}
                           >
                             {msg.content}
                           </div>
-                          <div className="flex items-center gap-1.5 mt-1 px-1 text-[10px] font-mono text-[var(--color-text-muted)]">
+                          <div className="flex items-center gap-1.5 mt-1 px-1 text-[10px] font-mono text-gray-500">
                             <span>{timeStr}</span>
                             {isMe && (
                               <span>
                                 {msg.is_read ? (
-                                  <CheckCheck className="w-3 h-3 text-[#18CFFC]" />
+                                  <CheckCheck className="w-3 h-3 text-blue-600" />
                                 ) : (
-                                  <Check className="w-3 h-3 text-white/40" />
+                                  <Check className="w-3 h-3 text-gray-400" />
                                 )}
                               </span>
                             )}
@@ -439,9 +453,9 @@ export default function MessagesPage() {
                     })
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
-                      <Sparkles className="w-8 h-8 text-white/20" />
-                      <p className="text-sm font-semibold text-white">Start the conversation</p>
-                      <p className="text-xs text-[var(--color-text-muted)] max-w-xs">
+                      <Sparkles className="w-8 h-8 text-gray-300" />
+                      <p className="text-sm font-semibold text-gray-900">Start the conversation</p>
+                      <p className="text-xs text-gray-500 max-w-xs">
                         Say hello to coordinate for campus hackathons, squad invites, or club activities.
                       </p>
                     </div>
@@ -449,10 +463,16 @@ export default function MessagesPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
+                {sendError && (
+                  <div className="px-4 py-2 bg-rose-50 border-t border-rose-200 text-rose-700 text-xs">
+                    {sendError}
+                  </div>
+                )}
+
                 {/* Chat Input */}
                 <form
                   onSubmit={handleSend}
-                  className="p-3 sm:p-4 border-t border-white/[0.08] bg-[#0E0E12]/90 flex items-end gap-2"
+                  className="p-3 sm:p-4 border-t border-gray-200 bg-white flex items-end gap-2"
                 >
                   <textarea
                     rows={1}
@@ -471,7 +491,7 @@ export default function MessagesPage() {
                         : 'Type a message… (Enter to send)'
                     }
                     maxLength={2000}
-                    className="flex-1 max-h-32 p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-xs sm:text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC] resize-none disabled:opacity-50"
+                    className="flex-1 max-h-32 p-3 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 resize-none disabled:opacity-50"
                   />
                   <Button
                     type="submit"
@@ -486,13 +506,13 @@ export default function MessagesPage() {
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
-                <MessageSquare className="w-12 h-12 text-white/10" />
-                <h3 className="text-base font-bold text-white font-heading">Your Messages</h3>
-                <p className="text-xs text-[var(--color-text-muted)] max-w-sm">
+                <MessageSquare className="w-12 h-12 text-gray-300" />
+                <h3 className="text-base font-bold text-gray-900 font-heading">Your Messages</h3>
+                <p className="text-xs text-gray-500 max-w-sm">
                   Select a chat on the left or connect with a peer from the Teammate Discovery board to start collaborating.
                 </p>
                 <Link to="/community/teammates">
-                  <Button variant="outline" size="sm" className="text-xs border-white/10">
+                  <Button variant="outline" size="sm" className="text-xs">
                     Find Campus Teammates
                   </Button>
                 </Link>

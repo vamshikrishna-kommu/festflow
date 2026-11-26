@@ -38,6 +38,7 @@ export interface NotificationFetchResult {
   unreadCount: number
   page: number
   totalPages: number
+  error?: string | null
 }
 
 function getLocalNotifications(): InAppNotification[] {
@@ -105,25 +106,42 @@ export async function getInAppNotificationsEnhanced(
 
       const { data, count, error } = await query
 
-      if (!error && data) {
-        // Query unread count
-        const { count: unreadTotal } = await supabase
-          .from('in_app_notifications')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('is_read', false)
-
-        const total = count || 0
+      if (error) {
         return {
-          notifications: data as InAppNotification[],
-          totalCount: total,
-          unreadCount: unreadTotal || 0,
+          notifications: [],
+          totalCount: 0,
+          unreadCount: 0,
           page,
-          totalPages: Math.ceil(total / limit) || 1,
+          totalPages: 1,
+          error: error.message,
         }
       }
-    } catch {
-      // fallback to local
+
+      // Query unread count
+      const { count: unreadTotal } = await supabase
+        .from('in_app_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false)
+
+      const total = count || 0
+      return {
+        notifications: (data as InAppNotification[]) || [],
+        totalCount: total,
+        unreadCount: unreadTotal || 0,
+        page,
+        totalPages: Math.ceil(total / limit) || 1,
+        error: null,
+      }
+    } catch (err: any) {
+      return {
+        notifications: [],
+        totalCount: 0,
+        unreadCount: 0,
+        page,
+        totalPages: 1,
+        error: err?.message || 'Failed to load notifications.',
+      }
     }
   }
 
@@ -173,6 +191,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
     } catch {
       // ignore
     }
+    return
   }
 
   const notifs = getLocalNotifications()
@@ -204,6 +223,7 @@ export async function markAllNotificationsRead(
     } catch {
       // ignore
     }
+    return
   }
 
   const notifs = getLocalNotifications()
@@ -229,6 +249,7 @@ export async function archiveNotification(notificationId: string): Promise<void>
     } catch {
       // ignore
     }
+    return
   }
 
   const notifs = getLocalNotifications()
@@ -403,12 +424,12 @@ export async function saveUserNotificationPreferences(
         updated_at: new Date().toISOString(),
       })
 
-      if (!error) {
-        localStorage.setItem(`${LOCAL_PREFS_KEY}_${prefs.user_id}`, JSON.stringify(prefs))
-        return { success: true, message: 'Notification preferences saved successfully.' }
+      if (error) {
+        return { success: false, message: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, message: 'Notification preferences saved successfully.' }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed to save notification preferences.' }
     }
   }
 
@@ -810,21 +831,16 @@ export async function getClubEventAutomations(
   clubId: string
 ): Promise<ClubEventAutomationRecord[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from('club_event_automations')
-        .select('*')
-        .eq('event_id', eventId)
-        .eq('club_id', clubId)
+    const { data, error } = await supabase
+      .from('club_event_automations')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('club_id', clubId)
 
-      if (error) {
-        console.warn('[FestFlow Automations] Query rejected:', error.message)
-        return []
-      }
-      return (data as ClubEventAutomationRecord[]) || []
-    } catch {
-      return []
+    if (error) {
+      throw new Error(error.message)
     }
+    return (data as ClubEventAutomationRecord[]) || []
   }
 
   try {
@@ -917,47 +933,65 @@ export async function saveClubEventAutomation(
 
 export async function getAutomationQueueMetrics(): Promise<AutomationQueueMetrics> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await (supabase as any).rpc('get_automation_queue_metrics')
-      if (!error && data) {
-        return data as AutomationQueueMetrics
-      }
-    } catch {
-      // fallback
+    const { data, error } = await (supabase as any).rpc('get_automation_queue_metrics')
+    if (error) {
+      throw new Error(error.message || 'Failed to load automation queue metrics.')
     }
+    return (
+      (data as AutomationQueueMetrics) || {
+        emails_queued: 0,
+        emails_sent: 0,
+        emails_failed: 0,
+        push_subscriptions_count: 0,
+        waitlist_active_count: 0,
+        active_automations_count: 0,
+      }
+    )
   }
 
-  // Fallback calculation from local storages
-  return {
-    emails_queued: 0,
-    emails_sent: 14,
-    emails_failed: 0,
-    push_subscriptions_count: 2,
-    waitlist_active_count: 0,
-    active_automations_count: 6,
+  // Local / Simulation calculation directly from stored local collections
+  try {
+    const automationsRaw = typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_AUTOMATIONS_KEY) : null
+    const waitlistRaw = typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_WAITLIST_ENTRIES_KEY) : null
+    const automations: ClubEventAutomationRecord[] = automationsRaw ? JSON.parse(automationsRaw) : []
+    const waitlistEntries: EventWaitlistEntryRecord[] = waitlistRaw ? JSON.parse(waitlistRaw) : []
+    return {
+      emails_queued: 0,
+      emails_sent: 0,
+      emails_failed: 0,
+      push_subscriptions_count: 0,
+      waitlist_active_count: waitlistEntries.filter((e) => e.status === 'waiting' || e.status === 'offered').length,
+      active_automations_count: automations.filter((a) => a.is_enabled).length,
+    }
+  } catch {
+    return {
+      emails_queued: 0,
+      emails_sent: 0,
+      emails_failed: 0,
+      push_subscriptions_count: 0,
+      waitlist_active_count: 0,
+      active_automations_count: 0,
+    }
   }
 }
 
 export async function getEmailOutboxJobs(status?: string, limit = 50): Promise<any[]> {
   if (isSupabaseConfigured) {
-    try {
-      let query = supabase
-        .from('email_outbox')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit)
+    let query = supabase
+      .from('email_outbox')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
 
-      if (status && status !== 'all') {
-        query = query.eq('status', status)
-      }
-
-      const { data, error } = await query
-      if (!error && data) {
-        return data
-      }
-    } catch {
-      // fallback
+    if (status && status !== 'all') {
+      query = query.eq('status', status)
     }
+
+    const { data, error } = await query
+    if (error) {
+      throw new Error(error.message || 'Failed to load email outbox jobs.')
+    }
+    return data || []
   }
 
   return []
@@ -977,9 +1011,10 @@ export async function retryFailedEmailJob(
         })
         .eq('id', jobId)
 
-      if (!error) {
-        return { success: true, message: 'Job requeued for automatic delivery.' }
+      if (error) {
+        return { success: false, message: error.message }
       }
+      return { success: true, message: 'Job requeued for automatic delivery.' }
     } catch (err: any) {
       return { success: false, message: err.message || 'Failed to requeue job.' }
     }

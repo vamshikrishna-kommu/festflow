@@ -568,11 +568,11 @@ export interface NavLink {
   href: string
 }
 
-export type BadgeVariant = 'default' | 'purple' | 'pink' | 'amber' | 'cyan' | 'success' | 'outline' | 'danger' | 'neutral' | 'brand' | 'violet' | 'magenta' | 'blue'
+export type BadgeVariant = 'default' | 'purple' | 'pink' | 'amber' | 'cyan' | 'success' | 'outline' | 'danger' | 'neutral' | 'brand' | 'violet' | 'magenta' | 'blue' | 'info' | 'indigo'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger'
 
-export type ButtonSize = 'sm' | 'md' | 'lg'
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 
 // ── Phase 2 Advanced Club Management Types ──────────────────────────────────
 export type EventPageSectionType =

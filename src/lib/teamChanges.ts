@@ -215,7 +215,7 @@ export async function reviewTeamChange(params: {
 // ── Query Team Changes ───────────────────────────────────────────────────────
 export async function getTeamChangeRequests(
   teamId: string
-): Promise<{ success: boolean; requests: TeamChangeRequestRecord[] }> {
+): Promise<{ success: boolean; requests: TeamChangeRequestRecord[]; error?: string }> {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -224,11 +224,12 @@ export async function getTeamChangeRequests(
         .eq('team_id', teamId)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        return { success: true, requests: data as TeamChangeRequestRecord[] }
+      if (error) {
+        return { success: false, requests: [], error: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, requests: (data as TeamChangeRequestRecord[]) || [] }
+    } catch (err: any) {
+      return { success: false, requests: [], error: err?.message || 'Failed to load team change requests.' }
     }
   }
 

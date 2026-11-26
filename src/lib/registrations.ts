@@ -503,11 +503,11 @@ export async function registerForEvent(
       }
     }
 
-    // Trigger transactional email at correct lifecycle stage with dynamic recipient
-    const recipientEmail = options?.participantDetails?.email || 'student@campus.edu'
-    const recipientName = options?.participantDetails?.student_name || 'FestFlow Student'
+    // Trigger transactional email at correct lifecycle stage with dynamic recipient when present
+    const recipientEmail = options?.participantDetails?.email
+    const recipientName = options?.participantDetails?.student_name || 'Attendee'
 
-    if (initialStatus === 'confirmed') {
+    if (recipientEmail && initialStatus === 'confirmed') {
       sendRegistrationConfirmedEmail({
         to: recipientEmail,
         name: recipientName,
@@ -520,7 +520,7 @@ export async function registerForEvent(
         registrationId: newReg.id,
         eventId: event.id,
       }).catch(() => {})
-    } else if (initialStatus === 'pending_approval') {
+    } else if (recipientEmail && initialStatus === 'pending_approval') {
       sendApplicationSubmittedEmail({
         to: recipientEmail,
         name: recipientName,
@@ -620,11 +620,13 @@ export async function reviewRegistrationApplication(
     current[idx] = reg
     saveLocalRegistrations(current)
 
-    // Trigger lifecycle emails
-    if (decision === 'approved' && isFree && eventRes.event) {
+    // Trigger lifecycle emails when participant email exists
+    const participantEmail = reg.participant_details?.email
+    const participantName = reg.participant_details?.student_name || 'Attendee'
+    if (participantEmail && decision === 'approved' && isFree && eventRes.event) {
       sendRegistrationConfirmedEmail({
-        to: 'student@campus.edu',
-        name: 'FestFlow Student',
+        to: participantEmail,
+        name: participantName,
         eventTitle: eventRes.event.title,
         ticketCode: reg.ticket_code,
         qrToken: reg.qr_token || undefined,
@@ -634,10 +636,10 @@ export async function reviewRegistrationApplication(
         registrationId: reg.id,
         eventId: reg.event_id,
       }).catch(() => {})
-    } else if (decision === 'rejected' && eventRes.event) {
+    } else if (participantEmail && decision === 'rejected' && eventRes.event) {
       sendPaymentRejectedEmail({
-        to: 'student@campus.edu',
-        name: 'FestFlow Student',
+        to: participantEmail,
+        name: participantName,
         eventTitle: eventRes.event.title,
         reason: rejectionReason || 'Application declined by organizer.',
         registrationId: reg.id,

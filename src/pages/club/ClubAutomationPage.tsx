@@ -31,6 +31,7 @@ export default function ClubAutomationPage() {
   const [savingId, setSavingId] = useState<string | null>(null)
   const [previewRule, setPreviewRule] = useState<ClubEventAutomationRecord | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const canManageAutomation = event
     ? role === 'platform_admin' ||
@@ -43,9 +44,13 @@ export default function ClubAutomationPage() {
     async function load() {
       if (!eventId || isRoleLoading) return
       setLoading(true)
+      setLoadError(null)
       try {
         const res = await getEventById(eventId)
         if (!mounted) return
+        if (res.error) {
+          setLoadError(res.error)
+        }
         if (res.event) {
           const allowed =
             role === 'platform_admin' ||
@@ -108,51 +113,51 @@ export default function ClubAutomationPage() {
   const renderPreviewText = (template: string) => {
     if (!template) return ''
     return template
-      .replace(/{{event_title}}/g, event?.title || 'TechFest 2026')
-      .replace(/{{venue_name}}/g, event?.venue_name || 'Campus Main Auditorium')
-      .replace(/{{student_name}}/g, 'Alex Rivera')
+      .replace(/{{event_title}}/g, event?.title || '[Event Title]')
+      .replace(/{{venue_name}}/g, event?.venue_name || '[Venue Name]')
+      .replace(/{{student_name}}/g, '[Participant Name]')
       .replace(
         /{{start_time}}/g,
         event?.start_date
           ? new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          : '10:00 AM'
+          : '[Start Time]'
       )
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-0)] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--color-canvas)] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Back Link */}
         <Link
           to={eventId ? `/club/events/${eventId}/registrations` : '/club/events'}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[#18CFFC] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-blue-600 transition-colors"
         >
           <ArrowLeft size={14} /> Back to Event
         </Link>
 
         {/* Header */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[var(--color-surface-1)] to-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] shadow-2xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-6 sm:p-8 rounded-2xl bg-white border border-gray-200 shadow-xs relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1 relative z-10">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/20 flex items-center gap-1.5">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
                 <Zap size={12} /> Club Automation Hub
               </span>
               {event && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-3)] text-[var(--color-text-secondary)]">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 text-gray-700">
                   {event.title}
                 </span>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-text-primary)] font-display">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-display">
               Event Automations
             </h1>
-            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
+            <p className="text-xs sm:text-sm text-gray-600">
               Configure registration confirmations, countdown alerts, and post-event surveys
             </p>
           </div>
 
           {feedback && (
-            <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 animate-fade-in">
+            <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-1.5 animate-fade-in">
               <CheckCircle2 size={14} />
               {feedback}
             </div>
@@ -160,15 +165,15 @@ export default function ClubAutomationPage() {
         </div>
 
         {/* Explanatory Info Card */}
-        <div className="p-4 rounded-2xl bg-[#07A4FC]/10 border border-[#07A4FC]/20 flex items-start gap-3">
-          <div className="p-1.5 rounded-lg bg-[#07A4FC]/20 text-[#07A4FC] shrink-0 mt-0.5">
+        <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600 shrink-0 mt-0.5">
             <HelpCircle size={16} />
           </div>
           <div className="space-y-1 text-xs">
-            <p className="font-semibold text-[var(--color-text-primary)]">
+            <p className="font-semibold text-gray-900">
               Guaranteed Delivery & Anti-Spam Safety
             </p>
-            <p className="text-[var(--color-text-secondary)] leading-relaxed">
+            <p className="text-gray-600 leading-relaxed">
               Automated reminders are dispatched only to eligible, confirmed attendees who have enabled reminders in their notification preferences. Cancelled or unverified registrations are safely omitted.
             </p>
           </div>
@@ -177,18 +182,29 @@ export default function ClubAutomationPage() {
         {/* Automation Rules List */}
         {loading || isRoleLoading ? (
           <div className="py-20 text-center space-y-3">
-            <Loader2 className="w-8 h-8 animate-spin text-[#18CFFC] mx-auto" />
-            <p className="text-xs text-[var(--color-text-muted)]">Loading event automation rules...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto" />
+            <p className="text-xs text-gray-500">Loading event automation rules...</p>
+          </div>
+        ) : loadError ? (
+          <div className="p-6 sm:p-8 rounded-2xl bg-rose-50 border border-rose-200 text-center space-y-3 shadow-xs">
+            <h2 className="text-base font-bold text-rose-900">Unable to load event automations</h2>
+            <p className="text-xs text-rose-700 max-w-md mx-auto">{loadError}</p>
+            <Link
+              to="/club/events"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-rose-200 text-xs font-semibold text-rose-800 hover:bg-rose-50 transition-colors"
+            >
+              Return to Club Events
+            </Link>
           </div>
         ) : authorized === false || !canManageAutomation ? (
-          <div className="p-6 sm:p-8 rounded-2xl bg-[var(--color-surface-1)] border border-rose-500/20 text-center space-y-3">
-            <h2 className="text-base font-bold text-white">Event Automation Access Restricted</h2>
-            <p className="text-xs text-[var(--color-text-secondary)] max-w-md mx-auto">
+          <div className="p-6 sm:p-8 rounded-2xl bg-white border border-rose-200 text-center space-y-3 shadow-xs">
+            <h2 className="text-base font-bold text-gray-900">Event Automation Access Restricted</h2>
+            <p className="text-xs text-gray-600 max-w-md mx-auto">
               You do not have permission to view or modify automation templates for this event.
             </p>
             <Link
               to="/club/events"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-900 transition-colors"
             >
               Return to Club Events
             </Link>
@@ -202,30 +218,30 @@ export default function ClubAutomationPage() {
               return (
                 <div
                   key={rule.id}
-                  className={`p-5 sm:p-6 rounded-2xl border transition-all space-y-4 ${
+                  className={`p-5 sm:p-6 rounded-xl border transition-all space-y-4 shadow-xs ${
                     rule.is_enabled
-                      ? 'bg-[var(--color-surface-1)] border-[oklch(100%_0_0_/_0.12)] shadow-md'
-                      : 'bg-[var(--color-surface-1)]/50 border-[oklch(100%_0_0_/_0.04)] opacity-70'
+                      ? 'bg-white border-gray-200'
+                      : 'bg-gray-50 border-gray-200 opacity-75'
                   }`}
                 >
                   {/* Top Bar: Title, Description, Toggle */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[var(--color-text-primary)] font-display">
+                        <span className="text-sm font-bold text-gray-900 font-display">
                           {def?.label || rule.trigger_type}
                         </span>
                         {rule.is_enabled ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             Active
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-500/15 text-neutral-400 border border-neutral-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200">
                             Disabled
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-[var(--color-text-secondary)]">
+                      <p className="text-xs text-gray-600">
                         {def?.description || 'Custom event automation trigger'}
                       </p>
                     </div>
@@ -234,7 +250,7 @@ export default function ClubAutomationPage() {
                       <button
                         type="button"
                         onClick={() => setPreviewRule(rule)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <Eye size={13} /> Preview
                       </button>
@@ -245,10 +261,10 @@ export default function ClubAutomationPage() {
                         disabled={isSaving || isLockedArchive}
                         className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
                           isLockedArchive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                        } ${rule.is_enabled ? 'bg-[#18CFFC]' : 'bg-[var(--color-surface-3)]'}`}
+                        } ${rule.is_enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
                       >
                         <div
-                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                          className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform ${
                             rule.is_enabled ? 'translate-x-5' : 'translate-x-0'
                           }`}
                         />
@@ -257,12 +273,12 @@ export default function ClubAutomationPage() {
                   </div>
 
                   {/* Message Template Textarea */}
-                  <div className="space-y-2 pt-2 border-t border-[var(--color-surface-2)]">
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-[var(--color-text-secondary)]">
+                      <span className="font-semibold text-gray-700">
                         Message Template
                       </span>
-                      <span className="text-[11px] text-[var(--color-text-muted)]">
+                      <span className="text-[11px] text-gray-500">
                         Placeholders: {'{{event_title}}'}, {'{{venue_name}}'}, {'{{start_time}}'}
                       </span>
                     </div>
@@ -272,12 +288,12 @@ export default function ClubAutomationPage() {
                       value={rule.message_template}
                       onChange={(e) => handleTemplateChange(rule.id, e.target.value)}
                       disabled={!rule.is_enabled || isLockedArchive}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[#18CFFC] transition-colors resize-none disabled:opacity-50"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors resize-none disabled:opacity-50"
                     />
 
                     <div className="flex items-center justify-between gap-2">
                       {isLockedArchive && (
-                        <span className="text-[11px] text-amber-300">
+                        <span className="text-[11px] text-amber-700">
                           Read-only archive: Event is {lifecyclePhase === 'cancelled' ? 'cancelled' : 'completed'}.
                         </span>
                       )}
@@ -285,7 +301,7 @@ export default function ClubAutomationPage() {
                         type="button"
                         onClick={() => handleSaveRule(rule)}
                         disabled={isSaving || !rule.is_enabled || isLockedArchive}
-                        className="ml-auto px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:opacity-90 transition-opacity flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-auto px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                         Save Template
@@ -303,45 +319,45 @@ export default function ClubAutomationPage() {
           {previewRule && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
-                className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
                 onClick={() => setPreviewRule(null)}
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative w-full max-w-lg rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.12)] p-6 shadow-2xl z-10 space-y-4"
+                className="relative w-full max-w-lg rounded-2xl bg-white border border-gray-200 p-6 shadow-2xl z-10 space-y-4"
               >
-                <div className="flex items-center justify-between border-b border-[var(--color-surface-3)] pb-3">
+                <div className="flex items-center justify-between border-b border-gray-200 pb-3">
                   <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-[#18CFFC]" />
-                    <h3 className="text-sm font-bold text-[var(--color-text-primary)] font-display">
-                      Sample Attendee Notification Preview
+                    <Sparkles size={16} className="text-blue-600" />
+                    <h3 className="text-sm font-bold text-gray-900 font-display">
+                      Attendee Notification Template Preview
                     </h3>
                   </div>
                   <button
                     type="button"
                     onClick={() => setPreviewRule(null)}
-                    className="text-xs text-[var(--color-text-muted)] hover:text-white"
+                    className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
                   >
                     Close
                   </button>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] space-y-2">
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#18CFFC]">
+                    <span className="text-xs font-bold text-blue-600">
                       FestFlow Event Notification
                     </span>
-                    <span className="text-[10px] text-[var(--color-text-muted)]">Just now</span>
+                    <span className="text-[10px] text-gray-500">Just now</span>
                   </div>
-                  <p className="text-xs text-[var(--color-text-primary)] leading-relaxed font-sans">
+                  <p className="text-xs text-gray-700 leading-relaxed font-sans">
                     {renderPreviewText(previewRule.message_template)}
                   </p>
                 </div>
 
-                <div className="text-[11px] text-[var(--color-text-muted)] text-right">
-                  Rendered with sample participant and venue variables.
+                <div className="text-[11px] text-gray-500 text-right">
+                  Unpopulated template placeholders indicate dynamic per-attendee values.
                 </div>
               </motion.div>
             </div>

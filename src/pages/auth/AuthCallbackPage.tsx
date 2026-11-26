@@ -254,11 +254,11 @@ export default function AuthCallbackPage() {
   }, [navigate, searchParams, refreshProfile, status])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface-0)] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA] px-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md p-8 glass rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.1)] text-center shadow-2xl"
+        className="w-full max-w-md p-8 bg-white rounded-2xl border border-gray-200 text-center shadow-lg"
       >
         <div className="flex justify-center mb-6">
           <Link to="/" aria-label="FestFlow home">
@@ -268,11 +268,11 @@ export default function AuthCallbackPage() {
 
         {status === 'processing' && (
           <div className="space-y-4">
-            <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mx-auto" />
-            <h1 className="text-xl font-bold font-display text-[var(--color-text-primary)]">
+            <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mx-auto" />
+            <h1 className="text-xl font-bold font-display text-gray-900">
               Verifying Your Account
             </h1>
-            <p className="text-sm text-[var(--color-text-secondary)]">
+            <p className="text-sm text-gray-600">
               Completing secure authentication and setting up your workspace…
             </p>
           </div>
@@ -280,11 +280,11 @@ export default function AuthCallbackPage() {
 
         {status === 'success' && (
           <div className="space-y-4">
-            <CheckCircle2 size={48} className="text-emerald-400 mx-auto" />
-            <h1 className="text-xl font-bold font-display text-[var(--color-text-primary)]">
+            <CheckCircle2 size={44} className="text-emerald-600 mx-auto" />
+            <h1 className="text-xl font-bold font-display text-gray-900">
               Verification Confirmed!
             </h1>
-            <p className="text-sm text-[var(--color-text-secondary)]">
+            <p className="text-sm text-gray-600">
               Welcome to FestFlow! Redirecting you to your account…
             </p>
           </div>
@@ -292,17 +292,17 @@ export default function AuthCallbackPage() {
 
         {status === 'error' && (
           <div className="space-y-5">
-            <AlertTriangle size={48} className="text-red-400 mx-auto" />
-            <h1 className="text-xl font-bold font-display text-[var(--color-text-primary)]">
+            <AlertTriangle size={44} className="text-rose-600 mx-auto" />
+            <h1 className="text-xl font-bold font-display text-gray-900">
               Verification Notice
             </h1>
-            <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-200">
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
               {errorMessage || 'The verification link may have expired or was already used.'}
             </div>
             <div className="flex flex-col gap-2 pt-2">
               <Link to="/student/login">
-                <Button variant="primary" className="w-full">
-                  Sign In to FestFlow <ArrowRight size={15} />
+                <Button variant="primary" className="w-full" rightIcon={<ArrowRight size={15} />}>
+                  Sign In to FestFlow
                 </Button>
               </Link>
               <Link to="/discover">

@@ -81,7 +81,8 @@ export default function TeammateDiscoveryPage() {
   const [availability, setAvailability] = useState<TeammateAvailability>('actively_looking')
   const [isOptedIn, setIsOptedIn] = useState(true)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const [saveNotice, setSaveNotice] = useState<string | null>(null)
+  const [saveNotice, setSaveNotice] = useState<{ message: string; isError?: boolean } | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Upcoming events for selection
   const [availableEvents, setAvailableEvents] = useState<any[]>([])
@@ -176,8 +177,10 @@ export default function TeammateDiscoveryPage() {
 
     setIsSavingProfile(false)
     if (res.success) {
-      setSaveNotice('Teammate discovery profile saved successfully!')
+      setSaveNotice({ message: 'Teammate discovery profile saved successfully!' })
       setTimeout(() => setSaveNotice(null), 3000)
+    } else {
+      setSaveNotice({ message: res.message || 'Unable to save teammate profile.', isError: true })
     }
   }
 
@@ -216,11 +219,14 @@ export default function TeammateDiscoveryPage() {
   }
 
   const handleRespond = async (requestId: string, status: 'accepted' | 'declined') => {
+    setActionError(null)
     const res = await respondToTeammateRequest(requestId, studentId, status)
     if (res.success) {
       setIncomingRequests((prev) =>
         prev.map((r) => (r.id === requestId ? { ...r, status } : r))
       )
+    } else {
+      setActionError(res.message || 'Failed to update teammate request.')
     }
   }
 
@@ -237,27 +243,27 @@ export default function TeammateDiscoveryPage() {
     <PageShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left space-y-8">
         {/* Header Hero */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/[0.08]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-200">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-[#18CFFC] tracking-wider font-bold mb-1">
+            <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-blue-600 tracking-wider font-bold mb-1">
               <Users size={14} /> Squad Matchmaking
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-['Syne'] text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-['Syne'] text-gray-900">
               Find Teammates & Hackathon Partners
             </h1>
-            <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1 max-w-2xl">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-2xl">
               Connect with talented developers, designers, hardware builders, and speakers on campus.
             </p>
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 bg-[#0E0E12] p-1.5 rounded-2xl border border-white/[0.08]">
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-gray-200 shadow-xs">
             <button
               onClick={() => setActiveTab('browse')}
               className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
                 activeTab === 'browse'
-                  ? 'bg-white text-black font-bold'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Browse Teammates
@@ -266,13 +272,15 @@ export default function TeammateDiscoveryPage() {
               onClick={() => setActiveTab('requests')}
               className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                 activeTab === 'requests'
-                  ? 'bg-white text-black font-bold'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Requests
               {incomingRequests.filter((r) => r.status === 'pending').length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-[#18CFFC] text-black text-[10px] font-bold flex items-center justify-center">
+                <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                  activeTab === 'requests' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'
+                }`}>
                   {incomingRequests.filter((r) => r.status === 'pending').length}
                 </span>
               )}
@@ -281,8 +289,8 @@ export default function TeammateDiscoveryPage() {
               onClick={() => setActiveTab('my_profile')}
               className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                 activeTab === 'my_profile'
-                  ? 'bg-white text-black font-bold'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Settings size={13} /> My Matchmaking Status
@@ -294,23 +302,23 @@ export default function TeammateDiscoveryPage() {
         {activeTab === 'browse' && (
           <div className="space-y-6">
             {/* Search & Skill Filter Bar */}
-            <div className="space-y-3 p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08]">
+            <div className="space-y-3 p-5 rounded-2xl bg-white border border-gray-200 shadow-xs">
               <div className="flex flex-col sm:flex-row items-center gap-3">
                 <div className="relative flex-1 w-full">
-                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by skill, name, or headline..."
-                    className="w-full pl-9 pr-4 py-2 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
 
                 <select
                   value={availabilityFilter}
                   onChange={(e) => setAvailabilityFilter(e.target.value as any)}
-                  className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                  className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 >
                   <option value="">All Availability</option>
                   <option value="actively_looking">Actively Looking</option>
@@ -320,7 +328,7 @@ export default function TeammateDiscoveryPage() {
 
               {/* Skill Pill Selector */}
               <div className="flex items-center gap-1.5 flex-wrap pt-2">
-                <span className="text-[11px] font-mono text-zinc-400 mr-1">Filter Skills:</span>
+                <span className="text-[11px] font-mono text-gray-500 mr-1">Filter Skills:</span>
                 {POPULAR_SKILLS.map((skill) => {
                   const isSelected = selectedSkills.includes(skill)
                   return (
@@ -329,8 +337,8 @@ export default function TeammateDiscoveryPage() {
                       onClick={() => handleToggleSkill(skill)}
                       className={`text-xs px-2.5 py-1 rounded-lg transition border ${
                         isSelected
-                          ? 'bg-[#18CFFC]/20 border-[#18CFFC] text-[#18CFFC] font-semibold'
-                          : 'bg-white/[0.04] border-white/[0.06] text-zinc-400 hover:text-white'
+                          ? 'bg-blue-50 border-blue-200 text-blue-700 font-semibold'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-900'
                       }`}
                     >
                       {skill}
@@ -343,14 +351,14 @@ export default function TeammateDiscoveryPage() {
             {/* Candidates Grid */}
             {loading ? (
               <div className="py-20 flex flex-col items-center justify-center">
-                <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-[#18CFFC] animate-spin mb-4" />
-                <p className="text-xs text-[var(--color-text-muted)] font-mono">Discovering campus peers…</p>
+                <div className="w-10 h-10 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-4" />
+                <p className="text-xs text-gray-500 font-mono">Discovering campus peers…</p>
               </div>
             ) : candidates.length === 0 ? (
-              <div className="p-12 text-center rounded-2xl bg-[#0E0E12] border border-white/[0.08]">
-                <Users size={36} className="text-zinc-600 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-white">No teammates matched this filter</h3>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+              <div className="p-12 text-center rounded-2xl bg-white border border-gray-200 shadow-xs">
+                <Users size={36} className="text-gray-400 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-gray-900">No teammates matched this filter</h3>
+                <p className="text-xs text-gray-600 mt-1">
                   Try clearing skill filters or check back as more students opt into matchmaking.
                 </p>
               </div>
@@ -360,13 +368,13 @@ export default function TeammateDiscoveryPage() {
                   return (
                     <div
                       key={cand.id}
-                      className="p-5 sm:p-6 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-white/[0.18] transition flex flex-col justify-between shadow-xl"
+                      className="p-5 sm:p-6 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 transition flex flex-col justify-between shadow-xs"
                     >
                       <div>
                         {/* Header: Avatar, Name & Availability */}
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] text-white font-bold text-sm flex items-center justify-center shrink-0">
+                            <div className="w-11 h-11 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
                               {cand.student?.avatar_url ? (
                                 <img
                                   src={cand.student.avatar_url}
@@ -380,11 +388,11 @@ export default function TeammateDiscoveryPage() {
                             <div>
                               <Link
                                 to={`/profile/${cand.student_id}`}
-                                className="text-sm font-bold text-white hover:text-[#18CFFC] transition"
+                                className="text-sm font-bold text-gray-900 hover:text-blue-600 transition"
                               >
                                 {cand.student?.display_name || 'Campus Student'}
                               </Link>
-                              <span className="text-[11px] text-zinc-400 block line-clamp-1">
+                              <span className="text-[11px] text-gray-500 block line-clamp-1">
                                 {cand.student_profile?.college_name || 'Campus Participant'}
                               </span>
                             </div>
@@ -393,8 +401,8 @@ export default function TeammateDiscoveryPage() {
                           <span
                             className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
                               cand.availability === 'actively_looking'
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
                             }`}
                           >
                             {cand.availability === 'actively_looking' ? 'Looking' : 'Open'}
@@ -403,14 +411,14 @@ export default function TeammateDiscoveryPage() {
 
                         {/* Headline & Bio */}
                         {cand.headline && (
-                          <h4 className="text-xs font-semibold text-zinc-200 line-clamp-2 mb-2">
+                          <h4 className="text-xs font-semibold text-gray-800 line-clamp-2 mb-2">
                             {cand.headline}
                           </h4>
                         )}
 
                         {cand.looking_for && (
-                          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] text-zinc-300 mb-3">
-                            <strong className="text-[#18CFFC] font-mono">Looking for: </strong>
+                          <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[11px] text-gray-700 mb-3">
+                            <strong className="text-blue-600 font-mono">Looking for: </strong>
                             {cand.looking_for}
                           </div>
                         )}
@@ -421,13 +429,13 @@ export default function TeammateDiscoveryPage() {
                             {cand.skills.slice(0, 5).map((sk) => (
                               <span
                                 key={sk}
-                                className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.05] text-zinc-300 border border-white/[0.08]"
+                                className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200"
                               >
                                 {sk}
                               </span>
                             ))}
                             {cand.skills.length > 5 && (
-                              <span className="text-[10px] font-mono text-zinc-500">
+                              <span className="text-[10px] font-mono text-gray-500">
                                 +{cand.skills.length - 5} more
                               </span>
                             )}
@@ -436,10 +444,10 @@ export default function TeammateDiscoveryPage() {
                       </div>
 
                       {/* Action Button */}
-                      <div className="mt-5 pt-3.5 border-t border-white/[0.08] flex items-center justify-between gap-2">
+                      <div className="mt-5 pt-3.5 border-t border-gray-200 flex items-center justify-between gap-2">
                         <Link
                           to={`/profile/${cand.student_id}`}
-                          className="text-xs font-semibold text-zinc-400 hover:text-white"
+                          className="text-xs font-semibold text-gray-600 hover:text-gray-900"
                         >
                           View Profile
                         </Link>
@@ -466,11 +474,16 @@ export default function TeammateDiscoveryPage() {
           <div className="space-y-8">
             {/* Incoming Requests */}
             <div>
-              <h3 className="text-base font-bold font-['Syne'] text-white mb-3">
+              <h3 className="text-base font-bold font-['Syne'] text-gray-900 mb-3">
                 Incoming Connection Requests ({incomingRequests.filter((r) => r.status === 'pending').length} Pending)
               </h3>
+              {actionError && (
+                <div className="mb-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+                  {actionError}
+                </div>
+              )}
               {incomingRequests.length === 0 ? (
-                <div className="p-8 text-center rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-xs text-zinc-400">
+                <div className="p-8 text-center rounded-2xl bg-white border border-gray-200 text-xs text-gray-500 shadow-xs">
                   No incoming teammate requests at this time.
                 </div>
               ) : (
@@ -478,30 +491,30 @@ export default function TeammateDiscoveryPage() {
                   {incomingRequests.map((req) => (
                     <div
                       key={req.id}
-                      className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white">
+                          <span className="text-sm font-bold text-gray-900">
                             {req.sender?.display_name || 'Student'}
                           </span>
                           <span
                             className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
                               req.status === 'accepted'
-                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : req.status === 'declined'
-                                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                                : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
                             }`}
                           >
                             {req.status}
                           </span>
                         </div>
-                        <p className="text-xs text-zinc-300 leading-relaxed max-w-xl">
+                        <p className="text-xs text-gray-600 leading-relaxed max-w-xl">
                           "{req.message}"
                         </p>
                         {req.event && (
-                          <div className="text-[11px] text-[#18CFFC]">
+                          <div className="text-[11px] text-blue-600">
                             Interested in teaming up for: <strong>{req.event.title}</strong>
                           </div>
                         )}
@@ -541,11 +554,11 @@ export default function TeammateDiscoveryPage() {
 
             {/* Outgoing Requests */}
             <div>
-              <h3 className="text-base font-bold font-['Syne'] text-white mb-3">
+              <h3 className="text-base font-bold font-['Syne'] text-gray-900 mb-3">
                 Outgoing Connection Requests ({outgoingRequests.length})
               </h3>
               {outgoingRequests.length === 0 ? (
-                <div className="p-8 text-center rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-xs text-zinc-400">
+                <div className="p-8 text-center rounded-2xl bg-white border border-gray-200 text-xs text-gray-500 shadow-xs">
                   You haven't sent any teammate requests yet.
                 </div>
               ) : (
@@ -553,26 +566,26 @@ export default function TeammateDiscoveryPage() {
                   {outgoingRequests.map((req) => (
                     <div
                       key={req.id}
-                      className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex items-center justify-between gap-4"
+                      className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-xs flex items-center justify-between gap-4"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white">
+                          <span className="text-sm font-bold text-gray-900">
                             Sent to: {req.receiver?.display_name || 'Participant'}
                           </span>
                           <span
                             className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
                               req.status === 'accepted'
-                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : req.status === 'withdrawn'
-                                ? 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30'
-                                : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                ? 'bg-gray-100 text-gray-600 border-gray-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
                             }`}
                           >
                             {req.status}
                           </span>
                         </div>
-                        <p className="text-xs text-zinc-300 leading-relaxed">
+                        <p className="text-xs text-gray-600 leading-relaxed">
                           "{req.message}"
                         </p>
                       </div>
@@ -596,21 +609,21 @@ export default function TeammateDiscoveryPage() {
 
         {/* ── TAB 3: MY MATCHMAKING STATUS EDITOR ───────────────────────────── */}
         {activeTab === 'my_profile' && (
-          <form onSubmit={handleSaveMyProfile} className="max-w-2xl space-y-5 p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.08]">
-            <div className="border-b border-white/[0.08] pb-4">
-              <h3 className="text-lg font-bold font-['Syne'] text-white">
+          <form onSubmit={handleSaveMyProfile} className="max-w-2xl space-y-5 p-6 rounded-3xl bg-white border border-gray-200 shadow-xs">
+            <div className="border-b border-gray-200 pb-4">
+              <h3 className="text-lg font-bold font-['Syne'] text-gray-900">
                 Matchmaking Discovery Settings
               </h3>
-              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 Configure your public visibility so other students can discover and invite you to event teams.
               </p>
             </div>
 
             {/* Opt-in toggle */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-200">
               <div>
-                <span className="text-xs font-bold text-white block">Opt-in to Teammate Discovery</span>
-                <span className="text-[11px] text-zinc-400">
+                <span className="text-xs font-bold text-gray-900 block">Opt-in to Teammate Discovery</span>
+                <span className="text-[11px] text-gray-600">
                   Allow other registered campus students to browse your skills and invite you.
                 </span>
               </div>
@@ -618,12 +631,12 @@ export default function TeammateDiscoveryPage() {
                 type="checkbox"
                 checked={isOptedIn}
                 onChange={(e) => setIsOptedIn(e.target.checked)}
-                className="w-4 h-4 accent-[#18CFFC]"
+                className="w-4 h-4 accent-blue-600"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+              <label className="block text-xs font-mono uppercase text-gray-500 mb-1">
                 Headline / Specialization
               </label>
               <input
@@ -631,18 +644,18 @@ export default function TeammateDiscoveryPage() {
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
                 placeholder="e.g. Full-Stack Developer & ML Enthusiast looking for Hackathon squad"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+              <label className="block text-xs font-mono uppercase text-gray-500 mb-1">
                 Current Availability
               </label>
               <select
                 value={availability}
                 onChange={(e) => setAvailability(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               >
                 <option value="actively_looking">Actively Looking for Team</option>
                 <option value="open_to_offers">Open to Opportunities</option>
@@ -651,7 +664,7 @@ export default function TeammateDiscoveryPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+              <label className="block text-xs font-mono uppercase text-gray-500 mb-1">
                 What Teammates Are You Looking For?
               </label>
               <input
@@ -659,13 +672,13 @@ export default function TeammateDiscoveryPage() {
                 value={lookingFor}
                 onChange={(e) => setLookingFor(e.target.value)}
                 placeholder="e.g. Need a UI/UX designer and pitch deck presenter for upcoming IoT contest"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
 
             {/* My Skills Selector */}
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+              <label className="block text-xs font-mono uppercase text-gray-500 mb-1">
                 Your Primary Skills
               </label>
               <div className="flex items-center gap-2 mb-2">
@@ -675,7 +688,7 @@ export default function TeammateDiscoveryPage() {
                   onChange={(e) => setSkillInput(e.target.value)}
                   onKeyDown={handleAddMySkill}
                   placeholder="Type skill and press Enter (e.g., React, Python, Figma)"
-                  className="flex-1 px-3.5 py-2 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                  className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
                 <Button variant="outline" size="sm" type="button" onClick={handleAddMySkill}>
                   Add Skill
@@ -686,13 +699,13 @@ export default function TeammateDiscoveryPage() {
                 {mySkills.map((sk) => (
                   <span
                     key={sk}
-                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/30"
+                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200"
                   >
                     {sk}
                     <button
                       type="button"
                       onClick={() => handleRemoveMySkill(sk)}
-                      className="hover:text-white"
+                      className="hover:text-blue-900"
                     >
                       <X size={12} />
                     </button>
@@ -702,8 +715,14 @@ export default function TeammateDiscoveryPage() {
             </div>
 
             {saveNotice && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
-                {saveNotice}
+              <div
+                className={`p-3 rounded-xl border text-xs ${
+                  saveNotice.isError
+                    ? 'bg-rose-50 border-rose-200 text-rose-800'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}
+              >
+                {saveNotice.message}
               </div>
             )}
 
@@ -726,19 +745,19 @@ export default function TeammateDiscoveryPage() {
           title={`Invite ${selectedCandidate?.student?.display_name || 'Teammate'}`}
         >
           <ModalBody className="p-4 sm:p-6 space-y-4">
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <p className="text-xs text-gray-600">
               Send a personalized teammate request. Once accepted, you can coordinate on Discord/WhatsApp or directly share your official FestFlow squad code.
             </p>
 
             {availableEvents.length > 0 && (
               <div>
-                <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+                <label className="block text-xs font-mono uppercase text-gray-500 mb-1">
                   Specific Campus Event (Optional)
                 </label>
                 <select
                   value={selectedEventId}
                   onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 >
                   <option value="">General Teammate Connection</option>
                   {availableEvents.map((ev) => (
@@ -751,25 +770,25 @@ export default function TeammateDiscoveryPage() {
             )}
 
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+              <label className="block text-xs font-mono uppercase text-gray-500 mb-1">
                 Your Message
               </label>
               <textarea
                 value={requestMessage}
                 onChange={(e) => setRequestMessage(e.target.value)}
                 rows={3}
-                className="w-full p-3 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.08] text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]"
+                className="w-full p-3 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
 
             {requestError && (
-              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400">
+              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
                 {requestError}
               </div>
             )}
 
             {requestSuccess && (
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
                 {requestSuccess}
               </div>
             )}

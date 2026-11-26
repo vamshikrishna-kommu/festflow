@@ -61,11 +61,11 @@ export function EventAnnouncementsSection({ announcements }: EventAnnouncementsS
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-          <Megaphone size={18} className="text-[#18CFFC]" />
+        <h2 className="text-lg font-bold font-heading text-gray-900 flex items-center gap-2">
+          <Megaphone size={18} className="text-blue-600" />
           Live Event Announcements
         </h2>
-        <span className="text-xs text-zinc-400">
+        <span className="text-xs text-gray-500">
           {announcements.length} update{announcements.length > 1 ? 's' : ''}
         </span>
       </div>
@@ -74,28 +74,28 @@ export function EventAnnouncementsSection({ announcements }: EventAnnouncementsS
         {announcements.map((ann) => (
           <div
             key={ann.id}
-            className={`p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all ${
+            className={`p-4 rounded-xl border text-left flex flex-col gap-2 transition-all ${
               ann.is_pinned
-                ? 'bg-gradient-to-r from-[#18CFFC]/10 via-[#0E0E12] to-[#7F1AFB]/10 border-[#18CFFC]/40 shadow-lg shadow-[#18CFFC]/5'
-                : 'bg-[#0E0E12] border-white/[0.08]'
+                ? 'bg-blue-50/70 border-blue-200 shadow-xs'
+                : 'bg-white border-gray-200 shadow-xs'
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2 flex-wrap">
                 {ann.is_pinned && (
-                  <span className="text-[#18CFFC] flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
+                  <span className="text-blue-600 flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
                     <Pin size={12} className="rotate-45" /> Pinned
                   </span>
                 )}
                 {getPriorityBadge(ann.priority)}
-                <h3 className="font-bold text-sm text-white">{ann.title}</h3>
+                <h3 className="font-bold text-sm text-gray-900">{ann.title}</h3>
               </div>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">
+              <span className="text-[10px] text-gray-500 font-mono shrink-0">
                 {formatTimestamp(ann.created_at)}
               </span>
             </div>
 
-            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-sans whitespace-pre-line">
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed font-sans whitespace-pre-line">
               {ann.content}
             </p>
           </div>

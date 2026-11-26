@@ -59,24 +59,24 @@ export function EventLeaderboardSection({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-            <Trophy size={18} className="text-amber-400" />
+          <h2 className="text-lg font-bold font-heading text-gray-900 flex items-center gap-2">
+            <Trophy size={18} className="text-amber-500" />
             {title}
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Real-time participant evaluation scores and final standings
           </p>
         </div>
 
         {/* Search Filter */}
         <div className="relative max-w-xs w-full">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search team or attendee…"
-            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC]"
+            className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
           />
         </div>
       </div>
@@ -86,20 +86,20 @@ export function EventLeaderboardSection({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-2">
           {/* 2nd Place */}
           {top2 && (
-            <div className="p-4 rounded-2xl bg-gradient-to-b from-[#1E1E26] to-[#0E0E12] border border-zinc-400/20 flex flex-col items-center text-center order-2 sm:order-1 relative">
-              <div className="w-10 h-10 rounded-full bg-zinc-300/10 text-zinc-300 border border-zinc-400/30 flex items-center justify-center mb-2 shadow-md">
+            <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col items-center text-center order-2 sm:order-1 relative">
+              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center mb-2">
                 <Medal size={20} />
               </div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500 font-bold">
                 2nd Place
               </span>
-              <strong className="text-white text-sm font-semibold truncate w-full mt-1">
+              <strong className="text-gray-900 text-sm font-semibold truncate w-full mt-1">
                 {top2.team_name || top2.participant_name}
               </strong>
               {top2.team_name && (
-                <span className="text-[10px] text-zinc-400 truncate">{top2.participant_name}</span>
+                <span className="text-[10px] text-gray-500 truncate">{top2.participant_name}</span>
               )}
-              <span className="text-lg font-extrabold text-white font-mono mt-2">
+              <span className="text-lg font-extrabold text-gray-900 font-mono mt-2">
                 {top2.score} pts
               </span>
             </div>
@@ -107,20 +107,20 @@ export function EventLeaderboardSection({
 
           {/* 1st Place (Champion) */}
           {top1 && (
-            <div className="p-5 rounded-2xl bg-gradient-to-b from-amber-500/20 via-[#14141A] to-[#0E0E12] border border-amber-400/40 flex flex-col items-center text-center order-1 sm:order-2 relative shadow-lg shadow-amber-500/10 sm:-translate-y-2">
-              <div className="w-12 h-12 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center justify-center mb-2 shadow-lg shadow-amber-400/20 animate-pulse">
+            <div className="p-5 rounded-xl bg-amber-50/70 border border-amber-300 flex flex-col items-center text-center order-1 sm:order-2 relative shadow-sm sm:-translate-y-1">
+              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 border border-amber-200 flex items-center justify-center mb-2">
                 <Trophy size={24} />
               </div>
-              <span className="text-[11px] font-mono uppercase tracking-wider text-amber-300 font-extrabold">
-                🏆 Winner / Rank 1
+              <span className="text-[11px] font-mono uppercase tracking-wider text-amber-700 font-extrabold">
+                Winner · Rank 1
               </span>
-              <strong className="text-white text-base font-bold truncate w-full mt-1">
+              <strong className="text-gray-900 text-base font-bold truncate w-full mt-1">
                 {top1.team_name || top1.participant_name}
               </strong>
               {top1.team_name && (
-                <span className="text-[11px] text-zinc-300 truncate">{top1.participant_name}</span>
+                <span className="text-[11px] text-gray-600 truncate">{top1.participant_name}</span>
               )}
-              <span className="text-2xl font-black text-amber-400 font-mono mt-2">
+              <span className="text-2xl font-black text-amber-600 font-mono mt-2">
                 {top1.score} pts
               </span>
             </div>
@@ -128,20 +128,20 @@ export function EventLeaderboardSection({
 
           {/* 3rd Place */}
           {top3 && (
-            <div className="p-4 rounded-2xl bg-gradient-to-b from-[#201815] to-[#0E0E12] border border-amber-700/30 flex flex-col items-center text-center order-3 relative">
-              <div className="w-10 h-10 rounded-full bg-amber-700/20 text-amber-600 border border-amber-700/40 flex items-center justify-center mb-2 shadow-md">
+            <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col items-center text-center order-3 relative">
+              <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center mb-2">
                 <Award size={20} />
               </div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-amber-600 font-bold">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-orange-700 font-bold">
                 3rd Place
               </span>
-              <strong className="text-white text-sm font-semibold truncate w-full mt-1">
+              <strong className="text-gray-900 text-sm font-semibold truncate w-full mt-1">
                 {top3.team_name || top3.participant_name}
               </strong>
               {top3.team_name && (
-                <span className="text-[10px] text-zinc-400 truncate">{top3.participant_name}</span>
+                <span className="text-[10px] text-gray-500 truncate">{top3.participant_name}</span>
               )}
-              <span className="text-lg font-extrabold text-white font-mono mt-2">
+              <span className="text-lg font-extrabold text-gray-900 font-mono mt-2">
                 {top3.score} pts
               </span>
             </div>
@@ -150,46 +150,46 @@ export function EventLeaderboardSection({
       )}
 
       {/* Standings Table */}
-      <div className="rounded-2xl bg-[#0E0E12] border border-white/[0.08] overflow-hidden">
+      <div className="rounded-xl bg-white border border-gray-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-white/[0.08] bg-[#14141A]/50 text-zinc-400 text-[11px]">
+              <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 text-[11px]">
                 <th className="py-3 px-4 font-semibold w-16">Rank</th>
                 <th className="py-3 px-4 font-semibold">Participant / Squad</th>
                 <th className="py-3 px-4 font-semibold">Evaluation Status</th>
                 <th className="py-3 px-4 font-semibold text-right">Score</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-gray-100">
               {filteredEntries.map((entry, index) => {
                 const rankNum = entry.rank || index + 1
                 return (
-                  <tr key={entry.id || index} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={entry.id || index} className="hover:bg-gray-50 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold">
                       {rankNum === 1 ? (
-                        <span className="text-amber-400">#1</span>
+                        <span className="text-amber-600">#1</span>
                       ) : rankNum === 2 ? (
-                        <span className="text-zinc-300">#2</span>
+                        <span className="text-slate-600">#2</span>
                       ) : rankNum === 3 ? (
-                        <span className="text-amber-600">#3</span>
+                        <span className="text-orange-600">#3</span>
                       ) : (
-                        <span className="text-zinc-500">#{rankNum}</span>
+                        <span className="text-gray-500">#{rankNum}</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         {entry.team_name ? (
-                          <Users size={14} className="text-[#18CFFC] shrink-0" />
+                          <Users size={14} className="text-blue-600 shrink-0" />
                         ) : (
-                          <User size={14} className="text-zinc-400 shrink-0" />
+                          <User size={14} className="text-gray-400 shrink-0" />
                         )}
                         <div>
-                          <strong className="text-white block font-medium">
+                          <strong className="text-gray-900 block font-medium">
                             {entry.team_name || entry.participant_name}
                           </strong>
                           {entry.team_name && (
-                            <span className="text-[10px] text-zinc-400">
+                            <span className="text-[10px] text-gray-500">
                               Lead: {entry.participant_name}
                             </span>
                           )}
@@ -197,7 +197,7 @@ export function EventLeaderboardSection({
                       </div>
                     </td>
                     <td className="py-3 px-4">{getStatusBadge(entry.submission_status)}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-white text-sm">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-gray-900 text-sm">
                       {entry.score}
                     </td>
                   </tr>

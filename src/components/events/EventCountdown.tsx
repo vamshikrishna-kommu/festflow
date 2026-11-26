@@ -83,8 +83,8 @@ export function EventCountdown({
 
   if (remaining.isEnded) {
     return (
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800/80 text-zinc-400 border border-white/5 ${className}`}>
-        <Clock size={13} className="text-zinc-500" />
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200 ${className}`}>
+        <Clock size={13} className="text-gray-400" />
         <span>Event Concluded</span>
       </div>
     )
@@ -92,8 +92,8 @@ export function EventCountdown({
 
   if (remaining.isLive) {
     return (
-      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.25)] animate-pulse ${className}`}>
-        <Radio size={14} className="animate-spin text-emerald-400" />
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 ${className}`}>
+        <Radio size={14} className="animate-pulse text-emerald-600" />
         <span>HAPPENING NOW</span>
       </div>
     )
@@ -105,55 +105,55 @@ export function EventCountdown({
   return (
     <div className={`flex items-center gap-1 sm:gap-1.5 font-mono select-none ${className}`}>
       {showIcon && (
-        <span className="text-[#18CFFC] mr-1 hidden sm:inline-block">
+        <span className="text-blue-600 mr-1 hidden sm:inline-block">
           <Clock size={isSmall ? 13 : isLarge ? 17 : 14} />
         </span>
       )}
 
       {/* Days */}
       <div className="flex flex-col items-center">
-        <div className={`rounded-lg bg-[#14141A] border border-white/10 flex items-center justify-center font-bold text-white shadow-inner ${
+        <div className={`rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-900 shadow-xs ${
           isSmall ? 'w-7 h-7 text-xs' : isLarge ? 'w-11 h-11 text-lg' : 'w-9 h-9 text-sm'
         }`}>
           {String(remaining.days).padStart(2, '0')}
         </div>
-        <span className="text-[9px] uppercase tracking-wider text-zinc-500 mt-0.5">d</span>
+        <span className="text-[9px] uppercase tracking-wider text-gray-500 mt-0.5">d</span>
       </div>
 
-      <span className="text-zinc-600 font-bold mb-3">:</span>
+      <span className="text-gray-400 font-bold mb-3">:</span>
 
       {/* Hours */}
       <div className="flex flex-col items-center">
-        <div className={`rounded-lg bg-[#14141A] border border-white/10 flex items-center justify-center font-bold text-white shadow-inner ${
+        <div className={`rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-900 shadow-xs ${
           isSmall ? 'w-7 h-7 text-xs' : isLarge ? 'w-11 h-11 text-lg' : 'w-9 h-9 text-sm'
         }`}>
           {String(remaining.hours).padStart(2, '0')}
         </div>
-        <span className="text-[9px] uppercase tracking-wider text-zinc-500 mt-0.5">h</span>
+        <span className="text-[9px] uppercase tracking-wider text-gray-500 mt-0.5">h</span>
       </div>
 
-      <span className="text-zinc-600 font-bold mb-3">:</span>
+      <span className="text-gray-400 font-bold mb-3">:</span>
 
       {/* Minutes */}
       <div className="flex flex-col items-center">
-        <div className={`rounded-lg bg-[#14141A] border border-white/10 flex items-center justify-center font-bold text-white shadow-inner ${
+        <div className={`rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-900 shadow-xs ${
           isSmall ? 'w-7 h-7 text-xs' : isLarge ? 'w-11 h-11 text-lg' : 'w-9 h-9 text-sm'
         }`}>
           {String(remaining.minutes).padStart(2, '0')}
         </div>
-        <span className="text-[9px] uppercase tracking-wider text-zinc-500 mt-0.5">m</span>
+        <span className="text-[9px] uppercase tracking-wider text-gray-500 mt-0.5">m</span>
       </div>
 
-      <span className="text-zinc-600 font-bold mb-3">:</span>
+      <span className="text-gray-400 font-bold mb-3">:</span>
 
       {/* Seconds */}
       <div className="flex flex-col items-center">
-        <div className={`rounded-lg bg-[#14141A] border border-[#18CFFC]/30 flex items-center justify-center font-bold text-[#18CFFC] shadow-[0_0_10px_rgba(24,207,252,0.15)] ${
+        <div className={`rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center font-bold text-blue-700 shadow-xs ${
           isSmall ? 'w-7 h-7 text-xs' : isLarge ? 'w-11 h-11 text-lg' : 'w-9 h-9 text-sm'
         }`}>
           {String(remaining.seconds).padStart(2, '0')}
         </div>
-        <span className="text-[9px] uppercase tracking-wider text-[#18CFFC] mt-0.5">s</span>
+        <span className="text-[9px] uppercase tracking-wider text-blue-600 mt-0.5">s</span>
       </div>
     </div>
   )

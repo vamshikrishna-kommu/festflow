@@ -1,6 +1,6 @@
 // Phase 7: Super Admin Club Oversight and Verification Page
 import { useState, useEffect } from 'react'
-import { Search, ShieldCheck, Users, Calendar } from 'lucide-react'
+import { AlertTriangle, Search, ShieldCheck, Users, Calendar } from 'lucide-react'
 import { AdminLayout } from '@/components/admin/AdminLayout'
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal'
 import { getAdminClubs, updateClubStatus, type AdminClubRecord } from '@/lib/admin'
@@ -9,11 +9,13 @@ import { useAuth } from '@/context/AuthContext'
 
 export default function AdminClubsPage() {
   const { profile } = useAuth()
-  const adminEmail = profile?.email || 'admin@festflow.online'
+  const adminEmail = profile?.email || 'platform_admin'
 
   const [clubs, setClubs] = useState<AdminClubRecord[]>([])
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Action Modal State
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
@@ -21,8 +23,13 @@ export default function AdminClubsPage() {
   const [actionType, setActionType] = useState<'verify' | 'reject_verification' | 'suspend' | 'reactivate'>('verify')
 
   const loadData = async () => {
-    const data = await getAdminClubs(search, filter)
-    setClubs(data)
+    setLoadError(null)
+    try {
+      const data = await getAdminClubs(search, filter)
+      setClubs(data)
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load clubs list.')
+    }
   }
 
   useEffect(() => {
@@ -37,10 +44,19 @@ export default function AdminClubsPage() {
 
   const handleConfirmAction = async (reason: string) => {
     if (!targetClub) return
-    await updateClubStatus(targetClub.id, actionType, reason, adminEmail)
-    setConfirmModalOpen(false)
-    setTargetClub(null)
-    loadData()
+    setActionError(null)
+    try {
+      const res = await updateClubStatus(targetClub.id, actionType, reason, adminEmail)
+      if (res && res.success === false) {
+        setActionError(res.error || 'Failed to update club status.')
+        return
+      }
+      setConfirmModalOpen(false)
+      setTargetClub(null)
+      await loadData()
+    } catch (err: any) {
+      setActionError(err?.message || 'Failed to update club status.')
+    }
   }
 
   const getActionLabels = () => {
@@ -83,21 +99,33 @@ export default function AdminClubsPage() {
       title="Campus Clubs & Organizers Oversight"
       subtitle="Verify student club credentials, review executive affiliations, and moderate organization access."
     >
+      {(loadError || actionError) && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-rose-600 shrink-0" />
+            <span>{actionError || loadError}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0D0E15] p-3 rounded-2xl border border-white/5">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-xs">
         <div className="flex items-center gap-2 flex-1">
-          <Search size={16} className="text-white/40 ml-2" />
+          <Search size={16} className="text-gray-400 ml-2" />
           <input
             type="text"
             placeholder="Search clubs by name, representative, or college…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent border-none text-xs text-white placeholder-white/40 focus:outline-none"
+            className="flex-1 bg-transparent border-none text-xs text-gray-900 placeholder-gray-400 focus:outline-none"
           />
         </div>
 
         {/* Status Filters */}
-        <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl self-start sm:self-auto">
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl self-start sm:self-auto">
           {[
             { id: 'all', label: 'All Clubs' },
             { id: 'verified', label: 'Verified' },
@@ -110,7 +138,7 @@ export default function AdminClubsPage() {
               onClick={() => setFilter(tab.id)}
               className={`
                 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                ${filter === tab.id ? 'bg-[#18CFFC] text-black font-bold shadow-sm' : 'text-white/60 hover:text-white'}
+                ${filter === tab.id ? 'bg-blue-600 text-white font-semibold shadow-xs' : 'text-gray-600 hover:text-gray-900'}
               `}
             >
               {tab.label}
@@ -120,11 +148,11 @@ export default function AdminClubsPage() {
       </div>
 
       {/* Clubs Table */}
-      <div className="bg-[#0D0E15] border border-white/5 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/5 text-white/40 uppercase font-mono bg-white/[0.01]">
+              <tr className="border-b border-gray-200 text-gray-500 uppercase font-mono bg-gray-50">
                 <th className="p-4 font-semibold">Club Organization</th>
                 <th className="p-4 font-semibold">Representative</th>
                 <th className="p-4 font-semibold">College Affiliation</th>
@@ -133,36 +161,36 @@ export default function AdminClubsPage() {
                 <th className="p-4 font-semibold text-right">Moderation Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-gray-200">
               {clubs.map((club) => (
-                <tr key={club.id} className="hover:bg-white/[0.02]">
-                  <td className="p-4 font-medium text-white">
+                <tr key={club.id} className="hover:bg-gray-50">
+                  <td className="p-4 font-medium text-gray-900">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{club.club_name}</span>
                       {club.is_verified && (
-                        <ShieldCheck size={14} className="text-[#18CFFC] shrink-0" />
+                        <ShieldCheck size={14} className="text-blue-600 shrink-0" />
                       )}
                     </div>
                     {club.description && (
-                      <div className="text-[11px] text-white/40 max-w-xs truncate mt-0.5">
+                      <div className="text-[11px] text-gray-500 max-w-xs truncate mt-0.5">
                         {club.description}
                       </div>
                     )}
                   </td>
-                  <td className="p-4 text-white/70">
+                  <td className="p-4 text-gray-700">
                     <div>{club.representative_name}</div>
                   </td>
-                  <td className="p-4 text-white/60">
+                  <td className="p-4 text-gray-600">
                     {club.college_name || 'Independent / Unlinked'}
                   </td>
-                  <td className="p-4 text-white/70 font-mono">
+                  <td className="p-4 text-gray-600 font-mono">
                     <span className="flex items-center gap-2">
                       <span className="flex items-center gap-1">
-                        <Calendar size={12} className="text-white/40" /> {club.event_count ?? 0}
+                        <Calendar size={12} className="text-gray-400" /> {club.event_count ?? 0}
                       </span>
-                      <span className="text-white/30">•</span>
+                      <span className="text-gray-300">•</span>
                       <span className="flex items-center gap-1">
-                        <Users size={12} className="text-white/40" /> {club.member_count ?? 0}
+                        <Users size={12} className="text-gray-400" /> {club.member_count ?? 0}
                       </span>
                     </span>
                   </td>
@@ -173,8 +201,8 @@ export default function AdminClubsPage() {
                           px-2 py-0.5 rounded-full font-mono text-[10px] font-semibold uppercase border
                           ${
                             club.status === 'active'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
                           }
                         `}
                       >
@@ -185,8 +213,8 @@ export default function AdminClubsPage() {
                           px-2 py-0.5 rounded-full font-mono text-[10px] font-semibold border
                           ${
                             club.is_verified
-                              ? 'bg-[#18CFFC]/10 text-[#18CFFC] border-[#18CFFC]/30'
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
                           }
                         `}
                       >
@@ -199,7 +227,7 @@ export default function AdminClubsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10"
+                        className="text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
                         onClick={() => promptAction(club, 'verify')}
                       >
                         Verify Club
@@ -208,7 +236,7 @@ export default function AdminClubsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-xs text-amber-400 hover:bg-amber-500/10"
+                        className="text-xs text-amber-700 hover:bg-amber-50"
                         onClick={() => promptAction(club, 'reject_verification')}
                       >
                         Revoke Badge
@@ -219,7 +247,7 @@ export default function AdminClubsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                        className="text-xs text-rose-700 border-rose-200 hover:bg-rose-50"
                         onClick={() => promptAction(club, 'suspend')}
                       >
                         Suspend
@@ -228,7 +256,7 @@ export default function AdminClubsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                        className="text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50"
                         onClick={() => promptAction(club, 'reactivate')}
                       >
                         Reactivate

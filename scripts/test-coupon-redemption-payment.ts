@@ -1,8 +1,23 @@
-import { validateCoupon, redeemCoupon } from '../src/lib/coupons'
+import { createCoupon, validateCoupon, redeemCoupon } from '../src/lib/coupons'
 
 async function run() {
   console.log('Testing coupon redemption workflow...')
-  
+
+  // Seed test-only coupons explicitly in local test runner
+  await createCoupon({
+    club_id: 'test_club_1',
+    code: 'FEST20',
+    discount_type: 'percentage',
+    discount_value: 20,
+    max_discount_amount: 150,
+  })
+  await createCoupon({
+    club_id: 'test_club_1',
+    code: 'CAMPUS50',
+    discount_type: 'fixed',
+    discount_value: 50,
+  })
+
   // 1. Percentage discount: FEST20 (20% off on ₹500 = ₹100 discount, ₹400 payable)
   const res1 = await validateCoupon('FEST20', 'ev_sample_1', 500)
   if (!res1.valid || res1.discountAmount !== 100 || res1.finalPrice !== 400) {

@@ -54,27 +54,27 @@ export function EventScheduleSection({ schedules }: EventScheduleSectionProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-            <Clock size={18} className="text-[#18CFFC]" />
+          <h2 className="text-lg font-bold font-heading text-gray-900 flex items-center gap-2">
+            <Clock size={18} className="text-blue-600" />
             Event Schedule & Agenda
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Step-by-step sessions, keynotes, and track timeline
           </p>
         </div>
 
         {/* Multi-day switcher if more than 1 day */}
         {days.length > 1 && (
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#14141A] border border-white/10 shrink-0">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-gray-100 border border-gray-200 shrink-0">
             {days.map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setSelectedDay(d)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeDay === d
-                    ? 'bg-[#18CFFC] text-black shadow-sm'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white text-gray-900 shadow-xs border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 Day {d}
@@ -85,7 +85,7 @@ export function EventScheduleSection({ schedules }: EventScheduleSectionProps) {
       </div>
 
       {/* Chronological Agenda Timeline */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] flex flex-col gap-4">
+      <div className="p-4 sm:p-5 rounded-xl bg-white border border-gray-200 flex flex-col gap-3 shadow-xs">
         {daySchedules.map((session, index) => {
           const startTime = new Date(session.start_time)
           const endTime = session.end_time ? new Date(session.end_time) : null
@@ -102,18 +102,18 @@ export function EventScheduleSection({ schedules }: EventScheduleSectionProps) {
               key={session.id || index}
               className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${
                 isOngoing
-                  ? 'bg-gradient-to-r from-[#18CFFC]/10 via-[#0E0E12] to-transparent border-[#18CFFC]/40 shadow-[0_0_20px_rgba(24,207,252,0.1)]'
-                  : 'bg-[#14141A] border-white/[0.06] hover:border-white/15'
+                  ? 'bg-blue-50/70 border-blue-200'
+                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
               }`}
             >
               {/* Left: Time and Title */}
               <div className="flex items-start gap-3.5">
-                <div className="flex flex-col items-center shrink-0 min-w-[70px]">
-                  <span className="font-mono text-xs font-bold text-[#18CFFC] bg-black/40 px-2 py-1 rounded-md border border-white/10 text-center w-full">
+                <div className="flex flex-col items-center shrink-0 min-w-[72px]">
+                  <span className="font-mono text-xs font-bold text-blue-700 bg-white px-2 py-1 rounded-md border border-gray-200 text-center w-full shadow-xs">
                     {timeFormatted}
                   </span>
                   {endTimeFormatted && (
-                    <span className="text-[10px] text-zinc-500 font-mono mt-1">
+                    <span className="text-[10px] text-gray-500 font-mono mt-1">
                       to {endTimeFormatted}
                     </span>
                   )}
@@ -121,34 +121,34 @@ export function EventScheduleSection({ schedules }: EventScheduleSectionProps) {
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-semibold text-white">
+                    <h4 className="text-sm font-semibold text-gray-900">
                       {session.title}
                     </h4>
                     {getCategoryBadge(session.category)}
                     {isOngoing && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 animate-pulse">
-                        <Radio size={10} /> LIVE NOW
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <Radio size={10} className="animate-pulse" /> LIVE NOW
                       </span>
                     )}
                   </div>
 
                   {session.description && (
-                    <p className="text-xs text-zinc-300 leading-relaxed font-sans">
+                    <p className="text-xs text-gray-600 leading-relaxed font-sans">
                       {session.description}
                     </p>
                   )}
 
                   {/* Metadata: Speaker and Stage */}
-                  <div className="flex items-center gap-3 text-xs text-zinc-400 pt-1 flex-wrap">
+                  <div className="flex items-center gap-3 text-xs text-gray-500 pt-1 flex-wrap">
                     {session.speaker_name && (
-                      <span className="flex items-center gap-1 text-zinc-300">
-                        <User size={12} className="text-[#18CFFC]" />
+                      <span className="flex items-center gap-1 text-gray-700">
+                        <User size={12} className="text-blue-600" />
                         {session.speaker_name}
                       </span>
                     )}
                     {session.venue_stage && (
-                      <span className="flex items-center gap-1 text-zinc-400">
-                        <MapPin size={12} className="text-[#7F1AFB]" />
+                      <span className="flex items-center gap-1 text-gray-500">
+                        <MapPin size={12} className="text-indigo-600" />
                         {session.venue_stage}
                       </span>
                     )}

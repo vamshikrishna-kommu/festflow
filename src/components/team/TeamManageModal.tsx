@@ -280,30 +280,30 @@ export function TeamManageModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
-          className="w-full max-w-2xl rounded-3xl border border-white/10 shadow-2xl bg-[#0E0E12] text-left relative overflow-hidden my-auto"
+          className="w-full max-w-2xl rounded-2xl border border-gray-200 shadow-2xl bg-white text-left relative overflow-hidden my-auto"
         >
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-white/[0.08] shrink-0 bg-[#14141A]/90 backdrop-blur-md flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-gray-200 shrink-0 bg-white flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/20 text-[#18CFFC] shadow-md">
+              <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-600">
                 <Users size={22} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-heading font-bold text-base sm:text-lg text-white">
+                  <h3 className="font-heading font-bold text-base sm:text-lg text-gray-900">
                     {team?.name || 'Squad Roster'}
                   </h3>
-                  <Badge variant={isTeamFull ? 'success' : 'purple'} className="text-[10px]">
+                  <Badge variant={isTeamFull ? 'success' : 'indigo'} className="text-[10px]">
                     {acceptedMembers.length}/{maxSize} Confirmed
                   </Badge>
                 </div>
-                <p className="text-xs text-zinc-400 truncate max-w-sm font-sans mt-0.5">
+                <p className="text-xs text-gray-500 truncate max-w-sm font-sans mt-0.5">
                   {team?.event?.title || 'Event Squad'}
                 </p>
               </div>
@@ -312,7 +312,7 @@ export function TeamManageModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -333,73 +333,73 @@ export function TeamManageModal({
             )}
 
             {loading ? (
-              <div className="py-14 flex flex-col items-center justify-center gap-3 text-xs text-[var(--color-text-muted)]">
-                <div className="w-8 h-8 rounded-full border-2 border-[var(--color-brand-cyan)] border-t-transparent animate-spin" />
+              <div className="py-14 flex flex-col items-center justify-center gap-3 text-xs text-gray-500">
+                <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
                 <span>Loading squad information…</span>
               </div>
             ) : team ? (
               <>
                 {/* ── KPI Summary Cards ────────────────────────────────────────── */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-3 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
                       Confirmed
                     </span>
-                    <span className="text-xl font-bold font-mono text-emerald-400 mt-1">
+                    <span className="text-xl font-bold font-mono text-emerald-600 mt-1">
                       {acceptedMembers.length}
                     </span>
-                    <span className="text-[9px] text-zinc-500 mt-0.5">Accepted passes</span>
+                    <span className="text-[9px] text-gray-500 mt-0.5">Accepted passes</span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
                       Pending
                     </span>
-                    <span className="text-xl font-bold font-mono text-amber-400 mt-1">
+                    <span className="text-xl font-bold font-mono text-amber-600 mt-1">
                       {pendingInvites.length}
                     </span>
-                    <span className="text-[9px] text-zinc-500 mt-0.5">Awaiting accept</span>
+                    <span className="text-[9px] text-gray-500 mt-0.5">Awaiting accept</span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
                       Open Slots
                     </span>
-                    <span className="text-xl font-bold font-mono text-[#18CFFC] mt-1">
+                    <span className="text-xl font-bold font-mono text-blue-600 mt-1">
                       {availableSlots}
                     </span>
-                    <span className="text-[9px] text-zinc-500 mt-0.5">Remaining spots</span>
+                    <span className="text-[9px] text-gray-500 mt-0.5">Remaining spots</span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
                       Max Team
                     </span>
-                    <span className="text-xl font-bold font-mono text-white mt-1">
+                    <span className="text-xl font-bold font-mono text-gray-900 mt-1">
                       {maxSize}
                     </span>
-                    <span className="text-[9px] text-zinc-500 mt-0.5">Total limit</span>
+                    <span className="text-[9px] text-gray-500 mt-0.5">Total limit</span>
                   </div>
                 </div>
 
                 {/* ── Share Code & Link Banner ─────────────────────────────────── */}
-                <div className="p-4 rounded-2xl bg-[#14141A] border border-[#18CFFC]/20 flex flex-col gap-3 shadow-md">
+                <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#18CFFC] tracking-wider">
+                      <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">
                         Squad Code & General Link
                       </span>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="font-mono font-bold text-lg text-white tracking-wider">
+                        <span className="font-mono font-bold text-lg text-gray-900 tracking-wider">
                           {team.invite_code}
                         </span>
                         <button
                           type="button"
                           onClick={handleCopyCode}
-                          className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors text-xs flex items-center gap-1 cursor-pointer"
+                          className="px-2 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 hover:text-gray-900 transition-colors text-xs flex items-center gap-1 cursor-pointer"
                           title="Copy code"
                         >
-                          {copiedCode ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                          {copiedCode ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
                           <span>{copiedCode ? 'Copied' : 'Copy'}</span>
                         </button>
                       </div>
@@ -411,7 +411,7 @@ export function TeamManageModal({
                         variant="outline"
                         size="sm"
                         onClick={handleCopyLink}
-                        leftIcon={copiedLink ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        leftIcon={copiedLink ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                         className="text-xs min-h-[36px]"
                       >
                         {copiedLink ? 'Link Copied!' : 'Copy General Link'}
@@ -430,9 +430,9 @@ export function TeamManageModal({
                     </div>
                   </div>
 
-                  <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-blue-100 h-1.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] h-full transition-all duration-300 rounded-full"
+                      className="bg-blue-600 h-full transition-all duration-300 rounded-full"
                       style={{ width: `${Math.min(100, (acceptedMembers.length / maxSize) * 100)}%` }}
                     />
                   </div>
@@ -440,11 +440,11 @@ export function TeamManageModal({
 
                 {/* ── Leader Invite Form (Leaders only) ────────────────────────── */}
                 {isLeader && !isTeamFull && (
-                  <div className="p-4 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col gap-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-                      <Plus size={14} className="text-[#18CFFC]" /> Invite New Teammate
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 flex items-center gap-1.5">
+                      <Plus size={14} className="text-blue-600" /> Invite New Teammate
                     </h4>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    <p className="text-[11px] text-gray-600 leading-relaxed">
                       Enter teammate&apos;s email address. An invitation email and unique secure link will be sent.
                       The student must sign in to explicitly accept.
                     </p>
@@ -456,14 +456,14 @@ export function TeamManageModal({
                           value={inviteEmail}
                           onChange={(e) => setInviteEmail(e.target.value)}
                           placeholder="teammate@college.edu *"
-                          className="px-3.5 py-2.5 rounded-xl bg-[#0E0E12] border border-white/10 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] min-h-[40px]"
+                          className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 min-h-[40px]"
                         />
                         <input
                           type="text"
                           value={inviteName}
                           onChange={(e) => setInviteName(e.target.value)}
                           placeholder="Student name (optional)"
-                          className="px-3.5 py-2.5 rounded-xl bg-[#0E0E12] border border-white/10 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] min-h-[40px]"
+                          className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 min-h-[40px]"
                         />
                       </div>
 
@@ -484,10 +484,10 @@ export function TeamManageModal({
 
                 {/* ── Confirmed Squad Roster ───────────────────────────────────── */}
                 <div className="flex flex-col gap-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center justify-between">
                     <span>Confirmed Members ({acceptedMembers.length}/{maxSize})</span>
                     {isTeamFull && (
-                      <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
                         <ShieldCheck size={13} /> Squad Full
                       </span>
                     )}
@@ -497,23 +497,23 @@ export function TeamManageModal({
                     {acceptedMembers.map((member) => (
                       <div
                         key={member.id}
-                        className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.06] flex items-center justify-between text-xs"
+                        className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between text-xs"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div
                             className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                               member.role === 'leader'
-                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                                ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                                : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                             }`}
                           >
                             {member.role === 'leader' ? <Crown size={16} /> : <UserCheck size={16} />}
                           </div>
                           <div className="truncate">
-                            <strong className="text-white font-semibold truncate block">
+                            <strong className="text-gray-900 font-semibold truncate block">
                               {member.name} {member.role === 'leader' && '(Leader)'}
                             </strong>
-                            <span className="text-[11px] text-zinc-400 truncate block mt-0.5">
+                            <span className="text-[11px] text-gray-500 truncate block mt-0.5">
                               {member.email} {member.college ? `• ${member.college}` : ''}
                             </span>
                           </div>
@@ -529,9 +529,9 @@ export function TeamManageModal({
 
                 {/* ── Invitations Management Section (Leaders only) ───────────── */}
                 {isLeader && allInvitations.length > 0 && (
-                  <div className="flex flex-col gap-3 pt-3 border-t border-white/[0.08]">
+                  <div className="flex flex-col gap-3 pt-3 border-t border-gray-200">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600">
                         Invitations Log ({allInvitations.length})
                       </h4>
 
@@ -541,10 +541,10 @@ export function TeamManageModal({
                             key={filter}
                             type="button"
                             onClick={() => setInviteFilter(filter)}
-                            className={`px-2 py-0.5 rounded-lg text-[10px] font-medium capitalize transition-colors ${
+                            className={`px-2.5 py-0.5 rounded-lg text-[10px] font-medium capitalize transition-colors cursor-pointer ${
                               inviteFilter === filter
-                                ? 'bg-[#18CFFC]/20 text-[#18CFFC] border border-[#18CFFC]/30'
-                                : 'text-zinc-400 hover:text-white bg-white/5'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'text-gray-500 hover:text-gray-900 bg-gray-100'
                             }`}
                           >
                             {filter}
@@ -555,7 +555,7 @@ export function TeamManageModal({
 
                     <div className="flex flex-col gap-2">
                       {filteredInvitations.length === 0 ? (
-                        <div className="p-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-zinc-500">
+                        <div className="p-4 rounded-xl border border-dashed border-gray-200 text-center text-xs text-gray-500">
                           No invitations matching &quot;{inviteFilter}&quot;.
                         </div>
                       ) : (
@@ -568,15 +568,15 @@ export function TeamManageModal({
                           return (
                             <div
                               key={invite.id}
-                              className="p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.06] flex items-center justify-between text-xs flex-wrap gap-2.5"
+                              className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between text-xs flex-wrap gap-2.5"
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="p-1.5 rounded-lg bg-white/5 text-zinc-400 shrink-0">
+                                <div className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 shrink-0">
                                   <Mail size={15} />
                                 </div>
                                 <div className="truncate">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-white font-medium truncate">
+                                    <span className="font-mono text-gray-900 font-medium truncate">
                                       {invite.email}
                                     </span>
                                     <Badge
@@ -594,7 +594,7 @@ export function TeamManageModal({
                                       {invite.status}
                                     </Badge>
                                   </div>
-                                  <span className="text-[10px] text-zinc-400 block mt-0.5">
+                                  <span className="text-[10px] text-gray-500 block mt-0.5">
                                     Invited {new Date(invite.last_sent_at || invite.created_at).toLocaleDateString()}
                                     {isAccepted && invite.accepted_at && (
                                       ` • Accepted ${new Date(invite.accepted_at).toLocaleDateString()}`
@@ -620,7 +620,7 @@ export function TeamManageModal({
                                     onClick={() => handleCopyIndividualInvite(invite.token, invite.id)}
                                     leftIcon={
                                       copiedInviteId === invite.id ? (
-                                        <Check size={12} className="text-emerald-400" />
+                                        <Check size={12} className="text-emerald-600" />
                                       ) : (
                                         <Copy size={12} />
                                       )
@@ -649,7 +649,7 @@ export function TeamManageModal({
                                   <button
                                     type="button"
                                     onClick={() => setCancellingInvite(invite)}
-                                    className="p-1.5 rounded-lg hover:bg-rose-500/15 text-rose-400 hover:text-rose-300 transition-colors text-xs cursor-pointer"
+                                    className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-600 hover:text-rose-700 transition-colors text-xs cursor-pointer"
                                     title="Cancel invitation"
                                   >
                                     <Trash2 size={13} />
@@ -677,21 +677,21 @@ export function TeamManageModal({
           title="Cancel Squad Invitation"
           size="sm"
         >
-          <div className="flex flex-col gap-4 text-left">
-            <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
-              <AlertTriangle className="text-rose-400 shrink-0 mt-0.5" size={18} />
-              <div className="text-xs text-rose-200 space-y-1">
-                <p className="font-semibold text-rose-300">
+          <div className="flex flex-col gap-4 text-left p-5">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3">
+              <AlertTriangle className="text-rose-600 shrink-0 mt-0.5" size={18} />
+              <div className="text-xs text-rose-700 space-y-1">
+                <p className="font-semibold text-rose-900">
                   Are you sure you want to cancel this invitation?
                 </p>
                 <p>
-                  Invitation for <strong className="text-white font-mono">{cancellingInvite.email}</strong> will be revoked.
+                  Invitation for <strong className="text-gray-900 font-mono">{cancellingInvite.email}</strong> will be revoked.
                   Their invitation link will immediately stop working.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-200">
               <Button
                 type="button"
                 variant="outline"

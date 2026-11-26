@@ -114,8 +114,8 @@ export function SeatMap({ eventId, maxSelectableSeats, onSeatsSelected, disabled
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 gap-3 text-[var(--color-text-muted)]">
-        <Loader2 className="w-5 h-5 animate-spin" />
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-500">
+        <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
         Loading seat map…
       </div>
     )
@@ -123,7 +123,7 @@ export function SeatMap({ eventId, maxSelectableSeats, onSeatsSelected, disabled
 
   if (error || !layout) {
     return (
-      <div className="flex items-center justify-center py-16 gap-3 text-red-400">
+      <div className="flex items-center justify-center py-16 gap-3 text-rose-600">
         <AlertCircle className="w-5 h-5" />
         {error ?? 'Failed to load seat layout.'}
       </div>
@@ -136,9 +136,9 @@ export function SeatMap({ eventId, maxSelectableSeats, onSeatsSelected, disabled
 
       {/* Controls */}
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-[var(--color-text-muted)]">
+        <div className="text-sm text-gray-500">
           {selectedIds.size > 0 ? (
-            <span className="text-[#18CFFC] font-semibold">{selectedIds.size} seat{selectedIds.size > 1 ? 's' : ''} selected</span>
+            <span className="text-blue-600 font-semibold">{selectedIds.size} seat{selectedIds.size > 1 ? 's' : ''} selected</span>
           ) : (
             <span>Select {maxSelectableSeats > 1 ? `up to ${maxSelectableSeats} seats` : 'a seat'} below</span>
           )}
@@ -147,16 +147,16 @@ export function SeatMap({ eventId, maxSelectableSeats, onSeatsSelected, disabled
           <button
             type="button"
             onClick={() => setZoom((z) => Math.max(0.6, z - 0.1))}
-            className="p-1.5 rounded-lg bg-[var(--color-surface-2)] border border-white/10 text-[var(--color-text-muted)] hover:text-[#18CFFC] transition-colors"
+            className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-blue-600 hover:bg-white transition-colors cursor-pointer"
             title="Zoom out"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
-          <span className="text-xs text-[var(--color-text-muted)] w-10 text-center">{Math.round(zoom * 100)}%</span>
+          <span className="text-xs text-gray-500 font-medium w-10 text-center">{Math.round(zoom * 100)}%</span>
           <button
             type="button"
             onClick={() => setZoom((z) => Math.min(1.6, z + 0.1))}
-            className="p-1.5 rounded-lg bg-[var(--color-surface-2)] border border-white/10 text-[var(--color-text-muted)] hover:text-[#18CFFC] transition-colors"
+            className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-blue-600 hover:bg-white transition-colors cursor-pointer"
             title="Zoom in"
           >
             <ZoomIn className="w-4 h-4" />
@@ -164,7 +164,7 @@ export function SeatMap({ eventId, maxSelectableSeats, onSeatsSelected, disabled
           <button
             type="button"
             onClick={() => setZoom(1)}
-            className="p-1.5 rounded-lg bg-[var(--color-surface-2)] border border-white/10 text-[var(--color-text-muted)] hover:text-[#18CFFC] transition-colors"
+            className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-blue-600 hover:bg-white transition-colors cursor-pointer"
             title="Reset zoom"
           >
             <RotateCcw className="w-4 h-4" />
@@ -208,7 +208,7 @@ export function SeatMap({ eventId, maxSelectableSeats, onSeatsSelected, disabled
       )}
 
       {/* Legend */}
-      <div className="mt-5 pt-4 border-t border-white/5">
+      <div className="mt-5 pt-4 border-t border-gray-200">
         <SeatLegend categories={layout.categories} />
       </div>
     </div>

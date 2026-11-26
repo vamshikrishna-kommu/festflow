@@ -40,11 +40,11 @@ export function EventTicketTiersSection({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-          <Ticket size={18} className="text-[#18CFFC]" />
+        <h2 className="text-lg font-bold font-heading text-gray-900 flex items-center gap-2">
+          <Ticket size={18} className="text-blue-600" />
           Ticket Categories & Passes
         </h2>
-        <span className="text-xs text-zinc-400">
+        <span className="text-xs text-gray-500">
           {tiers.length} pass option{tiers.length > 1 ? 's' : ''} available
         </span>
       </div>
@@ -67,30 +67,25 @@ export function EventTicketTiersSection({
               onClick={() => {
                 if (canChoose) onSelectTier(tier.id)
               }}
-              className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-3 text-left relative overflow-hidden ${
+              className={`p-4 rounded-xl border transition-all duration-200 flex flex-col justify-between gap-3 text-left relative overflow-hidden ${
                 isSelected
-                  ? 'bg-gradient-to-br from-[#14141A] to-[#1E1E28] border-[#18CFFC] shadow-[0_0_20px_rgba(24,207,252,0.15)] ring-1 ring-[#18CFFC]'
+                  ? 'bg-blue-50/70 border-blue-600 ring-1 ring-blue-600 shadow-sm'
                   : canChoose
-                  ? 'bg-[#0E0E12] border-white/[0.08] hover:border-white/20 cursor-pointer'
-                  : 'bg-[#0A0A0E] border-white/[0.04] opacity-60 cursor-not-allowed'
+                  ? 'bg-white border-gray-200 hover:border-gray-300 shadow-xs cursor-pointer'
+                  : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
               }`}
             >
-              {/* Selected Ambient Glow */}
-              {isSelected && (
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#18CFFC]/10 rounded-full blur-2xl pointer-events-none" />
-              )}
-
               {/* Tier Header */}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h3 className="font-bold text-sm sm:text-base text-white">
+                    <h3 className="font-bold text-sm sm:text-base text-gray-900">
                       {tier.name}
                     </h3>
                     {getTierBadge(tier.tier_type)}
                   </div>
                   {tier.description && (
-                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
                       {tier.description}
                     </p>
                   )}
@@ -99,24 +94,24 @@ export function EventTicketTiersSection({
                 <div className="text-right shrink-0">
                   <div className="flex items-baseline gap-1.5 justify-end">
                     {tier.original_price && tier.original_price > tier.price && (
-                      <span className="text-xs text-zinc-500 line-through">
+                      <span className="text-xs text-gray-400 line-through">
                         ₹{tier.original_price}
                       </span>
                     )}
-                    <span className="text-base sm:text-lg font-extrabold font-heading text-white">
-                      {tier.price === 0 ? <span className="text-emerald-400">Free</span> : `₹${tier.price}`}
+                    <span className="text-base sm:text-lg font-extrabold font-heading text-gray-900">
+                      {tier.price === 0 ? <span className="text-emerald-600">Free</span> : `₹${tier.price}`}
                     </span>
                   </div>
-                  <span className="text-[10px] text-zinc-500 block">per pass</span>
+                  <span className="text-[10px] text-gray-500 block">per pass</span>
                 </div>
               </div>
 
               {/* Perks List */}
               {Array.isArray(tier.perks) && tier.perks.length > 0 && (
-                <div className="flex flex-col gap-1 pt-2 border-t border-white/[0.06]">
+                <div className="flex flex-col gap-1 pt-2 border-t border-gray-200">
                   {tier.perks.map((perk, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-xs text-zinc-300">
-                      <Sparkles size={12} className="text-[#18CFFC] shrink-0" />
+                    <div key={i} className="flex items-center gap-1.5 text-xs text-gray-700">
+                      <Sparkles size={12} className="text-blue-600 shrink-0" />
                       <span>{perk}</span>
                     </div>
                   ))}
@@ -124,18 +119,18 @@ export function EventTicketTiersSection({
               )}
 
               {/* Eligibility & Availability Footer */}
-              <div className="flex items-center justify-between text-[11px] pt-2 border-t border-white/[0.06] text-zinc-400">
+              <div className="flex items-center justify-between text-[11px] pt-2 border-t border-gray-200 text-gray-500">
                 <div className="flex items-center gap-1">
                   {isSoldOut ? (
-                    <span className="text-rose-400 font-semibold flex items-center gap-1">
+                    <span className="text-rose-600 font-semibold flex items-center gap-1">
                       <AlertCircle size={12} /> Sold Out
                     </span>
                   ) : !isAvailableTime ? (
-                    <span className="text-amber-400 flex items-center gap-1">
+                    <span className="text-amber-600 flex items-center gap-1">
                       <Clock size={12} /> Sales Closed
                     </span>
                   ) : remaining <= 15 ? (
-                    <span className="text-amber-400 font-medium">
+                    <span className="text-amber-600 font-medium">
                       Only {remaining} seat{remaining > 1 ? 's' : ''} left!
                     </span>
                   ) : (
@@ -150,10 +145,10 @@ export function EventTicketTiersSection({
                       e.stopPropagation()
                       onSelectTier(tier.id)
                     }}
-                    className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-[#18CFFC] text-black font-bold shadow-md shadow-[#18CFFC]/30'
-                        : 'bg-white/10 hover:bg-white/15 text-white'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
                     }`}
                   >
                     {isSelected ? (

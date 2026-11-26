@@ -20,8 +20,8 @@ export function RealtimeConnectionStatus({ isConnected }: RealtimeConnectionStat
   if (!showReconnecting) return null
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-amber-900/90 backdrop-blur-sm border border-amber-500/40 rounded-xl text-sm text-amber-200 shadow-lg">
-      <WifiOff className="w-4 h-4 flex-shrink-0 animate-pulse" />
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-amber-50/95 backdrop-blur-sm border border-amber-200 rounded-xl text-sm text-amber-800 shadow-md">
+      <WifiOff className="w-4 h-4 flex-shrink-0 animate-pulse text-amber-600" />
       Reconnecting to live seat availability…
     </div>
   )

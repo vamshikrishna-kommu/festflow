@@ -177,7 +177,7 @@ export function StudentSettingsModal({
       <ModalBody>
         <div className="flex flex-col gap-4">
           {/* Section Navigation Tabs — Horizontally Scrollable on Mobile */}
-          <div className="flex items-center gap-1.5 p-1 bg-[#14141A] rounded-2xl overflow-x-auto no-scrollbar touch-pan-x text-xs border border-white/[0.08]">
+          <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl overflow-x-auto no-scrollbar touch-pan-x text-xs border border-gray-200">
             {sections.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -187,13 +187,13 @@ export function StudentSettingsModal({
                   setSavedNotice(null)
                   setErrorMessage(null)
                 }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-medium shrink-0 transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium shrink-0 transition-all cursor-pointer ${
                   activeSection === id
-                    ? 'bg-[#242430] text-white font-semibold shadow-sm border border-white/10'
-                    : 'text-zinc-400 hover:text-white'
+                    ? 'bg-white text-gray-900 font-semibold shadow-xs border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                <Icon size={14} className={activeSection === id ? 'text-[#18CFFC]' : ''} />
+                <Icon size={14} className={activeSection === id ? 'text-blue-600' : ''} />
                 <span>{label}</span>
               </button>
             ))}
@@ -201,13 +201,13 @@ export function StudentSettingsModal({
 
           {/* Feedback Notices */}
           {savedNotice && (
-            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
               <CheckCircle2 size={16} className="shrink-0" />
               <span>{savedNotice}</span>
             </div>
           )}
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <X size={16} className="shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -225,7 +225,7 @@ export function StudentSettingsModal({
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="e.g. Maya Patel"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-cyan)] min-h-[44px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 min-h-[44px]"
                 />
               </div>
 
@@ -237,7 +237,7 @@ export function StudentSettingsModal({
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-3)]/40 border border-[var(--color-surface-3)] text-xs text-[var(--color-text-muted)] cursor-not-allowed select-none min-h-[44px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 cursor-not-allowed select-none min-h-[44px]"
                 />
                 <span className="text-[10px] text-[var(--color-text-muted)]">
                   Used for verified digital pass notifications and login.
@@ -270,7 +270,7 @@ export function StudentSettingsModal({
                     value={gradYear}
                     onChange={(e) => setGradYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     placeholder="2027"
-                    className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-cyan)] min-h-[44px]"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 min-h-[44px]"
                   />
                 </div>
               </div>
@@ -286,7 +286,7 @@ export function StudentSettingsModal({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 9876543210"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-cyan)] min-h-[44px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 min-h-[44px]"
                 />
               </div>
             </div>
@@ -295,7 +295,7 @@ export function StudentSettingsModal({
           {/* ── 2. Notifications Section ── */}
           {activeSection === 'notifications' && (
             <div className="space-y-3 text-xs">
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <div>
                   <span className="font-semibold text-[var(--color-text-primary)] block">
                     Ticket & Pass Approvals
@@ -312,7 +312,7 @@ export function StudentSettingsModal({
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <div>
                   <span className="font-semibold text-[var(--color-text-primary)] block">
                     Event Reminders (24h Before)
@@ -329,7 +329,7 @@ export function StudentSettingsModal({
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <div>
                   <span className="font-semibold text-[var(--color-text-primary)] block">
                     Campus Club Announcements
@@ -351,7 +351,7 @@ export function StudentSettingsModal({
           {/* ── 3. Sound & Haptics Section ── */}
           {activeSection === 'sound' && (
             <div className="space-y-3 text-xs">
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <div>
                   <span className="font-semibold text-[var(--color-text-primary)] block">
                     Audio Feedback
@@ -368,7 +368,7 @@ export function StudentSettingsModal({
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <div>
                   <span className="font-semibold text-[var(--color-text-primary)] block">
                     Vibration & Tactile Haptics
@@ -390,12 +390,12 @@ export function StudentSettingsModal({
           {/* ── 4. Appearance & Display Section ── */}
           {activeSection === 'appearance' && (
             <div className="space-y-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)]">
+              <div className="p-3.5 rounded-2xl bg-white border border-gray-200">
                 <span className="font-semibold text-[var(--color-text-primary)] block mb-1">
                   Theme Palette
                 </span>
-                <p className="text-[11px] text-[var(--color-text-muted)]">
-                  FestFlow is engineered in high-contrast Midnight Violet for optimal battery life on OLED phone screens.
+                <p className="text-[11px] text-gray-500">
+                  FestFlow uses a high-clarity light interface built for daylight campus readability.
                 </p>
               </div>
             </div>
@@ -404,7 +404,7 @@ export function StudentSettingsModal({
           {/* ── 5. Security Section ── */}
           {activeSection === 'security' && (
             <div className="space-y-3.5 text-xs">
-              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)]">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200">
                 <span className="font-semibold text-[var(--color-text-primary)] block mb-1">
                   Account Authentication
                 </span>
@@ -420,7 +420,7 @@ export function StudentSettingsModal({
                 <button
                   type="button"
                   onClick={() => setShowLogoutConfirm(true)}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold border border-rose-500/30 transition-all min-h-[44px] cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold border border-rose-200 transition-all min-h-[44px] cursor-pointer"
                 >
                   <LogOut size={16} />
                   <span>Sign Out from Device</span>
@@ -464,7 +464,7 @@ export function StudentSettingsModal({
           {/* ── 6. Help & Support Section ── */}
           {activeSection === 'help' && (
             <div className="space-y-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] space-y-2">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
                 <span className="font-semibold text-[var(--color-text-primary)] block">
                   Frequently Asked Questions
                 </span>
@@ -484,7 +484,7 @@ export function StudentSettingsModal({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] flex items-center justify-between gap-3">
+              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3">
                 <div>
                   <span className="font-semibold text-[var(--color-text-primary)] block">
                     Campus Student Helpdesk
@@ -503,11 +503,11 @@ export function StudentSettingsModal({
               </div>
 
               <div className="flex items-center justify-between text-[11px] px-1 text-[var(--color-text-muted)]">
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white underline">
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 underline">
                   Terms of Service
                 </a>
                 <span>•</span>
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white underline">
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 underline">
                   Privacy Policy
                 </a>
                 <span>•</span>

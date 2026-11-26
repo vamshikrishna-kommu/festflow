@@ -39,7 +39,6 @@ export function GoogleAuthButton({
         setIsSubmitting(false)
         if (onError) onError(res.error)
       }
-      // If success, Supabase initiates navigation/redirect to Google OAuth consent
     } catch (err) {
       setIsSubmitting(false)
       const msg = err instanceof Error ? err.message : 'Google authentication could not be initialized.'
@@ -52,23 +51,21 @@ export function GoogleAuthButton({
   return (
     <motion.button
       type="button"
-      whileHover={!disabled && !isLoading ? { scale: 1.01 } : undefined}
       whileTap={!disabled && !isLoading ? { scale: 0.99 } : undefined}
       onClick={handleGoogleSignIn}
       disabled={disabled || isLoading}
       aria-label={label}
-      className={`relative flex items-center justify-center gap-3 w-full py-2.5 sm:py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 select-none ${
+      className={`relative flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors select-none cursor-pointer ${
         disabled || isLoading
-          ? 'opacity-60 cursor-not-allowed bg-[#14141A] text-zinc-400 border border-white/5'
-          : 'bg-[#14141A] text-white border border-white/10 hover:border-[#18CFFC]/50 hover:bg-[#181822] hover:shadow-[0_4px_24px_rgba(24,207,252,0.12)] active:border-[#18CFFC] focus:outline-none focus:ring-2 focus:ring-[#18CFFC]/40 focus:border-[#18CFFC]'
+          ? 'opacity-60 cursor-not-allowed bg-gray-100 text-gray-400 border border-gray-200'
+          : 'bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600'
       } ${className}`}
     >
-      {/* Official Google G SVG icon */}
       {isLoading ? (
-        <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-[#18CFFC] animate-spin shrink-0" />
+        <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-blue-600 animate-spin shrink-0" />
       ) : (
         <svg
-          className="w-5 h-5 shrink-0"
+          className="w-4 h-4 shrink-0"
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
@@ -100,10 +97,10 @@ export function AuthDivider({ text = 'or continue with email' }: { text?: string
   return (
     <div className="relative my-4 sm:my-5">
       <div className="absolute inset-0 flex items-center" aria-hidden="true">
-        <div className="w-full border-t border-white/[0.08]" />
+        <div className="w-full border-t border-gray-200" />
       </div>
       <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-        <span className="bg-[#0E0E12] px-3 text-[var(--color-text-muted)] font-medium">
+        <span className="bg-white px-3 text-gray-400 font-medium">
           {text}
         </span>
       </div>

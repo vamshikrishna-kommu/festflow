@@ -25,10 +25,12 @@ export default function AdminDashboardPage() {
   const [recentLogs, setRecentLogs] = useState<AdminAuditLogRecord[]>([])
   const [pendingEvents, setPendingEvents] = useState<AdminEventRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const loadData = async () => {
     try {
       setIsLoading(true)
+      setLoadError(null)
       const [m, logs, evts] = await Promise.all([
         getPlatformMetrics(),
         getAdminAuditLogs({ limit: 6 }),
@@ -37,6 +39,8 @@ export default function AdminDashboardPage() {
       setMetrics(m)
       setRecentLogs(logs)
       setPendingEvents(evts)
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load platform oversight metrics.')
     } finally {
       setIsLoading(false)
     }
@@ -125,27 +129,27 @@ export default function AdminDashboardPage() {
       {/* Main Grid: Pending Moderation & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Events Awaiting Moderation Queue */}
-        <div className="lg:col-span-2 bg-[#0D0E15] border border-white/5 rounded-2xl p-6">
+        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center">
                 <AlertCircle size={16} />
               </div>
-              <h2 className="text-base font-bold text-white font-display">
+              <h2 className="text-base font-bold text-gray-900 font-display">
                 Event Moderation Queue
               </h2>
             </div>
             <Link
               to="/admin/events"
-              className="text-xs font-semibold text-[#18CFFC] hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
             >
               View Queue ({pendingEvents.length}) <ArrowRight size={13} />
             </Link>
           </div>
 
           {pendingEvents.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-white/[0.02] border border-dashed border-white/10">
-              <p className="text-xs text-white/50">
+            <div className="p-8 text-center rounded-xl bg-gray-50 border border-dashed border-gray-300">
+              <p className="text-xs text-gray-500">
                 All submitted events have been reviewed. No pending moderation tasks.
               </p>
             </div>
@@ -154,16 +158,16 @@ export default function AdminDashboardPage() {
               {pendingEvents.slice(0, 3).map((event) => (
                 <div
                   key={event.id}
-                  className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 flex items-center justify-between gap-4 transition-colors"
+                  className="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:border-gray-300 flex items-center justify-between gap-4 transition-colors"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-white truncate">{event.title}</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                      <span className="text-xs font-bold text-gray-900 truncate">{event.title}</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                         Pending Approval
                       </span>
                     </div>
-                    <div className="text-xs text-white/50 truncate flex items-center gap-3">
+                    <div className="text-xs text-gray-500 truncate flex items-center gap-3">
                       <span>{event.club_name}</span>
                       <span>•</span>
                       <span>{event.venue_name}</span>
@@ -184,77 +188,90 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Right Col: Admin Quick Shortcuts */}
-        <div className="bg-[#0D0E15] border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div>
-            <h2 className="text-base font-bold text-white font-display mb-4">
+            <h2 className="text-base font-bold text-gray-900 font-display mb-4">
               Administrative Quick Actions
             </h2>
             <div className="space-y-2.5">
               <Link
                 to="/admin/clubs"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#18CFFC]/30 hover:bg-[#18CFFC]/5 transition-all text-xs font-medium text-white/80"
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-blue-300 hover:bg-blue-50/70 transition-all text-xs font-medium text-gray-700 hover:text-gray-900"
               >
                 <span>Verify Club Submissions</span>
-                <ArrowRight size={14} className="text-[#18CFFC]" />
+                <ArrowRight size={14} className="text-blue-600" />
               </Link>
               <Link
                 to="/admin/reports"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-rose-500/30 hover:bg-rose-500/5 transition-all text-xs font-medium text-white/80"
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-rose-300 hover:bg-rose-50/70 transition-all text-xs font-medium text-gray-700 hover:text-gray-900"
               >
                 <span>Triage Abuse Reports</span>
-                <ArrowRight size={14} className="text-rose-400" />
+                <ArrowRight size={14} className="text-rose-600" />
               </Link>
               <Link
                 to="/admin/announcements"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#7F1AFB]/30 hover:bg-[#7F1AFB]/5 transition-all text-xs font-medium text-white/80"
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/70 transition-all text-xs font-medium text-gray-700 hover:text-gray-900"
               >
                 <span>Publish Broadcast Notice</span>
-                <ArrowRight size={14} className="text-[#7F1AFB]" />
+                <ArrowRight size={14} className="text-indigo-600" />
               </Link>
               <Link
                 to="/admin/finances"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-amber-500/30 hover:bg-amber-500/5 transition-all text-xs font-medium text-white/80"
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-amber-300 hover:bg-amber-50/70 transition-all text-xs font-medium text-gray-700 hover:text-gray-900"
               >
                 <span>Financial & Payment Oversight</span>
-                <ArrowRight size={14} className="text-amber-400" />
+                <ArrowRight size={14} className="text-amber-600" />
               </Link>
               <Link
                 to="/admin/settings"
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all text-xs font-medium text-white/80"
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-gray-300 transition-all text-xs font-medium text-gray-700 hover:text-gray-900"
               >
                 <span>Platform Settings & Feature Flags</span>
-                <ArrowRight size={14} className="text-white/40" />
+                <ArrowRight size={14} className="text-gray-400" />
               </Link>
             </div>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-between text-xs text-white/40">
+          <div className="mt-6 pt-5 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
             <span>FestFlow v2.0 Platform</span>
-            <span className="font-mono text-emerald-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-mono text-emerald-700 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
               Systems Operational
             </span>
           </div>
         </div>
       </div>
 
+      {loadError && (
+        <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <span>{loadError}</span>
+          <button
+            type="button"
+            onClick={loadData}
+            className="px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 transition-colors self-start sm:self-auto cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Recent Immutable Audit Activity Feed */}
-      <div className="bg-[#0D0E15] border border-white/5 rounded-2xl p-6">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#18CFFC]/10 border border-[#18CFFC]/20 text-[#18CFFC] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
               <Clock size={16} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white font-display">
+              <h2 className="text-base font-bold text-gray-900 font-display">
                 Recent Audit Trail Actions
               </h2>
-              <p className="text-xs text-white/50">Immutable security ledger of privileged operations</p>
+              <p className="text-xs text-gray-500">Immutable security ledger of privileged operations</p>
             </div>
           </div>
           <Link
             to="/admin/audit-logs"
-            className="text-xs font-semibold text-[#18CFFC] hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
           >
             Full Audit Ledger <ArrowRight size={13} />
           </Link>
@@ -263,7 +280,7 @@ export default function AdminDashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/5 text-white/40 uppercase font-mono">
+              <tr className="border-b border-gray-200 text-gray-500 uppercase font-mono">
                 <th className="pb-3 font-semibold">Timestamp</th>
                 <th className="pb-3 font-semibold">Administrator</th>
                 <th className="pb-3 font-semibold">Action</th>
@@ -271,20 +288,20 @@ export default function AdminDashboardPage() {
                 <th className="pb-3 font-semibold">Audit Justification</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-gray-200">
               {recentLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-white/[0.02]">
-                  <td className="py-3 text-white/50 font-mono">
+                <tr key={log.id} className="hover:bg-gray-50">
+                  <td className="py-3 text-gray-500 font-mono">
                     {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="py-3 font-medium text-white">{log.admin_email}</td>
+                  <td className="py-3 font-medium text-gray-900">{log.admin_email}</td>
                   <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-full bg-white/5 text-[#18CFFC] font-mono border border-white/10">
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-mono border border-blue-200">
                       {log.action}
                     </span>
                   </td>
-                  <td className="py-3 text-white/60 font-mono">{log.target_entity}</td>
-                  <td className="py-3 text-white/70 max-w-xs truncate">{log.reason || '—'}</td>
+                  <td className="py-3 text-gray-600 font-mono">{log.target_entity}</td>
+                  <td className="py-3 text-gray-600 max-w-xs truncate">{log.reason || '—'}</td>
                 </tr>
               ))}
             </tbody>

@@ -3,7 +3,18 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import type { ButtonVariant, ButtonSize } from '@/types'
 import { buttonTap, buttonHover } from '@/lib/animations'
 
-interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onDrag' | 'onDragEnd' | 'onDragEnter' | 'onDragLeave' | 'onDragOver' | 'onDragStart' | 'onDrop' | 'onAnimationStart'> {
+interface ButtonProps
+  extends Omit<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    | 'onDrag'
+    | 'onDragEnd'
+    | 'onDragEnter'
+    | 'onDragLeave'
+    | 'onDragOver'
+    | 'onDragStart'
+    | 'onDrop'
+    | 'onAnimationStart'
+  > {
   variant?: ButtonVariant
   size?: ButtonSize
   leftIcon?: ReactNode
@@ -14,21 +25,22 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onD
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white font-semibold border border-cyan-300/30 shadow-[0_4px_22px_rgba(127,26,251,0.40)] hover:shadow-[0_6px_30px_rgba(24,207,252,0.50)] hover:brightness-110 active:scale-[0.98]',
+    'bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium border border-blue-600/30 shadow-xs hover:shadow-sm active:bg-[#1E40AF] transition-all',
   secondary:
-    'bg-[#1C1C24] text-[#EDEDF0] hover:text-white hover:bg-[#262632] border border-white/10 shadow-sm active:bg-[#14141A]',
+    'bg-white text-[#111827] hover:bg-[#F9FAFB] hover:text-[#000000] border border-[#E5E7EB] shadow-xs active:bg-[#F3F4F6]',
   ghost:
-    'bg-transparent text-[#A1A1AA] hover:text-white hover:bg-white/[0.06] active:bg-white/[0.10]',
+    'bg-transparent text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6] active:bg-[#E5E7EB]',
   outline:
-    'border border-white/15 bg-[#0E0E12]/80 backdrop-blur-md text-[#EDEDF0] hover:border-[#18CFFC] hover:text-white hover:bg-[#1C1C24] hover:shadow-[0_0_22px_rgba(24,207,252,0.25)] active:bg-[#14141A]',
+    'border border-[#E5E7EB] bg-white text-[#111827] hover:border-[#D1D5DB] hover:bg-[#F9FAFB] active:bg-[#F3F4F6] shadow-xs',
   danger:
-    'bg-rose-600 text-white hover:bg-rose-500 shadow-sm active:bg-rose-700',
+    'bg-[#EF4444] text-white hover:bg-[#DC2626] border border-red-600/20 shadow-xs active:bg-[#B91C1C]',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3.5 text-xs gap-1.5 rounded-[var(--radius-button)] tracking-wide',
-  md: 'h-10 px-5 text-sm gap-2 rounded-[var(--radius-button)] tracking-wide',
-  lg: 'h-12 px-7 text-sm gap-2.5 rounded-[var(--radius-lg)] font-semibold tracking-wide',
+  xs: 'h-7 px-2.5 text-xs gap-1 rounded-[var(--radius-button)] tracking-tight',
+  sm: 'h-8 px-3 text-xs gap-1.5 rounded-[var(--radius-button)] tracking-tight',
+  md: 'h-9.5 px-4 text-sm gap-2 rounded-[var(--radius-button)] tracking-tight',
+  lg: 'h-11 px-5 text-sm gap-2.5 rounded-[var(--radius-lg)] font-medium tracking-tight',
 }
 
 export function Button({
@@ -45,7 +57,7 @@ export function Button({
 }: ButtonProps) {
   const isInactive = Boolean(disabled || isLoading)
   const base =
-    'relative inline-flex items-center justify-center font-semibold transition-all duration-200 cursor-pointer select-none overflow-hidden disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-cyan)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-0)]'
+    'relative inline-flex items-center justify-center font-medium transition-all duration-150 cursor-pointer select-none overflow-hidden disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#2563EB]/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none'
 
   return (
     <motion.button
@@ -67,7 +79,9 @@ export function Button({
           >
             <circle
               className="opacity-25"
-              cx="12" cy="12" r="10"
+              cx="12"
+              cy="12"
+              r="10"
               stroke="currentColor"
               strokeWidth="4"
             />
@@ -79,7 +93,11 @@ export function Button({
           </svg>
         </span>
       ) : null}
-      <span className={`flex items-center gap-[inherit] transition-opacity duration-150 ${isLoading ? 'invisible' : 'opacity-100'}`}>
+      <span
+        className={`flex items-center gap-[inherit] transition-opacity duration-150 ${
+          isLoading ? 'invisible' : 'opacity-100'
+        }`}
+      >
         {leftIcon}
         {children}
         {rightIcon}

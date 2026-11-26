@@ -6,23 +6,23 @@ import { FileText } from 'lucide-react'
 export default function TermsPage() {
   return (
     <PageShell>
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left">
         <div className="flex items-center gap-3 mb-3">
           <Badge variant="brand">Terms of Agreement</Badge>
-          <span className="text-xs text-[var(--color-text-muted)]">Effective: October 2026</span>
+          <span className="text-xs text-gray-500 font-medium">Effective: October 2026</span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white mb-4">
+        <h1 className="text-3xl sm:text-4xl font-bold font-display text-gray-900 tracking-tight mb-3">
           Terms of Service
         </h1>
-        <p className="text-sm text-[var(--color-text-secondary)] mb-8 max-w-2xl">
+        <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-2xl leading-relaxed">
           Guidelines and responsibilities governing student event registrations, ticket issuance, and club event administration.
         </p>
 
-        <Card className="p-6 sm:p-8 space-y-6 text-sm text-[var(--color-text-secondary)] leading-relaxed border-white/10 bg-[#0E0E12]/80 backdrop-blur-md">
+        <Card variant="default" className="p-6 sm:p-8 space-y-6 text-sm text-gray-600 leading-relaxed">
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <FileText className="text-[#18CFFC]" size={18} />
+            <h2 className="text-lg font-display font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="text-blue-600" size={18} />
               1. Acceptance of Terms
             </h2>
             <p>
@@ -30,8 +30,8 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section className="space-y-3 pt-4 border-t border-[oklch(100%_0_0_/_0.06)]">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+          <section className="space-y-3 pt-5 border-t border-gray-100">
+            <h2 className="text-lg font-display font-bold text-gray-900">
               2. Free Platform & Event Publishing
             </h2>
             <p>
@@ -39,17 +39,17 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section className="space-y-3 pt-4 border-t border-[oklch(100%_0_0_/_0.06)]">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+          <section className="space-y-3 pt-5 border-t border-gray-100">
+            <h2 className="text-lg font-display font-bold text-gray-900">
               3. Ticketing, Direct UPI & Entry
             </h2>
             <p>
-              FestFlow facilitates direct peer-to-club manual UPI transactions. Registrations are confirmed with verifiable digital passes. FestFlow is not a payment gateway and does not hold user funds in escrow; 100% of event proceeds transfer directly to the hosting club. Refunds and event cancellations are governed by the hosting club's published event policy.
+              FestFlow facilitates direct peer-to-club manual UPI transactions. Registrations are confirmed with verifiable digital passes. FestFlow is not a payment gateway and does not hold user funds in escrow; 100% of event proceeds transfer directly to the hosting club. Refunds and event cancellations are governed by the hosting club&apos;s published event policy.
             </p>
           </section>
 
-          <section className="space-y-3 pt-4 border-t border-[oklch(100%_0_0_/_0.06)]">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+          <section className="space-y-3 pt-5 border-t border-gray-100">
+            <h2 className="text-lg font-display font-bold text-gray-900">
               4. Code of Conduct
             </h2>
             <p>
@@ -57,13 +57,13 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section className="space-y-3 pt-4 border-t border-[oklch(100%_0_0_/_0.06)]">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+          <section className="space-y-3 pt-5 border-t border-gray-100">
+            <h2 className="text-lg font-display font-bold text-gray-900">
               5. Contact
             </h2>
             <p>
               Questions regarding these terms should be directed to{' '}
-              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-[#18CFFC] hover:text-[#18CFFC] underline transition-colors">
+              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-blue-600 hover:underline font-medium">
                 {OFFICIAL_CONTACT_EMAIL}
               </a>.
             </p>

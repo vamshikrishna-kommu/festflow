@@ -1,290 +1,150 @@
-import { useRef, useEffect, useState } from 'react'
-import { motion, useScroll, useTransform } from 'motion/react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router'
 import {
   Calendar,
   MapPin,
   ArrowRight,
-  Sparkles,
   Ticket,
   ChevronRight,
-  ShieldCheck,
+  Building2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
-import { Button, Badge, KineticHeading } from '@/components/ui'
-import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { Button, Badge } from '@/components/ui'
+import { useScrollReveal } from '@/lib/motion'
 import { listPublishedEvents, mapRecordToUiEvent, isEventCompleted } from '@/lib/events'
 import type { Event as UiEvent } from '@/types'
 
 export function HorizontalEventJourney() {
-  const targetRef = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
   const [events, setEvents] = useState<UiEvent[]>([])
   const [loading, setLoading] = useState(true)
-  const reduced = useReducedMotion()
+  const [error, setError] = useState<string | null>(null)
+
+  useScrollReveal(sectionRef, { y: 18 })
+
+  const loadFeaturedEvents = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    const res = await listPublishedEvents({ limit: 8 })
+    setLoading(false)
+    if (res.error) {
+      setError(res.error)
+      return
+    }
+    const activeEvents = (res.events || [])
+      .filter((e) => !isEventCompleted(e))
+      .map(mapRecordToUiEvent)
+    setEvents(activeEvents)
+  }, [])
 
   useEffect(() => {
-    let mounted = true
+    let active = true
     listPublishedEvents({ limit: 8 }).then((res) => {
-      if (!mounted) return
+      if (!active) return
       setLoading(false)
+      if (res.error) {
+        setError(res.error)
+        return
+      }
       const activeEvents = (res.events || [])
         .filter((e) => !isEventCompleted(e))
         .map(mapRecordToUiEvent)
       setEvents(activeEvents)
     })
     return () => {
-      mounted = false
+      active = false
     }
   }, [])
-
-  // Desktop Pinned Scroll
-  const { scrollYProgress } = useScroll({
-    target: targetRef,
-    offset: ['start start', 'end end'],
-  })
-
-  // Calculate translation range based on card array length
-  const totalCards = Math.max(events.length, 3)
-  const shiftPercent = -((totalCards - 1.25) * 28)
-  const x = useTransform(scrollYProgress, [0, 1], ['0%', `${shiftPercent}%`])
 
   return (
     <section
       id="journey"
-      aria-label="Horizontal Event Journey"
-      className="relative bg-[#08080A] border-t border-white/[0.06]"
+      ref={sectionRef}
+      aria-label="Featured Campus Events"
+      className="relative bg-[#F7F8FA] border-b border-gray-200/80 py-16 sm:py-24"
     >
-      {/* ─── DESKTOP & TABLET CINEMATIC PINNED SCROLL (md and up) ─────────── */}
-      <div
-        ref={targetRef}
-        className="relative h-[250vh] hidden md:block"
-        style={reduced ? { height: 'auto' } : {}}
-      >
-        <div
-          className={`${
-            reduced ? 'relative py-24' : 'sticky top-0 h-screen'
-          } flex flex-col justify-center overflow-hidden px-6 lg:px-12`}
-        >
-          {/* Ambient luminous glow backdrops */}
-          <div
-            aria-hidden="true"
-            className="absolute top-1/2 left-1/3 -translate-y-1/2 w-[700px] h-[450px] pointer-events-none -z-10"
-            style={{
-              background:
-                'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255, 87, 34, 0.12) 0%, rgba(245, 158, 11, 0.05) 60%, transparent 75%)',
-            }}
-          />
-
-          {/* Section Header with Kinetic Typography */}
-          <div className="max-w-7xl mx-auto w-full mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <KineticHeading
-                as="h2"
-                badgeText="The Motion Journey"
-                badgeIcon={<Sparkles size={12} />}
-                className="text-2xl sm:text-4xl lg:text-5xl"
-                lines={[
-                  { text: 'Scroll the campus' },
-                  { text: 'event horizon.', highlight: 'Live Now.', gradientClass: 'gradient-text' },
-                ]}
-              />
-              <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-lg leading-relaxed">
-                A continuous cinematic journey through upcoming hackathons, symposiums, and cultural fests hosted across colleges.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-4 shrink-0">
-              <Link to="/discover">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  rightIcon={<ArrowRight size={14} />}
-                  className="shine-on-hover text-xs font-semibold"
-                >
-                  Explore All Events
-                </Button>
-              </Link>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 mb-3">
+              Curated Campus Calendar
+            </span>
+            <h2 className="font-display font-bold text-2xl sm:text-4xl text-gray-900 tracking-tight">
+              Trending across campus right now.
+            </h2>
+            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+              Browse upcoming hackathons, symposiums, and cultural fests hosted by verified university chapters.
+            </p>
           </div>
 
-          {/* Horizontal Moving Cards Track */}
-          <div className="relative w-full max-w-7xl mx-auto overflow-visible py-4">
-            {loading ? (
-              <div className="flex gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-[380px] h-[420px] rounded-3xl bg-[#0E0E12] animate-pulse border border-white/10 shrink-0"
-                  />
-                ))}
-              </div>
-            ) : events.length === 0 ? (
-              <div className="p-10 rounded-3xl bg-[#0E0E12] border border-white/10 text-center max-w-xl mx-auto my-6 shadow-2xl">
-                <Ticket size={36} className="mx-auto text-[#18CFFC] mb-3" />
-                <h3 className="text-lg font-bold font-display text-white">
-                  Campus Calendar Forming
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1.5 mb-5 leading-relaxed">
-                  Colleges are currently publishing their semester event rosters. Are you a club leader ready to launch your event?
-                </p>
-                <Link to="/club/signup">
-                  <Button variant="primary" size="sm" rightIcon={<ArrowRight size={14} />}>
-                    Launch Club Event Portal
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <motion.div
-                style={reduced ? {} : { x }}
-                className="flex gap-7 will-change-transform"
-              >
-                {events.map((event) => {
-                  const eventDate = event.date
-                    ? new Date(event.date).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : 'Upcoming'
-
-                  const isFree = event.isFree || !event.price || event.price === 0
-
-                  return (
-                    <motion.div
-                      key={event.id}
-                      className="w-[360px] lg:w-[400px] rounded-3xl bg-[#0E0E12] border border-white/10 hover:border-[#18CFFC]/50 transition-all duration-300 flex flex-col justify-between shrink-0 group overflow-hidden shadow-2xl relative"
-                      whileHover={reduced ? undefined : { y: -8, scale: 1.01 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      {/* Top Banner Image */}
-                      <div className="h-44 w-full relative overflow-hidden bg-[#14141A]">
-                        {event.coverImage ? (
-                          <img
-                            src={event.coverImage}
-                            alt={event.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-tr from-[#18CFFC]/20 to-[#7F1AFB]/10 flex items-center justify-center">
-                            <Sparkles size={32} className="text-white/40" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E12] via-transparent to-transparent" />
-
-                        {/* Top floating pill badges */}
-                        <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between">
-                          <Badge variant="purple" className="text-[10px] uppercase font-bold tracking-wider backdrop-blur-md">
-                            {event.category || 'Campus Event'}
-                          </Badge>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold shadow-md backdrop-blur-md ${
-                            isFree ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-[#18CFFC]/15 text-[#18CFFC] border border-[#18CFFC]/30'
-                          }`}>
-                            {isFree ? 'Free Entry' : `₹${event.price}`}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Card Content */}
-                      <div className="p-6 flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 text-[11px] text-[#FFA040] font-semibold mb-2">
-                            <Calendar size={13} />
-                            <span>{eventDate}</span>
-                            {event.venue && (
-                              <>
-                                <span className="text-zinc-600">•</span>
-                                <span className="text-zinc-400 flex items-center gap-1 truncate max-w-[160px]">
-                                  <MapPin size={12} /> {event.venue}
-                                </span>
-                              </>
-                            )}
-                          </div>
-
-                          <h3 className="font-display font-bold text-lg text-white group-hover:text-[#18CFFC] transition-colors line-clamp-1 mb-2">
-                            {event.title}
-                          </h3>
-
-                          <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed mb-4">
-                            {event.description || 'Join fellow university students for this official campus club event.'}
-                          </p>
-                        </div>
-
-                        {/* Bottom Actions and Security Stamp */}
-                        <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between">
-                          <span className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-medium">
-                            <ShieldCheck size={13} className="text-emerald-400" />
-                            <span>Verified Host</span>
-                          </span>
-
-                          <Link to={`/events/${event.slug}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              rightIcon={<ChevronRight size={14} />}
-                              className="text-xs font-semibold hover:bg-white/10"
-                            >
-                              Details
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </motion.div>
-            )}
-          </div>
-
-          {/* Bottom Progress Bar Track */}
-          <div className="max-w-7xl mx-auto w-full mt-6 flex items-center justify-between text-xs text-zinc-500 font-mono">
-            <span>01 / 0{totalCards}</span>
-            <div className="w-48 h-1 rounded-full bg-white/10 overflow-hidden">
-              <motion.div
-                style={{ scaleX: scrollYProgress, transformOrigin: '0%' }}
-                className="h-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB]"
-              />
-            </div>
-            <span>Scroll Journey</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── MOBILE NATIVE TOUCH-FRIENDLY SCROLL (< 768px) ────────────────── */}
-      <div className="md:hidden py-16 px-4">
-        <div className="mb-6">
-          <KineticHeading
-            as="h2"
-            badgeText="The Motion Journey"
-            badgeIcon={<Sparkles size={12} />}
-            className="text-2xl font-bold"
-            lines={[
-              { text: 'Scroll the campus' },
-              { text: 'event horizon.', highlight: 'Live Now.', gradientClass: 'gradient-text' },
-            ]}
-          />
-          <p className="text-xs text-zinc-400 mt-2">
-            Explore active hackathons, cultural festivals, and university symposiums.
-          </p>
+          <Link to="/discover" className="shrink-0">
+            <Button
+              variant="secondary"
+              size="sm"
+              rightIcon={<ArrowRight size={14} />}
+            >
+              View all events
+            </Button>
+          </Link>
         </div>
 
+        {/* Horizontal Carousel */}
         {loading ? (
-          <div className="flex flex-col gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-64 rounded-2xl bg-[#0E0E12] border border-white/10 animate-pulse" />
+          <div className="flex gap-5 overflow-x-auto pb-4 no-scrollbar">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="w-[320px] sm:w-[360px] h-[360px] rounded-xl bg-white animate-pulse border border-gray-200 shrink-0"
+              />
             ))}
           </div>
+        ) : error ? (
+          <div className="p-8 rounded-xl bg-white border border-rose-200 text-center max-w-xl mx-auto shadow-xs">
+            <div className="w-11 h-11 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <AlertCircle size={20} />
+            </div>
+            <h3 className="text-base font-bold font-display text-gray-900">
+              Unable to Load Upcoming Events
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1.5 mb-5 leading-relaxed">
+              {error}
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={loadFeaturedEvents}
+              leftIcon={<RefreshCw size={14} />}
+            >
+              Retry
+            </Button>
+          </div>
         ) : events.length === 0 ? (
-          <div className="p-6 rounded-2xl bg-[#0E0E12] border border-white/10 text-center">
-            <Ticket size={28} className="mx-auto text-[#18CFFC] mb-2" />
-            <p className="text-sm font-semibold text-white">Upcoming events launching soon</p>
+          <div className="p-10 rounded-xl bg-white border border-gray-200 text-center max-w-xl mx-auto shadow-xs">
+            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mx-auto mb-3">
+              <Ticket size={20} />
+            </div>
+            <h3 className="text-base font-bold font-display text-gray-900">
+              Campus Calendar Forming
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1.5 mb-5 leading-relaxed">
+              Clubs are currently preparing their upcoming semester event schedules. Ready to launch yours?
+            </p>
+            <Link to="/club/signup">
+              <Button variant="primary" size="sm" rightIcon={<ArrowRight size={14} />}>
+                Launch Club Event Portal
+              </Button>
+            </Link>
           </div>
         ) : (
-          <div className="flex overflow-x-auto gap-4 snap-x snap-mandatory pb-4 scrollbar-none -mx-4 px-4">
+          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
             {events.map((event) => {
               const eventDate = event.date
-                ? new Date(event.date).toLocaleDateString(undefined, {
+                ? new Date(event.date).toLocaleDateString('en-IN', {
                     month: 'short',
                     day: 'numeric',
+                    year: 'numeric',
                   })
                 : 'Upcoming'
 
@@ -293,33 +153,84 @@ export function HorizontalEventJourney() {
               return (
                 <div
                   key={event.id}
-                  className="w-[85vw] max-w-[320px] rounded-2xl bg-[#0E0E12] border border-white/10 shrink-0 snap-center p-4 flex flex-col justify-between shadow-xl"
+                  className="w-[300px] sm:w-[360px] rounded-xl bg-white border border-gray-200/90 hover:border-gray-300 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.08)] transition-all duration-200 flex flex-col justify-between shrink-0 snap-start group overflow-hidden"
                 >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-[#18CFFC] uppercase">
-                        {event.category || 'Campus'}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                        isFree ? 'bg-emerald-500/20 text-emerald-300' : 'bg-[#18CFFC]/15 text-[#18CFFC]'
-                      }`}>
+                  {/* Top Banner Image */}
+                  <div className="h-44 w-full relative overflow-hidden bg-gray-100 border-b border-gray-100">
+                    {event.coverImage ? (
+                      <img
+                        src={event.coverImage}
+                        alt={event.title}
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                        <Calendar size={28} className="text-gray-300" />
+                      </div>
+                    )}
+
+                    {/* Top badges */}
+                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                      <Badge variant="default" className="bg-white/95 text-gray-800 border-gray-200 shadow-xs text-[10px] font-medium">
+                        {event.category || 'Campus Event'}
+                      </Badge>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-xs ${
+                          isFree
+                            ? 'bg-emerald-50/95 text-emerald-700 border-emerald-200'
+                            : 'bg-white/95 text-gray-900 border-gray-200'
+                        }`}
+                      >
                         {isFree ? 'Free' : `₹${event.price}`}
                       </span>
                     </div>
-
-                    <h3 className="font-bold text-base text-white truncate mb-1">
-                      {event.title}
-                    </h3>
-                    <p className="text-xs text-zinc-400 flex items-center gap-1 mb-3">
-                      <Calendar size={12} /> {eventDate}
-                    </p>
                   </div>
 
-                  <Link to={`/events/${event.slug}`} className="w-full">
-                    <Button variant="outline" size="sm" className="w-full justify-center text-xs">
-                      View Event Pass
-                    </Button>
-                  </Link>
+                  {/* Card Content */}
+                  <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                    <div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-2">
+                        <Calendar size={13} className="text-gray-400" />
+                        <span>{eventDate}</span>
+                        {event.venue && (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span className="flex items-center gap-1 truncate max-w-[150px]">
+                              <MapPin size={12} className="text-gray-400" /> {event.venue}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <h3 className="font-display font-semibold text-base text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1.5">
+                        {event.title}
+                      </h3>
+
+                      <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed mb-4">
+                        {event.description || 'Join fellow university students for this official campus club event.'}
+                      </p>
+                    </div>
+
+                    {/* Bottom Row */}
+                    <div className="pt-3.5 border-t border-gray-100 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-xs text-gray-600 font-medium truncate max-w-[190px]">
+                        <Building2 size={14} className="text-blue-600 shrink-0" />
+                        <span className="truncate">{event.clubName || 'Campus Club'}</span>
+                      </span>
+
+                      <Link to={`/events/${event.slug}`}>
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          rightIcon={<ChevronRight size={13} />}
+                          className="text-xs font-semibold text-gray-700 hover:text-gray-900"
+                        >
+                          Details
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               )
             })}

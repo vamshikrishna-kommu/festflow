@@ -588,11 +588,11 @@ export function EventForm({
           Event Banner Poster <span className="text-[var(--color-text-muted)]">(optional, auto-fallback provided)</span>
         </label>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="relative w-full sm:w-48 h-28 rounded-xl overflow-hidden bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] shrink-0 flex items-center justify-center">
+          <div className="relative w-full sm:w-48 h-28 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center">
             {uploadingPoster && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/75 backdrop-blur-xs text-white">
-                <div className="w-5 h-5 border-2 border-[#18CFFC] border-t-transparent rounded-full animate-spin mb-1" />
-                <span className="text-[10px] text-[#18CFFC] font-medium">Processing…</span>
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xs text-gray-900">
+                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-1" />
+                <span className="text-[10px] text-blue-600 font-medium">Processing…</span>
               </div>
             )}
             {posterUrl && !previewImgError ? (
@@ -620,9 +620,9 @@ export function EventForm({
                 </button>
               </>
             ) : posterUrl && previewImgError ? (
-              <div className="flex flex-col items-center justify-center p-2 text-center bg-amber-500/10 h-full w-full">
-                <AlertCircle size={18} className="text-amber-400 mb-1" />
-                <span className="text-[10px] text-amber-200 font-medium">Image unavailable</span>
+              <div className="flex flex-col items-center justify-center p-2 text-center bg-amber-50 h-full w-full">
+                <AlertCircle size={18} className="text-amber-600 mb-1" />
+                <span className="text-[10px] text-amber-800 font-medium">Image unavailable</span>
                 <div className="flex items-center gap-2 mt-1">
                   <button
                     type="button"
@@ -630,11 +630,11 @@ export function EventForm({
                       if (fileInputRef.current) fileInputRef.current.value = ''
                       fileInputRef.current?.click()
                     }}
-                    className="text-[10px] text-[#18CFFC] hover:underline font-semibold cursor-pointer"
+                    className="text-[10px] text-blue-600 hover:underline font-semibold cursor-pointer"
                   >
                     Upload from device
                   </button>
-                  <span className="text-[10px] text-zinc-600">•</span>
+                  <span className="text-[10px] text-gray-400">•</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -642,7 +642,7 @@ export function EventForm({
                       setCoverUrl('')
                       setPreviewImgError(false)
                     }}
-                    className="text-[10px] text-zinc-400 hover:text-white font-medium cursor-pointer"
+                    className="text-[10px] text-gray-600 hover:text-gray-900 font-medium cursor-pointer"
                   >
                     Use Stock
                   </button>
@@ -687,7 +687,7 @@ export function EventForm({
                   setPreviewImgError(false)
                   setPosterError(null)
                 }}
-                className="px-3 py-2 text-xs text-zinc-400 hover:text-white rounded-lg border border-white/10 hover:border-white/20 transition-colors min-h-[44px]"
+                className="px-3 py-2 text-xs text-gray-600 hover:text-gray-900 rounded-lg border border-gray-200 hover:border-gray-300 bg-white transition-colors min-h-[44px]"
               >
                 Use {category ? category.toUpperCase() : 'Tech'} Stock Photo
               </button>
@@ -704,24 +704,24 @@ export function EventForm({
                   setCoverUrl('')
                   setPreviewImgError(false)
                 }}
-                className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC]"
+                className="w-full text-xs px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
-            <p className="text-[11px] text-[var(--color-text-muted)]">
+            <p className="text-[11px] text-gray-500">
               Supports JPEG, PNG, WEBP up to 5MB. 16:9 ratio recommended. Auto-optimized before upload.
             </p>
-            {posterError && <p className="text-xs text-rose-400">{posterError}</p>}
+            {posterError && <p className="text-xs text-rose-600">{posterError}</p>}
           </div>
         </div>
       </div>
 
       {/* Panoramic Cover Image URL (Phase 2) */}
-      <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-surface-3)]">
+      <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-200">
         <div className="flex items-center justify-between">
-          <label htmlFor="cover-url" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-            Panoramic Cover Banner URL <span className="text-[var(--color-text-muted)]">(optional wide backdrop)</span>
+          <label htmlFor="cover-url" className="text-xs font-semibold text-gray-700">
+            Panoramic Cover Banner URL <span className="text-gray-400">(optional wide backdrop)</span>
           </label>
-          <span className="text-[11px] text-[var(--color-text-muted)]">21:9 or 16:9 ultra-wide banner</span>
+          <span className="text-[11px] text-gray-400">21:9 or 16:9 ultra-wide banner</span>
         </div>
         <input
           id="cover-url"
@@ -729,7 +729,7 @@ export function EventForm({
           placeholder="https://images.unsplash.com/... or hosted image URL"
           value={coverUrl}
           onChange={(e) => setCoverUrl(e.target.value)}
-          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none min-h-[44px]"
+          className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none min-h-[44px]"
         />
       </div>
     </div>
@@ -748,7 +748,7 @@ export function EventForm({
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center gap-3"
+            className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-3"
           >
             <AlertCircle size={18} className="shrink-0" />
             <span>{serverError}</span>
@@ -756,13 +756,13 @@ export function EventForm({
         )}
 
         {/* ── Mobile Multi-Step Stepper Header (md:hidden) ─────────────────────── */}
-        <div className="md:hidden flex flex-col gap-2.5 p-4 rounded-2xl bg-[#0E0E12] border border-white/10 shadow-lg mb-1">
+        <div className="md:hidden flex flex-col gap-2.5 p-4 rounded-2xl bg-white border border-gray-200 shadow-xs mb-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#18CFFC] to-[#7F1AFB] text-white text-xs font-bold flex items-center justify-center shadow-sm">
+              <span className="w-6 h-6 rounded-lg bg-blue-600 text-white text-xs font-bold flex items-center justify-center shadow-xs">
                 {mobileStep}
               </span>
-              <span className="text-xs font-bold text-white font-heading">
+              <span className="text-xs font-bold text-gray-900 font-heading">
                 {mobileStep === 1 && '1. Basic Information'}
                 {mobileStep === 2 && '2. Date, Time & Venue'}
                 {mobileStep === 3 && '3. Poster & Description'}
@@ -770,7 +770,7 @@ export function EventForm({
                 {mobileStep === 5 && '5. Review & Publish'}
               </span>
             </div>
-            <span className="text-[10px] font-mono text-zinc-400">
+            <span className="text-[10px] font-mono text-gray-500">
               Step {mobileStep} of 5
             </span>
           </div>
@@ -789,10 +789,10 @@ export function EventForm({
                 }}
                 className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                   s === mobileStep
-                    ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] shadow-[0_0_12px_rgba(24,207,252,0.5)]'
+                    ? 'bg-blue-600'
                     : s < mobileStep
-                    ? 'bg-emerald-400'
-                    : 'bg-white/10'
+                    ? 'bg-emerald-500'
+                    : 'bg-gray-200'
                 }`}
                 aria-label={`Step ${s}`}
               />
@@ -802,17 +802,17 @@ export function EventForm({
 
         <fieldset disabled={readOnly} className="flex flex-col gap-6 sm:gap-8 border-0 p-0 m-0 min-w-0">
         {/* ── Section 1: Basic Information & Poster ───────────────────────── */}
-        <div className={`${mobileStep === 1 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 1 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC]">
+              <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
                 <Sparkles size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Event Essentials
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Core information displayed on discover feeds and public badges
                 </p>
               </div>
@@ -822,8 +822,8 @@ export function EventForm({
 
           {/* Event Title */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="event-title" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Event Title <span className="text-rose-400">*</span>
+            <label htmlFor="event-title" className="text-xs font-semibold text-gray-700">
+              Event Title <span className="text-rose-600">*</span>
             </label>
             <input
               id="event-title"
@@ -834,29 +834,29 @@ export function EventForm({
                 setTitle(e.target.value)
                 if (errors.title) setErrors((prev) => ({ ...prev, title: '' }))
               }}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+              className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border transition-all outline-none ${
                 errors.title
-                  ? 'border-rose-500/80 focus:border-rose-500'
-                  : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  ? 'border-rose-500 focus:border-rose-500'
+                  : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
               }`}
             />
-            {errors.title && <p className="text-xs text-rose-400">{errors.title}</p>}
+            {errors.title && <p className="text-xs text-rose-600">{errors.title}</p>}
           </div>
 
           {/* Category & Slug preview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="event-category" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Category <span className="text-rose-400">*</span>
+              <label htmlFor="event-category" className="text-xs font-semibold text-gray-700">
+                Category <span className="text-rose-600">*</span>
               </label>
               <select
                 id="event-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EventCategory)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-all outline-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-all outline-none cursor-pointer"
               >
                 {EVENT_CATEGORIES.map((cat) => (
-                  <option key={cat.value} value={cat.value} className="bg-[var(--color-surface-1)]">
+                  <option key={cat.value} value={cat.value} className="bg-white text-gray-900">
                     {cat.label}
                   </option>
                 ))}
@@ -864,10 +864,10 @@ export function EventForm({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
+              <label className="text-xs font-semibold text-gray-700">
                 Event URL Slug
               </label>
-              <div className="px-3.5 py-2.5 rounded-xl text-xs bg-[var(--color-surface-2)]/60 text-[var(--color-text-muted)] border border-[var(--color-surface-3)] font-mono truncate">
+              <div className="px-3.5 py-2.5 rounded-xl text-xs bg-gray-50 text-gray-500 border border-gray-200 font-mono truncate">
                 /events/{initialData?.slug || (title ? generateSlug(title) : 'your-event-slug')}
               </div>
             </div>
@@ -876,10 +876,10 @@ export function EventForm({
           {/* Short Summary */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="event-summary" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Short Summary <span className="text-rose-400">*</span>
+              <label htmlFor="event-summary" className="text-xs font-semibold text-gray-700">
+                Short Summary <span className="text-rose-600">*</span>
               </label>
-              <span className="text-[11px] text-[var(--color-text-muted)]">
+              <span className="text-[11px] text-gray-400">
                 {summary.length}/140 chars
               </span>
             </div>
@@ -893,13 +893,13 @@ export function EventForm({
                 setSummary(e.target.value)
                 if (errors.summary) setErrors((prev) => ({ ...prev, summary: '' }))
               }}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+              className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border transition-all outline-none ${
                 errors.summary
-                  ? 'border-rose-500/80 focus:border-rose-500'
-                  : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  ? 'border-rose-500 focus:border-rose-500'
+                  : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
               }`}
             />
-            {errors.summary && <p className="text-xs text-rose-400">{errors.summary}</p>}
+            {errors.summary && <p className="text-xs text-rose-600">{errors.summary}</p>}
           </div>
 
           {/* Banner Image & Cover URL: shown in Section 1 on desktop, in Step 3 on mobile */}
@@ -908,10 +908,10 @@ export function EventForm({
           </div>
 
           {/* Contact Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[var(--color-surface-3)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="contact-email" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Host Contact Email <span className="text-[var(--color-text-muted)]">(for attendee queries)</span>
+              <label htmlFor="contact-email" className="text-xs font-semibold text-gray-700">
+                Host Contact Email <span className="text-gray-400">(for attendee queries)</span>
               </label>
               <div className="relative">
                 <input
@@ -920,15 +920,15 @@ export function EventForm({
                   placeholder="club@campus.edu"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                 />
-                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="contact-phone" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Host Helpline / WhatsApp <span className="text-[var(--color-text-muted)]">(optional)</span>
+              <label htmlFor="contact-phone" className="text-xs font-semibold text-gray-700">
+                Host Helpline / WhatsApp <span className="text-gray-400">(optional)</span>
               </label>
               <div className="relative">
                 <input
@@ -937,31 +937,31 @@ export function EventForm({
                   placeholder="+91 98765 43210"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                 />
-                <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
             </div>
           </div>
         </div>
 
         {/* ── Section 2: Format & Location ─────────────────────────────────── */}
-        <div className={`${mobileStep === 2 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 2 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-cyan-500/15 text-cyan-400">
+              <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
                 <MapPin size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Format & Venue
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Define whether attendees join on campus, online, or a hybrid of both
                 </p>
               </div>
             </div>
-            <Badge variant="cyan">Step 2</Badge>
+            <Badge variant="info">Step 2</Badge>
           </div>
 
           {/* Event Type Cards */}
@@ -982,17 +982,17 @@ export function EventForm({
                 }}
                 className={`p-4 rounded-2xl border text-left flex flex-col gap-2 transition-all ${
                   eventType === type
-                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-lg'
-                    : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 hover:bg-[var(--color-surface-2)]'
+                    ? 'border-blue-600 bg-blue-50/70 shadow-xs'
+                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <Icon size={18} className={eventType === type ? 'text-[#18CFFC]' : 'text-[var(--color-text-muted)]'} />
-                  {eventType === type && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
+                  <Icon size={18} className={eventType === type ? 'text-blue-600' : 'text-gray-400'} />
+                  {eventType === type && <CheckCircle2 size={16} className="text-blue-600" />}
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--color-text-primary)]">{label}</h4>
-                  <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed mt-0.5">{desc}</p>
+                  <h4 className="text-xs font-bold text-gray-900">{label}</h4>
+                  <p className="text-[11px] text-gray-600 leading-relaxed mt-0.5">{desc}</p>
                 </div>
               </button>
             ))}
@@ -1002,8 +1002,8 @@ export function EventForm({
           {(eventType === 'offline' || eventType === 'hybrid') && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="venue-name" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                  Campus Venue / Hall Name <span className="text-rose-400">*</span>
+                <label htmlFor="venue-name" className="text-xs font-semibold text-gray-700">
+                  Campus Venue / Hall Name <span className="text-rose-600">*</span>
                 </label>
                 <input
                   id="venue-name"
@@ -1014,18 +1014,18 @@ export function EventForm({
                     setVenueName(e.target.value)
                     if (errors.venue_name) setErrors((prev) => ({ ...prev, venue_name: '' }))
                   }}
-                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border transition-all outline-none ${
                     errors.venue_name
-                      ? 'border-rose-500/80 focus:border-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                      ? 'border-rose-500 focus:border-rose-500'
+                      : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
                   }`}
                 />
-                {errors.venue_name && <p className="text-xs text-rose-400">{errors.venue_name}</p>}
+                {errors.venue_name && <p className="text-xs text-rose-600">{errors.venue_name}</p>}
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="venue-address" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                  Campus Address / Landmark <span className="text-[var(--color-text-muted)]">(optional)</span>
+                <label htmlFor="venue-address" className="text-xs font-semibold text-gray-700">
+                  Campus Address / Landmark <span className="text-gray-400">(optional)</span>
                 </label>
                 <input
                   id="venue-address"
@@ -1033,7 +1033,7 @@ export function EventForm({
                   placeholder="e.g. South Campus Gate, Main University Road"
                   value={venueAddress}
                   onChange={(e) => setVenueAddress(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                 />
               </div>
             </div>
@@ -1042,8 +1042,8 @@ export function EventForm({
           {/* Virtual / Hybrid Online Link Fields */}
           {(eventType === 'online' || eventType === 'hybrid') && (
             <div className="flex flex-col gap-1.5 pt-2">
-              <label htmlFor="online-meeting-url" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Online Platform Link / Instructions <span className="text-rose-400">*</span>
+              <label htmlFor="online-meeting-url" className="text-xs font-semibold text-gray-700">
+                Online Platform Link / Instructions <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
                 <input
@@ -1055,34 +1055,34 @@ export function EventForm({
                     setOnlineMeetingUrl(e.target.value)
                     if (errors.online_meeting_url) setErrors((prev) => ({ ...prev, online_meeting_url: '' }))
                   }}
-                  className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+                  className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border transition-all outline-none ${
                     errors.online_meeting_url
-                      ? 'border-rose-500/80 focus:border-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                      ? 'border-rose-500 focus:border-rose-500'
+                      : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
                   }`}
                 />
-                <ExternalLink size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <ExternalLink size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
-              <p className="text-[11px] text-[var(--color-text-muted)]">
+              <p className="text-[11px] text-gray-500">
                 Privacy safeguard: Only verified registered attendees receive the direct joining URL on their digital pass.
               </p>
-              {errors.online_meeting_url && <p className="text-xs text-rose-400">{errors.online_meeting_url}</p>}
+              {errors.online_meeting_url && <p className="text-xs text-rose-600">{errors.online_meeting_url}</p>}
             </div>
           )}
         </div>
 
         {/* ── Section 3: Schedule, Timezone & Deadlines ────────────────────── */}
-        <div className={`${mobileStep === 2 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 2 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-amber-500/15 text-amber-400">
+              <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
                 <Calendar size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Date, Time & Timezone
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Event schedule and attendee registration cut-off
                 </p>
               </div>
@@ -1093,8 +1093,8 @@ export function EventForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Start Date & Time */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="start-date" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Event Starts <span className="text-rose-400">*</span>
+              <label htmlFor="start-date" className="text-xs font-semibold text-gray-700">
+                Event Starts <span className="text-rose-600">*</span>
               </label>
               <input
                 id="start-date"
@@ -1106,19 +1106,19 @@ export function EventForm({
                     setErrors((prev) => ({ ...prev, start_date: '', end_date: '' }))
                   }
                 }}
-                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border transition-all outline-none ${
                   errors.start_date
-                    ? 'border-rose-500/80 focus:border-rose-500'
-                    : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                    ? 'border-rose-500 focus:border-rose-500'
+                    : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
                 }`}
               />
-              {errors.start_date && <p className="text-xs text-rose-400">{errors.start_date}</p>}
+              {errors.start_date && <p className="text-xs text-rose-600">{errors.start_date}</p>}
             </div>
 
             {/* End Date & Time */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="end-date" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Event Ends <span className="text-rose-400">*</span>
+              <label htmlFor="end-date" className="text-xs font-semibold text-gray-700">
+                Event Ends <span className="text-rose-600">*</span>
               </label>
               <input
                 id="end-date"
@@ -1128,30 +1128,30 @@ export function EventForm({
                   setEndDate(e.target.value)
                   if (errors.end_date) setErrors((prev) => ({ ...prev, end_date: '' }))
                 }}
-                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border transition-all outline-none ${
                   errors.end_date
-                    ? 'border-rose-500/80 focus:border-rose-500'
-                    : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                    ? 'border-rose-500 focus:border-rose-500'
+                    : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
                 }`}
               />
-              {errors.end_date && <p className="text-xs text-rose-400">{errors.end_date}</p>}
+              {errors.end_date && <p className="text-xs text-rose-600">{errors.end_date}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Timezone Selector */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="timezone-select" className="text-xs font-semibold text-[var(--color-text-secondary)]">
+              <label htmlFor="timezone-select" className="text-xs font-semibold text-gray-700">
                 Event Timezone
               </label>
               <select
                 id="timezone-select"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
               >
                 {COMMON_TIMEZONES.map((tz) => (
-                  <option key={tz.value} value={tz.value} className="bg-[var(--color-surface-1)]">
+                  <option key={tz.value} value={tz.value} className="bg-white text-gray-900">
                     {tz.label}
                   </option>
                 ))}
@@ -1160,22 +1160,22 @@ export function EventForm({
 
             {/* Registration Opening */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="reg-start" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Registration Opens <span className="text-[var(--color-text-muted)]">(optional launch)</span>
+              <label htmlFor="reg-start" className="text-xs font-semibold text-gray-700">
+                Registration Opens <span className="text-gray-400">(optional launch)</span>
               </label>
               <input
                 id="reg-start"
                 type="datetime-local"
                 value={registrationStart}
                 onChange={(e) => setRegistrationStart(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
               />
             </div>
 
             {/* Registration Deadline */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="reg-close" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Registration Deadline <span className="text-[var(--color-text-muted)]">(optional cut-off)</span>
+              <label htmlFor="reg-close" className="text-xs font-semibold text-gray-700">
+                Registration Deadline <span className="text-gray-400">(optional cut-off)</span>
               </label>
               <input
                 id="reg-close"
@@ -1187,36 +1187,36 @@ export function EventForm({
                     setErrors((prev) => ({ ...prev, registration_closes_at: '' }))
                   }
                 }}
-                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border transition-all outline-none ${
                   errors.registration_closes_at
-                    ? 'border-rose-500/80 focus:border-rose-500'
-                    : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                    ? 'border-rose-500 focus:border-rose-500'
+                    : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
                 }`}
               />
               {errors.registration_closes_at && (
-                <p className="text-xs text-rose-400">{errors.registration_closes_at}</p>
+                <p className="text-xs text-rose-600">{errors.registration_closes_at}</p>
               )}
             </div>
           </div>
         </div>
 
         {/* ── Section 4: Participation & Team Configuration ───────────────── */}
-        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-[#ED47FC]/15 text-[#ED47FC]">
+              <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
                 <Users size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Participation & Team Rules
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Configure whether students join individually or as collaborative teams
                 </p>
               </div>
             </div>
-            <Badge variant="magenta">Step 4</Badge>
+            <Badge variant="indigo">Step 4</Badge>
           </div>
 
           {/* Mode Switcher */}
@@ -1231,19 +1231,19 @@ export function EventForm({
               }}
               className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all ${
                 participationType === 'individual'
-                  ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-lg'
-                  : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 hover:bg-[var(--color-surface-2)]'
+                  ? 'border-blue-600 bg-blue-50/70 shadow-xs'
+                  : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
               }`}
             >
-              <div className="p-2 rounded-xl bg-[var(--color-surface-3)] shrink-0">
-                <Users size={18} className="text-[var(--color-text-muted)]" />
+              <div className="p-2 rounded-xl bg-white border border-gray-200 shrink-0">
+                <Users size={18} className="text-gray-500" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-[var(--color-text-primary)]">Solo / Individual</h4>
-                  {participationType === 'individual' && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
+                  <h4 className="text-xs font-bold text-gray-900">Solo / Individual</h4>
+                  {participationType === 'individual' && <CheckCircle2 size={16} className="text-blue-600" />}
                 </div>
-                <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
+                <p className="text-[11px] text-gray-600 mt-0.5">
                   Each participant registers individually and receives a dedicated digital QR entry pass.
                 </p>
               </div>
@@ -1254,19 +1254,19 @@ export function EventForm({
               onClick={() => setParticipationType('team')}
               className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all ${
                 participationType === 'team'
-                  ? 'border-[#ED47FC] bg-[#ED47FC]/10 shadow-lg'
-                  : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 hover:bg-[var(--color-surface-2)]'
+                  ? 'border-indigo-600 bg-indigo-50/70 shadow-xs'
+                  : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
               }`}
             >
-              <div className="p-2 rounded-xl bg-[var(--color-surface-3)] shrink-0">
-                <Users size={18} className="text-[#ED47FC]" />
+              <div className="p-2 rounded-xl bg-white border border-gray-200 shrink-0">
+                <Users size={18} className="text-indigo-600" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-[var(--color-text-primary)]">Team / Group</h4>
-                  {participationType === 'team' && <CheckCircle2 size={16} className="text-[#ED47FC]" />}
+                  <h4 className="text-xs font-bold text-gray-900">Team / Group</h4>
+                  {participationType === 'team' && <CheckCircle2 size={16} className="text-indigo-600" />}
                 </div>
-                <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
+                <p className="text-[11px] text-gray-600 mt-0.5">
                   Hackathons, sports, quizzes, or group challenges requiring multiple participants per unit.
                 </p>
               </div>
@@ -1278,16 +1278,16 @@ export function EventForm({
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="p-5 rounded-2xl bg-[#ED47FC]/[0.04] border border-[#ED47FC]/20 flex flex-col gap-5"
+              className="p-5 rounded-2xl bg-indigo-50/50 border border-indigo-200 flex flex-col gap-5"
             >
-              <div className="flex items-center gap-2 text-xs font-bold text-[#ED47FC] uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-700 uppercase tracking-wider">
                 <Sliders size={14} /> Team Roster & Size Limits
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="min-team-size" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                    Minimum Team Size <span className="text-rose-400">*</span>
+                  <label htmlFor="min-team-size" className="text-xs font-semibold text-gray-700">
+                    Minimum Team Size <span className="text-rose-600">*</span>
                   </label>
                   <input
                     id="min-team-size"
@@ -1301,14 +1301,14 @@ export function EventForm({
                         setErrors((prev) => ({ ...prev, min_team_size: '', max_team_size: '' }))
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#ED47FC] outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/15 outline-none"
                   />
-                  {errors.min_team_size && <p className="text-xs text-rose-400">{errors.min_team_size}</p>}
+                  {errors.min_team_size && <p className="text-xs text-rose-600">{errors.min_team_size}</p>}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="max-team-size" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                    Maximum Team Size <span className="text-rose-400">*</span>
+                  <label htmlFor="max-team-size" className="text-xs font-semibold text-gray-700">
+                    Maximum Team Size <span className="text-rose-600">*</span>
                   </label>
                   <input
                     id="max-team-size"
@@ -1320,19 +1320,19 @@ export function EventForm({
                       setMaxTeamSize(Number(e.target.value))
                       if (errors.max_team_size) setErrors((prev) => ({ ...prev, max_team_size: '' }))
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#ED47FC] outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/15 outline-none"
                   />
-                  {errors.max_team_size && <p className="text-xs text-rose-400">{errors.max_team_size}</p>}
+                  {errors.max_team_size && <p className="text-xs text-rose-600">{errors.max_team_size}</p>}
                 </div>
               </div>
 
               {/* Explicit Leader Count Switch */}
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-white border border-gray-200">
                 <div>
-                  <h5 className="text-xs font-bold text-[var(--color-text-primary)]">
+                  <h5 className="text-xs font-bold text-gray-900">
                     Team Leader counts toward the team size
                   </h5>
-                  <p className="text-[11px] text-[var(--color-text-muted)]">
+                  <p className="text-[11px] text-gray-500">
                     {leaderCountsTowardsSize
                       ? `Yes: A team of ${minTeamSize}-${maxTeamSize} includes the leader plus ${Math.max(0, minTeamSize - 1)}-${Math.max(0, maxTeamSize - 1)} members.`
                       : `No: The leader is separate, requiring ${minTeamSize}-${maxTeamSize} additional team members.`}
@@ -1342,39 +1342,39 @@ export function EventForm({
                   type="checkbox"
                   checked={leaderCountsTowardsSize}
                   onChange={(e) => setLeaderCountsTowardsSize(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#ED47FC] focus:ring-[#ED47FC] cursor-pointer"
+                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
               </div>
 
               {/* Team Registration Mode */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] cursor-pointer">
+                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-gray-200 cursor-pointer">
                   <input
                     type="radio"
                     name="team_reg_mode"
                     checked={teamRegistrationMode === 'leader_adds_members'}
                     onChange={() => setTeamRegistrationMode('leader_adds_members')}
-                    className="mt-0.5 text-[#ED47FC] focus:ring-[#ED47FC]"
+                    className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
                   />
                   <div className="text-xs">
-                    <strong className="text-[var(--color-text-primary)] block">Leader adds members</strong>
-                    <span className="text-[11px] text-[var(--color-text-muted)]">
+                    <strong className="text-gray-900 block">Leader adds members</strong>
+                    <span className="text-[11px] text-gray-500">
                       The leader enters teammate names & emails during registration.
                     </span>
                   </div>
                 </label>
 
-                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] cursor-pointer">
+                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-gray-200 cursor-pointer">
                   <input
                     type="radio"
                     name="team_reg_mode"
                     checked={teamRegistrationMode === 'members_join_with_code'}
                     onChange={() => setTeamRegistrationMode('members_join_with_code')}
-                    className="mt-0.5 text-[#ED47FC] focus:ring-[#ED47FC]"
+                    className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
                   />
                   <div className="text-xs">
-                    <strong className="text-[var(--color-text-primary)] block">Members join with team code</strong>
-                    <span className="text-[11px] text-[var(--color-text-muted)]">
+                    <strong className="text-gray-900 block">Members join with team code</strong>
+                    <span className="text-[11px] text-gray-500">
                       Leader creates the team and shares a secure join code with teammates.
                     </span>
                   </div>
@@ -1382,12 +1382,12 @@ export function EventForm({
               </div>
 
               {/* Require Team Name */}
-              <label className="flex items-center gap-2.5 text-xs text-[var(--color-text-secondary)] cursor-pointer">
+              <label className="flex items-center gap-2.5 text-xs text-gray-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={requireTeamName}
                   onChange={(e) => setRequireTeamName(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#ED47FC] focus:ring-[#ED47FC] cursor-pointer"
+                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
                 <span>Mandatory Team Name (e.g. "ByteKnights", "RoboTech Alpha")</span>
               </label>
@@ -1395,74 +1395,74 @@ export function EventForm({
           )}
 
           {/* Standard Required Attendee Fields */}
-          <div className="flex flex-col gap-3 pt-2 border-t border-[var(--color-surface-3)]">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+          <div className="flex flex-col gap-3 pt-2 border-t border-gray-200">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">
               Participant Information to Collect
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={participantFields.require_college}
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_college: e.target.checked }))
                   }
-                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-[var(--color-text-primary)]">College Name</span>
+                <span className="text-gray-900">College Name</span>
               </label>
 
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={participantFields.require_phone}
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_phone: e.target.checked }))
                   }
-                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-[var(--color-text-primary)]">Phone Number</span>
+                <span className="text-gray-900">Phone Number</span>
               </label>
 
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={participantFields.require_grad_year}
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_grad_year: e.target.checked }))
                   }
-                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-[var(--color-text-primary)]">Graduation Year</span>
+                <span className="text-gray-900">Graduation Year</span>
               </label>
 
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={participantFields.require_id_card}
                   onChange={(e) =>
                     setParticipantFields((prev) => ({ ...prev, require_id_card: e.target.checked }))
                   }
-                  className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-[var(--color-text-primary)]">Student ID Number</span>
+                <span className="text-gray-900">Student ID Number</span>
               </label>
             </div>
           </div>
         </div>
 
         {/* ── Section 5: Capacity, Pricing & Approval ──────────────────────── */}
-        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400">
+              <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
                 <IndianRupee size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Capacity & Ticketing Fee
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Set seat limits, choose between free admission or club UPI fee
                 </p>
               </div>
@@ -1471,12 +1471,12 @@ export function EventForm({
           </div>
 
           {/* Seating & Registration Mode Selection */}
-          <div className="flex flex-col gap-2 p-4 rounded-2xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)]">
-            <label className="text-xs font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-              <LayoutGrid size={15} className="text-[#18CFFC]" />
+          <div className="flex flex-col gap-2 p-4 rounded-2xl bg-gray-50 border border-gray-200">
+            <label className="text-xs font-bold text-gray-900 flex items-center gap-2">
+              <LayoutGrid size={15} className="text-blue-600" />
               Seating & Admission Model
             </label>
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <p className="text-xs text-gray-500">
               Choose standard open admission or cinema-style reserved seating with an interactive map.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
@@ -1485,15 +1485,15 @@ export function EventForm({
                 onClick={() => setRegistrationMode('standard')}
                 className={`p-3.5 rounded-xl border text-left transition-all ${
                   registrationMode === 'standard'
-                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-sm'
-                    : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] hover:border-white/20'
+                    ? 'border-blue-600 bg-blue-50/70 shadow-xs'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--color-text-primary)]">Standard Open Admission</span>
-                  {registrationMode === 'standard' && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
+                  <span className="text-xs font-bold text-gray-900">Standard Open Admission</span>
+                  {registrationMode === 'standard' && <CheckCircle2 size={16} className="text-blue-600" />}
                 </div>
-                <p className="text-[11px] text-[var(--color-text-secondary)] mt-1">
+                <p className="text-[11px] text-gray-600 mt-1">
                   General registration queue, standard passes, open or unallocated venue seating.
                 </p>
               </button>
@@ -1503,26 +1503,26 @@ export function EventForm({
                 onClick={() => setRegistrationMode('reserved_seating')}
                 className={`p-3.5 rounded-xl border text-left transition-all ${
                   registrationMode === 'reserved_seating'
-                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 shadow-sm'
-                    : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] hover:border-white/20'
+                    ? 'border-blue-600 bg-blue-50/70 shadow-xs'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--color-text-primary)]">Cinema-Style Reserved Seating</span>
-                  {registrationMode === 'reserved_seating' && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
+                  <span className="text-xs font-bold text-gray-900">Cinema-Style Reserved Seating</span>
+                  {registrationMode === 'reserved_seating' && <CheckCircle2 size={16} className="text-blue-600" />}
                 </div>
-                <p className="text-[11px] text-[var(--color-text-secondary)] mt-1">
+                <p className="text-[11px] text-gray-600 mt-1">
                   Interactive seat map, tier-based seat pricing, real-time availability, and hold timer.
                 </p>
               </button>
             </div>
 
             {registrationMode === 'reserved_seating' && (initialData as any)?.id && (
-              <div className="mt-2 flex items-center justify-between p-3 rounded-xl bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-xs">
-                <span className="text-[#18CFFC] font-medium">Layout configuration is available for this event.</span>
+              <div className="mt-2 flex items-center justify-between p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs">
+                <span className="text-blue-700 font-medium">Layout configuration is available for this event.</span>
                 <a
                   href={`/club/events/${(initialData as any).id}/seats`}
-                  className="inline-flex items-center gap-1 font-semibold text-white underline hover:text-[#18CFFC]"
+                  className="inline-flex items-center gap-1 font-semibold text-blue-700 underline hover:text-blue-800"
                 >
                   Open Seat Editor →
                 </a>
@@ -1533,8 +1533,8 @@ export function EventForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Capacity Input */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="event-capacity" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Total Capacity ({participationType === 'team' ? 'Teams' : 'Attendees'}) <span className="text-rose-400">*</span>
+              <label htmlFor="event-capacity" className="text-xs font-semibold text-gray-700">
+                Total Capacity ({participationType === 'team' ? 'Teams' : 'Attendees'}) <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
                 <input
@@ -1548,32 +1548,32 @@ export function EventForm({
                     setCapacity(e.target.value)
                     if (errors.capacity) setErrors((prev) => ({ ...prev, capacity: '' }))
                   }}
-                  className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+                  className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border transition-all outline-none ${
                     errors.capacity
-                      ? 'border-rose-500/80 focus:border-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                      ? 'border-rose-500 focus:border-rose-500'
+                      : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
                   }`}
                 />
-                <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
-              {errors.capacity && <p className="text-xs text-rose-400">{errors.capacity}</p>}
+              {errors.capacity && <p className="text-xs text-rose-600">{errors.capacity}</p>}
             </div>
 
             {/* Approval Type */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="approval-type" className="text-xs font-semibold text-[var(--color-text-secondary)]">
+              <label htmlFor="approval-type" className="text-xs font-semibold text-gray-700">
                 Registration Approval Mode
               </label>
               <select
                 id="approval-type"
                 value={approvalType}
                 onChange={(e) => setApprovalType(e.target.value as ApprovalType)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none cursor-pointer"
               >
-                <option value="automatic" className="bg-[var(--color-surface-1)]">
+                <option value="automatic" className="bg-white text-gray-900">
                   Automatic (Instant ticket upon submit/payment)
                 </option>
-                <option value="manual" className="bg-[var(--color-surface-1)]">
+                <option value="manual" className="bg-white text-gray-900">
                   Manual Review (Organizer must approve before ticket issue)
                 </option>
               </select>
@@ -1581,13 +1581,13 @@ export function EventForm({
           </div>
 
           {/* Show Seat Availability Toggle */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold text-[var(--color-text-primary)] flex items-center gap-1.5">
-                <Users size={14} className="text-[#18CFFC]" />
+              <span className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+                <Users size={14} className="text-blue-600" />
                 Show Seat Availability to Participants
               </span>
-              <span className="text-[11px] text-[var(--color-text-muted)]">
+              <span className="text-[11px] text-gray-500">
                 Display live remaining seats ("N left of M") and capacity fill bar. When disabled, the seat counting is completely hidden from participants and attendees.
               </span>
             </div>
@@ -1598,14 +1598,14 @@ export function EventForm({
                 onChange={(e) => setShowSeatAvailability(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-[var(--color-surface-3)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#18CFFC]"></div>
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
           {/* Pricing Toggle */}
-          <div className="flex flex-col gap-3 pt-2 border-t border-[var(--color-surface-3)]">
-            <label className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Admission Pricing <span className="text-rose-400">*</span>
+          <div className="flex flex-col gap-3 pt-2 border-t border-gray-200">
+            <label className="text-xs font-semibold text-gray-700">
+              Admission Pricing <span className="text-rose-600">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -1617,8 +1617,8 @@ export function EventForm({
                 }}
                 className={`py-3 px-4 rounded-xl text-xs font-bold border transition-all ${
                   isFree
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 shadow-sm'
-                    : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-xs'
+                    : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Free Admission (₹0)
@@ -1628,8 +1628,8 @@ export function EventForm({
                 onClick={() => setIsFree(false)}
                 className={`py-3 px-4 rounded-xl text-xs font-bold border transition-all ${
                   !isFree
-                    ? 'border-[#18CFFC] bg-[#18CFFC]/10 text-[#18CFFC] shadow-sm'
-                    : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-xs'
+                    : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Paid Ticket (Direct UPI)
@@ -1653,29 +1653,29 @@ export function EventForm({
                       setPrice(e.target.value)
                       if (errors.price) setErrors((prev) => ({ ...prev, price: '' }))
                     }}
-                    className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none ${
+                    className={`w-full px-3.5 py-2.5 pl-9 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border transition-all outline-none ${
                       errors.price
-                        ? 'border-rose-500/80 focus:border-rose-500'
-                        : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                        ? 'border-rose-500 focus:border-rose-500'
+                        : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
                     }`}
                   />
-                  <IndianRupee size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                  <IndianRupee size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 </div>
-                <p className="text-[11px] text-[var(--color-text-muted)]">
+                <p className="text-[11px] text-gray-500">
                   100% of ticket fees are paid directly to your club's registered UPI ID. Zero platform commission.
                 </p>
-                {errors.price && <p className="text-xs text-rose-400">{errors.price}</p>}
+                {errors.price && <p className="text-xs text-rose-600">{errors.price}</p>}
               </motion.div>
             )}
           </div>
 
           {/* Waitlist Toggle (Phase 2) */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold text-[var(--color-text-primary)]">
+              <span className="text-xs font-semibold text-gray-900">
                 Automated Waitlist Queue
               </span>
-              <span className="text-[11px] text-[var(--color-text-muted)]">
+              <span className="text-[11px] text-gray-500">
                 Allow students to join a waitlist when capacity is reached, with instant auto-promotion on cancellations.
               </span>
             </div>
@@ -1686,18 +1686,18 @@ export function EventForm({
                 onChange={(e) => setWaitlistEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-[var(--color-surface-3)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#18CFFC]"></div>
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
           {/* Unlisted Visibility Toggle (Phase 2) */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold text-[var(--color-text-primary)] flex items-center gap-1.5">
-                <EyeOff size={14} className="text-[#7F1AFB]" />
+              <span className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+                <EyeOff size={14} className="text-indigo-600" />
                 Unlisted Event (Direct Link Only)
               </span>
-              <span className="text-[11px] text-[var(--color-text-muted)]">
+              <span className="text-[11px] text-gray-500">
                 Hide this event from the public Discover directory. Only students with the link can view & register.
               </span>
             </div>
@@ -1708,14 +1708,14 @@ export function EventForm({
                 onChange={(e) => setIsUnlisted(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-[var(--color-surface-3)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#7F1AFB]"></div>
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
           </div>
 
           {/* Event Status Selector for Edit Mode */}
           {mode === 'edit' && (
-            <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-surface-3)]">
-              <label htmlFor="event-status" className="text-xs font-semibold text-[var(--color-text-secondary)]">
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-200">
+              <label htmlFor="event-status" className="text-xs font-semibold text-gray-700">
                 Lifecycle State
               </label>
               <select
@@ -1723,7 +1723,7 @@ export function EventForm({
                 value={status}
                 disabled={readOnly}
                 onChange={(e) => setStatus(e.target.value as EventStatus)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="draft" disabled={!allowAdminStatusEdit && (initialData?.status === 'cancelled' || initialData?.status === 'completed')}>
                   Draft (Hidden from discover)
@@ -1742,17 +1742,17 @@ export function EventForm({
         </div>
 
         {/* ── Section 6: Custom Registration Questions Form Builder ────────── */}
-        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-[#7F1AFB]/15 text-[#C084FC]">
+              <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
                 <ListPlus size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Custom Registration Questions
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Collect event-specific attendee responses (e.g. T-shirt sizes, GitHub profile, dietary needs)
                 </p>
               </div>
@@ -1769,12 +1769,12 @@ export function EventForm({
           </div>
 
           {customQuestions.length === 0 ? (
-            <div className="py-8 text-center flex flex-col items-center justify-center border border-dashed border-[var(--color-surface-3)] rounded-2xl p-6">
-              <HelpCircle size={28} className="text-[var(--color-text-muted)] mb-2 opacity-50" />
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">
+            <div className="py-8 text-center flex flex-col items-center justify-center border border-dashed border-gray-300 bg-gray-50/50 rounded-2xl p-6">
+              <HelpCircle size={28} className="text-gray-400 mb-2 opacity-60" />
+              <p className="text-xs text-gray-600 font-medium">
                 No custom questions configured
               </p>
-              <p className="text-[11px] text-[var(--color-text-muted)] max-w-sm mt-0.5">
+              <p className="text-[11px] text-gray-500 max-w-sm mt-0.5">
                 Students will only be asked for standard attendee information (name, email, college, phone). Click "Add Question" to customize.
               </p>
             </div>
@@ -1783,10 +1783,10 @@ export function EventForm({
               {customQuestions.map((q, idx) => (
                 <div
                   key={q.id}
-                  className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex flex-col gap-3"
+                  className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col gap-3"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-bold text-[var(--color-text-primary)]">
+                    <span className="text-xs font-bold text-gray-900">
                       Question #{idx + 1}
                     </span>
                     <div className="flex items-center gap-1">
@@ -1794,7 +1794,7 @@ export function EventForm({
                         type="button"
                         onClick={() => handleMoveQuestion(idx, 'up')}
                         disabled={idx === 0}
-                        className="p-1 rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        className="p-1 rounded-lg text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                         title="Move question up"
                       >
                         <ArrowUp size={14} />
@@ -1803,7 +1803,7 @@ export function EventForm({
                         type="button"
                         onClick={() => handleMoveQuestion(idx, 'down')}
                         disabled={idx === customQuestions.length - 1}
-                        className="p-1 rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-3)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        className="p-1 rounded-lg text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                         title="Move question down"
                       >
                         <ArrowDown size={14} />
@@ -1811,7 +1811,7 @@ export function EventForm({
                       <button
                         type="button"
                         onClick={() => handleRemoveQuestion(q.id)}
-                        className="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        className="p-1 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
                         title="Remove question"
                       >
                         <Trash2 size={14} />
@@ -1821,18 +1821,18 @@ export function EventForm({
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2 flex flex-col gap-1">
-                      <label className="text-[11px] text-[var(--color-text-muted)]">Prompt / Title *</label>
+                      <label className="text-[11px] text-gray-500">Prompt / Title *</label>
                       <input
                         type="text"
                         placeholder="e.g. GitHub Profile URL or Dietary Preference"
                         value={q.label}
                         onChange={(e) => handleUpdateQuestion(q.id, { label: e.target.value })}
-                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                        className="px-3 py-2 rounded-xl text-xs bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                       />
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] text-[var(--color-text-muted)]">Response Type</label>
+                      <label className="text-[11px] text-gray-500">Response Type</label>
                       <select
                         value={q.type}
                         onChange={(e) => {
@@ -1847,7 +1847,7 @@ export function EventForm({
                                 : undefined,
                           })
                         }}
-                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                        className="px-3 py-2 rounded-xl text-xs bg-white text-gray-900 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                       >
                         <option value="text">Short Text</option>
                         <option value="textarea">Paragraph Text</option>
@@ -1867,7 +1867,7 @@ export function EventForm({
                   {/* Options editor for Select / Radio / Multiselect */}
                   {(q.type === 'select' || q.type === 'radio' || q.type === 'multiselect') && (
                     <div className="flex flex-col gap-1.5 pt-1">
-                      <label className="text-[11px] text-[var(--color-text-muted)]">
+                      <label className="text-[11px] text-gray-500">
                         Options (comma-separated, at least 2)
                       </label>
                       <input
@@ -1879,7 +1879,7 @@ export function EventForm({
                             options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean),
                           })
                         }
-                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                        className="px-3 py-2 rounded-xl text-xs bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                       />
                     </div>
                   )}
@@ -1887,24 +1887,24 @@ export function EventForm({
                   {/* Placeholder input for text types */}
                   {(q.type === 'text' || q.type === 'textarea' || q.type === 'email' || q.type === 'phone' || q.type === 'number' || q.type === 'file') && (
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] text-[var(--color-text-muted)]">Placeholder Text (optional)</label>
+                      <label className="text-[11px] text-gray-500">Placeholder Text (optional)</label>
                       <input
                         type="text"
                         placeholder="e.g. https://github.com/username or your answer here"
                         value={q.placeholder || ''}
                         onChange={(e) => handleUpdateQuestion(q.id, { placeholder: e.target.value })}
-                        className="px-3 py-2 rounded-xl text-xs bg-[var(--color-surface-1)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                        className="px-3 py-2 rounded-xl text-xs bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                       />
                     </div>
                   )}
 
                   {/* Required Toggle */}
-                  <label className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] cursor-pointer pt-1">
+                  <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer pt-1">
                     <input
                       type="checkbox"
                       checked={q.required}
                       onChange={(e) => handleUpdateQuestion(q.id, { required: e.target.checked })}
-                      className="rounded text-[#18CFFC] focus:ring-[#18CFFC]"
+                      className="rounded text-blue-600 focus:ring-blue-500"
                     />
                     <span>Required for registration submission</span>
                   </label>
@@ -1915,31 +1915,31 @@ export function EventForm({
         </div>
 
         {/* Step 3 Mobile Poster Card */}
-        <div className={`${mobileStep === 3 ? 'flex' : 'hidden'} md:hidden glass p-5 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-4 shadow-lg`}>
-          <div className="flex items-center gap-2 pb-3 border-b border-[var(--color-surface-3)]">
-            <span className="p-2 rounded-xl bg-[#ED47FC]/15 text-[#ED47FC]">
+        <div className={`${mobileStep === 3 ? 'flex' : 'hidden'} md:hidden bg-white p-5 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-4 shadow-xs`}>
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
+            <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
               <ImageIcon size={18} />
             </span>
             <div>
-              <h3 className="text-sm font-bold text-white font-heading">Event Media & Poster</h3>
-              <p className="text-[11px] text-zinc-400">Visual artwork for discover feeds and digital passes</p>
+              <h3 className="text-sm font-bold text-gray-900 font-heading">Event Media & Poster</h3>
+              <p className="text-[11px] text-gray-500">Visual artwork for discover feeds and digital passes</p>
             </div>
           </div>
           {renderPosterSection()}
         </div>
 
         {/* ── Section 7: Description, Rules & Guidelines ───────────────────── */}
-        <div className={`${mobileStep === 3 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 3 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-[#7F1AFB]/15 text-[#C084FC]">
+              <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
                 <FileText size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Description, Rules & Eligibility
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Provide detailed event briefing, code of conduct, and academic constraints
                 </p>
               </div>
@@ -1950,10 +1950,10 @@ export function EventForm({
           {/* Full Description */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="event-description" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Full Event Description <span className="text-rose-400">*</span>
+              <label htmlFor="event-description" className="text-xs font-semibold text-gray-700">
+                Full Event Description <span className="text-rose-600">*</span>
               </label>
-              <span className="text-[11px] text-[var(--color-text-muted)]">
+              <span className="text-[11px] text-gray-400">
                 Markdown & line breaks supported
               </span>
             </div>
@@ -1966,19 +1966,19 @@ export function EventForm({
                 setDescription(e.target.value)
                 if (errors.description) setErrors((prev) => ({ ...prev, description: '' }))
               }}
-              className={`w-full p-4 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all outline-none font-sans leading-relaxed ${
+              className={`w-full p-4 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border transition-all outline-none font-sans leading-relaxed ${
                 errors.description
-                  ? 'border-rose-500/80 focus:border-rose-500'
-                  : 'border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  ? 'border-rose-500 focus:border-rose-500'
+                  : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
               }`}
             />
-            {errors.description && <p className="text-xs text-rose-400">{errors.description}</p>}
+            {errors.description && <p className="text-xs text-rose-600">{errors.description}</p>}
           </div>
 
           {/* Rules and Guidelines */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="event-rules" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Rules & Code of Conduct <span className="text-[var(--color-text-muted)]">(optional)</span>
+            <label htmlFor="event-rules" className="text-xs font-semibold text-gray-700">
+              Rules & Code of Conduct <span className="text-gray-400">(optional)</span>
             </label>
             <textarea
               id="event-rules"
@@ -1986,15 +1986,15 @@ export function EventForm({
               placeholder="e.g. 1. Teams must check in 15 minutes before the hackathon kickoff.&#10;2. Plagiarism or pre-built code is strictly prohibited.&#10;3. Hardware kits must be returned intact."
               value={rules}
               onChange={(e) => setRules(e.target.value)}
-              className="w-full p-3.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+              className="w-full p-3.5 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
             />
           </div>
 
           {/* Eligibility & Restrictions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="event-eligibility" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Eligibility Note <span className="text-[var(--color-text-muted)]">(optional)</span>
+              <label htmlFor="event-eligibility" className="text-xs font-semibold text-gray-700">
+                Eligibility Note <span className="text-gray-400">(optional)</span>
               </label>
               <input
                 id="event-eligibility"
@@ -2002,13 +2002,13 @@ export function EventForm({
                 placeholder="e.g. Open to all UG & PG college students across India"
                 value={eligibility}
                 onChange={(e) => setEligibility(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="event-departments" className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                Allowed Departments <span className="text-[var(--color-text-muted)]">(comma-separated)</span>
+              <label htmlFor="event-departments" className="text-xs font-semibold text-gray-700">
+                Allowed Departments <span className="text-gray-400">(comma-separated)</span>
               </label>
               <input
                 id="event-departments"
@@ -2016,15 +2016,15 @@ export function EventForm({
                 placeholder="e.g. Computer Science, IT, Electronics"
                 value={departmentsInput}
                 onChange={(e) => setDepartmentsInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-surface-3)] focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
               />
             </div>
           </div>
 
           {/* Academic Years Allowed */}
           <div className="flex flex-col gap-2 pt-2">
-            <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
-              Eligible Academic Years <span className="text-[var(--color-text-muted)]">(Leave empty if open to all years)</span>
+            <span className="text-xs font-semibold text-gray-700">
+              Eligible Academic Years <span className="text-gray-400">(Leave empty if open to all years)</span>
             </span>
             <div className="flex flex-wrap items-center gap-2">
               {[1, 2, 3, 4, 5].map((year) => (
@@ -2034,8 +2034,8 @@ export function EventForm({
                   onClick={() => toggleYear(year)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                     selectedYears.includes(year)
-                      ? 'border-[#18CFFC] bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white shadow-sm'
-                      : 'border-[var(--color-surface-3)] bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
+                      : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Year {year}
@@ -2045,7 +2045,7 @@ export function EventForm({
                 <button
                   type="button"
                   onClick={() => setSelectedYears([])}
-                  className="text-xs text-[var(--color-text-muted)] hover:text-rose-400 underline ml-2"
+                  className="text-xs text-gray-500 hover:text-rose-600 underline ml-2"
                 >
                   Clear restriction
                 </button>
@@ -2055,22 +2055,22 @@ export function EventForm({
         </div>
 
         {/* ── Section 8: Interactive Event Page Customizer (Drag & Drop) ────── */}
-        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex glass p-6 sm:p-8 rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.08)] flex-col gap-6 shadow-lg`}>
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--color-surface-3)]">
+        <div className={`${mobileStep === 4 ? 'flex' : 'hidden'} md:flex bg-white p-6 sm:p-8 rounded-[var(--radius-card)] border border-gray-200 flex-col gap-6 shadow-xs`}>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC]">
+              <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
                 <Layout size={18} />
               </span>
               <div>
-                <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+                <h2 className="text-lg font-bold font-display text-gray-900">
                   Event Page Layout & Content Customizer
                 </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-xs text-gray-500">
                   Reorder, toggle visibility, and customize content blocks for the public event landing page
                 </p>
               </div>
             </div>
-            <Badge variant="cyan">Step 8</Badge>
+            <Badge variant="info">Step 8</Badge>
           </div>
 
           <EventPageBuilder layout={pageLayout} onChange={setPageLayout} />
@@ -2079,20 +2079,20 @@ export function EventForm({
         {/* ── Step 5: Mobile Review & Publish Screen (md:hidden) ─────────── */}
         {mobileStep === 5 && (
           <div className="md:hidden flex flex-col gap-4">
-            <div className="glass p-5 rounded-2xl border border-white/10 flex flex-col gap-4 shadow-xl">
-              <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 shadow-md">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 flex flex-col gap-4 shadow-sm">
+              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-xs">
                   <CheckCircle2 size={20} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white font-heading">Review & Publish Event</h3>
-                  <p className="text-[11px] text-zinc-400">Verify your event setup before making it live to campus.</p>
+                  <h3 className="text-sm font-bold text-gray-900 font-heading">Review & Publish Event</h3>
+                  <p className="text-[11px] text-gray-500">Verify your event setup before making it live to campus.</p>
                 </div>
               </div>
 
               {/* Event Summary Preview Card */}
-              <div className="rounded-xl overflow-hidden border border-white/10 bg-[#08080A]">
-                <div className="relative h-36 w-full bg-zinc-900">
+              <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                <div className="relative h-36 w-full bg-gray-100">
                   <img
                     src={posterUrl || getDefaultPoster(category)}
                     alt={title || 'Event poster'}
@@ -2100,32 +2100,32 @@ export function EventForm({
                   />
                   <div className="absolute top-2 left-2 flex gap-1">
                     <Badge variant="purple" className="text-[10px]">{category.toUpperCase()}</Badge>
-                    <Badge variant="cyan" className="text-[10px]">{eventType.toUpperCase()}</Badge>
+                    <Badge variant="info" className="text-[10px]">{eventType.toUpperCase()}</Badge>
                   </div>
-                  <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md text-xs font-bold text-white shadow-md">
-                    {isFree ? <span className="text-emerald-400">Free Pass</span> : `₹${price}`}
+                  <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-white/95 border border-gray-200 text-xs font-bold text-gray-900 shadow-sm">
+                    {isFree ? <span className="text-emerald-600">Free Pass</span> : `₹${price}`}
                   </div>
                 </div>
 
                 <div className="p-4 space-y-2.5">
-                  <h4 className="text-sm font-bold text-white font-heading">{title || 'Untitled Event'}</h4>
-                  <p className="text-xs text-zinc-400 line-clamp-2">{summary || 'No summary provided.'}</p>
+                  <h4 className="text-sm font-bold text-gray-900 font-heading">{title || 'Untitled Event'}</h4>
+                  <p className="text-xs text-gray-600 line-clamp-2">{summary || 'No summary provided.'}</p>
 
-                  <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-[11px] text-zinc-300 font-sans">
+                  <div className="pt-2 border-t border-gray-200 grid grid-cols-2 gap-2 text-[11px] text-gray-700 font-sans">
                     <div>
-                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Start Date</span>
+                      <span className="text-gray-500 block text-[10px] uppercase font-bold">Start Date</span>
                       <span>{startDate ? new Date(startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Not set'}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Venue</span>
+                      <span className="text-gray-500 block text-[10px] uppercase font-bold">Venue</span>
                       <span className="truncate block">{eventType === 'online' ? (onlineMeetingUrl || 'Virtual URL') : (venueName || 'Campus Venue')}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Format</span>
+                      <span className="text-gray-500 block text-[10px] uppercase font-bold">Format</span>
                       <span>{participationType === 'team' ? `Squad (${minTeamSize}–${maxTeamSize})` : 'Individual Solo'}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">Capacity</span>
+                      <span className="text-gray-500 block text-[10px] uppercase font-bold">Capacity</span>
                       <span>{capacity} Seats</span>
                     </div>
                   </div>
@@ -2133,39 +2133,39 @@ export function EventForm({
               </div>
 
               {/* Pre-flight Validation Checklist */}
-              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-2 text-xs">
-                <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider block">Pre-flight Checklist</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
+                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block">Pre-flight Checklist</span>
                 <div className="flex items-center gap-2">
                   {title.trim() && summary.trim() ? (
-                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
                   ) : (
-                    <AlertCircle size={14} className="text-rose-400 shrink-0" />
+                    <AlertCircle size={14} className="text-rose-600 shrink-0" />
                   )}
-                  <span className={title.trim() && summary.trim() ? 'text-zinc-300' : 'text-rose-400 font-semibold'}>
+                  <span className={title.trim() && summary.trim() ? 'text-gray-700' : 'text-rose-600 font-semibold'}>
                     Title & Short Summary
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {startDate && endDate ? (
-                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
                   ) : (
-                    <AlertCircle size={14} className="text-rose-400 shrink-0" />
+                    <AlertCircle size={14} className="text-rose-600 shrink-0" />
                   )}
-                  <span className={startDate && endDate ? 'text-zinc-300' : 'text-rose-400 font-semibold'}>
+                  <span className={startDate && endDate ? 'text-gray-700' : 'text-rose-600 font-semibold'}>
                     Schedule & Timeframe
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {(eventType === 'online' && onlineMeetingUrl) || ((eventType === 'offline' || eventType === 'hybrid') && venueName.trim()) ? (
-                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
                   ) : (
-                    <AlertCircle size={14} className="text-amber-400 shrink-0" />
+                    <AlertCircle size={14} className="text-amber-600 shrink-0" />
                   )}
-                  <span className="text-zinc-300">Venue & Access Link</span>
+                  <span className="text-gray-700">Venue & Access Link</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                  <span className="text-zinc-300">
+                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                  <span className="text-gray-700">
                     Ticketing: {isFree ? 'Free Campus Admission' : `₹${price} UPI Fee`} ({capacity} max)
                   </span>
                 </div>
@@ -2176,12 +2176,12 @@ export function EventForm({
         </fieldset>
 
         {/* ── Form Actions Bar (Desktop Sticky) ─────────────────────────────── */}
-        <div className="hidden md:flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl glass border border-[oklch(100%_0_0_/_0.1)] sticky bottom-4 shadow-2xl z-20 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+        <div className="hidden md:flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white/95 border border-gray-200 sticky bottom-4 shadow-lg z-20 backdrop-blur-md">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
             {readOnly ? (
-              <Lock size={16} className="text-zinc-400 shrink-0" />
+              <Lock size={16} className="text-gray-400 shrink-0" />
             ) : (
-              <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+              <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
             )}
             <span className="text-[11px] sm:text-xs">
               {readOnly
@@ -2229,7 +2229,7 @@ export function EventForm({
                     disabled={isSubmitting}
                     isLoading={isSubmitting}
                     leftIcon={<CheckCircle2 size={16} />}
-                    className="bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)] w-full sm:w-auto min-h-[44px] justify-center"
+                    className="font-semibold w-full sm:w-auto min-h-[44px] justify-center"
                   >
                     {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
                   </Button>
@@ -2240,7 +2240,7 @@ export function EventForm({
         </div>
 
         {/* ── Sticky Mobile Action Dock (< md) ─────────────────────────────────── */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3.5 py-2.5 bg-[#08080A]/95 backdrop-blur-2xl border-t border-white/10 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-2 shadow-[0_-8px_32px_rgba(0,0,0,0.8)]">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3.5 py-2.5 bg-white/95 backdrop-blur-xl border-t border-gray-200 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-2 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]">
           {mobileStep > 1 ? (
             <Button
               type="button"
@@ -2251,7 +2251,7 @@ export function EventForm({
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
               disabled={isSubmitting}
-              className="min-h-[44px] text-xs px-3 border-white/15"
+              className="min-h-[44px] text-xs px-3"
             >
               Back
             </Button>
@@ -2261,7 +2261,7 @@ export function EventForm({
               variant="ghost"
               size="sm"
               onClick={() => setShowPreview(true)}
-              className="min-h-[44px] text-xs px-2.5 text-zinc-400"
+              className="min-h-[44px] text-xs px-2.5 text-gray-600"
             >
               Preview
             </Button>
@@ -2274,12 +2274,12 @@ export function EventForm({
               size="sm"
               onClick={(e) => handleSubmit(e, 'save_draft')}
               disabled={isSubmitting}
-              className="min-h-[44px] text-xs px-3 border-white/15"
+              className="min-h-[44px] text-xs px-3"
             >
               {mode === 'edit' && !effectiveCanPublish ? 'Save Changes' : 'Save Draft'}
             </Button>
           ) : (
-            <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1">
+            <span className="text-[11px] font-medium text-gray-500 flex items-center gap-1">
               <Lock size={12} /> Archive View
             </span>
           )}
@@ -2295,7 +2295,7 @@ export function EventForm({
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 }
               }}
-              className="min-h-[44px] text-xs font-bold px-4 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white"
+              className="min-h-[44px] text-xs font-bold px-4"
             >
               Next Step →
             </Button>
@@ -2307,7 +2307,7 @@ export function EventForm({
               onClick={(e) => handleSubmit(e, 'publish')}
               disabled={isSubmitting}
               isLoading={isSubmitting}
-              className="min-h-[44px] text-xs font-bold px-4 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white shadow-lg shadow-[#18CFFC]/25"
+              className="min-h-[44px] text-xs font-bold px-4"
             >
               {mode === 'create' ? 'Publish Event' : 'Update & Publish'}
             </Button>
@@ -2318,7 +2318,7 @@ export function EventForm({
               size="sm"
               onClick={() => setShowPreview(true)}
               leftIcon={<Eye size={14} />}
-              className="min-h-[44px] text-xs px-3 border-white/15"
+              className="min-h-[44px] text-xs px-3"
             >
               Preview
             </Button>

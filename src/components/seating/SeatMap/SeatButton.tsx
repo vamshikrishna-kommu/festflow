@@ -10,32 +10,32 @@ interface SeatButtonProps {
 function getSeatColors(status: SeatWithAvailability['status'], catColor: string, isSelected: boolean) {
   if (isSelected) {
     return {
-      bg: '#18CFFC',
-      border: '#18CFFC',
-      text: '#08080A',
+      bg: '#2563EB',
+      border: '#1D4ED8',
+      text: '#FFFFFF',
     }
   }
   switch (status) {
     case 'available':
       return {
-        bg: catColor + '22',
-        border: catColor + '88',
+        bg: catColor + '1A',
+        border: catColor + '99',
         text: catColor,
       }
     case 'my_hold':
       return {
-        bg: '#18CFFC33',
-        border: '#18CFFC',
-        text: '#18CFFC',
+        bg: '#DBEAFE',
+        border: '#2563EB',
+        text: '#1D4ED8',
       }
     case 'held':
     case 'payment_submitted':
     case 'payment_under_review':
-      return { bg: '#6B728033', border: '#6B7280', text: '#6B7280' }
+      return { bg: '#F3F4F6', border: '#9CA3AF', text: '#6B7280' }
     case 'confirmed':
-      return { bg: '#6B728033', border: '#374151', text: '#374151' }
+      return { bg: '#E5E7EB', border: '#9CA3AF', text: '#6B7280' }
     case 'blocked':
-      return { bg: '#1F293733', border: '#374151', text: '#374151' }
+      return { bg: '#F3F4F6', border: '#D1D5DB', text: '#9CA3AF' }
     default:
       return { bg: 'transparent', border: 'transparent', text: 'transparent' }
   }
@@ -46,7 +46,7 @@ export function SeatButton({ seat, isSelected, onClick, disabled }: SeatButtonPr
     return <div className="w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0" aria-hidden />
   }
 
-  const catColor = seat.category?.color ?? '#18CFFC'
+  const catColor = seat.category?.color ?? '#2563EB'
   const colors = getSeatColors(seat.status, catColor, isSelected)
   const isUnavailable = ['held', 'payment_submitted', 'payment_under_review', 'confirmed', 'blocked'].includes(seat.status)
   const isClickable = !isUnavailable && !disabled
@@ -64,10 +64,10 @@ export function SeatButton({ seat, isSelected, onClick, disabled }: SeatButtonPr
         relative w-8 h-8 sm:w-9 sm:h-9 rounded-md flex-shrink-0 flex items-center justify-center
         text-[9px] sm:text-[10px] font-bold border-2 transition-all duration-150
         ${isClickable
-          ? 'cursor-pointer hover:scale-110 hover:brightness-125 active:scale-95'
-          : 'cursor-not-allowed opacity-40'
+          ? 'cursor-pointer hover:scale-110 active:scale-95'
+          : 'cursor-not-allowed opacity-55'
         }
-        ${isSelected ? 'scale-110 shadow-[0_0_12px_rgba(24,207,252,0.6)]' : ''}
+        ${isSelected ? 'scale-110 shadow-sm ring-2 ring-blue-600/25' : ''}
       `}
       style={{
         backgroundColor: colors.bg,

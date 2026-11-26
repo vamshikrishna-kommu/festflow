@@ -26,7 +26,7 @@ export function HoldCountdown({ heldUntil, onExpired, className = '' }: HoldCoun
 
   if (isExpired) {
     return (
-      <div className={`flex items-center gap-1.5 text-sm font-semibold text-red-400 ${className}`}>
+      <div className={`flex items-center gap-1.5 text-sm font-semibold text-rose-600 ${className}`}>
         <AlertTriangle className="w-4 h-4 flex-shrink-0" />
         Hold expired — please reselect your seats
       </div>
@@ -36,7 +36,7 @@ export function HoldCountdown({ heldUntil, onExpired, className = '' }: HoldCoun
   return (
     <div
       className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${
-        isExpiringSoon ? 'text-amber-400' : 'text-[#18CFFC]'
+        isExpiringSoon ? 'text-amber-600' : 'text-blue-600'
       } ${className}`}
     >
       {isExpiringSoon ? (
@@ -45,7 +45,7 @@ export function HoldCountdown({ heldUntil, onExpired, className = '' }: HoldCoun
         <Clock className="w-4 h-4 flex-shrink-0" />
       )}
       <span>Seat hold: {label}</span>
-      {isExpiringSoon && <span className="text-xs font-normal text-amber-300">— complete payment soon!</span>}
+      {isExpiringSoon && <span className="text-xs font-normal text-amber-600">— complete payment soon!</span>}
     </div>
   )
 }

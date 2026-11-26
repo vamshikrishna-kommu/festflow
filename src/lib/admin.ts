@@ -37,11 +37,11 @@ export type {
   AdminPaymentRecord,
 }
 
-const MOCK_COLLEGES_KEY = 'festflow_admin_colleges'
-const MOCK_SETTINGS_KEY = 'festflow_admin_settings'
-const MOCK_ANNOUNCEMENTS_KEY = 'festflow_admin_announcements'
-const MOCK_AUDIT_LOGS_KEY = 'festflow_admin_audit_logs'
-const MOCK_TEAM_KEY = 'festflow_admin_team'
+const LOCAL_COLLEGES_KEY = 'festflow_admin_colleges'
+const LOCAL_SETTINGS_KEY = 'festflow_admin_settings'
+const LOCAL_ANNOUNCEMENTS_KEY = 'festflow_admin_announcements'
+const LOCAL_AUDIT_LOGS_KEY = 'festflow_admin_audit_logs'
+const LOCAL_TEAM_KEY = 'festflow_admin_team'
 
 const DEFAULT_SETTINGS: PlatformSettingsMap = {
   maintenance_mode: false,
@@ -68,61 +68,61 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
       // Fallback to direct client table counts
     }
 
-    try {
-      const [
-        studentsRes,
-        clubsRes,
-        verifiedClubsRes,
-        collegesRes,
-        eventsRes,
-        publishedEventsRes,
-        pendingModRes,
-        registrationsRes,
-        pendingPaymentsRes,
-        verifiedPaymentsRes,
-        checkInsRes,
-        revenueRes,
-      ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'club_member'),
-        supabase.from('club_profiles').select('*', { count: 'exact', head: true }).eq('is_verified', true),
-        (supabase as any).from('colleges').select('*', { count: 'exact', head: true }),
-        supabase.from('events').select('*', { count: 'exact', head: true }),
-        supabase.from('events').select('*', { count: 'exact', head: true }).eq('status', 'published'),
-        supabase.from('events').select('*', { count: 'exact', head: true }).eq('moderation_status', 'pending_approval'),
-        supabase.from('registrations').select('id', { count: 'exact', head: true }),
-        supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
-        supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('check_ins').select('*', { count: 'exact', head: true }),
-        supabase.from('payment_submissions').select('amount').eq('status', 'approved'),
-      ])
+    const [
+      studentsRes,
+      clubsRes,
+      verifiedClubsRes,
+      collegesRes,
+      eventsRes,
+      publishedEventsRes,
+      pendingModRes,
+      registrationsRes,
+      pendingPaymentsRes,
+      verifiedPaymentsRes,
+      checkInsRes,
+      revenueRes,
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'club_member'),
+      supabase.from('club_profiles').select('*', { count: 'exact', head: true }).eq('is_verified', true),
+      (supabase as any).from('colleges').select('*', { count: 'exact', head: true }),
+      supabase.from('events').select('*', { count: 'exact', head: true }),
+      supabase.from('events').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+      supabase.from('events').select('*', { count: 'exact', head: true }).eq('moderation_status', 'pending_approval'),
+      supabase.from('registrations').select('id', { count: 'exact', head: true }),
+      supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
+      supabase.from('payment_submissions').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabase.from('check_ins').select('*', { count: 'exact', head: true }),
+      supabase.from('payment_submissions').select('amount').eq('status', 'approved'),
+    ])
 
-      const totalRevenue = revenueRes.data?.reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0) || 0
+    if (studentsRes.error && clubsRes.error && eventsRes.error) {
+      throw new Error(studentsRes.error.message || 'Failed to query platform metrics.')
+    }
 
-      return {
-        total_students: studentsRes.count ?? 0,
-        total_clubs: clubsRes.count ?? 0,
-        total_verified_clubs: verifiedClubsRes.count ?? 0,
-        total_colleges: collegesRes.count ?? 0,
-        total_events: eventsRes.count ?? 0,
-        total_published_events: publishedEventsRes.count ?? 0,
-        total_pending_moderation: pendingModRes.count ?? 0,
-        total_registrations: registrationsRes.count ?? 0,
-        total_pending_payments: pendingPaymentsRes.count ?? 0,
-        total_verified_payments: verifiedPaymentsRes.count ?? 0,
-        total_issued_passes: verifiedPaymentsRes.count ?? 0,
-        total_check_ins: checkInsRes.count ?? 0,
-        total_revenue_inr: Math.round(totalRevenue),
-      }
-    } catch (err) {
-      console.warn('[AdminMetrics] Live query warning:', err)
+    const totalRevenue = revenueRes.data?.reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0) || 0
+
+    return {
+      total_students: studentsRes.count ?? 0,
+      total_clubs: clubsRes.count ?? 0,
+      total_verified_clubs: verifiedClubsRes.count ?? 0,
+      total_colleges: collegesRes.count ?? 0,
+      total_events: eventsRes.count ?? 0,
+      total_published_events: publishedEventsRes.count ?? 0,
+      total_pending_moderation: pendingModRes.count ?? 0,
+      total_registrations: registrationsRes.count ?? 0,
+      total_pending_payments: pendingPaymentsRes.count ?? 0,
+      total_verified_payments: verifiedPaymentsRes.count ?? 0,
+      total_issued_passes: verifiedPaymentsRes.count ?? 0,
+      total_check_ins: checkInsRes.count ?? 0,
+      total_revenue_inr: Math.round(totalRevenue),
     }
   }
 
   // Local/Simulation state aggregation (real counts from actual local storage only)
   try {
     const events = JSON.parse(localStorage.getItem('festflow_managed_events') || '[]')
-    const colleges = JSON.parse(localStorage.getItem(MOCK_COLLEGES_KEY) || '[]')
+    const colleges = JSON.parse(localStorage.getItem(LOCAL_COLLEGES_KEY) || '[]')
     const clubs = JSON.parse(localStorage.getItem('festflow_local_clubs') || '[]')
     const registrations = JSON.parse(localStorage.getItem('festflow_local_registrations') || '[]')
     const payments = JSON.parse(localStorage.getItem('festflow_local_payments') || '[]')
@@ -210,8 +210,9 @@ export async function logAdminAction(params: {
         })
       }
     } catch {
-      // Local fallback
+      // ignore non-critical local mirror warning
     }
+    return
   }
 
   try {
@@ -228,8 +229,8 @@ export async function logAdminAction(params: {
       metadata: params.metadata || {},
       created_at: now,
     }
-    const existing = JSON.parse(localStorage.getItem(MOCK_AUDIT_LOGS_KEY) || '[]')
-    localStorage.setItem(MOCK_AUDIT_LOGS_KEY, JSON.stringify([logEntry, ...existing]))
+    const existing = JSON.parse(localStorage.getItem(LOCAL_AUDIT_LOGS_KEY) || '[]')
+    localStorage.setItem(LOCAL_AUDIT_LOGS_KEY, JSON.stringify([logEntry, ...existing]))
   } catch {
     // Ignore storage issues
   }
@@ -241,27 +242,25 @@ export async function getAdminAuditLogs(filters?: {
   limit?: number
 }): Promise<AdminAuditLogRecord[]> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      let query = db
-        .from('admin_audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(filters?.limit || 50)
+    const db = supabase as any
+    let query = db
+      .from('admin_audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(filters?.limit || 50)
 
-      if (filters?.action) query = query.ilike('action', `%${filters.action}%`)
-      if (filters?.targetEntity) query = query.eq('target_entity', filters.targetEntity)
+    if (filters?.action) query = query.ilike('action', `%${filters.action}%`)
+    if (filters?.targetEntity) query = query.eq('target_entity', filters.targetEntity)
 
-      const { data, error } = await query
-      if (!error && data) return data as AdminAuditLogRecord[]
-    } catch {
-      // Fallback
+    const { data, error } = await query
+    if (error) {
+      throw new Error(error.message || 'Failed to load audit logs.')
     }
-    return []
+    return (data as AdminAuditLogRecord[]) || []
   }
 
   try {
-    const logs: AdminAuditLogRecord[] = JSON.parse(localStorage.getItem(MOCK_AUDIT_LOGS_KEY) || '[]')
+    const logs: AdminAuditLogRecord[] = JSON.parse(localStorage.getItem(LOCAL_AUDIT_LOGS_KEY) || '[]')
     return logs
   } catch {
     return []
@@ -271,20 +270,18 @@ export async function getAdminAuditLogs(filters?: {
 // ── 3. COLLEGE MANAGEMENT ─────────────────────────────────────────────────────
 export async function getColleges(search?: string): Promise<CollegeRecord[]> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      let query = db.from('colleges').select('*').order('name', { ascending: true })
-      if (search) query = query.ilike('name', `%${search}%`)
-      const { data, error } = await query
-      if (!error && data) return data as CollegeRecord[]
-    } catch {
-      // Fallback
+    const db = supabase as any
+    let query = db.from('colleges').select('*').order('name', { ascending: true })
+    if (search) query = query.ilike('name', `%${search}%`)
+    const { data, error } = await query
+    if (error) {
+      throw new Error(error.message || 'Failed to load colleges.')
     }
-    return []
+    return (data as CollegeRecord[]) || []
   }
 
   try {
-    const items: CollegeRecord[] = JSON.parse(localStorage.getItem(MOCK_COLLEGES_KEY) || '[]')
+    const items: CollegeRecord[] = JSON.parse(localStorage.getItem(LOCAL_COLLEGES_KEY) || '[]')
     if (search) {
       const s = search.toLowerCase()
       return items.filter((c) => c.name.toLowerCase().includes(s) || c.code?.toLowerCase().includes(s))
@@ -316,25 +313,28 @@ export async function saveCollege(college: Partial<CollegeRecord>, adminEmail: s
   let savedRecord: CollegeRecord | null = null
 
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      if (isNew) {
-        const { data, error } = await db.from('colleges').insert(payload).select('*').single()
-        if (!error && data) {
-          savedRecord = data as CollegeRecord
-        }
-      } else {
-        const { data, error } = await db.from('colleges').update(payload).eq('id', college.id).select('*').single()
-        if (!error && data) {
-          savedRecord = data as CollegeRecord
-        }
-      }
-    } catch {
-      // Fallback
+    const db = supabase as any
+    if (isNew) {
+      const { data, error } = await db.from('colleges').insert(payload).select('*').single()
+      if (error || !data) throw new Error(error?.message || 'Failed to save college record.')
+      savedRecord = data as CollegeRecord
+    } else {
+      const { data, error } = await db.from('colleges').update(payload).eq('id', college.id).select('*').single()
+      if (error || !data) throw new Error(error?.message || 'Failed to update college record.')
+      savedRecord = data as CollegeRecord
     }
+    void logAdminAction({
+      adminEmail,
+      action: isNew ? 'create_college' : 'update_college',
+      targetEntity: 'colleges',
+      targetRecordId: savedRecord.id,
+      newState: savedRecord,
+      reason: isNew ? 'Added new educational institution' : 'Updated college profile details',
+    })
+    return savedRecord
   }
 
-  const localId = savedRecord?.id || college.id || `col_${Date.now()}`
+  const localId = college.id || `col_${Date.now()}`
   const localCollege: CollegeRecord = {
     id: localId,
     name: payload.name,
@@ -359,7 +359,7 @@ export async function saveCollege(college: Partial<CollegeRecord>, adminEmail: s
     } else {
       list.push(localCollege)
     }
-    localStorage.setItem(MOCK_COLLEGES_KEY, JSON.stringify(list))
+    localStorage.setItem(LOCAL_COLLEGES_KEY, JSON.stringify(list))
   } catch {
     // Ignore
   }
@@ -373,7 +373,7 @@ export async function saveCollege(college: Partial<CollegeRecord>, adminEmail: s
     reason: isNew ? 'Added new educational institution' : 'Updated college profile details',
   })
 
-  return savedRecord || localCollege
+  return localCollege
 }
 
 export async function updateCollegeStatus(
@@ -383,16 +383,22 @@ export async function updateCollegeStatus(
   adminEmail: string
 ): Promise<void> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      await db.from('colleges').update({
-        status,
-        verification_notes: reason,
-        updated_at: new Date().toISOString(),
-      }).eq('id', collegeId)
-    } catch {
-      // Fallback
-    }
+    const db = supabase as any
+    const { error } = await db.from('colleges').update({
+      status,
+      verification_notes: reason,
+      updated_at: new Date().toISOString(),
+    }).eq('id', collegeId)
+    if (error) throw new Error(error.message || 'Failed to update college status.')
+    void logAdminAction({
+      adminEmail,
+      action: `college_status_${status}`,
+      targetEntity: 'colleges',
+      targetRecordId: collegeId,
+      newState: { status },
+      reason,
+    })
+    return
   }
 
   try {
@@ -403,7 +409,7 @@ export async function updateCollegeStatus(
       match.status = status
       match.verification_notes = reason
       match.updated_at = new Date().toISOString()
-      localStorage.setItem(MOCK_COLLEGES_KEY, JSON.stringify(list))
+      localStorage.setItem(LOCAL_COLLEGES_KEY, JSON.stringify(list))
 
       void logAdminAction({
         adminEmail,
@@ -424,34 +430,30 @@ export async function updateCollegeStatus(
 
 export async function getAdminClubs(search?: string, filter?: string): Promise<AdminClubRecord[]> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      let query = db.from('club_profiles').select('*').order('created_at', { ascending: false })
-      if (filter === 'verified') query = query.eq('is_verified', true)
-      if (filter === 'unverified') query = query.eq('is_verified', false)
-      if (filter === 'suspended') query = query.eq('status', 'suspended')
-      if (search) query = query.ilike('club_name', `%${search}%`)
+    const db = supabase as any
+    let query = db.from('club_profiles').select('*').order('created_at', { ascending: false })
+    if (filter === 'verified') query = query.eq('is_verified', true)
+    if (filter === 'unverified') query = query.eq('is_verified', false)
+    if (filter === 'suspended') query = query.eq('status', 'suspended')
+    if (search) query = query.ilike('club_name', `%${search}%`)
 
-      const { data, error } = await query
-      if (!error && data) {
-        return data.map((c: any) => ({
-          id: c.id,
-          profile_id: c.profile_id || c.id,
-          club_name: c.club_name,
-          representative_name: c.club_name || 'Organizer',
-          description: c.description || '',
-          is_verified: Boolean(c.is_verified),
-          status: c.status || (c.is_verified ? 'active' : 'pending_verification'),
-          college_name: c.college_name || 'Campus Organization',
-          created_at: c.created_at,
-          event_count: 0,
-          member_count: 1,
-        }))
-      }
-    } catch {
-      // Fallback
+    const { data, error } = await query
+    if (error) {
+      throw new Error(error.message || 'Failed to load clubs.')
     }
-    return []
+    return (data || []).map((c: any) => ({
+      id: c.id,
+      profile_id: c.profile_id || c.id,
+      club_name: c.club_name,
+      representative_name: c.club_name || 'Organizer',
+      description: c.description || '',
+      is_verified: Boolean(c.is_verified),
+      status: c.status || (c.is_verified ? 'active' : 'pending_verification'),
+      college_name: c.college_name || 'Campus Organization',
+      created_at: c.created_at,
+      event_count: 0,
+      member_count: 1,
+    }))
   }
 
   try {
@@ -483,16 +485,17 @@ export async function updateClubStatus(
         p_action: action,
         p_reason: reason,
       })
-      if (!error && (data as any)?.success) {
-        return { success: true }
-      }
       if (error) return { success: false, error: error.message }
-    } catch {
-      // Fallback
+      if (!(data as any)?.success) {
+        return { success: false, error: (data as any)?.error || 'Club status update rejected.' }
+      }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to update club status.' }
     }
   }
 
-  // Fallback audit log
+  // Fallback audit log (Local Simulation only)
   await logAdminAction({
     adminId: 'current_admin',
     adminEmail,
@@ -509,41 +512,37 @@ export async function updateClubStatus(
 
 export async function getAdminStudents(search?: string): Promise<AdminStudentRecord[]> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      let query = db
-        .from('profiles')
-        .select(`
-          id, display_name, email, created_at, status, suspension_reason,
-          student_profiles (college_name, graduation_year)
-        `)
-        .eq('role', 'student')
-        .order('created_at', { ascending: false })
-        .limit(50)
+    const db = supabase as any
+    let query = db
+      .from('profiles')
+      .select(`
+        id, display_name, email, created_at, status, suspension_reason,
+        student_profiles (college_name, graduation_year)
+      `)
+      .eq('role', 'student')
+      .order('created_at', { ascending: false })
+      .limit(50)
 
-      if (search) {
-        query = query.or(`email.ilike.%${search}%`)
-      }
-
-      const { data, error } = await query
-      if (!error && data) {
-        return data.map((p: any) => ({
-          id: p.id,
-          display_name: p.display_name || p.full_name || p.email?.split('@')[0] || 'Student',
-          email: p.email,
-          college_name: p.student_profiles?.college_name || null,
-          graduation_year: p.student_profiles?.graduation_year || null,
-          status: p.status || 'active',
-          suspension_reason: p.suspension_reason || null,
-          created_at: p.created_at,
-          registration_count: 0,
-          pass_count: 0,
-        }))
-      }
-    } catch {
-      // Fallback
+    if (search) {
+      query = query.or(`email.ilike.%${search}%`)
     }
-    return []
+
+    const { data, error } = await query
+    if (error) {
+      throw new Error(error.message || 'Failed to load students.')
+    }
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      display_name: p.display_name || p.full_name || p.email?.split('@')[0] || 'Student',
+      email: p.email,
+      college_name: p.student_profiles?.college_name || null,
+      graduation_year: p.student_profiles?.graduation_year || null,
+      status: p.status || 'active',
+      suspension_reason: p.suspension_reason || null,
+      created_at: p.created_at,
+      registration_count: 0,
+      pass_count: 0,
+    }))
   }
 
   try {
@@ -573,10 +572,13 @@ export async function updateStudentStatus(
         p_action: action,
         p_reason: reason,
       })
-      if (!error && (data as any)?.success) return { success: true }
       if (error) return { success: false, error: error.message }
-    } catch {
-      // Fallback
+      if (!(data as any)?.success) {
+        return { success: false, error: (data as any)?.error || 'Student status update rejected.' }
+      }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to update student status.' }
     }
   }
 
@@ -638,39 +640,40 @@ export async function getAdminEvents(filter?: string, search?: string): Promise<
         }
       }
 
-      if (!error && data) {
-        const clubIds = Array.from(new Set(data.map((e: any) => e.club_id).filter(Boolean)))
-        let clubMap: Record<string, string> = {}
-        if (clubIds.length > 0) {
-          try {
-            const { data: cData } = await db
-              .from('club_profiles')
-              .select('profile_id, club_name')
-              .in('profile_id', clubIds)
-            if (cData) {
-              for (const c of cData) {
-                clubMap[c.profile_id] = c.club_name
-              }
-            }
-          } catch {
-            // ignore
-          }
-        }
-
-        return data.map((e: any) => ({
-          ...e,
-          club_name:
-            clubMap[e.club_id] ||
-            e.club?.club_profiles?.[0]?.club_name ||
-            e.club?.club_profiles?.club_name ||
-            e.club?.display_name ||
-            'Organizing Club',
-        }))
+      if (error) {
+        throw new Error(error.message || 'Failed to load events.')
       }
-    } catch {
-      // Fallback
+
+      const clubIds = Array.from(new Set((data || []).map((e: any) => e.club_id).filter(Boolean)))
+      let clubMap: Record<string, string> = {}
+      if (clubIds.length > 0) {
+        try {
+          const { data: cData } = await db
+            .from('club_profiles')
+            .select('profile_id, club_name')
+            .in('profile_id', clubIds)
+          if (cData) {
+            for (const c of cData) {
+              clubMap[c.profile_id] = c.club_name
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      return (data || []).map((e: any) => ({
+        ...e,
+        club_name:
+          clubMap[e.club_id] ||
+          e.club?.club_profiles?.[0]?.club_name ||
+          e.club?.club_profiles?.club_name ||
+          e.club?.display_name ||
+          'Organizing Club',
+      }))
+    } catch (err: any) {
+      throw new Error(err?.message || 'Failed to load events.')
     }
-    return []
   }
 
   try {
@@ -702,10 +705,13 @@ export async function moderateEvent(
         p_action: action,
         p_reason: reason,
       })
-      if (!error && (data as any)?.success) return { success: true }
       if (error) return { success: false, error: error.message }
-    } catch {
-      // Fallback
+      if (!(data as any)?.success) {
+        return { success: false, error: (data as any)?.error || 'Event moderation action failed.' }
+      }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Event moderation request failed.' }
     }
   }
 
@@ -724,18 +730,16 @@ export async function moderateEvent(
 // ── 7. REPORTS & ABUSE MANAGEMENT ─────────────────────────────────────────────
 export async function getAdminReports(statusFilter?: string): Promise<AdminReportRecord[]> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      let query = db.from('community_reports').select('*').order('created_at', { ascending: false })
-      if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter)
-      }
-      const { data, error } = await query
-      if (!error && data) return data as AdminReportRecord[]
-    } catch {
-      // Fallback
+    const db = supabase as any
+    let query = db.from('community_reports').select('*').order('created_at', { ascending: false })
+    if (statusFilter && statusFilter !== 'all') {
+      query = query.eq('status', statusFilter)
     }
-    return []
+    const { data, error } = await query
+    if (error) {
+      throw new Error(error.message || 'Failed to load abuse reports.')
+    }
+    return (data as AdminReportRecord[]) || []
   }
 
   try {
@@ -765,9 +769,10 @@ export async function resolveAdminReport(
         moderator_notes: notes,
         updated_at: new Date().toISOString(),
       }).eq('id', reportId)
-      if (!error) return { success: true }
-    } catch {
-      // Fallback
+      if (error) return { success: false, error: error.message }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to resolve report.' }
     }
   }
 
@@ -787,23 +792,21 @@ export async function resolveAdminReport(
 // ── 8. PLATFORM ANNOUNCEMENTS ─────────────────────────────────────────────────
 export async function getPlatformAnnouncements(): Promise<PlatformAnnouncementRecord[]> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      const { data, error } = await db
-        .from('platform_announcements')
-        .select('*')
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false })
-      if (!error && data) return data as PlatformAnnouncementRecord[]
-    } catch {
-      // Fallback
+    const db = supabase as any
+    const { data, error } = await db
+      .from('platform_announcements')
+      .select('*')
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false })
+    if (error) {
+      throw new Error(error.message || 'Failed to load platform announcements.')
     }
-    return []
+    return (data as PlatformAnnouncementRecord[]) || []
   }
 
   try {
     const list: PlatformAnnouncementRecord[] = JSON.parse(
-      localStorage.getItem(MOCK_ANNOUNCEMENTS_KEY) || '[]'
+      localStorage.getItem(LOCAL_ANNOUNCEMENTS_KEY) || '[]'
     )
     return list
   } catch {
@@ -945,13 +948,13 @@ export async function savePlatformAnnouncement(
     }
   }
 
-  // Simulation fallback
+  // Simulation fallback (only when Supabase is not configured)
   try {
     const list = await getPlatformAnnouncements()
     const index = list.findIndex((a) => a.id === localId)
     if (index >= 0) list[index] = localAnnouncement
     else list.unshift(localAnnouncement)
-    localStorage.setItem(MOCK_ANNOUNCEMENTS_KEY, JSON.stringify(list))
+    localStorage.setItem(LOCAL_ANNOUNCEMENTS_KEY, JSON.stringify(list))
   } catch {
     // Ignore
   }
@@ -985,7 +988,7 @@ export async function deletePlatformAnnouncement(
           return { success: true }
         }
       } catch {
-        // Fallback
+        // Fallback to direct delete
       }
 
       // 2. Direct table delete
@@ -995,6 +998,7 @@ export async function deletePlatformAnnouncement(
         console.error('[AdminAnnouncement] Delete error:', error.message)
         return { success: false, error: error.message }
       }
+      return { success: true }
     } catch (err: any) {
       return { success: false, error: err.message }
     }
@@ -1003,7 +1007,7 @@ export async function deletePlatformAnnouncement(
   try {
     const list = await getPlatformAnnouncements()
     const filtered = list.filter((a) => a.id !== id)
-    localStorage.setItem(MOCK_ANNOUNCEMENTS_KEY, JSON.stringify(filtered))
+    localStorage.setItem(LOCAL_ANNOUNCEMENTS_KEY, JSON.stringify(filtered))
   } catch {
     // Ignore
   }
@@ -1024,10 +1028,10 @@ export async function deletePlatformAnnouncement(
 
 export function syncLocalSetting(key: string, value: any) {
   try {
-    const stored = localStorage.getItem(MOCK_SETTINGS_KEY)
+    const stored = localStorage.getItem(LOCAL_SETTINGS_KEY)
     const map = stored ? JSON.parse(stored) : { ...DEFAULT_SETTINGS }
     map[key] = value
-    localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(map))
+    localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(map))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('festflow:settings_changed', { detail: { key, value } }))
       if (key === 'maintenance_mode') {
@@ -1042,31 +1046,30 @@ export function syncLocalSetting(key: string, value: any) {
 // ── 9. PLATFORM CONFIGURATION & SETTINGS ──────────────────────────────────────
 export async function getPlatformSettings(): Promise<PlatformSettingsMap> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      const { data, error } = await db.from('platform_settings').select('*')
-      if (!error && Array.isArray(data) && data.length > 0) {
-        const map: any = { ...DEFAULT_SETTINGS }
-        for (const row of data) {
-          if (row.key === 'maintenance_mode') {
-            map.maintenance_mode = row.value === true || row.value === 'true'
-          } else {
-            map[row.key] = row.value
-          }
-        }
-        map.support_email = normalizeSupportEmail(map.support_email)
-        try {
-          localStorage.setItem(MOCK_SETTINGS_KEY, JSON.stringify(map))
-        } catch {}
-        return map
-      }
-    } catch {
-      // Fallback
+    const db = supabase as any
+    const { data, error } = await db.from('platform_settings').select('*')
+    if (error) {
+      throw new Error(error.message || 'Failed to load platform settings.')
     }
+    const map: any = { ...DEFAULT_SETTINGS }
+    if (Array.isArray(data)) {
+      for (const row of data) {
+        if (row.key === 'maintenance_mode') {
+          map.maintenance_mode = row.value === true || row.value === 'true'
+        } else {
+          map[row.key] = row.value
+        }
+      }
+      map.support_email = normalizeSupportEmail(map.support_email)
+      try {
+        localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(map))
+      } catch {}
+    }
+    return map
   }
 
   try {
-    const stored = localStorage.getItem(MOCK_SETTINGS_KEY)
+    const stored = localStorage.getItem(LOCAL_SETTINGS_KEY)
     if (stored) {
       const parsed = JSON.parse(stored)
       return {
@@ -1143,6 +1146,18 @@ export async function updatePlatformSetting(
         console.error('[AdminSettings] Upsert error:', error.message)
         return { success: false, error: error.message }
       }
+      if (adminEmail) {
+        void logAdminAction({
+          adminId: adminUuid || undefined,
+          adminEmail,
+          action: 'update_platform_setting',
+          targetEntity: 'platform_settings',
+          targetRecordId: key,
+          newState: { [key]: value },
+          reason: `Platform configuration updated for key: ${key}`,
+        })
+      }
+      return { success: true }
     } catch (err: any) {
       console.error('[AdminSettings] Exception:', err)
       return { success: false, error: err.message || 'Failed to update setting' }
@@ -1184,45 +1199,46 @@ export async function getAdminPaymentSubmissions(filter?: string, search?: strin
       if (search) query = query.ilike('utr', `%${search}%`)
 
       const { data, error } = await query
-      if (!error && data) {
-        const clubIds = Array.from(new Set(data.map((p: any) => p.events?.club_id).filter(Boolean)))
-        let clubMap: Record<string, string> = {}
-        if (clubIds.length > 0) {
-          try {
-            const { data: cData } = await db
-              .from('club_profiles')
-              .select('profile_id, club_name')
-              .in('profile_id', clubIds)
-            if (cData) {
-              for (const c of cData) {
-                clubMap[c.profile_id] = c.club_name
-              }
-            }
-          } catch {
-            // ignore
-          }
-        }
-
-        return data.map((p: any) => ({
-          id: p.id,
-          registration_id: p.registration_id,
-          event_id: p.event_id,
-          event_title: p.events?.title || 'Unknown Event',
-          club_name: clubMap[p.events?.club_id] || 'Organizing Club',
-          student_name: p.registrations?.profiles?.display_name || 'Student Attendee',
-          student_email: p.registrations?.profiles?.email || 'student@campus.edu',
-          utr: p.utr,
-          amount: Number(p.amount || 0),
-          status: p.status,
-          screenshot_url: p.screenshot_url || null,
-          created_at: p.created_at,
-          verified_at: p.verified_at || null,
-        }))
+      if (error) {
+        throw new Error(error.message || 'Failed to load payment submissions.')
       }
-    } catch {
-      // Fallback
+
+      const clubIds = Array.from(new Set((data || []).map((p: any) => p.events?.club_id).filter(Boolean)))
+      let clubMap: Record<string, string> = {}
+      if (clubIds.length > 0) {
+        try {
+          const { data: cData } = await db
+            .from('club_profiles')
+            .select('profile_id, club_name')
+            .in('profile_id', clubIds)
+          if (cData) {
+            for (const c of cData) {
+              clubMap[c.profile_id] = c.club_name
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      return (data || []).map((p: any) => ({
+        id: p.id,
+        registration_id: p.registration_id,
+        event_id: p.event_id,
+        event_title: p.events?.title || 'Unknown Event',
+        club_name: clubMap[p.events?.club_id] || 'Organizing Club',
+        student_name: p.registrations?.profiles?.display_name || 'Student Attendee',
+        student_email: p.registrations?.profiles?.email || '—',
+        utr: p.utr,
+        amount: Number(p.amount || 0),
+        status: p.status,
+        screenshot_url: p.screenshot_url || null,
+        created_at: p.created_at,
+        verified_at: p.verified_at || null,
+      }))
+    } catch (err: any) {
+      throw new Error(err?.message || 'Failed to load payment submissions.')
     }
-    return []
   }
 
   try {
@@ -1256,10 +1272,13 @@ export async function adminPaymentOverride(
         p_action: action,
         p_reason: reason,
       })
-      if (!error && (data as any)?.success) return { success: true }
       if (error) return { success: false, error: error.message }
-    } catch {
-      // Fallback
+      if (!(data as any)?.success) {
+        return { success: false, error: (data as any)?.error || 'Payment override was rejected.' }
+      }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to override payment status.' }
     }
   }
 
@@ -1357,7 +1376,7 @@ export async function getAdminTeam(): Promise<PlatformAdminRecord[]> {
           updated_at: ownerProfile.created_at,
           profile: {
             id: ownerProfile.id,
-            display_name: ownerProfile.display_name || 'Vamshi Krishna (Super Admin)',
+            display_name: ownerProfile.display_name || 'Super Admin',
             email: ownerProfile.email,
             role: 'platform_admin' as const,
             avatar_url: ownerProfile.avatar_url || null,
@@ -1366,14 +1385,17 @@ export async function getAdminTeam(): Promise<PlatformAdminRecord[]> {
           },
         }]
       }
-    } catch {
-      // Fallback
+      if (error) {
+        throw new Error(error.message || 'Failed to load admin team.')
+      }
+      return []
+    } catch (err: any) {
+      throw new Error(err?.message || 'Failed to load admin team.')
     }
-    return []
   }
 
   try {
-    const stored = localStorage.getItem(MOCK_TEAM_KEY)
+    const stored = localStorage.getItem(LOCAL_TEAM_KEY)
     if (stored) return JSON.parse(stored)
   } catch {
     // Ignore
@@ -1389,16 +1411,25 @@ export async function updateAdminRole(
   adminEmail: string
 ): Promise<void> {
   if (isSupabaseConfigured) {
-    try {
-      const db = supabase as any
-      await db.from('platform_admins').update({
-        role,
-        permissions,
-        updated_at: new Date().toISOString(),
-      }).eq('id', adminRecordId)
-    } catch {
-      // Fallback
+    const db = supabase as any
+    const { error } = await db.from('platform_admins').update({
+      role,
+      permissions,
+      updated_at: new Date().toISOString(),
+    }).eq('id', adminRecordId)
+    if (error) {
+      throw new Error(error.message || 'Failed to update admin role.')
     }
+    await logAdminAction({
+      adminId: 'current_admin',
+      adminEmail,
+      action: 'update_admin_role',
+      targetEntity: 'platform_admins',
+      targetRecordId: adminRecordId,
+      newState: { role, permissions },
+      reason: `Updated administrative role and assigned permissions`,
+    })
+    return
   }
 
   try {
@@ -1408,7 +1439,7 @@ export async function updateAdminRole(
       match.role = role
       match.permissions = permissions
       match.updated_at = new Date().toISOString()
-      localStorage.setItem(MOCK_TEAM_KEY, JSON.stringify(team))
+      localStorage.setItem(LOCAL_TEAM_KEY, JSON.stringify(team))
     }
   } catch {
     // Ignore

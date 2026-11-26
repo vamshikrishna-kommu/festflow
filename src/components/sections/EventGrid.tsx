@@ -43,12 +43,12 @@ export function EventGrid({
       {(title ?? description) && (
         <div className="mb-8">
           {title && (
-            <h2 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-text-primary)] mb-2">
+            <h2 className="font-display font-bold text-2xl sm:text-3xl text-gray-900 mb-2">
               {title}
             </h2>
           )}
           {description && (
-            <p className="text-[var(--color-text-secondary)]">{description}</p>
+            <p className="text-gray-600">{description}</p>
           )}
         </div>
       )}
@@ -61,7 +61,7 @@ export function EventGrid({
             <Search
               size={16}
               aria-hidden="true"
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
             <input
               id="event-search"
@@ -70,7 +70,7 @@ export function EventGrid({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search events"
-              className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-button)] bg-[#14141A] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+              className="w-full h-10 pl-10 pr-4 rounded-lg bg-white border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-3 focus:ring-blue-600/10 transition-colors"
             />
           </div>
 
@@ -87,10 +87,10 @@ export function EventGrid({
                 id={`cat-filter-${value}`}
                 onClick={() => setCategory(value)}
                 aria-pressed={category === value}
-                className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-[var(--radius-pill)] text-xs sm:text-sm font-medium border transition-all duration-200 cursor-pointer ${
+                className={`px-3.5 py-1.5 whitespace-nowrap shrink-0 rounded-full text-xs sm:text-sm font-medium border transition-colors cursor-pointer ${
                   category === value
-                    ? 'bg-[#18CFFC] border-[#18CFFC] text-white shadow-md shadow-[#18CFFC]/20 font-semibold'
-                    : 'bg-[#0E0E12] border-white/10 text-zinc-400 hover:border-[#18CFFC]/40 hover:text-white'
+                    ? 'bg-gray-900 border-gray-900 text-white font-semibold shadow-xs'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
                 }`}
               >
                 {label}
@@ -99,8 +99,8 @@ export function EventGrid({
           </div>
 
           {/* Results count */}
-          <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-            <SlidersHorizontal size={14} aria-hidden="true" />
+          <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+            <SlidersHorizontal size={13} aria-hidden="true" />
             <span>
               {filtered.length} event{filtered.length !== 1 ? 's' : ''} found
             </span>
@@ -129,16 +129,15 @@ export function EventGrid({
         ) : (
           <motion.div
             key="empty"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="py-24 text-center"
+            className="py-16 text-center bg-white border border-gray-200 rounded-xl"
           >
-            <p className="text-4xl mb-4" aria-hidden="true">🔍</p>
-            <p className="font-semibold text-[var(--color-text-primary)] mb-1">
+            <p className="font-semibold text-gray-900 mb-1">
               No events found
             </p>
-            <p className="text-sm text-[var(--color-text-muted)]">
+            <p className="text-sm text-gray-500">
               Try adjusting your search or category filter
             </p>
           </motion.div>

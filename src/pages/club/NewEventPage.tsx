@@ -50,7 +50,7 @@ export default function NewEventPage() {
   if (isRoleLoading) {
     return (
       <PageShell>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-sm text-zinc-400">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-sm text-gray-500">
           Loading club workspace permissions...
         </div>
       </PageShell>
@@ -61,12 +61,12 @@ export default function NewEventPage() {
     return (
       <PageShell>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <Card className="p-6 sm:p-8 flex flex-col items-start gap-4 border-amber-500/20 bg-amber-500/5">
-            <div className="flex items-center gap-3 text-amber-300">
+          <Card className="p-6 sm:p-8 flex flex-col items-start gap-4 border-amber-200 bg-amber-50">
+            <div className="flex items-center gap-3 text-amber-700">
               <ShieldAlert size={22} />
-              <h1 className="text-lg font-semibold text-white">Event Creation Restricted</h1>
+              <h1 className="text-lg font-semibold text-gray-900">Event Creation Restricted</h1>
             </div>
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-gray-700">
               Your current club role{activeClubProfile?.club_name ? ` in ${activeClubProfile.club_name}` : ''} does not include permission to create new events.
             </p>
             <div className="flex flex-wrap gap-3">

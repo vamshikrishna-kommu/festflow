@@ -52,35 +52,35 @@ export function AdminConfirmModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
       <div
-        className="w-full max-w-md bg-[#0D0E15] border border-white/10 rounded-2xl shadow-2xl p-6 relative overflow-hidden"
+        className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-6 relative overflow-hidden"
         role="dialog"
         aria-modal="true"
       >
-        {/* Glow accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-[#ED47FC]" />
+        {/* Top accent */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-rose-600" />
 
         <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
             <ShieldAlert size={20} />
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+            className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
-        <h3 className="text-lg font-bold text-white font-display mb-2">{title}</h3>
-        <p className="text-xs text-white/60 leading-relaxed mb-4">{description}</p>
+        <h3 className="text-lg font-bold text-gray-900 font-display mb-2">{title}</h3>
+        <p className="text-xs text-gray-600 leading-relaxed mb-4">{description}</p>
 
         {requireReason && (
           <div className="space-y-2 mb-4">
-            <label className="text-xs font-medium text-white/70 block">
-              Audit Justification <span className="text-rose-400">*</span>
+            <label className="text-xs font-medium text-gray-700 block">
+              Audit Justification <span className="text-rose-600">*</span>
             </label>
             <textarea
               rows={3}
@@ -90,19 +90,19 @@ export function AdminConfirmModal({
                 if (error) setError(null)
               }}
               placeholder={reasonPlaceholder}
-              className="w-full p-3 bg-white/[0.03] border border-white/10 rounded-xl text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC]/50 transition-colors resize-none"
+              className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors resize-none"
             />
           </div>
         )}
 
         {error && (
-          <div className="p-3 mb-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+          <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
             <AlertTriangle size={14} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+        <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-200">
           <Button variant="ghost" size="sm" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
@@ -111,11 +111,11 @@ export function AdminConfirmModal({
             onClick={handleConfirm}
             disabled={isSubmitting || (requireReason && reason.trim().length < 5)}
             className={`
-              px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all
+              px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all shadow-xs
               ${
                 confirmVariant === 'danger'
-                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20 disabled:opacity-50'
-                  : 'bg-[#18CFFC] hover:bg-[#18CFFC]/90 text-black font-bold shadow-lg shadow-[#18CFFC]/20 disabled:opacity-50'
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50'
               }
             `}
           >

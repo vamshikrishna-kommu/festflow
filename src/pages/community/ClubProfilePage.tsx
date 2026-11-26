@@ -98,8 +98,8 @@ export default function ClubProfilePage() {
     return (
       <PageShell>
         <div className="py-24 flex flex-col items-center justify-center">
-          <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-[#18CFFC] animate-spin mb-4" />
-          <p className="text-xs text-[var(--color-text-muted)] font-mono">Loading club profile…</p>
+          <div className="w-10 h-10 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-4" />
+          <p className="text-xs text-gray-500 font-mono">Loading club profile…</p>
         </div>
       </PageShell>
     )
@@ -108,9 +108,9 @@ export default function ClubProfilePage() {
   if (!club) {
     return (
       <PageShell>
-        <div className="max-w-md mx-auto py-24 text-center p-8 rounded-3xl bg-[#0E0E12] border border-white/[0.08]">
-          <h2 className="text-xl font-bold font-heading text-white mb-2">Club Not Found</h2>
-          <p className="text-xs text-[var(--color-text-muted)] mb-6">
+        <div className="max-w-md mx-auto py-24 text-center p-8 rounded-3xl bg-white border border-gray-200 shadow-xs">
+          <h2 className="text-xl font-bold font-heading text-gray-900 mb-2">Club Not Found</h2>
+          <p className="text-xs text-gray-600 mb-6">
             The student organization you are searching for does not exist or has not yet been approved.
           </p>
           <Link to="/community">
@@ -127,8 +127,8 @@ export default function ClubProfilePage() {
     <PageShell>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left space-y-8">
         {/* Cover Banner */}
-        <div className="relative rounded-3xl overflow-hidden border border-white/[0.08] bg-[#0E0E12] shadow-2xl">
-          <div className="h-44 sm:h-60 w-full relative bg-gradient-to-r from-[#0D56FB]/30 via-[#7F1AFB]/30 to-[#ED47FC]/20">
+        <div className="relative rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-xs">
+          <div className="h-44 sm:h-60 w-full relative bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
             {club.coverUrl ? (
               <img
                 src={club.coverUrl}
@@ -136,17 +136,17 @@ export default function ClubProfilePage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center opacity-30">
-                <Building2 className="w-16 h-16 text-white/50" />
+              <div className="w-full h-full flex items-center justify-center">
+                <Building2 className="w-16 h-16 text-blue-300" />
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E12] via-[#0E0E12]/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
           </div>
 
           {/* Profile Header Details */}
           <div className="px-6 pb-6 sm:px-8 sm:pb-8 pt-0 relative -mt-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-[#08080A] border-2 border-white/20 p-1.5 shadow-2xl overflow-hidden flex-shrink-0">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white border-2 border-gray-200 p-1.5 shadow-md overflow-hidden flex-shrink-0">
                 {club.logoUrl ? (
                   <img
                     src={club.logoUrl}
@@ -154,7 +154,7 @@ export default function ClubProfilePage() {
                     className="w-full h-full object-cover rounded-xl"
                   />
                 ) : (
-                  <div className="w-full h-full rounded-xl bg-gradient-to-br from-[#18CFFC]/20 to-[#7F1AFB]/20 flex items-center justify-center font-heading font-black text-3xl text-white">
+                  <div className="w-full h-full rounded-xl bg-blue-50 flex items-center justify-center font-heading font-black text-3xl text-blue-700">
                     {club.clubName.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -162,42 +162,42 @@ export default function ClubProfilePage() {
 
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-gray-900 tracking-tight">
                     {club.clubName}
                   </h1>
                   {club.isVerified && (
                     <div
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC] text-xs font-semibold shadow-[0_0_12px_rgba(24,207,252,0.15)]"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold"
                       title="Officially recognized and verified campus organization"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>Verified Club</span>
                     </div>
                   )}
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs text-white/70 font-mono">
+                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-700 font-mono">
                     {club.category}
                   </span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-[var(--color-text-muted)] max-w-xl line-clamp-2">
+                <p className="text-xs sm:text-sm text-gray-600 max-w-xl line-clamp-2">
                   {club.description || 'Official student organization hosted on the FestFlow platform.'}
                 </p>
 
                 {/* Follower count & Lead Info */}
-                <div className="flex flex-wrap items-center gap-4 text-xs text-white/60 font-mono pt-1">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 font-mono pt-1">
                   <div className="flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-[#18CFFC]" />
-                    <span className="font-semibold text-white">{followersCount}</span> followers
+                    <Users className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="font-semibold text-gray-900">{followersCount}</span> followers
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-[#ED47FC]" />
-                    <span className="font-semibold text-white">
+                    <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="font-semibold text-gray-900">
                       {(club.upcomingEvents?.length || 0) + (club.pastEvents?.length || 0)}
                     </span>{' '}
                     total events
                   </div>
                   {club.representativeName && (
-                    <span className="text-white/40">Lead: {club.representativeName}</span>
+                    <span className="text-gray-500">Lead: {club.representativeName}</span>
                   )}
                 </div>
               </div>
@@ -210,11 +210,11 @@ export default function ClubProfilePage() {
                 size="md"
                 onClick={handleFollowToggle}
                 disabled={followLoading}
-                className="gap-2 shadow-lg"
+                className="gap-2 shadow-xs"
               >
                 <Heart
                   className={`w-4 h-4 ${
-                    isFollowing ? 'fill-[#ED47FC] text-[#ED47FC]' : 'text-current'
+                    isFollowing ? 'fill-rose-500 text-rose-500' : 'text-current'
                   }`}
                 />
                 {followLoading ? 'Saving…' : isFollowing ? 'Following' : 'Follow Club'}
@@ -224,17 +224,17 @@ export default function ClubProfilePage() {
                 variant="outline"
                 size="md"
                 onClick={handleShare}
-                className="gap-1.5 border-white/10 text-white/80 hover:text-white"
+                className="gap-1.5"
                 title="Share club profile"
               >
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
                 {copied ? 'Copied' : 'Share'}
               </Button>
 
               <button
                 type="button"
                 onClick={() => setReportModalOpen(true)}
-                className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/10 transition-colors"
+                className="p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-colors"
                 title="Report organization"
               >
                 <Flag className="w-4 h-4" />
@@ -244,17 +244,17 @@ export default function ClubProfilePage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-white/[0.08] pb-1 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('upcoming')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'upcoming'
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5 text-[#18CFFC]" />
+            <Calendar className="w-3.5 h-3.5 text-blue-600" />
             Upcoming Events ({club.upcomingEvents?.length || 0})
           </button>
 
@@ -263,11 +263,11 @@ export default function ClubProfilePage() {
             onClick={() => setActiveTab('announcements')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'announcements'
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
-            <Megaphone className="w-3.5 h-3.5 text-[#ED47FC]" />
+            <Megaphone className="w-3.5 h-3.5 text-purple-600" />
             Official Announcements ({club.announcements?.length || 0})
           </button>
 
@@ -276,11 +276,11 @@ export default function ClubProfilePage() {
             onClick={() => setActiveTab('past')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'past'
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
-            <Clock className="w-3.5 h-3.5 text-[#07A4FC]" />
+            <Clock className="w-3.5 h-3.5 text-blue-600" />
             Past Events ({club.pastEvents?.length || 0})
           </button>
 
@@ -289,11 +289,11 @@ export default function ClubProfilePage() {
             onClick={() => setActiveTab('about')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'about'
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
-            <Info className="w-3.5 h-3.5 text-purple-400" />
+            <Info className="w-3.5 h-3.5 text-indigo-600" />
             About & Leadership
           </button>
         </div>
@@ -312,33 +312,33 @@ export default function ClubProfilePage() {
                   return (
                     <div
                       key={evt.id}
-                      className="p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-[#18CFFC]/30 transition-all flex flex-col justify-between space-y-4 shadow-md"
+                      className="p-5 rounded-2xl bg-white border border-gray-200 hover:border-blue-300 transition-all flex flex-col justify-between space-y-4 shadow-xs"
                     >
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-mono text-[var(--color-text-muted)]">
-                          <span className="flex items-center gap-1 text-[#18CFFC]">
+                        <div className="flex items-center justify-between text-xs font-mono text-gray-500">
+                          <span className="flex items-center gap-1 text-blue-600 font-medium">
                             <Calendar className="w-3.5 h-3.5" />
                             {eventDate}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-white/70">
+                          <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
                             {evt.category || 'Event'}
                           </span>
                         </div>
-                        <h3 className="text-base font-bold text-white font-heading hover:text-[#18CFFC] transition-colors">
+                        <h3 className="text-base font-bold text-gray-900 font-heading hover:text-blue-600 transition-colors">
                           <Link to={`/events/${evt.slug || evt.id}`}>{evt.title}</Link>
                         </h3>
-                        <p className="text-xs text-[var(--color-text-muted)] line-clamp-2">
+                        <p className="text-xs text-gray-600 line-clamp-2">
                           {evt.summary || evt.description || 'Join this exciting campus event hosted by ' + club.clubName}
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-                        <span className="text-xs font-mono text-white/60 flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-white/40" />
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                        <span className="text-xs font-mono text-gray-600 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
                           {evt.venue_name || 'Campus Venue'}
                         </span>
                         <Link to={`/events/${evt.slug || evt.id}`}>
-                          <Button variant="outline" size="sm" className="gap-1 border-white/10 text-xs">
+                          <Button variant="outline" size="sm" className="gap-1 text-xs">
                             View & Register
                             <ExternalLink className="w-3 h-3 ml-1" />
                           </Button>
@@ -349,10 +349,10 @@ export default function ClubProfilePage() {
                 })}
               </div>
             ) : (
-              <div className="p-8 rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-center space-y-2">
-                <Sparkles className="w-8 h-8 text-white/20 mx-auto" />
-                <h4 className="text-sm font-semibold text-white">No upcoming events right now</h4>
-                <p className="text-xs text-[var(--color-text-muted)]">
+              <div className="p-8 rounded-2xl bg-white border border-gray-200 text-center space-y-2 shadow-xs">
+                <Sparkles className="w-8 h-8 text-gray-300 mx-auto" />
+                <h4 className="text-sm font-semibold text-gray-900">No upcoming events right now</h4>
+                <p className="text-xs text-gray-500">
                   Follow {club.clubName} to be notified as soon as their next event registrations open.
                 </p>
               </div>
@@ -374,27 +374,27 @@ export default function ClubProfilePage() {
                   return (
                     <div
                       key={evt.id}
-                      className="p-5 rounded-2xl bg-[#0E0E12] border border-white/[0.06] opacity-80 hover:opacity-100 transition-all flex flex-col justify-between space-y-4"
+                      className="p-5 rounded-2xl bg-white border border-gray-200 opacity-90 hover:opacity-100 hover:border-gray-300 transition-all flex flex-col justify-between space-y-4 shadow-xs"
                     >
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-mono text-white/50">
+                        <div className="flex items-center justify-between text-xs font-mono text-gray-500">
                           <span>{eventDate}</span>
-                          <span className="px-2 py-0.5 rounded-full bg-white/[0.04]">Completed</span>
+                          <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Completed</span>
                         </div>
-                        <h3 className="text-base font-bold text-white/90 font-heading">
-                          <Link to={`/events/${evt.slug || evt.id}`} className="hover:text-white">
+                        <h3 className="text-base font-bold text-gray-900 font-heading">
+                          <Link to={`/events/${evt.slug || evt.id}`} className="hover:text-blue-600">
                             {evt.title}
                           </Link>
                         </h3>
-                        <p className="text-xs text-[var(--color-text-muted)] line-clamp-2">
+                        <p className="text-xs text-gray-600 line-clamp-2">
                           {evt.summary || evt.description}
                         </p>
                       </div>
 
-                      <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
-                        <span className="text-xs text-white/40 font-mono">{evt.venue_name || 'Campus Venue'}</span>
+                      <div className="pt-2 border-t border-gray-200 flex items-center justify-between">
+                        <span className="text-xs text-gray-500 font-mono">{evt.venue_name || 'Campus Venue'}</span>
                         <Link to={`/events/${evt.slug || evt.id}`}>
-                          <Button variant="ghost" size="sm" className="text-xs text-white/60">
+                          <Button variant="ghost" size="sm" className="text-xs text-gray-600">
                             Archive Details
                           </Button>
                         </Link>
@@ -404,10 +404,10 @@ export default function ClubProfilePage() {
                 })}
               </div>
             ) : (
-              <div className="p-8 rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-center space-y-2">
-                <Clock className="w-8 h-8 text-white/20 mx-auto" />
-                <h4 className="text-sm font-semibold text-white">No past event archives</h4>
-                <p className="text-xs text-[var(--color-text-muted)]">
+              <div className="p-8 rounded-2xl bg-white border border-gray-200 text-center space-y-2 shadow-xs">
+                <Clock className="w-8 h-8 text-gray-300 mx-auto" />
+                <h4 className="text-sm font-semibold text-gray-900">No past event archives</h4>
+                <p className="text-xs text-gray-500">
                   Completed events and past recaps will appear here.
                 </p>
               </div>
@@ -430,26 +430,26 @@ export default function ClubProfilePage() {
                   return (
                     <div
                       key={ann.id}
-                      className={`p-5 rounded-2xl bg-[#0E0E12] border transition-all space-y-3 ${
+                      className={`p-5 rounded-2xl bg-white border transition-all space-y-3 shadow-xs ${
                         ann.is_pinned
-                          ? 'border-[#ED47FC]/40 shadow-[0_0_20px_rgba(237,71,252,0.06)]'
-                          : 'border-white/[0.08]'
+                          ? 'border-purple-200 bg-purple-50/30'
+                          : 'border-gray-200'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {ann.is_pinned && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#ED47FC]/10 border border-[#ED47FC]/30 text-[#ED47FC] text-[10px] font-mono font-bold uppercase tracking-wider">
+                            <span className="px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-[10px] font-mono font-bold uppercase tracking-wider">
                               Pinned
                             </span>
                           )}
-                          <h4 className="text-sm sm:text-base font-bold text-white font-heading">
+                          <h4 className="text-sm sm:text-base font-bold text-gray-900 font-heading">
                             {ann.title}
                           </h4>
                         </div>
-                        <span className="text-xs font-mono text-[var(--color-text-muted)]">{annDate}</span>
+                        <span className="text-xs font-mono text-gray-500">{annDate}</span>
                       </div>
-                      <p className="text-xs sm:text-sm text-white/80 whitespace-pre-wrap leading-relaxed">
+                      <p className="text-xs sm:text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
                         {ann.content}
                       </p>
                     </div>
@@ -457,10 +457,10 @@ export default function ClubProfilePage() {
                 })}
               </div>
             ) : (
-              <div className="p-8 rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-center space-y-2">
-                <Megaphone className="w-8 h-8 text-white/20 mx-auto" />
-                <h4 className="text-sm font-semibold text-white">No announcements published</h4>
-                <p className="text-xs text-[var(--color-text-muted)]">
+              <div className="p-8 rounded-2xl bg-white border border-gray-200 text-center space-y-2 shadow-xs">
+                <Megaphone className="w-8 h-8 text-gray-300 mx-auto" />
+                <h4 className="text-sm font-semibold text-gray-900">No announcements published</h4>
+                <p className="text-xs text-gray-500">
                   Important club updates, calls for volunteers, and notices will be broadcast here.
                 </p>
               </div>
@@ -471,38 +471,38 @@ export default function ClubProfilePage() {
         {/* Tab 4: About & Leadership */}
         {activeTab === 'about' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 p-6 rounded-2xl bg-[#0E0E12] border border-white/[0.08] space-y-5">
+            <div className="md:col-span-2 p-6 rounded-2xl bg-white border border-gray-200 shadow-xs space-y-5">
               <div>
-                <h3 className="text-sm font-bold text-white font-heading uppercase tracking-wider mb-2">
+                <h3 className="text-sm font-bold text-gray-900 font-heading uppercase tracking-wider mb-2">
                   About Organization
                 </h3>
-                <p className="text-xs sm:text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
                   {club.description ||
                     'This organization is committed to fostering student talent, hosting campus-wide workshops, hackathons, and cultural fests.'}
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-white/[0.06] space-y-3">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider font-heading">
+              <div className="pt-4 border-t border-gray-200 space-y-3">
+                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider font-heading">
                   Leadership & Faculty Coordination
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                    <p className="text-white/40 font-mono text-[10px]">ORGANIZATION REPRESENTATIVE</p>
-                    <p className="text-white font-semibold mt-1">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                    <p className="text-gray-500 font-mono text-[10px]">ORGANIZATION REPRESENTATIVE</p>
+                    <p className="text-gray-900 font-semibold mt-1">
                       {club.representativeName || 'Lead Student Executive'}
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                    <p className="text-white/40 font-mono text-[10px]">CAMPUS AFFILIATION</p>
-                    <p className="text-white font-semibold mt-1">{club.category} Domain</p>
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                    <p className="text-gray-500 font-mono text-[10px]">CAMPUS AFFILIATION</p>
+                    <p className="text-gray-900 font-semibold mt-1">{club.category} Domain</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-[#0E0E12] border border-white/[0.08] space-y-4">
-              <h3 className="text-sm font-bold text-white font-heading uppercase tracking-wider">
+            <div className="p-6 rounded-2xl bg-white border border-gray-200 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-gray-900 font-heading uppercase tracking-wider">
                 Official Links
               </h3>
               <div className="space-y-2 text-xs">
@@ -511,11 +511,11 @@ export default function ClubProfilePage() {
                     href={club.websiteUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/80 hover:text-white hover:border-[#18CFFC]/40 transition-colors"
+                    className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:text-gray-900 hover:border-blue-300 transition-colors"
                   >
-                    <Globe className="w-4 h-4 text-[#18CFFC]" />
+                    <Globe className="w-4 h-4 text-blue-600" />
                     <span className="truncate">Official Website</span>
-                    <ExternalLink className="w-3 h-3 ml-auto text-white/40" />
+                    <ExternalLink className="w-3 h-3 ml-auto text-gray-400" />
                   </a>
                 )}
 
@@ -527,17 +527,17 @@ export default function ClubProfilePage() {
                       href={url}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/80 hover:text-white hover:border-[#ED47FC]/40 transition-colors"
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:text-gray-900 hover:border-purple-300 transition-colors"
                     >
-                      <Globe className="w-4 h-4 text-[#ED47FC]" />
+                      <Globe className="w-4 h-4 text-purple-600" />
                       <span className="capitalize">{network}</span>
-                      <ExternalLink className="w-3 h-3 ml-auto text-white/40" />
+                      <ExternalLink className="w-3 h-3 ml-auto text-gray-400" />
                     </a>
                   )
                 })}
 
                 {!club.websiteUrl && (!club.socialLinks || Object.keys(club.socialLinks).length === 0) && (
-                  <p className="text-xs text-[var(--color-text-muted)] italic">
+                  <p className="text-xs text-gray-500 italic">
                     No external links provided.
                   </p>
                 )}

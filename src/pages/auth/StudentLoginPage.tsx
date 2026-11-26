@@ -8,7 +8,6 @@ import { AuthCard } from '@/components/auth/AuthCard'
 import { PasswordInput } from '@/components/auth/PasswordInput'
 import { GoogleAuthButton, AuthDivider } from '@/components/auth/GoogleAuthButton'
 import { useAuth } from '@/context/AuthContext'
-
 import { getSafeReturnUrl } from '@/lib/safeNavigation'
 
 export default function StudentLoginPage() {
@@ -117,36 +116,36 @@ export default function StudentLoginPage() {
               variants={shakeError}
               initial="idle"
               animate="shake"
-              className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5 text-left"
+              className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 text-left"
             >
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <span>{serverError}</span>
-              {serverError.toLowerCase().includes('email not confirmed') && (
-                <div className="mt-2 pt-2 border-t border-rose-500/20">
-                  {!resendSent ? (
-                    <button
-                      type="button"
-                      disabled={resendLoading || !email.trim()}
-                      onClick={async () => {
-                        if (!email.trim()) return
-                        setResendLoading(true)
-                        const res = await resendVerification(email.trim())
-                        setResendLoading(false)
-                        if (!res.error) setResendSent(true)
-                      }}
-                      className="text-[11px] font-semibold text-rose-200 underline hover:text-white transition-colors"
-                    >
-                      {resendLoading ? 'Dispatching verification link…' : '✉️ Click here to resend verification email'}
-                    </button>
-                  ) : (
-                    <span className="text-[11px] text-emerald-300 font-medium">
-                      ✓ Fresh verification email dispatched! Please check your inbox.
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
+              <div className="flex-1">
+                <span>{serverError}</span>
+                {serverError.toLowerCase().includes('email not confirmed') && (
+                  <div className="mt-2 pt-2 border-t border-rose-200">
+                    {!resendSent ? (
+                      <button
+                        type="button"
+                        disabled={resendLoading || !email.trim()}
+                        onClick={async () => {
+                          if (!email.trim()) return
+                          setResendLoading(true)
+                          const res = await resendVerification(email.trim())
+                          setResendLoading(false)
+                          if (!res.error) setResendSent(true)
+                        }}
+                        className="text-[11px] font-semibold text-rose-700 underline hover:text-rose-900 transition-colors cursor-pointer"
+                      >
+                        {resendLoading ? 'Dispatching verification link…' : 'Click here to resend verification email'}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-emerald-700 font-medium">
+                        Fresh verification email dispatched! Please check your inbox.
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -155,7 +154,7 @@ export default function StudentLoginPage() {
         <div className="flex flex-col gap-1.5 text-left">
           <label
             htmlFor="student-login-email"
-            className="text-xs font-semibold text-[var(--color-text-secondary)]"
+            className="text-xs font-semibold text-gray-700"
           >
             Your Student Email
           </label>
@@ -170,19 +169,19 @@ export default function StudentLoginPage() {
                 setEmail(e.target.value)
                 if (errors.email) setErrors((prev) => ({ ...prev, email: '' }))
               }}
-              className={`w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
+              className={`w-full px-3.5 py-2.5 pl-10 rounded-lg text-sm bg-white text-gray-900 border transition-colors duration-150 outline-none placeholder:text-gray-400 ${
                 errors.email
-                  ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  ? 'border-rose-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-500/15'
+                  : 'border-gray-200 hover:border-gray-300 focus:border-blue-600 focus:ring-3 focus:ring-blue-600/10'
               }`}
             />
             <Mail
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-rose-400">{errors.email}</p>
+            <p className="text-xs text-rose-600">{errors.email}</p>
           )}
         </div>
 
@@ -202,14 +201,13 @@ export default function StudentLoginPage() {
           <div className="flex justify-end mt-1.5">
             <Link
               to="/forgot-password"
-              className="text-xs text-[var(--color-text-muted)] hover:text-[#18CFFC] transition-colors"
+              className="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
             >
               Forgot password?
             </Link>
           </div>
         </div>
 
-        {/* Submit */}
         <Button
           type="submit"
           variant="primary"

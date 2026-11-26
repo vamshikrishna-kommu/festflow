@@ -67,8 +67,8 @@ export default function EventSeatManagementPage() {
     return (
       <PageShell>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-          <Loader2 className="w-8 h-8 text-[#18CFFC] animate-spin" />
-          <p className="text-sm text-[var(--color-text-muted)]">Loading seat management…</p>
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-sm text-gray-500">Loading seat management…</p>
         </div>
       </PageShell>
     )
@@ -78,9 +78,9 @@ export default function EventSeatManagementPage() {
     return (
       <PageShell>
         <div className="max-w-xl mx-auto py-16 px-4 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Event Not Found</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mb-6">{error || 'Unable to load event.'}</p>
+          <AlertCircle className="w-12 h-12 text-rose-600 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Event Not Found</h1>
+          <p className="text-sm text-gray-500 mb-6">{error || 'Unable to load event.'}</p>
           <Link to="/club/events">
             <Button variant="primary">Back to Club Events</Button>
           </Link>
@@ -96,26 +96,26 @@ export default function EventSeatManagementPage() {
         <div className="mb-6">
           <Link
             to="/club/events"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-muted)] hover:text-[#18CFFC] transition-colors mb-3"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Club Events
           </Link>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant={layout?.is_published ? 'success' : 'amber'}>
                   {layout?.is_published ? 'Published Layout' : 'Draft Layout'}
                 </Badge>
-                <span className="text-xs text-[var(--color-text-muted)]">
+                <span className="text-xs text-gray-500">
                   Mode: {event.registration_mode || 'standard'}
                 </span>
                 {!canEdit && (
                   <Badge variant="amber">View Only</Badge>
                 )}
               </div>
-              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
                 Seat Management — {event.title}
               </h1>
             </div>
@@ -140,14 +140,14 @@ export default function EventSeatManagementPage() {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex gap-2 p-1 bg-[var(--color-surface-2)] rounded-xl border border-white/5 w-fit mb-6">
+        <div className="flex gap-1.5 p-1 bg-gray-100 rounded-xl border border-gray-200 w-fit mb-6">
           <button
             type="button"
             onClick={() => setActiveTab('editor')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'editor'
-                ? 'bg-gradient-to-r from-[#18CFFC]/20 to-[#0D56FB]/20 border border-[#18CFFC]/40 text-[#18CFFC]'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                ? 'bg-white border border-gray-200 text-blue-600 shadow-xs font-semibold'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -156,10 +156,10 @@ export default function EventSeatManagementPage() {
           <button
             type="button"
             onClick={() => setActiveTab('live')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'live'
-                ? 'bg-gradient-to-r from-[#18CFFC]/20 to-[#0D56FB]/20 border border-[#18CFFC]/40 text-[#18CFFC]'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                ? 'bg-white border border-gray-200 text-blue-600 shadow-xs font-semibold'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <Users className="w-4 h-4" />
@@ -179,8 +179,8 @@ export default function EventSeatManagementPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-[var(--color-surface-1)] rounded-2xl border border-white/5 p-6">
-              <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Live Availability Map
               </h2>
               {layout?.is_published ? (
@@ -191,7 +191,7 @@ export default function EventSeatManagementPage() {
                   disabled={true}
                 />
               ) : (
-                <div className="p-8 text-center text-[var(--color-text-muted)]">
+                <div className="p-8 text-center text-gray-500">
                   Publish a layout in the Layout Editor tab first to see live availability.
                 </div>
               )}

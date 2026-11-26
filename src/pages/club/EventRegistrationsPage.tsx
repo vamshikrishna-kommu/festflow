@@ -152,6 +152,7 @@ export default function EventRegistrationsPage() {
   const [cancellingAttendee, setCancellingAttendee] = useState<RegistrationWithCheckIn | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [notice, setNotice] = useState<{ message: string; isError?: boolean } | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Multi-Select Bulk Actions State
   const [selectedRegIds, setSelectedRegIds] = useState<string[]>([])
@@ -179,9 +180,11 @@ export default function EventRegistrationsPage() {
   const loadData = async (silent = false) => {
     if (!id || isRoleLoading) return
     if (!silent) setLoading(true)
+    setLoadError(null)
 
     const eventRes = await getEventById(id)
     if (!eventRes.event) {
+      setLoadError(eventRes.error || null)
       setIsAuthorized(false)
       setEvent(null)
       if (!silent) setLoading(false)
@@ -216,6 +219,11 @@ export default function EventRegistrationsPage() {
       getEventCancellationRequests(id),
       getEventEditRequests(id),
     ])
+    const rosterLoadError =
+      checkInRes.error || payRes.error || cancelRes.error || editRes.error || null
+    if (rosterLoadError) {
+      setLoadError(rosterLoadError)
+    }
     if (!silent) setLoading(false)
 
     setEvent(eventRes.event)
@@ -752,8 +760,8 @@ export default function EventRegistrationsPage() {
     return (
       <PageShell>
         <div className="min-h-[60vh] flex flex-col items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[var(--color-brand-purple)] animate-spin mb-3" />
-          <span className="text-xs text-[var(--color-text-muted)]">
+          <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-3" />
+          <span className="text-xs text-gray-500">
             Loading attendee directory…
           </span>
         </div>
@@ -806,16 +814,16 @@ export default function EventRegistrationsPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="p-5 sm:p-7 md:p-8 rounded-3xl border border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#0E0E12] to-[#08080A]"
+          className="p-5 sm:p-7 md:p-8 rounded-3xl border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xs relative overflow-hidden bg-white"
         >
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(24, 207, 252, 0.12) 0%, transparent 65%)' }}
+            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(37, 99, 235, 0.05) 0%, transparent 65%)' }}
           />
           <div className="min-w-0 relative">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-300">
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-700">
                 {event.category}
               </span>
               <Badge
@@ -829,36 +837,36 @@ export default function EventRegistrationsPage() {
                   Team Event
                 </Badge>
               )}
-              <span className="text-xs text-zinc-500 font-mono truncate max-w-[200px]">
+              <span className="text-xs text-gray-400 font-mono truncate max-w-[200px]">
                 /{event.slug}
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-gray-900">
               {event.title}
             </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1 flex items-center gap-2 flex-wrap font-sans">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 flex items-center gap-2 flex-wrap font-sans">
               <span className="flex items-center gap-1">
-                <MapPin size={13} className="text-[#18CFFC]" /> {event.venue_name || 'Campus Venue'}
+                <MapPin size={13} className="text-blue-600" /> {event.venue_name || 'Campus Venue'}
               </span>
-              <span className="text-zinc-600">•</span>
+              <span className="text-gray-300">•</span>
               <span>{formattedEventSchedule}</span>
-              <span className="text-zinc-600">•</span>
-              <span className="font-semibold text-white font-mono">
+              <span className="text-gray-300">•</span>
+              <span className="font-semibold text-gray-900 font-mono">
                 {event.is_free ? 'Free Admission' : `₹${event.price} Pass`}
               </span>
             </p>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-white/[0.08] relative">
+          <div className="flex items-center gap-2 sm:gap-2 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-gray-200 relative">
             {/* CSV Attendee Import Button (locked for concluded/cancelled events or read-only roles) */}
             {!isRosterReadOnly && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setImportModalOpen(true)}
-                leftIcon={<Upload size={14} className="text-[#18CFFC]" />}
-                className="border-[#18CFFC]/30 hover:border-[#18CFFC] hover:bg-[#18CFFC]/10 text-white font-semibold shadow-sm"
+                leftIcon={<Upload size={14} className="text-blue-600" />}
+                className="border-blue-200 hover:border-blue-300 hover:bg-blue-50 text-blue-700 font-semibold shadow-xs"
               >
                 Import CSV
               </Button>
@@ -870,8 +878,8 @@ export default function EventRegistrationsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setExportModalOpen(true)}
-                leftIcon={<Download size={14} className="text-emerald-400" />}
-                className="border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-300 font-semibold shadow-sm"
+                leftIcon={<Download size={14} className="text-emerald-600" />}
+                className="border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-semibold shadow-xs"
               >
                 Export Excel
               </Button>
@@ -883,7 +891,7 @@ export default function EventRegistrationsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCouponsModalOpen(true)}
-                leftIcon={<Tag size={13} className="text-amber-400" />}
+                leftIcon={<Tag size={13} className="text-amber-600" />}
               >
                 Coupons
               </Button>
@@ -895,7 +903,7 @@ export default function EventRegistrationsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setTeamModalOpen(true)}
-                leftIcon={<Users size={13} className="text-purple-400" />}
+                leftIcon={<Users size={13} className="text-indigo-600" />}
               >
                 Staff Roles
               </Button>
@@ -907,7 +915,7 @@ export default function EventRegistrationsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setFeedbackModalOpen(true)}
-                leftIcon={<Star size={13} className="text-amber-400" />}
+                leftIcon={<Star size={13} className="text-amber-600" />}
               >
                 Feedback
               </Button>
@@ -921,7 +929,6 @@ export default function EventRegistrationsPage() {
                 onClick={handleAutoPromoteAllWaitlisted}
                 disabled={actionLoading}
                 leftIcon={<UserCheck size={13} />}
-                className="bg-gradient-to-r from-[#18CFFC] to-[#0D56FB]"
               >
                 Promote Waitlist ({filterCounts.waitlisted})
               </Button>
@@ -933,7 +940,7 @@ export default function EventRegistrationsPage() {
                   variant="primary"
                   size="sm"
                   leftIcon={<CreditCard size={13} />}
-                  className="bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-semibold shadow-sm"
+                  className="font-semibold shadow-xs"
                 >
                   Payments
                 </Button>
@@ -970,6 +977,20 @@ export default function EventRegistrationsPage() {
           </Alert>
         ) : null}
 
+        {loadError && (
+          <Alert variant="error">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-sm">Unable to load complete roster data</p>
+                <p className="text-xs opacity-90">{loadError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => loadData(true)}>
+                Retry
+              </Button>
+            </div>
+          </Alert>
+        )}
+
         {/* Temporary Notice */}
         {notice && (
           <Alert
@@ -989,72 +1010,72 @@ export default function EventRegistrationsPage() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
         >
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+            <span className="text-xs text-gray-500 font-medium block mb-1">
               Confirmed Passes
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-emerald-400">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-emerald-600">
                 {confirmedCount}
               </span>
-              <span className="text-xs text-[var(--color-text-muted)] font-mono">
+              <span className="text-xs text-gray-500 font-mono">
                 / {event.capacity} seats ({fillPercent}%)
               </span>
             </div>
-            <div className="w-full h-1 bg-[var(--color-surface-3)] rounded-full overflow-hidden mt-3">
+            <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-3">
               <div
-                className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                 style={{ width: `${fillPercent}%` }}
               />
             </div>
           </Card>
 
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+            <span className="text-xs text-gray-500 font-medium block mb-1">
               Under Host Review
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-[#C084FC]">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-indigo-600">
                 {pendingApprovalCount}
               </span>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-gray-500">
                 {pendingApprovalCount > 0 ? 'Action required' : 'All clear'}
               </span>
             </div>
-            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+            <span className="text-[11px] text-gray-500 mt-2">
               Requires organizer decision
             </span>
           </Card>
 
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+            <span className="text-xs text-gray-500 font-medium block mb-1">
               Waitlist & Cancelled
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-[var(--color-brand-cyan)]">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-blue-600">
                 {waitlistCount}
               </span>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-gray-500">
                 {cancelledCount} cancelled / rejected
               </span>
             </div>
-            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+            <span className="text-[11px] text-gray-500 mt-2">
               Queue & revoked entries
             </span>
           </Card>
 
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+            <span className="text-xs text-gray-500 font-medium block mb-1">
               Payment Pending / Unpaid
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-amber-400">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-amber-600">
                 {pendingPaymentCount}
               </span>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-gray-500">
                 Awaiting student UTR
               </span>
             </div>
-            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+            <span className="text-[11px] text-gray-500 mt-2">
               Reserved seats awaiting verification
             </span>
           </Card>
@@ -1062,7 +1083,7 @@ export default function EventRegistrationsPage() {
 
         {/* ── Search, Filter & Controls Panel ──────────────────────────────── */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 p-4 bg-[var(--color-surface-1)] rounded-2xl border border-[oklch(100%_0_0_/_0.08)] shadow-sm">
+          <div className="flex flex-col gap-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-xs">
             {/* Row 1: Search & Status Tabs */}
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 text-xs no-scrollbar touch-pan-x">
@@ -1088,16 +1109,16 @@ export default function EventRegistrationsPage() {
                     onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
                     className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 min-h-[36px] flex items-center gap-1.5 ${
                       statusFilter === tab.id
-                        ? 'bg-[var(--color-brand-purple)] text-white shadow-sm font-semibold'
-                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]'
+                        ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
                     <span>{tab.label}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                         statusFilter === tab.id
-                          ? 'bg-black/25 text-white'
-                          : 'bg-[var(--color-surface-3)] text-[var(--color-text-muted)]'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-gray-100 text-gray-600'
                       }`}
                     >
                       {tab.count}
@@ -1113,17 +1134,17 @@ export default function EventRegistrationsPage() {
                   placeholder="Search attendee, email, team, roll, or ticket…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-10 px-3.5 pl-9 pr-8 rounded-xl text-xs bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] focus:border-[var(--color-brand-purple)] outline-none"
+                  className="w-full h-10 px-3.5 pl-9 pr-8 rounded-xl text-xs bg-white text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none"
                 />
                 <Search
                   size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
                   >
                     <X size={14} />
                   </button>
@@ -1132,9 +1153,9 @@ export default function EventRegistrationsPage() {
             </div>
 
             {/* Row 2: Secondary Multi-Filters & Sorters */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-[oklch(100%_0_0_/_0.06)] text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-gray-200 text-xs">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold text-[var(--color-text-muted)] flex items-center gap-1 mr-1">
+                <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1 mr-1">
                   <Filter size={12} /> Filters:
                 </span>
 
@@ -1143,7 +1164,7 @@ export default function EventRegistrationsPage() {
                   <select
                     value={paymentFilter}
                     onChange={(e) => setPaymentFilter(e.target.value as any)}
-                    className="px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] outline-none text-xs"
+                    className="px-2.5 py-1.5 rounded-lg bg-white text-gray-900 border border-gray-200 focus:border-blue-600 outline-none text-xs"
                   >
                     <option value="all">Payment: All</option>
                     <option value="paid">Paid & Verified</option>
@@ -1157,7 +1178,7 @@ export default function EventRegistrationsPage() {
                   <select
                     value={participationFilter}
                     onChange={(e) => setParticipationFilter(e.target.value as any)}
-                    className="px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] outline-none text-xs"
+                    className="px-2.5 py-1.5 rounded-lg bg-white text-gray-900 border border-gray-200 focus:border-blue-600 outline-none text-xs"
                   >
                     <option value="all">Participation: All</option>
                     <option value="team">Team Entries</option>
@@ -1170,7 +1191,7 @@ export default function EventRegistrationsPage() {
                   <button
                     type="button"
                     onClick={clearAllFilters}
-                    className="text-xs text-[var(--color-brand-cyan)] hover:underline px-2 py-1"
+                    className="text-xs text-blue-600 hover:underline px-2 py-1"
                   >
                     Reset Filters
                   </button>
@@ -1179,13 +1200,13 @@ export default function EventRegistrationsPage() {
 
               {/* Sorting & Page Size Controls */}
               <div className="flex items-center gap-2 ml-auto">
-                <span className="text-[11px] font-semibold text-[var(--color-text-muted)] flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1">
                   <ArrowUpDown size={12} /> Sort:
                 </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] outline-none text-xs"
+                  className="px-2.5 py-1.5 rounded-lg bg-white text-gray-900 border border-gray-200 focus:border-blue-600 outline-none text-xs"
                 >
                   <option value="newest">Registration: Newest</option>
                   <option value="oldest">Registration: Oldest</option>
@@ -1197,7 +1218,7 @@ export default function EventRegistrationsPage() {
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="px-2 py-1.5 rounded-lg bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[oklch(100%_0_0_/_0.08)] outline-none text-xs"
+                  className="px-2 py-1.5 rounded-lg bg-white text-gray-900 border border-gray-200 focus:border-blue-600 outline-none text-xs"
                 >
                   <option value={10}>10 / page</option>
                   <option value={25}>25 / page</option>
@@ -1247,17 +1268,17 @@ export default function EventRegistrationsPage() {
                   const isRejected = reg.status === 'rejected'
 
                   return (
-                    <Card key={reg.id} className="p-4 flex flex-col gap-3 border border-[oklch(100%_0_0_/_0.08)]">
+                    <Card key={reg.id} className="p-4 flex flex-col gap-3 border border-gray-200">
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-9 h-9 rounded-full bg-[var(--color-surface-3)] text-xs font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
+                          <span className="w-9 h-9 rounded-full bg-indigo-50 text-xs font-bold flex items-center justify-center text-indigo-600 shrink-0">
                             {((reg.student?.display_name || reg.team_name || 'A').replace(/^Team\s+/i, '') || 'A').charAt(0).toUpperCase()}
                           </span>
                           <div className="min-w-0">
-                            <span className="font-semibold text-sm text-[var(--color-text-primary)] block truncate">
+                            <span className="font-semibold text-sm text-gray-900 block truncate">
                               {reg.student?.display_name || (reg.team_name ? `Team ${reg.team_name}` : 'Student Attendee')}
                             </span>
-                            <span className="text-xs text-[var(--color-text-muted)] block truncate">
+                            <span className="text-xs text-gray-500 block truncate">
                               {reg.student?.email || 'No email registered'}
                             </span>
                           </div>
@@ -1290,26 +1311,26 @@ export default function EventRegistrationsPage() {
                       </div>
 
                       {reg.team_name && (
-                        <div className="text-xs text-[var(--color-brand-purple)] flex items-center gap-1 font-medium bg-[var(--color-surface-2)] p-2 rounded-lg">
+                        <div className="text-xs text-indigo-700 flex items-center gap-1 font-medium bg-indigo-50/70 border border-indigo-100 p-2 rounded-lg">
                           <Users size={12} className="shrink-0" />
                           <span className="truncate">Team: {reg.team_name}</span>
                           {Array.isArray((reg as any).team_members) && (reg as any).team_members.length > 0 && (
-                            <span className="text-[10px] text-[var(--color-text-muted)] shrink-0">
+                            <span className="text-[10px] text-indigo-600 shrink-0">
                               ({(reg as any).team_members.length + 1} members)
                             </span>
                           )}
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] pt-1">
-                        <span className="flex items-center gap-1 font-mono text-[11px] text-[var(--color-brand-cyan)]">
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
+                        <span className="flex items-center gap-1 font-mono text-[11px] text-blue-600">
                           <Ticket size={12} />
                           {reg.ticket_code}
                         </span>
                         <span>{formatExcelDateTime(reg.created_at)}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-surface-3)] flex-wrap">
+                      <div className="flex items-center gap-2 pt-2 border-t border-gray-200 flex-wrap">
                         {reg.cancellation_request_status === 'pending' && !isRosterReadOnly ? (
                           <Button
                             variant="primary"
@@ -1337,7 +1358,7 @@ export default function EventRegistrationsPage() {
                                 updated_at: new Date().toISOString(),
                               })
                             }}
-                            className="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs min-h-[40px] flex-1"
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs min-h-[40px] flex-1"
                           >
                             Review Cancellation
                           </Button>
@@ -1350,7 +1371,7 @@ export default function EventRegistrationsPage() {
                               setReviewDecision('approved')
                               setRejectionReason('')
                             }}
-                            className="bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium flex-1 justify-center text-xs min-h-[40px]"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium flex-1 justify-center text-xs min-h-[40px]"
                           >
                             Review Application
                           </Button>
@@ -1378,7 +1399,7 @@ export default function EventRegistrationsPage() {
                               setSelectedEditAttendee(reg)
                               setSelectedEditReq(match || null)
                             }}
-                            className="text-[#18CFFC] border-[#18CFFC]/40 text-xs min-h-[40px]"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs min-h-[40px]"
                           >
                             Review Edit
                           </Button>
@@ -1390,7 +1411,7 @@ export default function EventRegistrationsPage() {
                             size="sm"
                             onClick={() => handleOfferSlot(reg.id)}
                             disabled={actionLoading}
-                            className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 text-xs min-h-[40px]"
+                            className="text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs min-h-[40px]"
                           >
                             Offer Slot (24h)
                           </Button>
@@ -1422,7 +1443,7 @@ export default function EventRegistrationsPage() {
                                 updated_at: new Date().toISOString(),
                               })
                             }}
-                            className="text-xs text-rose-400 hover:text-rose-300 border-rose-500/20 min-h-[40px]"
+                            className="text-xs text-rose-600 hover:text-rose-700 border-rose-200 hover:bg-rose-50 min-h-[40px]"
                           >
                             Cancel Pass
                           </Button>
@@ -1434,11 +1455,11 @@ export default function EventRegistrationsPage() {
               </div>
 
               {/* Desktop Table View (>= md) */}
-              <div className="hidden md:block glass rounded-2xl border border-[oklch(100%_0_0_/_0.08)] overflow-hidden shadow-sm">
+              <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 text-[var(--color-text-muted)] uppercase tracking-wider text-[10px]">
+                      <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 uppercase tracking-wider text-[10px]">
                         <th className="py-3.5 px-3 w-8">
                           <input
                             type="checkbox"
@@ -1448,7 +1469,7 @@ export default function EventRegistrationsPage() {
                               paginatedRegistrations.every((r) => selectedRegIds.includes(r.id))
                             }
                             onChange={toggleSelectAllPage}
-                            className="rounded bg-white/10 border-white/20 text-[#18CFFC] focus:ring-[#18CFFC] cursor-pointer"
+                            className="rounded bg-white border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </th>
                         <th className="py-3.5 px-4 font-semibold">Attendee / Team</th>
@@ -1458,7 +1479,7 @@ export default function EventRegistrationsPage() {
                         <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--color-surface-3)]">
+                    <tbody className="divide-y divide-gray-200">
                       {paginatedRegistrations.map((reg) => {
                         const isConfirmed = reg.status === 'confirmed'
                         const isPendingApproval = reg.status === 'pending_approval'
@@ -1469,8 +1490,8 @@ export default function EventRegistrationsPage() {
                         return (
                           <tr
                             key={reg.id}
-                            className={`hover:bg-[var(--color-surface-2)]/40 transition-colors ${
-                              selectedRegIds.includes(reg.id) ? 'bg-[#18CFFC]/5' : ''
+                            className={`hover:bg-gray-50 transition-colors ${
+                              selectedRegIds.includes(reg.id) ? 'bg-blue-50/50' : ''
                             }`}
                           >
                             <td className="py-3.5 px-3 w-8">
@@ -1479,12 +1500,12 @@ export default function EventRegistrationsPage() {
                                 aria-label={`Select ${reg.student?.display_name || 'attendee'}`}
                                 checked={selectedRegIds.includes(reg.id)}
                                 onChange={() => toggleSelectRow(reg.id)}
-                                className="rounded bg-white/10 border-white/20 text-[#18CFFC] focus:ring-[#18CFFC] cursor-pointer"
+                                className="rounded bg-white border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </td>
-                            <td className="py-3.5 px-4 font-medium text-[var(--color-text-primary)]">
+                            <td className="py-3.5 px-4 font-medium text-gray-900">
                               <div className="flex items-center gap-2.5">
-                                <span className="w-7 h-7 rounded-full bg-[var(--color-surface-3)] text-[10px] font-bold flex items-center justify-center text-[var(--color-brand-purple)] shrink-0">
+                                <span className="w-7 h-7 rounded-full bg-indigo-50 text-[10px] font-bold flex items-center justify-center text-indigo-600 shrink-0">
                                   {((reg.student?.display_name || reg.team_name || 'A').replace(/^Team\s+/i, '') || 'A').charAt(0).toUpperCase()}
                                 </span>
                                 <div>
@@ -1492,11 +1513,11 @@ export default function EventRegistrationsPage() {
                                     {reg.student?.display_name || (reg.team_name ? `Team ${reg.team_name}` : 'Student Attendee')}
                                   </span>
                                   {reg.team_name && (
-                                    <div className="text-[11px] text-[var(--color-brand-purple)] flex items-center gap-1 font-normal">
+                                    <div className="text-[11px] text-indigo-600 flex items-center gap-1 font-normal">
                                       <Users size={11} />
                                       <span>Team: {reg.team_name}</span>
                                       {Array.isArray((reg as any).team_members) && (reg as any).team_members.length > 0 && (
-                                        <span className="text-[10px] text-[var(--color-text-muted)]">
+                                        <span className="text-[10px] text-gray-500">
                                           ({(reg as any).team_members.length + 1} total)
                                         </span>
                                       )}
@@ -1505,12 +1526,12 @@ export default function EventRegistrationsPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3.5 px-4 text-[var(--color-text-secondary)]">
+                            <td className="py-3.5 px-4 text-gray-600">
                               {reg.student?.email || '—'}
                             </td>
-                            <td className="py-3.5 px-4 font-mono font-bold text-[var(--color-text-primary)]">
+                            <td className="py-3.5 px-4 font-mono font-bold text-gray-900">
                               <span className="flex items-center gap-1 text-[11px]">
-                                <Ticket size={13} className="text-[var(--color-brand-cyan)]" />
+                                <Ticket size={13} className="text-blue-600" />
                                 {reg.ticket_code}
                               </span>
                             </td>
@@ -1550,7 +1571,7 @@ export default function EventRegistrationsPage() {
                                     size="sm"
                                     onClick={() => handlePromoteWaitlisted(reg.id)}
                                     disabled={actionLoading}
-                                    className="bg-[#18CFFC] hover:bg-[#07A4FC] text-black font-semibold text-[11px] py-1 px-2.5 h-auto"
+                                    className="font-semibold text-[11px] py-1 px-2.5 h-auto"
                                   >
                                     Promote
                                   </Button>
@@ -1583,7 +1604,7 @@ export default function EventRegistrationsPage() {
                                         updated_at: new Date().toISOString(),
                                       })
                                     }}
-                                    className="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-[11px] py-1 px-2.5 h-auto"
+                                    className="bg-amber-500 hover:bg-amber-600 text-white font-semibold text-[11px] py-1 px-2.5 h-auto"
                                   >
                                     Review Cancellation
                                   </Button>
@@ -1596,7 +1617,7 @@ export default function EventRegistrationsPage() {
                                       setReviewDecision('approved')
                                       setRejectionReason('')
                                     }}
-                                    className="bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium text-[11px] py-1 px-2.5 h-auto"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-[11px] py-1 px-2.5 h-auto"
                                   >
                                     Review
                                   </Button>
@@ -1608,7 +1629,7 @@ export default function EventRegistrationsPage() {
                                       setReviewDecision('approved')
                                       setRejectionReason('')
                                     }}
-                                    className="text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2.5 py-1 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors font-medium cursor-pointer"
+                                    className="text-[11px] text-gray-600 hover:text-gray-900 px-2.5 py-1 rounded-lg hover:bg-gray-100 transition-colors font-medium cursor-pointer"
                                   >
                                     Details
                                   </button>
@@ -1622,7 +1643,7 @@ export default function EventRegistrationsPage() {
                                       setSelectedEditAttendee(reg)
                                       setSelectedEditReq(match || null)
                                     }}
-                                    className="text-[11px] text-[#18CFFC] hover:text-[#07A4FC] font-medium px-2 py-1 transition-colors hover:bg-[#18CFFC]/10 rounded-lg cursor-pointer"
+                                    className="text-[11px] text-blue-600 hover:text-blue-700 font-medium px-2 py-1 transition-colors hover:bg-blue-50 rounded-lg cursor-pointer"
                                   >
                                     Review Edit
                                   </button>
@@ -1633,7 +1654,7 @@ export default function EventRegistrationsPage() {
                                     type="button"
                                     onClick={() => handleOfferSlot(reg.id)}
                                     disabled={actionLoading}
-                                    className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium px-2 py-1 transition-colors hover:bg-emerald-500/10 rounded-lg cursor-pointer"
+                                    className="text-[11px] text-emerald-700 hover:text-emerald-800 font-medium px-2 py-1 transition-colors hover:bg-emerald-50 rounded-lg cursor-pointer"
                                   >
                                     Offer Slot
                                   </button>
@@ -1664,7 +1685,7 @@ export default function EventRegistrationsPage() {
                                         updated_at: new Date().toISOString(),
                                       })
                                     }}
-                                    className="text-[11px] text-rose-400 hover:text-rose-300 font-medium px-2 py-1 transition-colors hover:bg-rose-500/10 rounded-lg cursor-pointer"
+                                    className="text-[11px] text-rose-600 hover:text-rose-700 font-medium px-2 py-1 transition-colors hover:bg-rose-50 rounded-lg cursor-pointer"
                                   >
                                     Cancel
                                   </button>
@@ -1681,13 +1702,13 @@ export default function EventRegistrationsPage() {
 
               {/* ── Floating Bulk Actions Bar (Part 9) ────────────────────── */}
               {selectedRegIds.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0E0E12]/95 border border-[#18CFFC]/50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 text-xs backdrop-blur-md">
-                  <span className="font-semibold text-white flex items-center gap-1.5 whitespace-nowrap">
-                    <CheckCheck size={16} className="text-[#18CFFC]" />
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 border border-blue-200 px-5 py-3 rounded-2xl shadow-lg flex items-center gap-4 text-xs backdrop-blur-md">
+                  <span className="font-semibold text-gray-900 flex items-center gap-1.5 whitespace-nowrap">
+                    <CheckCheck size={16} className="text-blue-600" />
                     {selectedRegIds.length} {selectedRegIds.length === 1 ? 'Attendee' : 'Attendees'} Selected
                   </span>
 
-                  <div className="h-4 w-px bg-white/20 hidden sm:block" />
+                  <div className="h-4 w-px bg-gray-200 hidden sm:block" />
 
                   <div className="flex items-center gap-2 flex-wrap">
                     {!isRosterReadOnly && (
@@ -1697,7 +1718,7 @@ export default function EventRegistrationsPage() {
                         onClick={handleBulkApprove}
                         disabled={actionLoading}
                         leftIcon={<Check size={13} />}
-                        className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                        className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
                       >
                         Bulk Approve
                       </Button>
@@ -1709,7 +1730,7 @@ export default function EventRegistrationsPage() {
                         variant="outline"
                         onClick={handleBulkExport}
                         leftIcon={<Download size={13} />}
-                        className="text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/10"
+                        className="text-blue-700 border-blue-200 hover:bg-blue-50"
                       >
                         Export Selected
                       </Button>
@@ -1722,7 +1743,7 @@ export default function EventRegistrationsPage() {
                         onClick={handleBulkCancel}
                         disabled={actionLoading}
                         leftIcon={<X size={13} />}
-                        className="text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                        className="text-rose-700 border-rose-200 hover:bg-rose-50"
                       >
                         Bulk Cancel
                       </Button>
@@ -1732,7 +1753,7 @@ export default function EventRegistrationsPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => setSelectedRegIds([])}
-                      className="text-zinc-400 hover:text-white"
+                      className="text-gray-500 hover:text-gray-900"
                     >
                       Clear
                     </Button>
@@ -1742,8 +1763,8 @@ export default function EventRegistrationsPage() {
 
               {/* ── Pagination Controls ─────────────────────────────────────── */}
               {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-[var(--color-surface-1)] rounded-xl border border-[oklch(100%_0_0_/_0.06)] text-xs">
-                  <span className="text-[var(--color-text-muted)] text-[11px]">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-gray-200 text-xs">
+                  <span className="text-gray-500 text-[11px]">
                     Page {currentPage} of {totalPages} ({totalItems} records)
                   </span>
 
@@ -1774,8 +1795,8 @@ export default function EventRegistrationsPage() {
                             onClick={() => setCurrentPage(pageNum)}
                             className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
                               currentPage === pageNum
-                                ? 'bg-[var(--color-brand-purple)] text-white font-bold'
-                                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)]'
+                                ? 'bg-blue-600 text-white font-semibold'
+                                : 'text-gray-600 hover:bg-gray-100'
                             }`}
                           >
                             {pageNum}
@@ -1812,10 +1833,10 @@ export default function EventRegistrationsPage() {
             {selectedAttendee && (
               <div className="flex flex-col gap-4 text-left max-h-[75vh] overflow-y-auto pr-1">
                 {/* Header Sub-bar */}
-                <div className="flex items-center justify-between pb-3 border-b border-[var(--color-surface-3)]">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-[var(--color-text-muted)]">
-                      Ticket Ref: <strong className="text-[var(--color-brand-cyan)]">{selectedAttendee.ticket_code}</strong>
+                    <span className="text-xs font-mono text-gray-500">
+                      Ticket Ref: <strong className="text-blue-600">{selectedAttendee.ticket_code}</strong>
                     </span>
                     <button
                       type="button"
@@ -1826,10 +1847,10 @@ export default function EventRegistrationsPage() {
                           setTimeout(() => setCopiedToken(false), 2000)
                         }
                       }}
-                      className="text-[var(--color-text-muted)] hover:text-white transition-colors"
+                      className="text-gray-400 hover:text-gray-700 transition-colors"
                       title="Copy Ticket Reference"
                     >
-                      {copiedToken ? <CheckCheck size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                      {copiedToken ? <CheckCheck size={13} className="text-emerald-600" /> : <Copy size={13} />}
                     </button>
                   </div>
 
@@ -1852,32 +1873,32 @@ export default function EventRegistrationsPage() {
                 </div>
 
                 {/* Primary Attendee Identity Details */}
-                <div className="p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] space-y-2.5 text-xs">
-                  <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2.5 text-xs">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
                     Applicant / Primary Attendee
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[var(--color-text-secondary)]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-600">
                     <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">Full Name:</span>
-                      <strong className="text-[var(--color-text-primary)] font-semibold text-sm">
+                      <span className="text-gray-500 block text-[11px]">Full Name:</span>
+                      <strong className="text-gray-900 font-semibold text-sm">
                         {selectedAttendee.student?.display_name || (selectedAttendee.team_name ? `Team ${selectedAttendee.team_name}` : 'Student Attendee')}
                       </strong>
                     </div>
                     <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">Verified Email:</span>
-                      <strong className="text-[var(--color-text-primary)] font-medium">
+                      <span className="text-gray-500 block text-[11px]">Verified Email:</span>
+                      <strong className="text-gray-900 font-medium">
                         {selectedAttendee.student?.email || '—'}
                       </strong>
                     </div>
                     <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">Registration ID:</span>
-                      <span className="font-mono text-[var(--color-text-muted)] text-[11px]">
+                      <span className="text-gray-500 block text-[11px]">Registration ID:</span>
+                      <span className="font-mono text-gray-500 text-[11px]">
                         {selectedAttendee.id}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[var(--color-text-muted)] block text-[11px]">Registered At:</span>
-                      <strong className="text-[var(--color-text-primary)] font-medium">
+                      <span className="text-gray-500 block text-[11px]">Registered At:</span>
+                      <strong className="text-gray-900 font-medium">
                         {formatExcelDateTime(selectedAttendee.created_at)}
                       </strong>
                     </div>
@@ -1886,11 +1907,11 @@ export default function EventRegistrationsPage() {
 
                 {/* Team Roster: Leader & Members Distinctly Displayed */}
                 {selectedAttendee.team_name && (
-                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-3">
+                  <div className="p-4 rounded-2xl bg-white border border-gray-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Users size={16} className="text-[var(--color-brand-purple)]" />
-                        <h4 className="text-xs font-bold text-[var(--color-text-primary)]">
+                        <Users size={16} className="text-indigo-600" />
+                        <h4 className="text-xs font-bold text-gray-900">
                           Team Roster: {selectedAttendee.team_name}
                         </h4>
                       </div>
@@ -1900,25 +1921,25 @@ export default function EventRegistrationsPage() {
                     </div>
 
                     {/* Distinct Team Leader Card */}
-                    <div className="p-3 rounded-xl bg-[var(--color-brand-purple)]/10 border border-[var(--color-brand-purple)]/30 text-xs">
+                    <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 text-xs">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--color-brand-purple)] text-white">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-600 text-white">
                           Team Leader
                         </span>
-                        <span className="text-[11px] font-mono text-[var(--color-brand-cyan)] font-semibold">
+                        <span className="text-[11px] font-mono text-blue-600 font-semibold">
                           {selectedAttendee.ticket_code}
                         </span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[var(--color-text-secondary)]">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-gray-600">
                         <div>
-                          <span className="text-[10px] text-[var(--color-text-muted)]">Leader Name:</span>
-                          <p className="font-semibold text-[var(--color-text-primary)]">
+                          <span className="text-[10px] text-gray-500">Leader Name:</span>
+                          <p className="font-semibold text-gray-900">
                             {selectedAttendee.student?.display_name || 'Leader'}
                           </p>
                         </div>
                         <div>
-                          <span className="text-[10px] text-[var(--color-text-muted)]">Email:</span>
-                          <p className="font-medium text-[var(--color-text-primary)] truncate">
+                          <span className="text-[10px] text-gray-500">Email:</span>
+                          <p className="font-medium text-gray-900 truncate">
                             {selectedAttendee.student?.email || '—'}
                           </p>
                         </div>
@@ -1928,36 +1949,36 @@ export default function EventRegistrationsPage() {
                     {/* Distinct Squad Members List */}
                     {Array.isArray((selectedAttendee as any).team_members) && (selectedAttendee as any).team_members.length > 0 ? (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
                           Squad Members ({(selectedAttendee as any).team_members.length})
                         </span>
                         <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                           {(selectedAttendee as any).team_members.map((member: any, mIdx: number) => (
                             <div
                               key={mIdx}
-                              className="p-3 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.06)] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                              className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                             >
                               <div>
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-surface-3)] text-[var(--color-text-muted)] font-medium">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600 font-medium">
                                     Member #{mIdx + 1}
                                   </span>
-                                  <strong className="text-[var(--color-text-primary)] font-semibold">
+                                  <strong className="text-gray-900 font-semibold">
                                     {member.name}
                                   </strong>
                                 </div>
-                                <span className="text-[var(--color-text-secondary)] text-[11px] block">
+                                <span className="text-gray-600 text-[11px] block">
                                   {member.email}
                                 </span>
                                 {member.phone && (
-                                  <span className="text-[10px] text-[var(--color-text-muted)] block">
+                                  <span className="text-[10px] text-gray-500 block">
                                     Phone: {member.phone}
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[11px] text-[var(--color-text-muted)] sm:text-right shrink-0">
+                              <div className="text-[11px] text-gray-500 sm:text-right shrink-0">
                                 {member.ticket_code && (
-                                  <div className="font-mono text-[var(--color-brand-cyan)] font-semibold">
+                                  <div className="font-mono text-blue-600 font-semibold">
                                     {member.ticket_code}
                                   </div>
                                 )}
@@ -1969,7 +1990,7 @@ export default function EventRegistrationsPage() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-[var(--color-text-muted)] italic">
+                      <p className="text-[11px] text-gray-500 italic">
                         No additional team members listed.
                       </p>
                     )}
@@ -1978,10 +1999,10 @@ export default function EventRegistrationsPage() {
 
                 {/* Custom Registration-Question Responses (Actual Labels & Values) */}
                 {selectedAttendee.custom_responses && Object.keys(selectedAttendee.custom_responses).length > 0 && (
-                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-3">
-                    <h4 className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="p-4 rounded-2xl bg-white border border-gray-200 space-y-3">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                       <span>Custom Registration Questionnaire</span>
-                      <span className="text-[10px] text-[var(--color-text-muted)] font-normal">
+                      <span className="text-[10px] text-gray-500 font-normal">
                         ({Object.keys(selectedAttendee.custom_responses).length} responses)
                       </span>
                     </h4>
@@ -1995,11 +2016,11 @@ export default function EventRegistrationsPage() {
                         else if (v !== null && v !== undefined && String(v).trim() !== '') displayVal = String(v)
 
                         return (
-                          <div key={k} className="p-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.04)]">
-                            <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider block font-semibold truncate mb-0.5">
+                          <div key={k} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-wider block font-semibold truncate mb-0.5">
                               {questionLabel}
                             </span>
-                            <span className="text-[var(--color-text-primary)] font-medium text-xs break-words">
+                            <span className="text-gray-900 font-medium text-xs break-words">
                               {displayVal}
                             </span>
                           </div>
@@ -2011,9 +2032,9 @@ export default function EventRegistrationsPage() {
 
                 {/* Payment Review Details (Authorized Organizers) */}
                 {!event.is_free && isAuthorized && (
-                  <div className="p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.06)] space-y-2 text-xs">
+                  <div className="p-4 rounded-2xl bg-white border border-gray-200 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
                         Payment Review & Financial Audit
                       </span>
                       <Badge
@@ -2031,35 +2052,35 @@ export default function EventRegistrationsPage() {
                         {reviewingPayment?.status ? reviewingPayment.status.replace('_', ' ') : 'Unpaid / Awaiting Proof'}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[var(--color-text-secondary)]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-600">
                       <div>
-                        <span className="text-[var(--color-text-muted)] block text-[11px]">UTR / Transaction Ref:</span>
-                        <strong className="text-[var(--color-text-primary)] font-mono text-[11px]">
+                        <span className="text-gray-500 block text-[11px]">UTR / Transaction Ref:</span>
+                        <strong className="text-gray-900 font-mono text-[11px]">
                           {reviewingPayment?.transaction_reference || (reviewingPayment as any)?.utr_number || '—'}
                         </strong>
                       </div>
                       <div>
-                        <span className="text-[var(--color-text-muted)] block text-[11px]">Amount Due / Paid:</span>
-                        <strong className="text-amber-400 font-semibold">
+                        <span className="text-gray-500 block text-[11px]">Amount Due / Paid:</span>
+                        <strong className="text-amber-600 font-semibold">
                           ₹{reviewingPayment?.amount || event.price || 0}
                         </strong>
                       </div>
                       <div>
-                        <span className="text-[var(--color-text-muted)] block text-[11px]">Proof Submitted At:</span>
-                        <span className="text-[var(--color-text-primary)] font-medium">
+                        <span className="text-gray-500 block text-[11px]">Proof Submitted At:</span>
+                        <span className="text-gray-900 font-medium">
                           {reviewingPayment?.created_at ? formatExcelDateTime(reviewingPayment.created_at) : '—'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[var(--color-text-muted)] block text-[11px]">Organizer Reviewed At:</span>
-                        <span className="text-[var(--color-text-primary)] font-medium">
+                        <span className="text-gray-500 block text-[11px]">Organizer Reviewed At:</span>
+                        <span className="text-gray-900 font-medium">
                           {reviewingPayment?.reviewed_at ? formatExcelDateTime(reviewingPayment.reviewed_at) : '—'}
                         </span>
                       </div>
                       {reviewingPayment?.review_notes && (
-                        <div className="sm:col-span-2 p-2 rounded-lg bg-[var(--color-surface-2)]">
-                          <span className="text-[10px] text-[var(--color-text-muted)] block">Review Notes / Remarks:</span>
-                          <span className="text-[var(--color-text-primary)]">{reviewingPayment.review_notes}</span>
+                        <div className="sm:col-span-2 p-2 rounded-lg bg-gray-50 border border-gray-200">
+                          <span className="text-[10px] text-gray-500 block">Review Notes / Remarks:</span>
+                          <span className="text-gray-900">{reviewingPayment.review_notes}</span>
                         </div>
                       )}
                     </div>
@@ -2068,15 +2089,15 @@ export default function EventRegistrationsPage() {
 
                 {/* Rejection Note if already rejected */}
                 {selectedAttendee.status === 'rejected' && (selectedAttendee as any).rejection_reason && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
-                    <strong className="block font-semibold mb-0.5">Application Rejection Reason:</strong>
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+                    <strong className="block font-semibold mb-0.5 text-rose-900">Application Rejection Reason:</strong>
                     {(selectedAttendee as any).rejection_reason}
                   </div>
                 )}
 
                 {/* Review Controls for pending_approval */}
                 {selectedAttendee.status === 'pending_approval' && !isRosterReadOnly && (
-                  <div className="space-y-3 pt-3 border-t border-[var(--color-surface-3)]">
+                  <div className="space-y-3 pt-3 border-t border-gray-200">
                     <div className="flex items-center gap-4 text-xs">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -2085,9 +2106,9 @@ export default function EventRegistrationsPage() {
                           value="approved"
                           checked={reviewDecision === 'approved'}
                           onChange={() => setReviewDecision('approved')}
-                          className="text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)]"
+                          className="text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-[var(--color-text-primary)] font-semibold">
+                        <span className="text-gray-900 font-semibold">
                           Approve Application {event.is_free ? '(Issues Pass)' : '(Requests Payment)'}
                         </span>
                       </label>
@@ -2099,9 +2120,9 @@ export default function EventRegistrationsPage() {
                           value="rejected"
                           checked={reviewDecision === 'rejected'}
                           onChange={() => setReviewDecision('rejected')}
-                          className="text-rose-500 focus:ring-rose-500"
+                          className="text-rose-600 focus:ring-rose-500"
                         />
-                        <span className="text-rose-300 font-semibold">
+                        <span className="text-rose-700 font-semibold">
                           Reject Application
                         </span>
                       </label>
@@ -2109,7 +2130,7 @@ export default function EventRegistrationsPage() {
 
                     {reviewDecision === 'rejected' && (
                       <div className="space-y-1">
-                        <label className="block text-[11px] font-semibold text-rose-300">
+                        <label className="block text-[11px] font-semibold text-rose-700">
                           Rejection Reason (Shared with Student)
                         </label>
                         <textarea
@@ -2117,7 +2138,7 @@ export default function EventRegistrationsPage() {
                           value={rejectionReason}
                           onChange={(e) => setRejectionReason(e.target.value)}
                           placeholder="e.g. Ineligible year of study, missing prerequisites, or team capacity not met…"
-                          className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-rose-500/30 text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-rose-400"
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-rose-300 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15"
                         />
                       </div>
                     )}
@@ -2169,18 +2190,18 @@ export default function EventRegistrationsPage() {
         >
           <ModalBody>
             <div className="flex flex-col gap-3 text-left">
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              <p className="text-xs text-gray-600 leading-relaxed">
                 Choose an official Excel workbook to download. All files are generated with frozen headers, automatic column widths, zebra striping, and formula injection protection.
               </p>
 
               <div className="grid grid-cols-1 gap-2.5 pt-1">
                 {/* 1. Full Attendee List */}
-                <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-3">
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <strong className="text-sm text-[var(--color-text-primary)] block font-semibold">
+                    <strong className="text-sm text-gray-900 block font-semibold">
                       Full Attendee Directory
                     </strong>
-                    <span className="text-xs text-[var(--color-text-muted)] block">
+                    <span className="text-xs text-gray-500 block">
                       All registered students, contact info, custom question answers, and ticket codes ({registrations.length} records).
                     </span>
                   </div>
@@ -2191,7 +2212,7 @@ export default function EventRegistrationsPage() {
                     disabled={Boolean(exportingType) || registrations.length === 0}
                     isLoading={exportingType === 'full'}
                     leftIcon={<Download size={14} />}
-                    className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white"
+                    className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
                     Download
                   </Button>
@@ -2199,12 +2220,12 @@ export default function EventRegistrationsPage() {
 
                 {/* 2. Historical Attendance Archive (if prior session records exist) */}
                 {checkIns.length > 0 && (
-                  <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <strong className="text-sm text-[var(--color-text-primary)] block font-semibold">
+                      <strong className="text-sm text-gray-900 block font-semibold">
                         Historical Attendance Archive
                       </strong>
-                      <span className="text-xs text-[var(--color-text-muted)] block">
+                      <span className="text-xs text-gray-500 block">
                         Archived check-in timestamps recorded for prior sessions ({checkIns.length} records).
                       </span>
                     </div>
@@ -2215,7 +2236,7 @@ export default function EventRegistrationsPage() {
                       disabled={Boolean(exportingType) || registrations.length === 0}
                       isLoading={exportingType === 'attendance'}
                       leftIcon={<Download size={14} />}
-                      className="shrink-0 bg-[var(--color-brand-cyan)] hover:bg-cyan-400 text-black font-semibold"
+                      className="shrink-0 font-semibold"
                     >
                       Download
                     </Button>
@@ -2224,12 +2245,12 @@ export default function EventRegistrationsPage() {
 
                 {/* 3. Squads & Team Rosters (If Team Event) */}
                 {event.participation_type === 'team' && (
-                  <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <strong className="text-sm text-[var(--color-text-primary)] block font-semibold">
+                      <strong className="text-sm text-gray-900 block font-semibold">
                         Squads & Team Membership Rosters
                       </strong>
-                      <span className="text-xs text-[var(--color-text-muted)] block">
+                      <span className="text-xs text-gray-500 block">
                         Team leaders and members displayed distinctly with squad roles and individual codes.
                       </span>
                     </div>
@@ -2240,7 +2261,7 @@ export default function EventRegistrationsPage() {
                       disabled={Boolean(exportingType) || registrations.length === 0}
                       isLoading={exportingType === 'teams'}
                       leftIcon={<Download size={14} />}
-                      className="shrink-0 bg-[#7F1AFB] hover:bg-[#6814D0] text-white font-medium"
+                      className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
                     >
                       Download
                     </Button>
@@ -2249,12 +2270,12 @@ export default function EventRegistrationsPage() {
 
                 {/* 4. Payment Reconciliation (Authorized Organizers on Paid Events) */}
                 {!event.is_free && canViewPayments && (
-                  <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <strong className="text-sm text-[var(--color-text-primary)] block font-semibold">
+                      <strong className="text-sm text-gray-900 block font-semibold">
                         Payment Reconciliation & UTR Audit
                       </strong>
-                      <span className="text-xs text-[var(--color-text-muted)] block">
+                      <span className="text-xs text-gray-500 block">
                         12-digit UPI UTR references, approval history, reviewer notes, and amounts ({payments.length} transactions).
                       </span>
                     </div>
@@ -2294,27 +2315,27 @@ export default function EventRegistrationsPage() {
         >
           <ModalBody>
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 text-rose-400">
-                <div className="p-2.5 rounded-xl bg-rose-500/15">
+              <div className="flex items-center gap-3 text-rose-600">
+                <div className="p-2.5 rounded-xl bg-rose-50">
                   <AlertTriangle size={24} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h4 className="font-bold text-sm text-gray-900">
                     Revoke Entry Pass
                   </h4>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                  <p className="text-xs text-gray-500">
                     This invalidates the student&apos;s official registration pass.
                   </p>
                 </div>
               </div>
 
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
+              <p className="text-xs text-gray-600 leading-relaxed mt-1">
                 Are you sure you want to cancel the registration for{' '}
-                <strong className="text-[var(--color-text-primary)]">
+                <strong className="text-gray-900">
                   {cancellingAttendee?.student?.display_name ||
                     (cancellingAttendee?.team_name ? `Team ${cancellingAttendee?.team_name}` : 'Attendee')}
                 </strong>{' '}
-                (Ticket Code: <code className="text-white font-mono">{cancellingAttendee?.ticket_code}</code>)?
+                (Ticket Code: <code className="text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded font-mono">{cancellingAttendee?.ticket_code}</code>)?
                 Their seat will be released and their registration pass will be voided.
               </p>
             </div>
@@ -2412,8 +2433,8 @@ export default function EventRegistrationsPage() {
         >
           <ModalBody>
             <div className="flex flex-col gap-4 text-left">
-              <p className="text-xs text-zinc-400">
-                Upload or paste a comma-separated roster (.csv) containing attendee details. Required columns: <code className="text-[#18CFFC]">Name</code>, <code className="text-[#18CFFC]">Email</code>. Optional: <code className="text-zinc-300">Phone</code>, <code className="text-zinc-300">College</code>.
+              <p className="text-xs text-gray-600">
+                Upload or paste a comma-separated roster (.csv) containing attendee details. Required columns: <code className="text-blue-600 font-semibold">Name</code>, <code className="text-blue-600 font-semibold">Email</code>. Optional: <code className="text-gray-800 font-medium">Phone</code>, <code className="text-gray-800 font-medium">College</code>.
               </p>
 
               <div className="flex flex-col gap-2">
@@ -2421,46 +2442,46 @@ export default function EventRegistrationsPage() {
                   type="file"
                   accept=".csv,text/csv"
                   onChange={handleCsvFileInput}
-                  className="text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#18CFFC]/20 file:text-[#18CFFC] hover:file:bg-[#18CFFC]/30 cursor-pointer"
+                  className="text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                 />
 
-                <span className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">or paste CSV rows directly:</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">or paste CSV rows directly:</span>
                 <textarea
                   rows={4}
                   value={csvRawText}
                   onChange={(e) => handleParseCsv(e.target.value)}
-                  placeholder={`Name,Email,Phone,College\nRahul Sharma,rahul@college.edu,9876543210,Anurag University\nPriya Patel,priya@institute.edu,9123456789,JNTU`}
-                  className="w-full p-2.5 rounded-xl bg-[#08080A] border border-white/10 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-[#18CFFC] resize-none"
+                  placeholder={`Name,Email,Phone,College\nFull Name,student@college.edu,10-digit phone,Institution Name`}
+                  className="w-full p-2.5 rounded-xl bg-white border border-gray-200 text-xs font-mono text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 resize-none"
                 />
               </div>
 
               {csvPreviewRows.length > 0 && (
-                <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                <div className="flex flex-col gap-2 pt-2 border-t border-gray-200">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-300 font-semibold">
+                    <span className="text-gray-700 font-semibold">
                       Parsed {csvPreviewRows.length} Rows:
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-400 text-[11px] font-mono">
+                      <span className="text-emerald-600 text-[11px] font-mono">
                         ✓ {csvPreviewRows.filter((r) => r.isValid).length} Valid
                       </span>
-                      <span className="text-rose-400 text-[11px] font-mono">
+                      <span className="text-rose-600 text-[11px] font-mono">
                         ✗ {csvPreviewRows.filter((r) => !r.isValid).length} Duplicates / Errors
                       </span>
                     </div>
                   </div>
 
-                  <div className="max-h-48 overflow-y-auto rounded-xl border border-white/5 divide-y divide-white/5">
+                  <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-200">
                     {csvPreviewRows.map((row, idx) => (
                       <div
                         key={idx}
                         className={`p-2 flex items-center justify-between gap-2 text-xs ${
-                          row.isValid ? 'bg-white/[0.02]' : 'bg-rose-500/[0.06]'
+                          row.isValid ? 'bg-white' : 'bg-rose-50'
                         }`}
                       >
                         <div className="min-w-0">
-                          <span className="font-semibold text-white block truncate">{row.name}</span>
-                          <span className="text-[10px] text-zinc-400 block truncate">{row.email}</span>
+                          <span className="font-semibold text-gray-900 block truncate">{row.name}</span>
+                          <span className="text-[10px] text-gray-500 block truncate">{row.email}</span>
                         </div>
                         {row.isValid ? (
                           <Badge variant="success" className="text-[10px]">Valid Attendee</Badge>

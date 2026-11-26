@@ -57,11 +57,12 @@ export async function getEventWaitlist(
         .eq('status', 'waitlisted')
         .order('created_at', { ascending: true })
 
-      if (!error && data) {
-        return { waitlist: data as RegistrationWithStudent[] }
+      if (error) {
+        return { waitlist: [], error: error.message }
       }
+      return { waitlist: (data as RegistrationWithStudent[]) || [] }
     } catch (e: any) {
-      console.warn('[FestFlow Waitlist] Supabase query note:', e.message)
+      return { waitlist: [], error: e?.message || 'Failed to load waitlist.' }
     }
   }
 
@@ -117,16 +118,17 @@ export async function joinEventWaitlist(params: {
         .select()
         .single()
 
-      if (!error && data) {
-        broadcastStatusChange({
-          type: 'registration_updated',
-          eventId: params.eventId,
-          registrationId: data.id,
-        })
-        return { registration: data }
+      if (error || !data) {
+        return { error: error?.message || 'Failed to join event waitlist.' }
       }
+      broadcastStatusChange({
+        type: 'registration_updated',
+        eventId: params.eventId,
+        registrationId: data.id,
+      })
+      return { registration: data }
     } catch (e: any) {
-      console.warn('[FestFlow Waitlist] Insert note, persisting locally:', e.message)
+      return { error: e?.message || 'Failed to join event waitlist.' }
     }
   }
 

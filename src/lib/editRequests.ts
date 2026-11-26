@@ -257,7 +257,7 @@ export async function reviewRegistrationEdit(params: {
 // ── Query Edit Requests ──────────────────────────────────────────────────────
 export async function getStudentEditRequests(
   studentId: string
-): Promise<{ success: boolean; requests: RegistrationEditRequestRecord[] }> {
+): Promise<{ success: boolean; requests: RegistrationEditRequestRecord[]; error?: string }> {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -266,11 +266,12 @@ export async function getStudentEditRequests(
         .eq('student_id', studentId)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        return { success: true, requests: data as RegistrationEditRequestRecord[] }
+      if (error) {
+        return { success: false, requests: [], error: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, requests: (data as RegistrationEditRequestRecord[]) || [] }
+    } catch (err: any) {
+      return { success: false, requests: [], error: err?.message || 'Failed to load edit requests.' }
     }
   }
 
@@ -280,7 +281,7 @@ export async function getStudentEditRequests(
 
 export async function getEventEditRequests(
   eventId: string
-): Promise<{ success: boolean; requests: RegistrationEditRequestRecord[] }> {
+): Promise<{ success: boolean; requests: RegistrationEditRequestRecord[]; error?: string }> {
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -289,11 +290,12 @@ export async function getEventEditRequests(
         .eq('event_id', eventId)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        return { success: true, requests: data as RegistrationEditRequestRecord[] }
+      if (error) {
+        return { success: false, requests: [], error: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, requests: (data as RegistrationEditRequestRecord[]) || [] }
+    } catch (err: any) {
+      return { success: false, requests: [], error: err?.message || 'Failed to load edit requests.' }
     }
   }
 

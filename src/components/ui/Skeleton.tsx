@@ -16,7 +16,7 @@ export function Skeleton({
   ...props
 }: SkeletonProps) {
   const variantStyles: Record<NonNullable<SkeletonProps['variant']>, string> = {
-    text: 'h-4 w-full rounded-md',
+    text: 'h-4 w-full rounded',
     circular: 'rounded-full',
     rectangular: 'rounded-xl',
     card: 'rounded-[var(--radius-card)]',
@@ -31,7 +31,7 @@ export function Skeleton({
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse bg-[var(--color-surface-2)]/80 border border-[oklch(100%_0_0_/_0.04)] ${variantStyles[variant]} ${className}`}
+      className={`animate-pulse bg-gray-200/80 ${variantStyles[variant]} ${className}`}
       style={computedStyle}
       {...props}
     />
@@ -42,16 +42,16 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={`rounded-[var(--radius-card)] bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.065)] p-4 flex flex-col gap-3.5 animate-pulse ${className}`}
+      className={`rounded-[var(--radius-card)] bg-white border border-gray-200/80 p-4 flex flex-col gap-3.5 animate-pulse shadow-xs ${className}`}
     >
-      <Skeleton variant="rectangular" className="h-44 w-full rounded-xl" />
+      <Skeleton variant="rectangular" className="h-44 w-full rounded-xl bg-gray-200" />
       <div className="space-y-2">
-        <Skeleton variant="text" className="w-1/3 h-3" />
-        <Skeleton variant="text" className="w-3/4 h-5" />
+        <Skeleton variant="text" className="w-1/3 h-3 bg-gray-200" />
+        <Skeleton variant="text" className="w-3/4 h-5 bg-gray-200" />
       </div>
       <div className="flex items-center justify-between pt-2">
-        <Skeleton variant="text" className="w-1/4 h-3.5" />
-        <Skeleton variant="text" className="w-1/4 h-4 rounded-full" />
+        <Skeleton variant="text" className="w-1/4 h-3.5 bg-gray-200" />
+        <Skeleton variant="text" className="w-1/4 h-4 rounded-full bg-gray-200" />
       </div>
     </div>
   )
@@ -70,7 +70,7 @@ export function SkeletonText({
         <Skeleton
           key={i}
           variant="text"
-          className={`h-3.5 ${i === lines - 1 ? 'w-2/3' : 'w-full'}`}
+          className={`h-3.5 bg-gray-200 ${i === lines - 1 ? 'w-2/3' : 'w-full'}`}
         />
       ))}
     </div>

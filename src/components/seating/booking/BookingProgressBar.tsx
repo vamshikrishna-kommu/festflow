@@ -37,23 +37,23 @@ export function BookingProgressBar({ currentStage, isFreeEvent }: BookingProgres
             <div key={s.stage} className="flex-1 flex items-center">
               <div className="flex flex-col items-center flex-1">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
                     isDone
-                      ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                      ? 'bg-emerald-600 text-white shadow-xs'
                       : isCurrent
-                        ? 'bg-gradient-to-r from-[#18CFFC] to-[#0D56FB] text-black ring-4 ring-[#18CFFC]/20 font-black'
-                        : 'bg-white/10 text-white/40 border border-white/10'
+                        ? 'bg-blue-600 text-white ring-4 ring-blue-600/15 font-bold'
+                        : 'bg-gray-100 text-gray-500 border border-gray-200'
                   }`}
                 >
-                  {isDone ? <Check className="w-4 h-4 stroke-[3]" /> : idx + 1}
+                  {isDone ? <Check className="w-4 h-4 stroke-[2.5]" /> : idx + 1}
                 </div>
                 <span
-                  className={`text-[11px] mt-1.5 font-medium tracking-wide transition-colors ${
+                  className={`text-[11px] mt-1.5 font-medium tracking-tight transition-colors ${
                     isCurrent
-                      ? 'text-[#18CFFC]'
+                      ? 'text-blue-700 font-semibold'
                       : isDone
-                        ? 'text-emerald-400'
-                        : 'text-[var(--color-text-muted)]'
+                        ? 'text-emerald-700'
+                        : 'text-gray-500'
                   }`}
                 >
                   {s.label.replace(/^\d+\.\s*/, '')}
@@ -62,8 +62,8 @@ export function BookingProgressBar({ currentStage, isFreeEvent }: BookingProgres
 
               {idx < steps.length - 1 && (
                 <div
-                  className={`h-0.5 flex-1 mx-2 -mt-5 transition-colors duration-300 ${
-                    idx < currentIdx ? 'bg-emerald-500' : 'bg-white/10'
+                  className={`h-0.5 flex-1 mx-2 -mt-5 transition-colors duration-200 ${
+                    idx < currentIdx ? 'bg-emerald-600' : 'bg-gray-200'
                   }`}
                 />
               )}
@@ -74,4 +74,3 @@ export function BookingProgressBar({ currentStage, isFreeEvent }: BookingProgres
     </div>
   )
 }
-

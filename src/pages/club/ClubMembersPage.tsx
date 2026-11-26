@@ -67,6 +67,7 @@ export default function ClubMembersPage() {
   const [auditLogs, setAuditLogs] = useState<ClubAuditLogRecord[]>([])
   const [userRole, setUserRole] = useState<ClubRole | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
   // Tab State
@@ -148,6 +149,7 @@ export default function ClubMembersPage() {
     }
     if (!silent) setLoading(true)
     else setRefreshing(true)
+    setLoadError(null)
 
     const roleRes = await getUserClubRole(clubId, user.id)
     const resolvedRole = roleRes || activeClubRole || (globalRole === 'platform_admin' ? 'owner' : null)
@@ -164,13 +166,15 @@ export default function ClubMembersPage() {
 
     const [membersRes, invitesRes, logsRes] = await Promise.all([
       getClubMembers(clubId),
-      canInviteMembers ? getClubInvitations(clubId) : Promise.resolve({ invitations: [] }),
+      canInviteMembers ? getClubInvitations(clubId) : Promise.resolve({ invitations: [], error: null }),
       getClubAuditLogs(clubId),
     ])
 
     if (!silent) setLoading(false)
     else setRefreshing(false)
 
+    const teamLoadError = membersRes.error || (invitesRes as { error?: string | null }).error || logsRes.error || null
+    setLoadError(teamLoadError)
     setMembers(membersRes.members)
     setInvitations(invitesRes.invitations)
     setAuditLogs(logsRes.logs)
@@ -354,8 +358,8 @@ export default function ClubMembersPage() {
     return (
       <PageShell>
         <div className="py-24 flex flex-col items-center justify-center text-center">
-          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
-          <span className="text-xs text-[var(--color-text-muted)] font-medium">
+          <div className="w-9 h-9 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-3" />
+          <span className="text-xs text-gray-500 font-medium">
             Loading team roster and role authorization…
           </span>
         </div>
@@ -438,7 +442,6 @@ export default function ClubMembersPage() {
                     setInviteModalOpen(true)
                   }}
                   leftIcon={<UserPlus size={14} />}
-                  className="bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-medium shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
                 >
                   Invite Staff Member
                 </Button>
@@ -446,6 +449,20 @@ export default function ClubMembersPage() {
             </div>
           }
         />
+
+        {loadError && (
+          <Alert variant="error">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-sm">Unable to load team roster or logs</p>
+                <p className="text-xs opacity-90">{loadError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => loadData()}>
+                Retry
+              </Button>
+            </div>
+          </Alert>
+        )}
 
         {/* Temporary Notification Notice */}
         {notice && (
@@ -466,50 +483,50 @@ export default function ClubMembersPage() {
           className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
         >
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+            <span className="text-xs text-gray-500 font-medium block mb-1">
               Active Team Members
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-emerald-400">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-emerald-600">
                 {members.length}
               </span>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-gray-500">
                 Authorized staff
               </span>
             </div>
-            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+            <span className="text-[11px] text-gray-500 mt-2">
               Assigned least-privilege roles
             </span>
           </Card>
 
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+            <span className="text-xs text-gray-500 font-medium block mb-1">
               Pending Invitations
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-bold font-display text-amber-400">
+              <span className="text-2xl sm:text-3xl font-bold font-display text-amber-600">
                 {pendingCount}
               </span>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-gray-500">
                 Awaiting acceptance
               </span>
             </div>
-            <span className="text-[11px] text-[var(--color-text-muted)] mt-2">
+            <span className="text-[11px] text-gray-500 mt-2">
               Valid for 7 days from dispatch
             </span>
           </Card>
 
           <Card className="p-4 sm:p-5 flex flex-col justify-between">
-            <span className="text-xs text-[var(--color-text-muted)] font-medium block mb-1">
+            <span className="text-xs text-gray-500 font-medium block mb-1">
               Your Permission Tier
             </span>
             <div className="flex items-baseline justify-between">
-              <span className="text-xl sm:text-2xl font-bold font-display text-[#18CFFC] truncate">
+              <span className="text-xl sm:text-2xl font-bold font-display text-blue-600 truncate">
                 {effectiveUserRole ? ROLE_LABELS[effectiveUserRole] : 'Restricted'}
               </span>
-              <ShieldCheck size={18} className="text-[#18CFFC] shrink-0" />
+              <ShieldCheck size={18} className="text-blue-600 shrink-0" />
             </div>
-            <span className="text-[11px] text-[var(--color-text-muted)] mt-2 truncate">
+            <span className="text-[11px] text-gray-500 mt-2 truncate">
               {effectiveUserRole
                 ? ROLE_DESCRIPTIONS[effectiveUserRole]
                 : 'No active organization role assigned.'}
@@ -518,14 +535,14 @@ export default function ClubMembersPage() {
         </motion.div>
 
         {/* Tab Navigation Controls */}
-        <div className="flex items-center gap-1.5 p-1 bg-[var(--color-surface-2)] rounded-xl border border-[oklch(100%_0_0_/_0.06)] w-fit text-xs">
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl border border-gray-200 w-fit text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('members')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'members'
-                ? 'bg-[var(--color-surface-3)] text-white font-semibold shadow-sm'
-                : 'text-[var(--color-text-secondary)] hover:text-white'
+                ? 'bg-white text-gray-900 font-semibold shadow-xs border border-gray-200'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <Users size={14} />
@@ -536,16 +553,16 @@ export default function ClubMembersPage() {
             <button
               type="button"
               onClick={() => setActiveTab('invitations')}
-              className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'invitations'
-                  ? 'bg-[var(--color-surface-3)] text-white font-semibold shadow-sm'
-                  : 'text-[var(--color-text-secondary)] hover:text-white'
+                  ? 'bg-white text-gray-900 font-semibold shadow-xs border border-gray-200'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Mail size={14} />
               <span>Invitations ({invitations.length})</span>
               {pendingCount > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
               )}
             </button>
           )}
@@ -553,10 +570,10 @@ export default function ClubMembersPage() {
           <button
             type="button"
             onClick={() => setActiveTab('audit')}
-            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'audit'
-                ? 'bg-[var(--color-surface-3)] text-white font-semibold shadow-sm'
-                : 'text-[var(--color-text-secondary)] hover:text-white'
+                ? 'bg-white text-gray-900 font-semibold shadow-xs border border-gray-200'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <History size={14} />
@@ -603,25 +620,25 @@ export default function ClubMembersPage() {
                   return (
                     <Card
                       key={member.id}
-                      className="p-4 flex flex-col justify-between gap-3 border-[var(--color-surface-3)] hover:border-[#18CFFC]/40 transition-colors"
+                      className="p-4 flex flex-col justify-between gap-3 border-gray-200 hover:border-blue-300 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-10 h-10 rounded-full bg-[#1E1E26] text-xs font-bold font-display flex items-center justify-center text-[#18CFFC] border border-white/10 shrink-0">
+                          <span className="w-10 h-10 rounded-full bg-blue-50 text-xs font-bold font-display flex items-center justify-center text-blue-700 border border-blue-200 shrink-0">
                             {memberName.charAt(0).toUpperCase()}
                           </span>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate block">
+                              <span className="font-semibold text-sm text-gray-900 truncate block">
                                 {memberName}
                               </span>
                               {isSelf && (
-                                <span className="text-[10px] px-1 rounded bg-[var(--color-surface-3)] text-[var(--color-text-muted)]">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
                                   You
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs text-[var(--color-text-muted)] truncate block">
+                            <span className="text-xs text-gray-500 truncate block">
                               {memberEmail}
                             </span>
                           </div>
@@ -635,11 +652,11 @@ export default function ClubMembersPage() {
                         </Badge>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-[var(--color-surface-2)] text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
+                      <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[11px] text-gray-600 leading-relaxed">
                         <p>{ROLE_DESCRIPTIONS[member.role]}</p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-[var(--color-surface-3)] text-[11px] text-[var(--color-text-muted)] gap-2">
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-[11px] text-gray-500 gap-2">
                         <span>Joined: {formatExcelDateTime(member.created_at)}</span>
 
                         {!isSelf && (
@@ -648,7 +665,7 @@ export default function ClubMembersPage() {
                               <button
                                 type="button"
                                 onClick={() => setTransferTarget(member)}
-                                className="text-amber-300 hover:text-amber-200 px-2 py-1 rounded hover:bg-amber-500/10 transition-colors flex items-center gap-1"
+                                className="text-amber-700 hover:text-amber-800 px-2 py-1 rounded hover:bg-amber-50 transition-colors flex items-center gap-1 cursor-pointer"
                                 title="Transfer primary club ownership to this staff member"
                               >
                                 <Crown size={11} />
@@ -669,7 +686,7 @@ export default function ClubMembersPage() {
                                         : assignableRoles[0] || 'viewer'
                                     )
                                   }}
-                                  className="text-[var(--color-text-secondary)] hover:text-white px-2 py-1 rounded hover:bg-[var(--color-surface-3)] transition-colors"
+                                  className="text-gray-600 hover:text-gray-900 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-pointer"
                                 >
                                   Edit Role
                                 </button>
@@ -680,7 +697,7 @@ export default function ClubMembersPage() {
                                 <button
                                   type="button"
                                   onClick={() => setRemovingMember(member)}
-                                  className="text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors"
+                                  className="text-rose-600 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
                                   title="Revoke access and remove from team"
                                 >
                                   Remove
@@ -727,11 +744,11 @@ export default function ClubMembersPage() {
                 }
               />
             ) : (
-              <div className="glass rounded-2xl border border-[oklch(100%_0_0_/_0.08)] overflow-hidden shadow-sm">
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 text-[var(--color-text-muted)] uppercase tracking-wider text-[10px]">
+                      <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 uppercase tracking-wider text-[10px]">
                         <th className="py-3 px-4 font-semibold">Recipient Email</th>
                         <th className="py-3 px-4 font-semibold">Designated Role</th>
                         <th className="py-3 px-4 font-semibold">Status</th>
@@ -740,7 +757,7 @@ export default function ClubMembersPage() {
                         <th className="py-3 px-4 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--color-surface-3)]">
+                    <tbody className="divide-y divide-gray-100">
                       {invitations.map((inv) => {
                         const isPending = inv.status === 'pending'
                         const isAccepted = inv.status === 'accepted'
@@ -748,10 +765,10 @@ export default function ClubMembersPage() {
                         const isRevoked = inv.status === 'revoked'
 
                         return (
-                          <tr key={inv.id} className="hover:bg-white/[0.03] transition-colors">
-                            <td className="py-3 px-4 font-medium text-[var(--color-text-primary)]">
+                          <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="py-3 px-4 font-medium text-gray-900">
                               <div className="flex items-center gap-2">
-                                <Mail size={13} className="text-[#18CFFC]" />
+                                <Mail size={13} className="text-blue-600" />
                                 <span>{inv.email}</span>
                               </div>
                             </td>
@@ -773,14 +790,14 @@ export default function ClubMembersPage() {
                                 }
                                 className="capitalize text-[10px] inline-flex items-center gap-1"
                               >
-                                {isPending && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
+                                {isPending && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
                                 {inv.status}
                               </Badge>
                             </td>
-                            <td className="py-3 px-4 text-[var(--color-text-muted)]">
+                            <td className="py-3 px-4 text-gray-500">
                               {formatExcelDateTime(inv.created_at)}
                             </td>
-                            <td className="py-3 px-4 text-[var(--color-text-muted)]">
+                            <td className="py-3 px-4 text-gray-500">
                               {isPending ? formatExcelDateTime(inv.expires_at) : '—'}
                             </td>
                             <td className="py-3 px-4 text-right">
@@ -790,13 +807,13 @@ export default function ClubMembersPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleCopyLink(inv.token)}
-                                      className="text-[11px] text-[var(--color-text-secondary)] hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors flex items-center gap-1"
+                                      className="text-[11px] text-gray-600 hover:text-gray-900 px-2 py-1 rounded hover:bg-gray-100 transition-colors flex items-center gap-1 cursor-pointer"
                                       title="Copy invitation acceptance link"
                                     >
                                       {copiedToken === inv.token ? (
                                         <>
-                                          <Check size={12} className="text-emerald-400" />
-                                          <span className="text-emerald-400">Copied</span>
+                                          <Check size={12} className="text-emerald-600" />
+                                          <span className="text-emerald-600">Copied</span>
                                         </>
                                       ) : (
                                         <>
@@ -809,14 +826,14 @@ export default function ClubMembersPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleResendInvite(inv.id)}
-                                      className="text-[11px] text-[#18CFFC] hover:text-[#18CFFC] hover:underline px-2 py-1 transition-colors"
+                                      className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline px-2 py-1 transition-colors cursor-pointer"
                                     >
                                       Resend
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleRevokeInvite(inv.id)}
-                                      className="text-[11px] text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-500/10 transition-colors"
+                                      className="text-[11px] text-rose-600 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
                                     >
                                       Revoke
                                     </button>
@@ -827,7 +844,7 @@ export default function ClubMembersPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleResendInvite(inv.id)}
-                                    className="text-[11px] text-[#18CFFC] hover:text-[#18CFFC] hover:underline px-2 py-1 transition-colors"
+                                    className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline px-2 py-1 transition-colors cursor-pointer"
                                   >
                                     Renew & Resend
                                   </button>
@@ -855,42 +872,42 @@ export default function ClubMembersPage() {
                 description="Staff invitations, role changes, and removals will be recorded in this tamper-evident audit history."
               />
             ) : (
-              <div className="glass rounded-2xl border border-[oklch(100%_0_0_/_0.08)] overflow-hidden shadow-sm">
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-[var(--color-surface-3)] bg-[var(--color-surface-2)]/60 text-[var(--color-text-muted)] uppercase tracking-wider text-[10px]">
+                      <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 uppercase tracking-wider text-[10px]">
                         <th className="py-3 px-4 font-semibold">Timestamp</th>
                         <th className="py-3 px-4 font-semibold">Action</th>
                         <th className="py-3 px-4 font-semibold">Target / Details</th>
                         <th className="py-3 px-4 font-semibold">Actor ID</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--color-surface-3)]">
+                    <tbody className="divide-y divide-gray-100">
                       {auditLogs.map((log) => {
                         return (
-                          <tr key={log.id} className="hover:bg-[var(--color-surface-2)]/40 transition-colors">
-                            <td className="py-3 px-4 text-[var(--color-text-muted)] font-mono text-[11px]">
+                          <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="py-3 px-4 text-gray-500 font-mono text-[11px]">
                               {formatExcelDateTime(log.created_at)}
                             </td>
                             <td className="py-3 px-4">
-                              <Badge variant="purple" className="capitalize text-[10px]">
+                              <Badge variant="indigo" className="capitalize text-[10px]">
                                 {log.action.replace('_', ' ')}
                               </Badge>
                             </td>
-                            <td className="py-3 px-4 text-[var(--color-text-primary)]">
+                            <td className="py-3 px-4 text-gray-900">
                               <div className="flex flex-col">
                                 {log.target_email && (
                                   <span className="font-semibold text-xs">{log.target_email}</span>
                                 )}
                                 {log.new_value && (
-                                  <span className="text-[11px] text-[var(--color-text-muted)]">
+                                  <span className="text-[11px] text-gray-500">
                                     Role: {ROLE_LABELS[log.new_value as ClubRole] || log.new_value}
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td className="py-3 px-4 font-mono text-[11px] text-[var(--color-text-muted)]">
+                            <td className="py-3 px-4 font-mono text-[11px] text-gray-500">
                               {log.actor_id.slice(0, 8)}…
                             </td>
                           </tr>
@@ -914,12 +931,12 @@ export default function ClubMembersPage() {
           <form onSubmit={handleInvite}>
             <ModalBody>
               <div className="flex flex-col gap-4 text-left">
-                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+                <p className="text-xs text-gray-600 leading-relaxed">
                   Send a secure, expiring invitation link to a verified student or collaborator. Recipients authenticate with their own FestFlow account upon acceptance.
                 </p>
 
                 <div>
-                  <label htmlFor="invite_email" className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5">
+                  <label htmlFor="invite_email" className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
                     Recipient Email Address
                   </label>
                   <input
@@ -929,12 +946,12 @@ export default function ClubMembersPage() {
                     placeholder="e.g. colleague@festflow.edu"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-white/10 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
                     Designated Least-Privilege Role
                   </label>
                   <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto pr-1">
@@ -948,10 +965,10 @@ export default function ClubMembersPage() {
                           key={r}
                           className={`p-3 rounded-xl border text-xs cursor-pointer flex items-start gap-2.5 transition-all ${
                             !allowed
-                              ? 'opacity-40 cursor-not-allowed bg-[var(--color-surface-2)]/40 border-transparent'
+                              ? 'opacity-45 cursor-not-allowed bg-gray-100 border-gray-200'
                               : isSelected
-                              ? 'bg-[#18CFFC]/10 border-[#18CFFC] text-white'
-                              : 'bg-[var(--color-surface-2)] border-[oklch(100%_0_0_/_0.06)] hover:bg-[var(--color-surface-3)]/60'
+                              ? 'bg-blue-50 border-blue-600 text-gray-900'
+                              : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
                           }`}
                         >
                           <input
@@ -961,13 +978,13 @@ export default function ClubMembersPage() {
                             disabled={!allowed}
                             checked={isSelected}
                             onChange={() => setInviteRole(r)}
-                            className="mt-0.5 text-[#18CFFC]"
+                            className="mt-0.5 text-blue-600"
                           />
                           <div className="min-w-0">
-                            <strong className="font-semibold block text-sm">
+                            <strong className="font-semibold block text-sm text-gray-900">
                               {ROLE_LABELS[r]}
                             </strong>
-                            <span className="text-[11px] text-[var(--color-text-muted)] block mt-0.5 leading-relaxed">
+                            <span className="text-[11px] text-gray-500 block mt-0.5 leading-relaxed">
                               {ROLE_DESCRIPTIONS[r]}
                             </span>
                           </div>
@@ -995,7 +1012,6 @@ export default function ClubMembersPage() {
                 disabled={inviting || !inviteEmail.trim()}
                 isLoading={inviting}
                 leftIcon={<Mail size={14} />}
-                className="bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-medium shadow-[0_4px_16px_rgba(24,207,252,0.3)]"
               >
                 Send Invitation
               </Button>
@@ -1013,18 +1029,18 @@ export default function ClubMembersPage() {
           <ModalBody>
             {editingMember && (
               <div className="flex flex-col gap-3 text-left">
-                <p className="text-xs text-[var(--color-text-secondary)]">
-                  Adjust permissions for <strong className="text-[var(--color-text-primary)]">{editingMember.profile?.display_name || editingMember.profile?.email}</strong>.
+                <p className="text-xs text-gray-600">
+                  Adjust permissions for <strong className="text-gray-900">{editingMember.profile?.display_name || editingMember.profile?.email}</strong>.
                 </p>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase mb-1">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                     Select New Role
                   </label>
                   <select
                     value={selectedNewRole}
                     onChange={(e) => setSelectedNewRole(e.target.value as ClubRole)}
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] text-xs text-[var(--color-text-primary)] outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 outline-none focus:border-blue-600"
                   >
                     {assignableRoles.map((r) => (
                       <option key={r} value={r}>
@@ -1066,23 +1082,23 @@ export default function ClubMembersPage() {
         >
           <ModalBody>
             <div className="flex flex-col gap-3 text-left">
-              <div className="flex items-center gap-3 text-rose-400">
-                <div className="p-2.5 rounded-xl bg-rose-500/15">
+              <div className="flex items-center gap-3 text-rose-600">
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200">
                   <AlertTriangle size={24} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h4 className="font-bold text-sm text-gray-900">
                     Remove Staff Member
                   </h4>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                  <p className="text-xs text-gray-500">
                     Revokes all administrative access immediately.
                   </p>
                 </div>
               </div>
 
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
+              <p className="text-xs text-gray-600 leading-relaxed mt-1">
                 Are you sure you want to remove{' '}
-                <strong className="text-[var(--color-text-primary)]">
+                <strong className="text-gray-900">
                   {removingMember?.profile?.display_name || removingMember?.profile?.email}
                 </strong>{' '}
                 (Role: {removingMember && ROLE_LABELS[removingMember.role]})?
@@ -1120,23 +1136,23 @@ export default function ClubMembersPage() {
         >
           <ModalBody>
             <div className="flex flex-col gap-3 text-left">
-              <div className="flex items-center gap-3 text-amber-300">
-                <div className="p-2.5 rounded-xl bg-amber-500/15">
+              <div className="flex items-center gap-3 text-amber-600">
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200">
                   <Crown size={24} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-[var(--color-text-primary)]">
+                  <h4 className="font-bold text-sm text-gray-900">
                     Promote New Club Owner
                   </h4>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                  <p className="text-xs text-gray-500">
                     Reassigns primary ownership for {clubName}.
                   </p>
                 </div>
               </div>
 
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mt-1">
+              <p className="text-xs text-gray-600 leading-relaxed mt-1">
                 Are you sure you want to transfer primary club ownership to{' '}
-                <strong className="text-[var(--color-text-primary)]">
+                <strong className="text-gray-900">
                   {transferTarget?.profile?.display_name || transferTarget?.profile?.email}
                 </strong>
                 ? Your role will be updated to <strong>{ROLE_LABELS.admin}</strong>, and only the new owner can assign administrators or transfer ownership again.
@@ -1158,7 +1174,7 @@ export default function ClubMembersPage() {
               disabled={transferring}
               isLoading={transferring}
               onClick={handleTransferOwnership}
-              className="bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+              className="bg-amber-500 hover:bg-amber-600 text-gray-900 border-none font-semibold"
             >
               Confirm Transfer
             </Button>

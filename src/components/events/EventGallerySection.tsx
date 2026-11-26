@@ -35,15 +35,15 @@ export function EventGallerySection({ images }: EventGallerySectionProps) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
-            <ImageIcon size={18} className="text-[#ED47FC]" />
+          <h2 className="text-lg font-bold font-heading text-gray-900 flex items-center gap-2">
+            <ImageIcon size={18} className="text-blue-600" />
             Moments & Fest Highlights
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Photographs from previous editions and live campus memories
           </p>
         </div>
-        <span className="text-xs text-zinc-400 font-mono">
+        <span className="text-xs text-gray-500 font-mono">
           {images.length} photo{images.length > 1 ? 's' : ''}
         </span>
       </div>
@@ -54,7 +54,7 @@ export function EventGallerySection({ images }: EventGallerySectionProps) {
           <div
             key={img.id || idx}
             onClick={() => setActiveLightboxIndex(idx)}
-            className="group relative aspect-video sm:aspect-square rounded-2xl overflow-hidden bg-[#14141A] border border-white/[0.08] hover:border-[#18CFFC]/50 cursor-pointer transition-all duration-300 shadow-sm"
+            className="group relative aspect-video sm:aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 hover:border-blue-400 cursor-pointer transition-all duration-300 shadow-xs"
           >
             <img
               src={img.image_url}
@@ -62,13 +62,13 @@ export function EventGallerySection({ images }: EventGallerySectionProps) {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2.5">
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2.5">
               {img.caption && (
                 <span className="text-[11px] font-medium text-white line-clamp-1">
                   {img.caption}
                 </span>
               )}
-              <div className="flex items-center gap-1 text-[10px] text-[#18CFFC]">
+              <div className="flex items-center gap-1 text-[10px] text-blue-300">
                 <Maximize2 size={10} /> Tap to expand
               </div>
             </div>

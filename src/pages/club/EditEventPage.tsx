@@ -128,22 +128,22 @@ export default function EditEventPage() {
 
   if (loading || isRoleLoading) {
     return (
-      <div className="min-h-screen pt-32 flex flex-col items-center justify-center bg-[var(--color-surface-0)]">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
-        <span className="text-xs text-[var(--color-text-muted)]">Loading event data…</span>
+      <div className="min-h-screen pt-32 flex flex-col items-center justify-center bg-[var(--color-canvas)]">
+        <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-3" />
+        <span className="text-xs text-gray-500">Loading event data…</span>
       </div>
     )
   }
 
   if (loadError || !event) {
     return (
-      <div className="min-h-screen pt-32 px-4 flex flex-col items-center justify-center bg-[var(--color-surface-0)]">
-        <div className="glass p-8 rounded-2xl max-w-md text-center flex flex-col items-center">
-          <AlertCircle size={36} className="text-rose-400 mb-3" />
-          <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)] mb-2">
+      <div className="min-h-screen pt-32 px-4 flex flex-col items-center justify-center bg-[var(--color-canvas)]">
+        <div className="bg-white border border-gray-200 shadow-sm p-8 rounded-2xl max-w-md text-center flex flex-col items-center">
+          <AlertCircle size={36} className="text-rose-600 mb-3" />
+          <h2 className="text-xl font-bold font-display text-gray-900 mb-2">
             Unable to Edit Event
           </h2>
-          <p className="text-xs text-[var(--color-text-secondary)] mb-6">
+          <p className="text-xs text-gray-600 mb-6">
             {loadError || 'The event you requested could not be retrieved.'}
           </p>
           <Link to="/club/events">
@@ -188,16 +188,16 @@ export default function EditEventPage() {
           <div
             className={`p-5 rounded-3xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left ${
               isCompleted
-                ? 'bg-emerald-500/5 border-emerald-500/20'
-                : 'bg-rose-500/5 border-rose-500/20'
+                ? 'bg-emerald-50 border-emerald-200'
+                : 'bg-rose-50 border-rose-200'
             }`}
           >
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm font-bold text-white">
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                 {isReadOnlyArchive ? (
-                  <Lock size={16} className={isCompleted ? 'text-emerald-400' : 'text-rose-400'} />
+                  <Lock size={16} className={isCompleted ? 'text-emerald-600' : 'text-rose-600'} />
                 ) : (
-                  <ShieldAlert size={16} className="text-amber-400" />
+                  <ShieldAlert size={16} className="text-amber-600" />
                 )}
                 <span>
                   {isCompleted
@@ -209,7 +209,7 @@ export default function EditEventPage() {
                     : 'Cancelled Event — Admin Override Active'}
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 leading-relaxed max-w-2xl">
+              <p className="text-xs text-gray-600 leading-relaxed max-w-2xl">
                 {isCompleted
                   ? `This event concluded on ${formatEventDate(event.end_date || event.start_date, eventTz)} at ${formatEventTime(event.end_date || event.start_date, eventTz)} (${eventTz}). Editing, re-publishing, and cancelling are disabled for organizers while attendee rosters, payment records, and analytics reports remain accessible.`
                   : 'This event was cancelled. All issued passes are invalidated and event editing is locked while historical records and refund logs remain accessible.'}
@@ -236,14 +236,14 @@ export default function EditEventPage() {
 
         {/* Quick Link: Seat Management if reserved seating */}
         {event.registration_mode === 'reserved_seating' && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#18CFFC]/10 via-[#0D56FB]/10 to-[#7F1AFB]/10 border border-[#18CFFC]/30 flex items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#18CFFC]/20 border border-[#18CFFC]/40 flex items-center justify-center text-[#18CFFC]">
+              <div className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-blue-600 shadow-xs">
                 <LayoutGrid size={20} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Reserved Seating Enabled</h4>
-                <p className="text-xs text-zinc-400">Configure room layout, seat pricing categories, and view live bookings.</p>
+                <h4 className="text-sm font-bold text-gray-900">Reserved Seating Enabled</h4>
+                <p className="text-xs text-gray-600">Configure room layout, seat pricing categories, and view live bookings.</p>
               </div>
             </div>
             <Link to={`/club/events/${event.id}/seats`}>
@@ -268,12 +268,12 @@ export default function EditEventPage() {
 
         {/* Danger Zone: Event Cancellation (Only active upcoming/ongoing/draft events) */}
         {canClubMutateEvent(event) && canCancelEvent && (
-          <div className="p-6 rounded-3xl bg-rose-500/5 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
+          <div className="p-6 rounded-3xl bg-rose-50/70 border border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
             <div>
-              <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+              <h4 className="text-sm font-bold text-rose-700 flex items-center gap-2">
                 <AlertTriangle size={16} /> Danger Zone: Cancel Event
               </h4>
-              <p className="text-xs text-zinc-400 mt-1 max-w-xl leading-relaxed">
+              <p className="text-xs text-gray-600 mt-1 max-w-xl leading-relaxed">
                 Cancelling this event will invalidate all issued digital passes, notify all registered attendees, and queue refund reviews for paid registrations. History and records are preserved.
               </p>
             </div>
@@ -303,8 +303,8 @@ export default function EditEventPage() {
           <div className="flex flex-col gap-4 text-left">
             <ModalBody>
               <div className="flex flex-col gap-3">
-                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 leading-relaxed">
-                  <strong className="block text-white mb-0.5">Irreversible Action</strong>
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed">
+                  <strong className="block text-rose-900 mb-0.5">Irreversible Action</strong>
                   This action marks <strong>{event.title}</strong> as cancelled. Tickets will be invalidated immediately.
                 </div>
 
@@ -315,8 +315,8 @@ export default function EditEventPage() {
                 )}
 
                 <div className="flex flex-col gap-1.5 text-xs">
-                  <label className="text-zinc-300 font-semibold">
-                    Reason for Cancellation <span className="text-rose-400">*</span>
+                  <label className="text-gray-700 font-semibold">
+                    Reason for Cancellation <span className="text-rose-600">*</span>
                   </label>
                   <textarea
                     value={cancelReason}
@@ -324,7 +324,7 @@ export default function EditEventPage() {
                     placeholder="Provide a clear explanation for registered attendees..."
                     rows={3}
                     disabled={isCancelling}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15 resize-none"
                   />
                 </div>
               </div>

@@ -26,18 +26,18 @@ export function DeviceScreenContent({
   // Interactive state for Scene 2 (Category Filter)
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'tech' | 'cultural' | 'sports'>('tech')
 
-  // Interactive state for Scene 3 (Seats) - strictly local mock state
+  // Interactive state for Scene 3 (Seats) - strictly local walkthrough state
   const [selectedSeats, setSelectedSeats] = useState<string[]>(['A4', 'A5'])
 
-  // Interactive state for Scene 4 (Payment UTR & Verification) - simulated demo
-  const [utrNumber, setUtrNumber] = useState('DEMO-UTR-9821')
+  // Interactive state for Scene 4 (Payment UTR & Verification) - illustrative walkthrough state
+  const [utrNumber, setUtrNumber] = useState('[12-Digit UTR Reference]')
   const [isPaymentSubmitted, setIsPaymentSubmitted] = useState(true)
 
-  // Interactive state for Scene 6 (Command Center 1-click verification) - synthetic demo roster
+  // Interactive state for Scene 6 (Command Center 1-click verification) - illustrative UI preview
   const [demoRoster, setDemoRoster] = useState([
-    { id: 1, name: 'DEMO ATTENDEE (Alex Morgan)', utr: 'DEMO-UTR-9821', amount: '₹500', seats: 'A4, A5', verified: true },
-    { id: 2, name: 'DEMO ATTENDEE (Sarah Khan)', utr: 'DEMO-UTR-9822', amount: '₹250', seats: 'B3', verified: false },
-    { id: 3, name: 'DEMO ATTENDEE (Jordan Taylor)', utr: 'DEMO-UTR-9823', amount: '₹250', seats: 'B4', verified: true },
+    { id: 1, name: 'Attendee #1 (Sample)', utr: '[Sample UTR Reference #1]', amount: 'Tier Fee', seats: 'A4, A5', verified: true },
+    { id: 2, name: 'Attendee #2 (Sample)', utr: '[Sample UTR Reference #2]', amount: 'Tier Fee', seats: 'B3', verified: false },
+    { id: 3, name: 'Attendee #3 (Sample)', utr: '[Sample UTR Reference #3]', amount: 'Tier Fee', seats: 'B4', verified: true },
   ])
 
   const toggleSeat = (seatId: string) => {
@@ -76,10 +76,10 @@ export function DeviceScreenContent({
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-6">
             {[
-              { title: 'Main Auditorium', status: 'Beacon Active · IoT Innovate', active: true },
-              { title: 'Engineering Atrium', status: 'HackSprint 24h Hub', active: false },
-              { title: 'Clubs Command HQ', status: '42 Registered Chapters', active: false },
-              { title: 'Cultural Pavilion', status: 'Aura Fest 2026 Arena', active: false },
+              { title: 'Main Auditorium', status: 'Reserved Seating Stage · Walkthrough', active: true },
+              { title: 'Engineering Atrium', status: 'Technical Hackathon Track · Walkthrough', active: false },
+              { title: 'Clubs Command HQ', status: 'Verified Club Chapter Controls', active: false },
+              { title: 'Cultural Pavilion', status: 'Live Stage & Pass Verification', active: false },
             ].map((node, i) => (
               <div
                 key={i}
@@ -119,7 +119,7 @@ export function DeviceScreenContent({
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
               <span className="text-xs font-bold font-mono tracking-wider text-[#18CFFC]">FESTFLOW DISCOVER</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
-                ● 12 LIVE EVENTS
+                ● ILLUSTRATIVE WALKTHROUGH
               </span>
             </div>
 
@@ -155,30 +155,30 @@ export function DeviceScreenContent({
             <div className="p-4 rounded-2xl bg-gradient-to-br from-[#121422] to-[#16182a] border border-[#18CFFC]/30 shadow-xl relative overflow-hidden group">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold text-[#18CFFC] uppercase tracking-wider">
-                  TECH SYMPOSIUM · WORKSHOP
+                  EVENT CATEGORY · WALKTHROUGH
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-mono font-bold">
-                  ₹250 / PASS
+                  DIRECT CLUB PRICING
                 </span>
               </div>
               <h3 className="text-base font-extrabold text-white leading-tight mb-1">
-                IoT INNOVATE 2026
+                Campus Event Walkthrough
               </h3>
               <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed mb-3">
-                Build real-time connected micro-controllers, IoT protocols, and cloud sensors with live faculty mentorship.
+                Explore workshops, hackathons, and campus programs hosted directly by student organizations.
               </p>
 
               <div className="flex items-center gap-3 text-[11px] text-zinc-400 mb-3">
                 <span className="flex items-center gap-1">
-                  <Calendar size={12} className="text-[#18CFFC]" /> Nov 28, 2026
+                  <Calendar size={12} className="text-[#18CFFC]" /> Scheduled Date
                 </span>
                 <span className="flex items-center gap-1">
-                  <MapPin size={12} className="text-[#ED47FC]" /> Main Auditorium
+                  <MapPin size={12} className="text-[#ED47FC]" /> Campus Auditorium
                 </span>
               </div>
 
               <div className="flex items-center justify-between pt-2.5 border-t border-white/10">
-                <span className="text-[10px] text-emerald-400 font-medium">● 48 Seats Remaining</span>
+                <span className="text-[10px] text-emerald-400 font-medium">● Live Seat Availability</span>
                 <button
                   onClick={() => onNavigateScene?.(2)}
                   className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#18CFFC] to-[#07A4FC] text-black text-xs font-bold flex items-center gap-1 cursor-pointer hover:scale-105 transition-all shadow-md"
@@ -202,11 +202,11 @@ export function DeviceScreenContent({
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
               <div>
-                <span className="text-xs font-bold text-white block">IoT INNOVATE 2026</span>
-                <span className="text-[10px] text-zinc-400 font-mono">Main Auditorium · Cinema Reserved Seating</span>
+                <span className="text-xs font-bold text-white block">Campus Event Walkthrough</span>
+                <span className="text-[10px] text-zinc-400 font-mono">Auditorium · Interactive Reserved Seating</span>
               </div>
               <div className="px-2.5 py-1 rounded-full bg-[#18CFFC]/15 border border-[#18CFFC]/40 text-[#18CFFC] text-[10px] font-mono font-bold flex items-center gap-1">
-                <Clock size={11} className="animate-spin" /> 09:42 Hold
+                <Clock size={11} className="animate-spin" /> Seat Hold Timer
               </div>
             </div>
 
@@ -252,7 +252,7 @@ export function DeviceScreenContent({
             {/* Legend */}
             <div className="flex items-center justify-center gap-4 text-[10px] text-zinc-400 mb-3 pt-2 border-t border-white/10 font-mono">
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded bg-[#181824] border border-white/15" /> Available (₹250)
+                <span className="w-2.5 h-2.5 rounded bg-[#181824] border border-white/15" /> Available
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded bg-[#18CFFC]" /> Selected
@@ -266,14 +266,14 @@ export function DeviceScreenContent({
             <div className="p-2.5 rounded-xl bg-[#14141E] border border-white/10 flex items-center justify-between mb-2">
               <div>
                 <span className="text-[9px] text-zinc-400 block font-mono">
-                  {selectedSeats.length} SEAT{selectedSeats.length > 1 ? 'S' : ''} SELECTED (DEMO STATE)
+                  {selectedSeats.length} SEAT{selectedSeats.length > 1 ? 'S' : ''} SELECTED (WALKTHROUGH)
                 </span>
                 <span className="text-xs font-bold text-white">
                   {selectedSeats.length > 0 ? selectedSeats.join(', ') : 'None selected'}
                 </span>
               </div>
-              <span className="text-base font-extrabold text-[#18CFFC] font-mono">
-                ₹{selectedSeats.length * 250}
+              <span className="text-sm font-extrabold text-[#18CFFC] font-mono">
+                {selectedSeats.length} Held
               </span>
             </div>
 
@@ -306,15 +306,15 @@ export function DeviceScreenContent({
               </span>
             </div>
 
-            {/* Attendee Details - Strictly Demo Labelled */}
+            {/* Attendee Details - Strictly Illustrative Walkthrough Labels */}
             <div className="p-3 rounded-xl bg-[#14141E] border border-white/10 space-y-1.5 mb-3 text-xs">
               <div className="flex justify-between text-zinc-400 text-[11px]">
                 <span>Lead Booker:</span>
-                <span className="text-white font-semibold">DEMO STUDENT (Alex Morgan)</span>
+                <span className="text-white font-semibold">Attendee #1 (Sample)</span>
               </div>
               <div className="flex justify-between text-zinc-400 text-[11px]">
                 <span>College / Roll:</span>
-                <span className="text-white font-mono">DEMO ROLL #FF-DEMO-2026</span>
+                <span className="text-white font-mono">[Institution / Roll ID]</span>
               </div>
               <div className="flex justify-between text-zinc-400 text-[11px]">
                 <span>Allocated Seats:</span>
@@ -322,32 +322,32 @@ export function DeviceScreenContent({
               </div>
             </div>
 
-            {/* Club UPI QR Box - Synthetic Demonstration */}
+            {/* Club UPI QR Box - Illustrative UI Walkthrough */}
             <div className="p-3.5 rounded-xl bg-gradient-to-br from-[#121422] to-[#14141e] border border-white/10 text-center mb-3">
               <span className="text-[10px] text-zinc-400 font-mono uppercase block mb-1">
-                DEMO UPI QR · NO REAL CHARGE
+                ILLUSTRATIVE UPI QR · NO REAL CHARGE
               </span>
               <div className="w-24 h-24 mx-auto rounded-xl bg-white p-2 flex items-center justify-center my-2 shadow-lg">
                 <QrCode size={80} className="text-black" />
               </div>
               <span className="font-mono text-xs text-[#18CFFC] font-bold block">
-                demo.club@festflow.demo
+                host-upi-handle
               </span>
-              <span className="text-[10px] text-zinc-400 block mt-0.5">Sample Payable: ₹{selectedSeats.length * 250}</span>
+              <span className="text-[10px] text-zinc-400 block mt-0.5">Direct Club UPI Verification Preview</span>
             </div>
 
             {/* 12-Digit UTR Transaction Input */}
             <div className="space-y-1 mb-2">
               <label className="text-[10px] text-zinc-400 font-mono uppercase block">
-                Simulated 12-Digit UTR Reference
+                [12-Digit UTR Reference]
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  maxLength={14}
+                  maxLength={24}
                   value={utrNumber}
                   onChange={(e) => setUtrNumber(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl bg-[#14141E] border border-[#18CFFC]/40 text-xs font-mono text-white tracking-widest focus:outline-none"
+                  className="w-full px-3 py-1.5 rounded-xl bg-[#14141E] border border-[#18CFFC]/40 text-xs font-mono text-white tracking-wider focus:outline-none"
                 />
                 <button
                   onClick={() => setIsPaymentSubmitted(true)}
@@ -380,12 +380,12 @@ export function DeviceScreenContent({
                     isPaymentSubmitted ? 'text-emerald-300' : 'text-amber-300'
                   }`}
                 >
-                  {isPaymentSubmitted ? 'DEMO: UTR Verified by Club Host' : 'Awaiting Organizer Bank Review'}
+                  {isPaymentSubmitted ? 'WALKTHROUGH: UTR Verified by Club Host' : 'Awaiting Organizer Bank Review'}
                 </span>
                 <span className="text-[9px] text-zinc-400 font-mono">
                   {isPaymentSubmitted
-                    ? 'Simulated pass generated for demonstration'
-                    : 'Ref #DEMO-UTR-9821 queued for review'}
+                    ? 'Illustrative pass generated for walkthrough'
+                    : 'Transaction reference queued for organizer review'}
                 </span>
               </div>
             </div>
@@ -416,16 +416,16 @@ export function DeviceScreenContent({
                   DIGITAL ENTRY PASS (DEMO SPECIMEN)
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-zinc-400">DEMO-SPECIMEN</span>
+              <span className="text-[10px] font-mono text-zinc-400">SPECIMEN PASS</span>
             </div>
 
             {/* Pass Title & Club Badge */}
             <div className="mb-3">
               <span className="text-[10px] font-mono text-[#18CFFC] uppercase tracking-wider block">
-                DEMO CHAPTER · CAMPUS UNIVERSITY
+                HOST ORGANIZATION · CAMPUS VENUE
               </span>
               <h3 className="text-lg font-black text-white leading-tight">
-                IoT INNOVATE 2026
+                Campus Event Pass Preview
               </h3>
             </div>
 
@@ -435,10 +435,10 @@ export function DeviceScreenContent({
                 <QrCode size={124} className="text-black" />
               </div>
               <span className="text-xs font-mono font-extrabold tracking-widest text-[#18CFFC] block mt-2">
-                FF-DEMO-049CCA
+                SAMPLE QR TOKEN
               </span>
               <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">
-                Specimen QR token · Instant camera scanner admittance
+                Illustrative QR token · Verified by authorized organizers at venue
               </span>
             </div>
 
@@ -446,7 +446,7 @@ export function DeviceScreenContent({
             <div className="grid grid-cols-2 gap-2 text-[11px] p-2.5 rounded-xl bg-[#14141E] border border-white/10 font-mono">
               <div>
                 <span className="text-zinc-500 block text-[9px]">ATTENDEE</span>
-                <span className="text-white font-bold truncate block">DEMO STUDENT</span>
+                <span className="text-white font-bold truncate block">Attendee #1 (Sample)</span>
               </div>
               <div>
                 <span className="text-zinc-500 block text-[9px]">RESERVED SEATS</span>
@@ -454,11 +454,11 @@ export function DeviceScreenContent({
               </div>
               <div>
                 <span className="text-zinc-500 block text-[9px]">DATE & TIME</span>
-                <span className="text-zinc-300 block">Nov 28 · 10:00 AM</span>
+                <span className="text-zinc-300 block">Event Schedule</span>
               </div>
               <div>
                 <span className="text-zinc-500 block text-[9px]">VENUE</span>
-                <span className="text-zinc-300 block truncate">Main Auditorium</span>
+                <span className="text-zinc-300 block truncate">Campus Auditorium</span>
               </div>
             </div>
           </div>
@@ -481,39 +481,39 @@ export function DeviceScreenContent({
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
               <div>
                 <span className="text-xs font-bold text-white block">ORGANIZER COMMAND CENTER</span>
-                <span className="text-[10px] text-zinc-400 font-mono">Sample Club · Illustrative Dashboard Simulation</span>
+                <span className="text-[10px] text-zinc-400 font-mono">Illustrative Walkthrough · Club Controls Preview</span>
               </div>
               <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold">
-                ● DEMO DATASET
+                ● ILLUSTRATIVE WALKTHROUGH
               </span>
             </div>
 
-            {/* Quick Metrics Cards - Explicitly labeled as sample/demo data */}
+            {/* Capability Cards - No fabricated event counts or revenue figures */}
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="p-2.5 rounded-xl bg-[#14141E] border border-white/10">
-                <span className="text-[8px] font-mono text-[#18CFFC] block uppercase">SAMPLE REGISTRATIONS</span>
-                <span className="text-sm font-extrabold text-white font-mono">428 / 500</span>
-                <span className="text-[8px] text-emerald-400 block font-mono">85.6% Full (Demo)</span>
+                <span className="text-[8px] font-mono text-[#18CFFC] block uppercase">REGISTRATIONS</span>
+                <span className="text-xs font-extrabold text-white font-mono">Live Roster</span>
+                <span className="text-[8px] text-emerald-400 block font-mono">Real-time sync</span>
               </div>
               <div className="p-2.5 rounded-xl bg-[#14141E] border border-white/10">
-                <span className="text-[8px] font-mono text-[#18CFFC] block uppercase">SAMPLE COLLECTION</span>
-                <span className="text-sm font-extrabold text-[#18CFFC] font-mono">₹1,07,000</span>
-                <span className="text-[8px] text-zinc-400 block font-mono">Direct UPI (Demo)</span>
+                <span className="text-[8px] font-mono text-[#18CFFC] block uppercase">DIRECT PAYMENTS</span>
+                <span className="text-xs font-extrabold text-[#18CFFC] font-mono">Direct UPI</span>
+                <span className="text-[8px] text-zinc-400 block font-mono">Zero gateway fees</span>
               </div>
               <div className="p-2.5 rounded-xl bg-[#14141E] border border-white/10">
                 <span className="text-[8px] font-mono text-[#18CFFC] block uppercase">VENUE ATTENDANCE</span>
-                <span className="text-sm font-extrabold text-[#ED47FC] font-mono">312</span>
-                <span className="text-[8px] text-zinc-400 block font-mono">Sample Verified Entrants</span>
+                <span className="text-xs font-extrabold text-[#ED47FC] font-mono">Organizer Check-In</span>
+                <span className="text-[8px] text-zinc-400 block font-mono">Verified gate control</span>
               </div>
             </div>
 
-            {/* Live Attendee UTR Verification Inbox */}
+            {/* Simulated UTR Verification Inbox Preview */}
             <div className="p-3 rounded-xl bg-[#14141E] border border-white/10 mb-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold">
-                  SIMULATED PAYMENT VERIFICATION INBOX
+                  ILLUSTRATIVE PAYMENT VERIFICATION INBOX
                 </span>
-                <span className="text-[9px] text-zinc-500 font-mono">Local UI demonstration</span>
+                <span className="text-[9px] text-zinc-500 font-mono">Local UI walkthrough</span>
               </div>
 
               <div className="space-y-1.5">
@@ -538,7 +538,7 @@ export function DeviceScreenContent({
                     >
                       {row.verified ? (
                         <>
-                          <Check size={11} /> Verified (Demo)
+                          <Check size={11} /> Verified (Sample)
                         </>
                       ) : (
                         'Verify UTR'
@@ -604,7 +604,7 @@ export function DeviceScreenContent({
           </div>
 
           <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-            <span>FESTFLOW © 2026 · DEMO SHOWCASE</span>
+            <span>FESTFLOW · ILLUSTRATIVE WALKTHROUGH</span>
             <button
               onClick={() => onNavigateScene?.(0)}
               className="text-[#18CFFC] hover:underline cursor-pointer flex items-center gap-1"

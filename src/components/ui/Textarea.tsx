@@ -34,13 +34,13 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       {label && (
         <label
           htmlFor={inputId}
-          className="text-xs font-semibold text-[var(--color-text-secondary)] flex items-center justify-between"
+          className="text-xs font-semibold text-gray-700 flex items-center justify-between"
         >
           <span>
-            {label} {required && <span className="text-rose-400" aria-hidden="true">*</span>}
+            {label} {required && <span className="text-rose-500" aria-hidden="true">*</span>}
           </span>
           {!required && (
-            <span className="text-[10px] text-[var(--color-text-muted)] font-normal">Optional</span>
+            <span className="text-[10px] text-gray-400 font-normal">Optional</span>
           )}
         </label>
       )}
@@ -53,11 +53,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         disabled={disabled}
         aria-invalid={!!error}
         aria-describedby={error ? errorId : helperText ? helperId : undefined}
-        className={`w-full rounded-[var(--radius-input)] bg-[#14141A] border p-3 text-xs sm:text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] transition-all duration-200 outline-none resize-y ${
+        className={`w-full rounded-[var(--radius-input)] bg-white border p-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 transition-colors duration-150 outline-none resize-y ${
           error
-            ? 'border-rose-500/70 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20'
-            : 'border-white/10 focus:border-[#18CFFC] focus:ring-2 focus:ring-[#18CFFC]/20'
-        } ${disabled ? 'opacity-50 cursor-not-allowed bg-white/5' : 'hover:border-white/20'} ${className}`}
+            ? 'border-rose-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-500/15'
+            : 'border-gray-200 hover:border-gray-300 focus:border-blue-600 focus:ring-3 focus:ring-blue-600/10'
+        } ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''} ${className}`}
         {...props}
       />
 
@@ -69,7 +69,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="text-[11px] font-medium text-rose-400 mt-0.5 overflow-hidden"
+            className="text-[11px] font-medium text-rose-600 mt-0.5 overflow-hidden"
             role="alert"
           >
             {error}
@@ -78,7 +78,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       </AnimatePresence>
 
       {!error && helperText && (
-        <p id={helperId} className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+        <p id={helperId} className="text-[11px] text-gray-500 mt-0.5">
           {helperText}
         </p>
       )}

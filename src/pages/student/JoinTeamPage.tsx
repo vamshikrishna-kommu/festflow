@@ -269,27 +269,27 @@ export default function JoinTeamPage() {
     <PageShell>
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-10 flex flex-col gap-6 text-left">
         {/* Breadcrumb Navigation */}
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+        <div className="flex items-center gap-2 text-xs text-gray-500">
           <Link
             to="/discover"
-            className="hover:text-[var(--color-text-primary)] transition-colors flex items-center gap-1"
+            className="hover:text-gray-900 transition-colors flex items-center gap-1"
           >
             <ArrowLeft size={14} /> Discover
           </Link>
           <span>/</span>
-          <span className="text-[var(--color-text-primary)] font-medium">Join Event Squad</span>
+          <span className="text-gray-900 font-medium">Join Event Squad</span>
         </div>
 
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-[var(--color-brand-purple)]/25 to-[var(--color-brand-cyan)]/25 text-[var(--color-brand-purple)] shadow-md">
-            <Users size={28} />
+          <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-600">
+            <Users size={26} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold font-display text-[var(--color-text-primary)]">
+            <h1 className="text-2xl font-bold font-display text-gray-900">
               {token ? 'Squad Invitation' : 'Join an Event Squad'}
             </h1>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+            <p className="text-xs text-gray-600 mt-0.5">
               {token
                 ? 'Review your team invitation details and claim your digital pass'
                 : 'Enter your squad invitation code to verify your team and claim your pass'}
@@ -305,21 +305,21 @@ export default function JoinTeamPage() {
 
         {/* ── State 1: Token Loading ──────────────────────────────────────── */}
         {tokenLoading && (
-          <Card className="p-8 flex flex-col items-center justify-center text-center gap-3 bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.1)] rounded-3xl">
-            <div className="w-10 h-10 rounded-full border-2 border-[var(--color-brand-purple)] border-t-transparent animate-spin" />
-            <p className="text-xs text-[var(--color-text-muted)]">Verifying squad invitation link...</p>
+          <Card className="p-8 flex flex-col items-center justify-center text-center gap-3 bg-white border border-gray-200 rounded-2xl">
+            <div className="w-10 h-10 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+            <p className="text-xs text-gray-500">Verifying squad invitation link...</p>
           </Card>
         )}
 
         {/* ── State 2: Token Error (Revoked / Expired / Reused / Invalid) ──── */}
         {!tokenLoading && tokenError && (
-          <Card className="p-6 sm:p-8 flex flex-col items-center text-center gap-4 bg-[var(--color-surface-1)] border border-rose-500/25 shadow-xl rounded-3xl">
-            <div className="w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center border border-rose-500/20 shadow-md">
-              <AlertCircle size={32} />
+          <Card className="p-6 sm:p-8 flex flex-col items-center text-center gap-4 bg-white border border-rose-200 shadow-xs rounded-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
+              <AlertCircle size={30} />
             </div>
 
             <div>
-              <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)]">
+              <h2 className="text-lg font-bold font-display text-gray-900">
                 {tokenError.code === 'INVITATION_REVOKED'
                   ? 'Invitation Revoked'
                   : tokenError.code === 'ALREADY_ACCEPTED'
@@ -328,7 +328,7 @@ export default function JoinTeamPage() {
                       ? 'Invitation Expired'
                       : 'Invalid Invitation'}
               </h2>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-1.5 max-w-md leading-relaxed">
+              <p className="text-xs text-gray-600 mt-1.5 max-w-md leading-relaxed">
                 {tokenError.message}
               </p>
             </div>
@@ -357,44 +357,44 @@ export default function JoinTeamPage() {
 
         {/* ── State 3: Successfully Joined Confirmation ──────────────────── */}
         {joinResult && (
-          <Card className="p-6 sm:p-8 flex flex-col items-center text-center gap-4 bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.15)] shadow-xl rounded-3xl">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-lg">
-              <CheckCircle2 size={36} />
+          <Card className="p-6 sm:p-8 flex flex-col items-center text-center gap-4 bg-white border border-gray-200 shadow-xs rounded-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+              <CheckCircle2 size={34} />
             </div>
 
             <div>
-              <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)]">
+              <h2 className="text-xl font-bold font-display text-gray-900">
                 You're in the squad!
               </h2>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-                Your spot in <strong className="text-[var(--color-brand-purple)]">{joinResult.team_name}</strong> is confirmed.
+              <p className="text-xs text-gray-600 mt-1">
+                Your spot in <strong className="text-blue-600">{joinResult.team_name}</strong> is confirmed.
               </p>
             </div>
 
-            <div className="w-full p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col gap-2.5 text-xs text-left">
+            <div className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-2.5 text-xs text-left">
               <div className="flex justify-between items-center">
-                <span className="text-[var(--color-text-muted)]">Squad Name:</span>
-                <span className="font-bold text-[var(--color-text-primary)]">{joinResult.team_name}</span>
+                <span className="text-gray-500">Squad Name:</span>
+                <span className="font-bold text-gray-900">{joinResult.team_name}</span>
               </div>
               {activePreview?.event_title && (
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)]">Event:</span>
-                  <span className="text-[var(--color-text-primary)] font-medium truncate max-w-[220px]">
+                  <span className="text-gray-500">Event:</span>
+                  <span className="text-gray-900 font-medium truncate max-w-[220px]">
                     {activePreview.event_title}
                   </span>
                 </div>
               )}
               {joinResult.ticket_code && (
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)]">Your Digital Pass:</span>
-                  <span className="font-mono font-bold text-[var(--color-brand-cyan)]">
+                  <span className="text-gray-500">Your Digital Pass:</span>
+                  <span className="font-mono font-bold text-blue-600">
                     {joinResult.ticket_code}
                   </span>
                 </div>
               )}
               <div className="flex justify-between items-center">
-                <span className="text-[var(--color-text-muted)]">Confirmed Members:</span>
-                <Badge variant="purple">{joinResult.member_count} Members</Badge>
+                <span className="text-gray-500">Confirmed Members:</span>
+                <Badge variant="indigo">{joinResult.member_count} Members</Badge>
               </div>
             </div>
 
@@ -426,17 +426,17 @@ export default function JoinTeamPage() {
 
         {/* ── State 3B: Declined Confirmation ───────────────────────────── */}
         {declined && (
-          <Card className="p-6 sm:p-8 flex flex-col items-center text-center gap-4 bg-[#0E0E12] border border-white/10 shadow-xl rounded-3xl">
-            <div className="w-16 h-16 rounded-2xl bg-zinc-800 text-zinc-400 flex items-center justify-center border border-white/10 shadow-lg">
-              <XCircle size={36} className="text-rose-400" />
+          <Card className="p-6 sm:p-8 flex flex-col items-center text-center gap-4 bg-white border border-gray-200 shadow-xs rounded-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
+              <XCircle size={34} />
             </div>
 
             <div>
-              <h2 className="text-xl font-bold font-display text-white">
+              <h2 className="text-xl font-bold font-display text-gray-900">
                 Squad Invitation Declined
               </h2>
-              <p className="text-xs text-zinc-400 mt-1.5 max-w-sm leading-relaxed">
-                You have declined the squad invitation for <strong className="text-white">{activePreview?.team_name || 'the team'}</strong>.
+              <p className="text-xs text-gray-600 mt-1.5 max-w-sm leading-relaxed">
+                You have declined the squad invitation for <strong className="text-gray-900">{activePreview?.team_name || 'the team'}</strong>.
                 The squad leader has been notified. You can still discover and register for other exciting campus events.
               </p>
             </div>
@@ -458,13 +458,13 @@ export default function JoinTeamPage() {
 
         {/* ── State 4: Normal Invitation / Verification Form ─────────────── */}
         {!tokenLoading && !tokenError && !joinResult && !declined && (
-          <div className="p-5 sm:p-6 bg-[#0E0E12] border border-white/[0.1] shadow-2xl rounded-3xl flex flex-col gap-5">
+          <div className="p-5 sm:p-6 bg-white border border-gray-200 shadow-xs rounded-2xl flex flex-col gap-5">
             {/* If NO token provided, allow code input */}
             {!token && (
               <form onSubmit={handleVerifySubmit} className="flex flex-col gap-2">
-                <label className="text-xs font-semibold text-white flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-900 flex items-center justify-between">
                   <span>Invitation Code</span>
-                  <span className="text-[11px] text-zinc-500 font-normal">
+                  <span className="text-[11px] text-gray-500 font-normal">
                     Format: TF-XXXXXX
                   </span>
                 </label>
@@ -476,7 +476,7 @@ export default function JoinTeamPage() {
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="e.g. TF-8K9N2P"
                     maxLength={15}
-                    className="flex-1 px-4 py-3 rounded-xl bg-[#14141A] border border-white/10 text-white font-mono text-base tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:outline-none focus:border-[#18CFFC] transition-all min-h-[44px]"
+                    className="flex-1 px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 font-mono text-base tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-all min-h-[44px]"
                   />
                   <Button
                     type="submit"
@@ -491,7 +491,7 @@ export default function JoinTeamPage() {
                 </div>
 
                 {codePreviewError && (
-                  <p className="text-xs text-rose-400 flex items-center gap-1.5 mt-1">
+                  <p className="text-xs text-rose-600 flex items-center gap-1.5 mt-1">
                     <AlertCircle size={13} /> {codePreviewError}
                   </p>
                 )}
@@ -505,24 +505,23 @@ export default function JoinTeamPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="rounded-2xl bg-[#14141A] border border-[#18CFFC]/30 flex flex-col overflow-hidden shadow-lg"
+                  className="rounded-xl bg-gray-50 border border-blue-200 flex flex-col overflow-hidden"
                 >
                   {/* Event Poster Card if available */}
                   {activePreview.poster_url && (
-                    <div className="relative w-full h-44 sm:h-52 bg-zinc-900 overflow-hidden">
+                    <div className="relative w-full h-44 sm:h-52 bg-gray-100 overflow-hidden">
                       <img
                         src={activePreview.poster_url}
                         alt={activePreview.event_title}
                         className="w-full h-full object-cover object-center"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#14141A] via-transparent to-black/30" />
                       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs">
-                        <Badge variant="cyan" className="text-[10px] uppercase font-bold py-0.5">
+                        <Badge variant="info" className="text-[10px] uppercase font-bold py-0.5 shadow-sm">
                           {activePreview.event_category || 'Featured Event'}
                         </Badge>
                         {activePreview.venue_name && (
-                          <span className="flex items-center gap-1 text-[11px] text-zinc-300 bg-black/60 px-2.5 py-1 rounded-full backdrop-blur-md">
-                            <MapPin size={12} className="text-[#18CFFC]" />
+                          <span className="flex items-center gap-1 text-[11px] text-gray-900 bg-white/95 border border-gray-200 px-2.5 py-1 rounded-full shadow-xs">
+                            <MapPin size={12} className="text-blue-600" />
                             {activePreview.venue_name}
                           </span>
                         )}
@@ -533,14 +532,14 @@ export default function JoinTeamPage() {
                   <div className="p-4 sm:p-5 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-[#18CFFC]">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-600">
                           Verified Squad Invitation
                         </span>
-                        <h3 className="text-lg font-bold text-white font-heading mt-0.5">
+                        <h3 className="text-lg font-bold text-gray-900 font-heading mt-0.5">
                           {activePreview.team_name}
                         </h3>
-                        <p className="text-xs text-zinc-400 mt-0.5 font-sans">
-                          Invited by Team Leader <strong className="text-zinc-200">{activePreview.leader_name}</strong>
+                        <p className="text-xs text-gray-600 mt-0.5 font-sans">
+                          Invited by Team Leader <strong className="text-gray-900">{activePreview.leader_name}</strong>
                         </p>
                       </div>
 
@@ -549,32 +548,32 @@ export default function JoinTeamPage() {
                       </Badge>
                     </div>
 
-                    <div className="pt-2 border-t border-white/[0.08] grid grid-cols-2 gap-2 text-xs">
+                    <div className="pt-2 border-t border-gray-200 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
-                          <Ticket size={12} className="text-[#18CFFC]" /> Event
+                        <span className="text-gray-500 flex items-center gap-1 mb-0.5">
+                          <Ticket size={12} className="text-blue-600" /> Event
                         </span>
-                        <span className="font-medium text-white truncate block">
+                        <span className="font-medium text-gray-900 truncate block">
                           {activePreview.event_title}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
-                          <Calendar size={12} className="text-[#18CFFC]" /> Pass Status
+                        <span className="text-gray-500 flex items-center gap-1 mb-0.5">
+                          <Calendar size={12} className="text-blue-600" /> Pass Status
                         </span>
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-gray-900">
                           {activePreview.is_free ? 'Free Entry' : `₹${activePreview.price} Pass`}
                         </span>
                       </div>
                     </div>
 
                     {activePreview.venue_name && !activePreview.poster_url && (
-                      <div className="pt-2 border-t border-white/[0.08] text-xs">
-                        <span className="text-zinc-500 flex items-center gap-1 mb-0.5">
-                          <MapPin size={12} className="text-[#18CFFC]" /> Venue
+                      <div className="pt-2 border-t border-gray-200 text-xs">
+                        <span className="text-gray-500 flex items-center gap-1 mb-0.5">
+                          <MapPin size={12} className="text-blue-600" /> Venue
                         </span>
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-gray-900">
                           {activePreview.venue_name}
                         </span>
                       </div>
@@ -582,25 +581,25 @@ export default function JoinTeamPage() {
 
                     {/* Recipient Context if Token Preview */}
                     {tokenPreview && (
-                      <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between text-xs">
-                        <span className="text-zinc-400 flex items-center gap-1.5">
+                      <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-xs">
+                        <span className="text-gray-500 flex items-center gap-1.5">
                           <Mail size={12} /> Recipient
                         </span>
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-gray-900">
                           {tokenPreview.recipient_email || tokenPreview.masked_email}
                         </span>
                       </div>
                     )}
 
                     {activePreview.is_full && (
-                      <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2">
+                      <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
                         <AlertCircle size={15} />
                         <span>This squad has reached its maximum size of {activePreview.max_size} members.</span>
                       </div>
                     )}
 
                     {'is_open' in activePreview && !activePreview.is_open && (
-                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
+                      <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
                         <Clock size={15} />
                         <span>Registration for this event is closed or past the deadline.</span>
                       </div>
@@ -612,17 +611,17 @@ export default function JoinTeamPage() {
 
             {/* Recipient Account Mismatch Warning */}
             {hasEmailMismatch && (
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-3 text-xs text-amber-200">
-                <div className="flex items-center gap-2 font-semibold text-amber-300">
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col gap-3 text-xs text-amber-800">
+                <div className="flex items-center gap-2 font-semibold text-amber-900">
                   <AlertTriangle size={16} />
                   <span>Account Mismatch</span>
                 </div>
                 <p className="leading-relaxed">
                   This squad invitation was sent to{' '}
-                  <strong className="text-white">
+                  <strong className="text-gray-900">
                     {tokenPreview?.recipient_email || tokenPreview?.masked_email}
                   </strong>
-                  . You are currently signed in as <strong className="text-white">{user?.email}</strong>.
+                  . You are currently signed in as <strong className="text-gray-900">{user?.email}</strong>.
                 </p>
                 <div className="flex items-center gap-2 pt-1">
                   <Button
@@ -640,20 +639,20 @@ export default function JoinTeamPage() {
 
             {/* Attendee Form / Join Action */}
             {activePreview && !activePreview.is_full && (
-              <div className="flex flex-col gap-3 pt-2 border-t border-[var(--color-surface-3)]">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+              <div className="flex flex-col gap-3 pt-2 border-t border-gray-200">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600">
                   Your Attendee Information
                 </h4>
 
                 {!user ? (
-                  <div className="p-5 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)] flex flex-col items-center text-center gap-4">
+                  <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col items-center text-center gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                      <p className="text-sm font-semibold text-gray-900">
                         Sign in to claim your spot
                       </p>
-                      <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                      <p className="text-xs text-gray-600 mt-1">
                         Sign in with your student account to join{' '}
-                        <strong className="text-[var(--color-brand-purple)]">{activePreview.team_name}</strong>.
+                        <strong className="text-blue-600">{activePreview.team_name}</strong>.
                       </p>
                     </div>
 
@@ -689,7 +688,7 @@ export default function JoinTeamPage() {
                   <>
                     {/* Signed-in verified status badge */}
                     {isEmailMatched && (
-                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center gap-2">
                         <ShieldCheck size={15} />
                         <span>
                           Signed in as <strong>{user.email}</strong> (Verified recipient)
@@ -698,8 +697,8 @@ export default function JoinTeamPage() {
                     )}
 
                     <div>
-                      <label className="text-xs text-[var(--color-text-secondary)] font-medium mb-1 block">
-                        Full Name <span className="text-rose-400">*</span>
+                      <label className="text-xs text-gray-700 font-medium mb-1 block">
+                        Full Name <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -707,7 +706,7 @@ export default function JoinTeamPage() {
                         onChange={(e) => setStudentName(e.target.value)}
                         placeholder="Your full student name"
                         disabled={hasEmailMismatch}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] disabled:opacity-50"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 disabled:opacity-50"
                       />
                     </div>
 
@@ -734,7 +733,7 @@ export default function JoinTeamPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-[var(--color-text-secondary)] font-medium mb-1 block">
+                        <label className="text-xs text-gray-700 font-medium mb-1 block">
                           Contact Phone
                         </label>
                         <input
@@ -743,12 +742,12 @@ export default function JoinTeamPage() {
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="Phone number"
                           disabled={hasEmailMismatch}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 disabled:opacity-50"
                         />
                       </div>
 
                       <div>
-                        <label className="text-xs text-[var(--color-text-secondary)] font-medium mb-1 block">
+                        <label className="text-xs text-gray-700 font-medium mb-1 block">
                           Student ID / Roll Number
                         </label>
                         <input
@@ -757,7 +756,7 @@ export default function JoinTeamPage() {
                           onChange={(e) => setIdCardNumber(e.target.value)}
                           placeholder="Campus ID / Roll number"
                           disabled={hasEmailMismatch}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.1)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand-purple)] disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -781,7 +780,7 @@ export default function JoinTeamPage() {
                           type="button"
                           variant="outline"
                           size="lg"
-                          className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border-rose-500/30 text-xs sm:w-auto"
+                          className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 text-xs sm:w-auto"
                           disabled={isJoining || isDeclining}
                           onClick={() => setShowDeclineConfirm(true)}
                         >
@@ -803,13 +802,13 @@ export default function JoinTeamPage() {
           title="Decline Squad Invitation"
           size="sm"
         >
-          <div className="flex flex-col gap-4 text-left">
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Are you sure you want to decline joining <strong className="text-white">{activePreview?.team_name || 'this team'}</strong> for <strong className="text-white">{activePreview?.event_title || 'this event'}</strong>?
+          <div className="flex flex-col gap-4 text-left p-5">
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Are you sure you want to decline joining <strong className="text-gray-900">{activePreview?.team_name || 'this team'}</strong> for <strong className="text-gray-900">{activePreview?.event_title || 'this event'}</strong>?
               The squad leader will be notified and this invitation link will be cancelled.
             </p>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-200">
               <Button
                 type="button"
                 variant="outline"

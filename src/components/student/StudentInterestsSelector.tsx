@@ -110,17 +110,17 @@ export function StudentInterestsSelector({
     <div className={`flex flex-col gap-3.5 text-left ${className}`}>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <span className="text-xs uppercase tracking-wider text-[#18CFFC] font-semibold">
+          <span className="text-xs uppercase tracking-wider text-blue-600 font-semibold">
             Personalized Feed
           </span>
-          <h3 className="text-sm sm:text-base font-bold text-white font-display">
+          <h3 className="text-sm sm:text-base font-bold text-gray-900 font-display">
             Select Your Interests ({selected.length} chosen)
           </h3>
         </div>
         {showSaveButton && (
           <div className="flex items-center gap-2">
             {saveNotice && (
-              <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1 animate-fade-in">
+              <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1 animate-fade-in">
                 <Check size={13} /> {saveNotice}
               </span>
             )}
@@ -147,15 +147,15 @@ export function StudentInterestsSelector({
               key={item.id}
               type="button"
               onClick={() => toggleInterest(item.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer select-none border ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer select-none border ${
                 isSelected
-                  ? 'bg-gradient-to-r from-[#18CFFC]/20 via-[#07A4FC]/20 to-[#7F1AFB]/30 border-[#18CFFC]/50 text-white shadow-[0_0_12px_rgba(24,207,252,0.2)]'
-                  : 'bg-[#14141A] hover:bg-[#1A1A22] border-white/10 text-zinc-400 hover:text-white'
+                  ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-xs'
+                  : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Icon size={13} className={isSelected ? 'text-[#18CFFC]' : 'text-zinc-500'} />
+              <Icon size={13} className={isSelected ? 'text-blue-600' : 'text-gray-400'} />
               <span>{item.label}</span>
-              {isSelected && <Check size={11} className="text-[#18CFFC] ml-0.5" />}
+              {isSelected && <Check size={11} className="text-blue-600 ml-0.5" />}
             </button>
           )
         })}

@@ -34,8 +34,8 @@ export function ResourceOwnerGuard({
   if (isLoading || isAuthorized === null) {
     return (
       <div className="py-24 flex flex-col items-center justify-center text-center">
-        <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin mb-3" />
-        <span className="text-xs text-[var(--color-text-muted)] font-medium">
+        <div className="w-9 h-9 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-3" />
+        <span className="text-xs text-gray-500 font-medium">
           Verifying resource permissions…
         </span>
       </div>
@@ -50,13 +50,13 @@ export function ResourceOwnerGuard({
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.25 }}
-          className="w-full max-w-md glass p-8 rounded-[var(--radius-card)] border border-rose-500/20 shadow-2xl flex flex-col items-center"
+          className="w-full max-w-md bg-white p-8 rounded-2xl border border-gray-200 shadow-lg flex flex-col items-center"
         >
           <div className="mb-4">
             <Logo variant="navbar" />
           </div>
 
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-4 shadow-lg shadow-rose-500/10">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mb-4">
             <ShieldAlert size={28} />
           </div>
 

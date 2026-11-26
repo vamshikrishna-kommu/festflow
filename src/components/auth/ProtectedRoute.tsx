@@ -53,8 +53,8 @@ export function ProtectedRoute({
         role="status"
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="w-9 h-9 rounded-full border-2 border-[var(--color-surface-3)] border-t-[#18CFFC] animate-spin" />
-          <span className="text-xs text-[var(--color-text-muted)] font-medium">
+          <div className="w-9 h-9 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin" />
+          <span className="text-xs text-gray-500 font-medium">
             Verifying FestFlow access…
           </span>
         </div>
@@ -85,12 +85,12 @@ export function ProtectedRoute({
   if (allowedRoles && allowedRoles.length > 0 && !role) {
     return (
       <div className="min-h-screen pt-28 pb-16 px-4 flex flex-col justify-center items-center bg-[var(--color-surface-0)] relative overflow-hidden">
-        <div className="w-full max-w-md glass p-8 rounded-[var(--radius-card)] border border-rose-500/20 shadow-2xl text-center flex flex-col items-center">
+        <div className="w-full max-w-md bg-white p-8 rounded-2xl border border-gray-200 shadow-lg text-center flex flex-col items-center">
           <div className="mb-5 flex flex-col items-center">
             <Logo variant="navbar" />
           </div>
 
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-4 shadow-lg shadow-rose-500/10">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mb-4">
             <AlertTriangle size={28} />
           </div>
 
@@ -116,7 +116,7 @@ export function ProtectedRoute({
             <Button
               variant="outline"
               size="md"
-              className="w-full text-rose-300 border-rose-500/30 hover:bg-rose-500/10"
+              className="w-full text-rose-600 border-rose-200 hover:bg-rose-50"
               leftIcon={<LogOut size={15} />}
               onClick={() => signOut()}
             >

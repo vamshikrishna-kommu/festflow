@@ -18,10 +18,10 @@ export function PageShell({ children, fullbleed: _fullbleed = false, noBottomNav
   const isReduced = useReducedMotion()
 
   return (
-    <div className="w-full min-h-dvh flex flex-col">
+    <div className="w-full min-h-dvh flex flex-col bg-[var(--color-canvas)] text-[var(--color-text-primary)]">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--color-brand-violet)] focus:text-white focus:rounded-lg focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-white text-xs font-semibold"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-semibold"
       >
         Skip to content
       </a>

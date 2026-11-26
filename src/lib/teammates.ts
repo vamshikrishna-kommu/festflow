@@ -78,13 +78,16 @@ export async function getTeammateDiscoveryProfile(
 
   if (isSupabaseConfigured) {
     try {
-      const { data } = await (supabase.from('teammate_profiles') as any)
+      const { data, error } = await (supabase.from('teammate_profiles') as any)
         .select('*')
         .eq('student_id', studentId)
         .maybeSingle()
+      if (error) {
+        return { success: false, profile: null, message: error.message }
+      }
       return { success: true, profile: data as TeammateProfileRecord | null }
-    } catch {
-      // fallback
+    } catch (err: any) {
+      return { success: false, profile: null, message: err?.message || 'Failed to load teammate profile.' }
     }
   }
 
@@ -184,33 +187,34 @@ export async function searchTeammates(filters?: {
       }
 
       const { data, error } = await q.order('updated_at', { ascending: false })
-      if (!error && data) {
-        let results = data as TeammateProfileRecord[]
-        // Apply client-side skill and category filters if specified
-        if (filters?.skills && filters.skills.length > 0) {
-          const reqSkills = filters.skills.map((s) => s.toLowerCase())
-          results = results.filter((p) =>
-            p.skills.some((s) => reqSkills.includes(s.toLowerCase()))
-          )
-        }
-        if (filters?.category) {
-          results = results.filter((p) =>
-            p.preferred_categories.includes(filters.category!)
-          )
-        }
-        if (filters?.query?.trim()) {
-          const qText = filters.query.trim().toLowerCase()
-          results = results.filter(
-            (p) =>
-              p.headline?.toLowerCase().includes(qText) ||
-              p.student?.display_name?.toLowerCase().includes(qText) ||
-              p.skills.some((s) => s.toLowerCase().includes(qText))
-          )
-        }
-        return { success: true, candidates: results }
+      if (error) {
+        return { success: false, candidates: [], message: error.message }
       }
-    } catch {
-      // fallback
+      let results = (data as TeammateProfileRecord[]) || []
+      // Apply client-side skill and category filters if specified
+      if (filters?.skills && filters.skills.length > 0) {
+        const reqSkills = filters.skills.map((s) => s.toLowerCase())
+        results = results.filter((p) =>
+          p.skills.some((s) => reqSkills.includes(s.toLowerCase()))
+        )
+      }
+      if (filters?.category) {
+        results = results.filter((p) =>
+          p.preferred_categories.includes(filters.category!)
+        )
+      }
+      if (filters?.query?.trim()) {
+        const qText = filters.query.trim().toLowerCase()
+        results = results.filter(
+          (p) =>
+            p.headline?.toLowerCase().includes(qText) ||
+            p.student?.display_name?.toLowerCase().includes(qText) ||
+            p.skills.some((s) => s.toLowerCase().includes(qText))
+        )
+      }
+      return { success: true, candidates: results }
+    } catch (err: any) {
+      return { success: false, candidates: [], message: err?.message || 'Failed to search teammates.' }
     }
   }
 
@@ -406,16 +410,17 @@ export async function getStudentTeammateRequests(
         .or(`sender_id.eq.${studentId},receiver_id.eq.${studentId}`)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        const all = data as TeammateRequestRecord[]
-        return {
-          success: true,
-          sent: all.filter((r) => r.sender_id === studentId),
-          received: all.filter((r) => r.receiver_id === studentId),
-        }
+      if (error) {
+        return { success: false, sent: [], received: [], message: error.message }
       }
-    } catch {
-      // fallback
+      const all = (data as TeammateRequestRecord[]) || []
+      return {
+        success: true,
+        sent: all.filter((r) => r.sender_id === studentId),
+        received: all.filter((r) => r.receiver_id === studentId),
+      }
+    } catch (err: any) {
+      return { success: false, sent: [], received: [], message: err?.message || 'Failed to load teammate requests.' }
     }
   }
 

@@ -35,13 +35,15 @@ export async function getStudentWishlistIds(userId: string): Promise<string[]> {
         .select('event_id')
         .eq('user_id', userId)
 
-      if (!error && data) {
-        const ids = (data as any[]).map((r) => r.event_id)
-        saveLocalWishlistIds(userId, ids)
-        return ids
+      if (error) {
+        console.warn('[FestFlow Wishlist] Supabase wishlist IDs query error:', error.message)
+        return []
       }
+      const ids = ((data as any[]) || []).map((r) => r.event_id)
+      saveLocalWishlistIds(userId, ids)
+      return ids
     } catch {
-      // fallback to local storage
+      return []
     }
   }
 
@@ -65,38 +67,26 @@ export async function getStudentWishlistEvents(userId: string): Promise<Event[]>
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
-        const events: Event[] = []
-        const ids: string[] = []
-        for (const row of data as any[]) {
-          if (row.events) {
-            events.push(mapRecordToUiEvent(row.events as EventRecord))
-            ids.push(row.event_id)
-          }
-        }
-        saveLocalWishlistIds(userId, ids)
-        return events
+      if (error) {
+        console.warn('[FestFlow Wishlist] Supabase wishlist events query error:', error.message)
+        return []
       }
+      const events: Event[] = []
+      const ids: string[] = []
+      for (const row of (data as any[]) || []) {
+        if (row.events) {
+          events.push(mapRecordToUiEvent(row.events as EventRecord))
+          ids.push(row.event_id)
+        }
+      }
+      saveLocalWishlistIds(userId, ids)
+      return events
     } catch {
-      // fallback to local cache lookup
+      return []
     }
   }
 
-  // Local fallback: fetch IDs and match
-  const ids = getLocalWishlistIds(userId)
-  if (ids.length === 0) return []
-
-  try {
-    const { data } = await supabase
-      .from('events')
-      .select('*')
-      .in('id', ids)
-    if (data) {
-      return (data as EventRecord[]).map(mapRecordToUiEvent)
-    }
-  } catch {
-    // ignore
-  }
+  // Local simulation mode lookup
   return []
 }
 

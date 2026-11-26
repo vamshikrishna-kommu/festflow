@@ -117,7 +117,7 @@ export function CollegeRequestModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleResetAndClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
 
           {/* Modal Content */}
@@ -125,23 +125,23 @@ export function CollegeRequestModal({
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-lg bg-[#0F111A] border border-white/10 rounded-2xl shadow-2xl p-6 overflow-hidden z-10 max-h-[90vh] flex flex-col"
+            className="relative w-full max-w-lg bg-white border border-gray-200 rounded-2xl shadow-xl p-6 overflow-hidden z-10 max-h-[90vh] flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#18CFFC]/10 border border-[#18CFFC]/20 flex items-center justify-center text-[#18CFFC]">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
                   <Building2 size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white text-base">Request College Addition</h3>
-                  <p className="text-xs text-white/50">Can't find your institution? Submit it for verification.</p>
+                  <h3 className="font-semibold text-gray-900 text-base">Request College Addition</h3>
+                  <p className="text-xs text-gray-500">Can't find your institution? Submit it for verification.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleResetAndClose}
-                className="text-white/40 hover:text-white transition-colors p-1"
+                className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors p-1.5"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -151,16 +151,16 @@ export function CollegeRequestModal({
             {/* Body */}
             {success ? (
               <div className="py-8 text-center space-y-4">
-                <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
                   <CheckCircle2 size={32} />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-base font-semibold text-white">Request Submitted Successfully</h4>
-                  <p className="text-xs text-white/60 max-w-sm mx-auto leading-relaxed">
-                    Our platform administrators will review and verify <span className="text-[#18CFFC] font-medium">{collegeName}</span> against authoritative databases (AISHE / TSCHE).
+                  <h4 className="text-base font-semibold text-gray-900">Request Submitted Successfully</h4>
+                  <p className="text-xs text-gray-600 max-w-sm mx-auto leading-relaxed">
+                    Our platform administrators will review and verify <span className="text-blue-600 font-semibold">{collegeName}</span> against authoritative databases (AISHE / TSCHE).
                   </p>
                 </div>
-                <p className="text-[11px] text-white/40 bg-white/[0.02] border border-white/5 p-3 rounded-xl max-w-sm mx-auto">
+                <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 p-3 rounded-xl max-w-sm mx-auto">
                   Your submitted institution name has been pre-selected for your profile so you can proceed without disruption.
                 </p>
                 <div className="pt-2">
@@ -170,18 +170,18 @@ export function CollegeRequestModal({
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="overflow-y-auto space-y-4 py-4 pr-1 text-xs text-white">
+              <form onSubmit={handleSubmit} className="overflow-y-auto space-y-4 py-4 pr-1 text-xs text-gray-900">
                 {error && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 flex items-start gap-2.5">
-                    <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-400" />
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start gap-2.5">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
                     <span>{error}</span>
                   </div>
                 )}
 
                 {/* College Name */}
                 <div className="space-y-1">
-                  <label className="block text-white/70 font-medium">
-                    Official College / University Name <span className="text-rose-400">*</span>
+                  <label className="block text-gray-700 font-medium">
+                    Official College / University Name <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="text"
@@ -189,31 +189,31 @@ export function CollegeRequestModal({
                     placeholder="e.g. Anurag University, Hyderabad"
                     value={collegeName}
                     onChange={(e) => setCollegeName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
 
                 {/* Short Name & AISHE */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="block text-white/70 font-medium">Acronym / Short Name</label>
+                    <label className="block text-gray-700 font-medium">Acronym / Short Name</label>
                     <input
                       type="text"
                       placeholder="e.g. AU, CBIT, IARE"
                       value={shortName}
                       onChange={(e) => setShortName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC]"
+                      className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-white/70 font-medium">AISHE Code (Optional)</label>
+                    <label className="block text-gray-700 font-medium">AISHE Code (Optional)</label>
                     <input
                       type="text"
                       placeholder="e.g. C-19754 or U-0027"
                       value={aisheCode}
                       onChange={(e) => setAisheCode(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white font-mono placeholder-white/30 focus:outline-none focus:border-[#18CFFC]"
+                      className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 font-mono placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                     />
                   </div>
                 </div>
@@ -221,11 +221,11 @@ export function CollegeRequestModal({
                 {/* District & Locality */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="block text-white/70 font-medium">District <span className="text-rose-400">*</span></label>
+                    <label className="block text-gray-700 font-medium">District <span className="text-rose-600">*</span></label>
                     <select
                       value={district}
                       onChange={(e) => setDistrict(e.target.value as CollegeDistrict)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#141724] border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                      className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                     >
                       {TELANGANA_DISTRICTS.map((dist) => (
                         <option key={dist} value={dist}>
@@ -237,27 +237,27 @@ export function CollegeRequestModal({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-white/70 font-medium">Campus Locality / Area</label>
+                    <label className="block text-gray-700 font-medium">Campus Locality / Area</label>
                     <div className="relative">
                       <input
                         type="text"
                         placeholder="e.g. Ghatkesar, Bachupally, Kandi"
                         value={locality}
                         onChange={(e) => setLocality(e.target.value)}
-                        className="w-full px-3 py-2 pl-8 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC]"
+                        className="w-full px-3 py-2 pl-8 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                       />
-                      <MapPin size={14} className="absolute left-2.5 top-2.5 text-white/40" />
+                      <MapPin size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
                     </div>
                   </div>
                 </div>
 
                 {/* Institution Type */}
                 <div className="space-y-1">
-                  <label className="block text-white/70 font-medium">Institution Type</label>
+                  <label className="block text-gray-700 font-medium">Institution Type</label>
                   <select
                     value={institutionType}
                     onChange={(e) => setInstitutionType(e.target.value as InstitutionType)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#141724] border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   >
                     {Object.entries(INSTITUTION_TYPE_LABELS).map(([key, label]) => (
                       <option key={key} value={key}>
@@ -269,33 +269,33 @@ export function CollegeRequestModal({
 
                 {/* Official Website */}
                 <div className="space-y-1">
-                  <label className="block text-white/70 font-medium">Official Website (Optional)</label>
+                  <label className="block text-gray-700 font-medium">Official Website (Optional)</label>
                   <div className="relative">
                     <input
                       type="url"
                       placeholder="https://example.ac.in"
                       value={website}
                       onChange={(e) => setWebsite(e.target.value)}
-                      className="w-full px-3 py-2 pl-8 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC]"
+                      className="w-full px-3 py-2 pl-8 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                     />
-                    <Globe size={14} className="absolute left-2.5 top-2.5 text-white/40" />
+                    <Globe size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
                   </div>
                 </div>
 
                 {/* Supporting Info */}
                 <div className="space-y-1">
-                  <label className="block text-white/70 font-medium">Additional Details / Affiliation</label>
+                  <label className="block text-gray-700 font-medium">Additional Details / Affiliation</label>
                   <textarea
                     rows={2}
                     placeholder="e.g. Affiliated to JNTUH / OU, recently granted autonomous status, etc."
                     value={supportingInfo}
                     onChange={(e) => setSupportingInfo(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#18CFFC] resize-none"
+                    className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 resize-none"
                   />
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
                   <Button variant="ghost" size="sm" type="button" onClick={handleResetAndClose}>
                     Cancel
                   </Button>

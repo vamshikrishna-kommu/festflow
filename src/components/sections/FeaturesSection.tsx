@@ -113,7 +113,7 @@ export function FeaturesSection() {
         >
           <motion.p
             variants={reduced ? undefined : fadeUp}
-            className="text-xs uppercase tracking-widest text-[var(--color-brand-violet)] font-semibold mb-3 sm:mb-4"
+            className="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-3 sm:mb-4"
           >
             Everything you need
           </motion.p>
@@ -146,7 +146,7 @@ export function FeaturesSection() {
             <motion.li
               key={title}
               variants={reduced ? undefined : fadeUp}
-              className="relative group rounded-[var(--radius-card)] border border-[oklch(100%_0_0_/_0.065)] bg-[var(--color-surface-1)] p-5 sm:p-6 overflow-hidden transition-all duration-300 hover:border-[oklch(100%_0_0_/_0.13)] hover:bg-[var(--color-surface-2)] hover:-translate-y-1 hover:shadow-[0_12px_40px_oklch(0%_0_0_/_0.5)]"
+              className="relative group rounded-[var(--radius-card)] border border-gray-200 bg-white p-5 sm:p-6 overflow-hidden transition-all duration-200 hover:border-gray-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               {/* Hover glow (always slightly visible) */}
               <div

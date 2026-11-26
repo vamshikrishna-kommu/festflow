@@ -34,23 +34,23 @@ export function Step4Validation({ config }: Props) {
       <div
         className={`p-4 rounded-xl border flex items-start gap-3 ${
           isValid
-            ? 'bg-emerald-900/20 border-emerald-500/30'
-            : 'bg-red-900/20 border-red-500/30'
+            ? 'bg-emerald-50 border-emerald-200'
+            : 'bg-rose-50 border-rose-200'
         }`}
       >
         {isValid ? (
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
         ) : (
-          <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <XCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
         )}
         <div>
-          <div className={`font-semibold ${isValid ? 'text-emerald-300' : 'text-red-300'}`}>
+          <div className={`font-semibold ${isValid ? 'text-emerald-800' : 'text-rose-800'}`}>
             {isValid ? 'Layout is valid and ready to publish' : `${errors.length} issue(s) found`}
           </div>
           {!isValid && (
             <ul className="mt-2 space-y-1">
               {errors.map((err: LayoutValidationError, idx: number) => (
-                <li key={idx} className="text-sm text-red-300">
+                <li key={idx} className="text-sm text-rose-700">
                   <span className="font-medium">{err.field}:</span> {err.message}
                 </li>
               ))}
@@ -71,16 +71,16 @@ export function Step4Validation({ config }: Props) {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="p-3 bg-[var(--color-surface-2)] rounded-xl border border-white/5"
+            className="p-3 bg-gray-50 rounded-xl border border-gray-200"
           >
-            <div className="text-2xl font-bold text-[#18CFFC]">{stat.value}</div>
-            <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{stat.label}</div>
+            <div className="text-2xl font-bold text-blue-600">{stat.value}</div>
+            <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Hold settings summary */}
-      <div className="p-4 bg-[var(--color-surface-2)] rounded-xl border border-white/5 space-y-2">
+      <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
         <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Settings Summary</h3>
         <div className="grid grid-cols-2 gap-y-1 text-sm">
           <span className="text-[var(--color-text-muted)]">Hold Duration</span>

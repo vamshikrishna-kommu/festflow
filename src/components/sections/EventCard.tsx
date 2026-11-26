@@ -60,7 +60,7 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
     setHeartPulsing(true)
     const res = await toggleWishlist(user.id, event.id)
     setIsSaved(res.saved)
-    setTimeout(() => setHeartPulsing(false), 400)
+    setTimeout(() => setHeartPulsing(false), 300)
   }
 
   const hasCapacity = typeof event.capacity === 'number' && event.capacity > 0
@@ -83,12 +83,12 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
       aria-label={`View ${event.title} by ${event.clubName}`}
     >
       <motion.article
-        whileHover={reduced ? undefined : { y: -5, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
-        whileTap={reduced ? undefined : { scale: 0.985 }}
-        className="relative flex flex-col h-full rounded-2xl border border-white/[0.07] bg-[#0E0E12] overflow-hidden transition-all duration-300 group-hover:border-white/20 group-hover:bg-[#14141A] group-hover:shadow-[0_20px_48px_rgba(0,0,0,0.7),0_0_24px_rgba(127,26,251,0.20)] cursor-pointer"
+        whileHover={reduced ? undefined : { y: -3, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } }}
+        whileTap={reduced ? undefined : { scale: 0.99 }}
+        className="relative flex flex-col h-full rounded-xl border border-gray-200/90 bg-white overflow-hidden transition-all duration-200 group-hover:border-gray-300 shadow-[0_1px_3px_rgba(0,0,0,0.04)] group-hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.08)] cursor-pointer"
       >
-        {/* Proportioned Cover Image Banner (16:10 aspect ratio) */}
-        <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#14141A] shrink-0">
+        {/* Cover Image Banner (16:10 aspect ratio) */}
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100 border-b border-gray-100 shrink-0">
           {!imgError && event.coverImage ? (
             <img
               src={getOptimizedImageUrl(event.coverImage, 640)}
@@ -99,37 +99,29 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
               fetchPriority={priority ? 'high' : 'auto'}
               decoding="async"
               onError={() => setImgError(true)}
-              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
             />
           ) : (
-            <div
-              className="w-full h-full flex flex-col items-center justify-center p-6 text-center"
-              style={{
-                background: 'linear-gradient(135deg, #181822 0%, #0E0E12 100%)',
-              }}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#18CFFC] mb-2 shadow-inner">
-                <Calendar size={22} />
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gray-50">
+              <div className="w-11 h-11 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 mb-2 shadow-xs">
+                <Calendar size={20} />
               </div>
-              <span className="text-xs font-semibold text-zinc-400 line-clamp-1">
+              <span className="text-xs font-medium text-gray-500 line-clamp-1">
                 {event.clubName}
               </span>
             </div>
           )}
 
-          {/* Vignette Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E12] via-black/20 to-transparent" />
-
           {/* Top Badges */}
           <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap items-center">
             <CategoryBadge category={event.category} />
             {isTeam && (
-              <Badge variant="purple" className="text-[10px] flex items-center gap-1 shadow-sm">
+              <Badge variant="violet" className="text-[10px] flex items-center gap-1 bg-white/95 border-gray-200 shadow-xs">
                 <Users size={10} /> Team
               </Badge>
             )}
             {isOnline && (
-              <Badge variant="cyan" className="text-[10px] shadow-sm">
+              <Badge variant="blue" className="text-[10px] bg-white/95 border-gray-200 shadow-xs">
                 Online
               </Badge>
             )}
@@ -138,11 +130,11 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
           {/* Top Right: Price & Wishlist Toggle */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
             {event.isFree ? (
-              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 backdrop-blur-md shadow-md">
+              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-50/95 text-emerald-700 border border-emerald-200 shadow-xs">
                 FREE
               </span>
             ) : (
-              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-[#14141A]/90 text-white border border-white/15 backdrop-blur-md shadow-md">
+              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-white/95 text-gray-900 border border-gray-200 shadow-xs">
                 ₹{event.price}
               </span>
             )}
@@ -151,38 +143,38 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
               <button
                 type="button"
                 onClick={handleWishlistToggle}
-                className={`p-1.5 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer ${
+                className={`p-1.5 rounded-full border transition-all duration-150 cursor-pointer shadow-xs ${
                   isSaved
-                    ? 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.5)] scale-105'
-                    : 'bg-[#14141A]/80 hover:bg-[#14141A] text-zinc-400 hover:text-white border border-white/10'
-                } ${heartPulsing ? 'scale-125' : ''}`}
+                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                    : 'bg-white/95 hover:bg-white text-gray-500 hover:text-rose-600 border-gray-200'
+                } ${heartPulsing ? 'scale-115' : ''}`}
                 title={isSaved ? 'Remove from Saved Events' : 'Save to Wishlist'}
                 aria-label={isSaved ? 'Saved to Wishlist' : 'Save to Wishlist'}
               >
-                <Heart size={14} className={isSaved ? 'fill-current text-white' : ''} />
+                <Heart size={13} className={isSaved ? 'fill-current text-rose-600' : ''} />
               </button>
             )}
           </div>
 
           {/* Arrow hint on hover */}
-          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="w-8 h-8 rounded-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] text-white flex items-center justify-center shadow-lg font-bold">
-              <ArrowUpRight size={15} />
+          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0">
+            <span className="w-7 h-7 rounded-full bg-white text-gray-900 border border-gray-200 flex items-center justify-center shadow-md">
+              <ArrowUpRight size={14} />
             </span>
           </div>
         </div>
 
         {/* Card Body */}
-        <div className="flex flex-col flex-1 p-4 sm:p-5 gap-2.5">
+        <div className="flex flex-col flex-1 p-4 sm:p-5 gap-2.5 text-left">
           {/* Smart Recommendation or Trending Badge */}
           {recommendationReason ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#18CFFC]/10 border border-[#18CFFC]/30 text-[#18CFFC] self-start shadow-sm max-w-full">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 border border-blue-200 text-blue-700 self-start max-w-full">
               <Sparkles size={11} className="shrink-0" />
               <span className="truncate">{recommendationReason}</span>
             </div>
           ) : trendingRank ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300 self-start shadow-sm max-w-full">
-              <Flame size={11} className="shrink-0 text-amber-400" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 border border-amber-200 text-amber-800 self-start max-w-full">
+              <Flame size={11} className="shrink-0 text-amber-600" />
               <span className="truncate">Trending #{trendingRank} {velocityLabel ? `• ${velocityLabel}` : ''}</span>
             </div>
           ) : null}
@@ -196,42 +188,42 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
                 width={18}
                 height={18}
                 loading="lazy"
-                className="rounded-full shrink-0 ring-1 ring-white/10 object-cover"
+                className="rounded-full shrink-0 ring-1 ring-gray-200 object-cover"
               />
-              <span className="text-xs text-zinc-400 truncate font-medium flex items-center gap-1">
+              <span className="text-xs text-gray-600 truncate font-medium flex items-center gap-1">
                 {event.clubName}
-                <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
+                <ShieldCheck size={12} className="text-blue-600 shrink-0" />
               </span>
             </div>
             <EventStatusBadge event={event} showIcon={false} />
           </div>
 
           {/* Event Title */}
-          <h3 className="font-display font-bold text-base leading-snug text-white line-clamp-2 group-hover:text-[#18CFFC] transition-colors duration-200">
+          <h3 className="font-display font-semibold text-base leading-snug text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-150">
             {event.title}
           </h3>
 
           {/* Meta Information */}
-          <div className="flex flex-col gap-1.5 text-xs text-zinc-400">
+          <div className="flex flex-col gap-1.5 text-xs text-gray-500">
             <div className="flex items-center gap-1.5">
-              <Calendar size={12} aria-hidden="true" className="shrink-0 text-[#18CFFC]" />
+              <Calendar size={12} aria-hidden="true" className="shrink-0 text-gray-400" />
               <span className="truncate">{formatDate(event.date)}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Clock size={12} aria-hidden="true" className="shrink-0 text-[#ED47FC]" />
+              <Clock size={12} aria-hidden="true" className="shrink-0 text-gray-400" />
               <span className="truncate">{event.time}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <MapPin size={12} aria-hidden="true" className="shrink-0 text-zinc-500" />
+              <MapPin size={12} aria-hidden="true" className="shrink-0 text-gray-400" />
               <span className="truncate">{event.venue || event.location}</span>
             </div>
           </div>
 
-          {/* Capacity and Availability Bar (backed by genuine DB data) */}
+          {/* Capacity and Availability Bar */}
           {(event as any).show_seat_availability !== false ? (
-            <div className="mt-auto pt-2 border-t border-white/[0.06]">
+            <div className="mt-auto pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between mb-1.5 text-[11px]">
-                <div className="flex items-center gap-1 text-zinc-400">
+                <div className="flex items-center gap-1 text-gray-500 font-medium">
                   <Users size={11} aria-hidden="true" />
                   {registered > 0 ? (
                     <span>
@@ -243,44 +235,44 @@ export function EventCard({ event, animated = false, priority = false }: EventCa
                 </div>
 
                 {isFull ? (
-                  <span className="font-semibold text-rose-400">Sold out</span>
+                  <span className="font-semibold text-rose-600">Sold out</span>
                 ) : isNearFull && spots !== null ? (
-                  <span className="font-semibold text-amber-400">{spots} left</span>
+                  <span className="font-semibold text-amber-600">{spots} left</span>
                 ) : (
-                  <span className="text-emerald-400 font-medium">Open</span>
+                  <span className="text-emerald-600 font-medium">Open</span>
                 )}
               </div>
 
               {hasCapacity && (
                 <div
-                  className="h-1 rounded-full overflow-hidden bg-white/10"
+                  className="h-1.5 rounded-full overflow-hidden bg-gray-100"
                   role="progressbar"
                   aria-valuenow={registered}
                   aria-valuemax={event.capacity}
                   aria-label={`${registered} of ${event.capacity} spots filled`}
                 >
                   <div
-                    className="h-full rounded-full transition-all duration-700"
+                    className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: registered > 0 ? `${Math.max(fillPct, 4)}%` : '0%',
                       background: isFull
-                        ? '#f43f5e'
+                        ? '#E11D48'
                         : isNearFull
-                        ? '#f59e0b'
-                        : 'linear-gradient(90deg, #18CFFC, #07A4FC, #7F1AFB)',
+                        ? '#D97706'
+                        : '#2563EB',
                     }}
                   />
                 </div>
               )}
             </div>
           ) : (
-            <div className="mt-auto pt-2 border-t border-white/[0.06]">
+            <div className="mt-auto pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-1 text-zinc-400">
+                <div className="flex items-center gap-1 text-gray-500">
                   <Users size={11} aria-hidden="true" />
                   <span>Registration Open</span>
                 </div>
-                <span className="text-emerald-400 font-medium">Open</span>
+                <span className="text-emerald-600 font-medium">Open</span>
               </div>
             </div>
           )}

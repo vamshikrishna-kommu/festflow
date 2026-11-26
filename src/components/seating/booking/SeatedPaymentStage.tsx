@@ -11,6 +11,7 @@ import {
   ArrowRight,
   ShieldCheck,
   X,
+  Loader2,
 } from 'lucide-react'
 import { Button, Alert, Badge } from '@/components/ui'
 import { HoldCountdown } from '../HoldCountdown'
@@ -49,6 +50,8 @@ export function SeatedPaymentStage({
 }: SeatedPaymentStageProps) {
   const { user } = useAuth()
   const [clubSettings, setClubSettings] = useState<ClubPaymentSettings | null>(null)
+  const [loadingSettings, setLoadingSettings] = useState(true)
+  const [settingsError, setSettingsError] = useState<string | null>(null)
 
   // Payment form states
   const [proofFile, setProofFile] = useState<File | null>(null)
@@ -69,13 +72,26 @@ export function SeatedPaymentStage({
     let active = true
 
     if (event.club_id) {
+      setLoadingSettings(true)
+      setSettingsError(null)
       getClubPaymentSettings(event.club_id)
         .then((settings) => {
           if (active) {
             setClubSettings(settings)
           }
         })
-        .catch(() => {})
+        .catch((err: any) => {
+          if (active) {
+            setSettingsError(err?.message || 'Unable to load organizer payment details.')
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setLoadingSettings(false)
+          }
+        })
+    } else {
+      setLoadingSettings(false)
     }
 
     return () => {
@@ -83,11 +99,13 @@ export function SeatedPaymentStage({
     }
   }, [event.club_id])
 
-  const upiId = clubSettings?.upi_id || 'organizer@upi'
+  const upiId = clubSettings?.upi_id?.trim() || ''
   const payeeName = clubSettings?.account_name || event.club?.display_name || 'FestFlow Club'
-  const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(
-    payeeName
-  )}&am=${totalPrice}&cu=INR&tn=${encodeURIComponent(`Seats for ${event.title}`)}`
+  const upiUrl = upiId
+    ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(
+        payeeName
+      )}&am=${totalPrice}&cu=INR&tn=${encodeURIComponent(`Seats for ${event.title}`)}`
+    : ''
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId)
@@ -198,35 +216,35 @@ export function SeatedPaymentStage({
       className="space-y-6"
     >
       {/* Top Banner: Hold Countdown + Policy Explanation */}
-      <div className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-4 sm:p-5 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Badge variant="cyan">Hold Active</Badge>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <Badge variant="info">Hold Active</Badge>
+              <span className="text-xs text-gray-500">
                 {seats.length} Seat{seats.length > 1 ? 's' : ''} Reserved
               </span>
             </div>
-            <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
+            <h3 className="text-lg font-bold text-gray-900">
               Complete Manual UPI Payment
             </h3>
           </div>
 
           <div className="flex sm:flex-col sm:items-end justify-between items-center">
             <HoldCountdown heldUntil={heldUntil} onExpired={onExpired} />
-            <div className="text-xs text-[var(--color-text-muted)] mt-1">
+            <div className="text-xs text-gray-500 mt-1">
               Amount Due:{' '}
-              <strong className="text-emerald-400 text-base">
+              <strong className="text-emerald-600 text-base">
                 ₹{totalPrice.toLocaleString('en-IN')}
               </strong>
             </div>
           </div>
         </div>
 
-        <div className="flex items-start gap-2.5 mt-3 text-xs text-[var(--color-text-muted)]">
-          <ShieldCheck className="w-4 h-4 text-[#18CFFC] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 mt-3 text-xs text-gray-600">
+          <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
           <span>
-            <strong>Reservation Policy:</strong> Once you submit your UPI reference number and screenshot, your seat reservation is locked for review. The organizing club will manually verify the payment. If approved, your digital pass will activate immediately.
+            <strong className="text-gray-900">Reservation Policy:</strong> Once you submit your UPI reference number and screenshot, your seat reservation is locked for review. The organizing club will manually verify the payment. If approved, your digital pass will activate immediately.
           </span>
         </div>
       </div>
@@ -242,72 +260,99 @@ export function SeatedPaymentStage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Col: UPI Details & QR Code (5 cols) */}
         <div className="lg:col-span-5 space-y-5">
-          <div className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-5 shadow-xl text-center space-y-4">
-            <div>
-              <span className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">
-                Scan & Pay With Any UPI App
-              </span>
-              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                GPay, PhonePe, Paytm, BHIM, Cred
-              </p>
-            </div>
-
-            {/* Dynamic QR Code */}
-            <div className="inline-block p-4 bg-white rounded-2xl shadow-xl">
-              <QRCodeSVG
-                value={upiUrl}
-                size={180}
-                level="M"
-                includeMargin={false}
-              />
-            </div>
-
-            {/* UPI ID Pill */}
-            <div className="bg-[var(--color-surface-2)] border border-white/10 rounded-xl p-3 flex items-center justify-between gap-2">
-              <div className="text-left overflow-hidden">
-                <div className="text-[10px] uppercase text-[var(--color-text-muted)] font-medium">
-                  UPI ID (VPA)
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs text-center space-y-4">
+            {loadingSettings ? (
+              <div className="py-10 flex flex-col items-center gap-2 text-xs text-gray-500">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                <span>Loading club payment details…</span>
+              </div>
+            ) : settingsError ? (
+              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-left text-xs text-rose-700 space-y-1.5">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>Unable to Load Payment Details</span>
                 </div>
-                <div className="text-xs font-mono font-bold text-[var(--color-text-primary)] truncate">
-                  {upiId}
+                <p>{settingsError}</p>
+              </div>
+            ) : !upiId ? (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-800 space-y-1.5">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>Club UPI Payment Not Configured</span>
                 </div>
+                <p>
+                  The organizing club has not configured a verified UPI ID for this event yet. Please contact the organizer before making any transfer.
+                </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCopyUpi}
-                className="flex-shrink-0 text-xs py-1 px-2.5"
-              >
-                {copiedUpi ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400 mr-1" />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 mr-1" />
-                    Copy
-                  </>
-                )}
-              </Button>
-            </div>
+            ) : (
+              <>
+                <div>
+                  <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
+                    Scan & Pay With Any UPI App
+                  </span>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    GPay, PhonePe, Paytm, BHIM, Cred
+                  </p>
+                </div>
 
-            <div className="text-left text-xs space-y-1 text-[var(--color-text-muted)] pt-2 border-t border-white/5">
-              <div className="flex justify-between">
-                <span>Payee Name:</span>
-                <strong className="text-[var(--color-text-primary)]">{payeeName}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span>Exact Amount:</span>
-                <strong className="text-emerald-400">₹{totalPrice.toLocaleString('en-IN')}</strong>
-              </div>
-            </div>
+                {/* Dynamic QR Code */}
+                <div className="inline-block p-4 bg-white rounded-xl border border-gray-200 shadow-xs">
+                  <QRCodeSVG
+                    value={upiUrl}
+                    size={180}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+
+                {/* UPI ID Pill */}
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center justify-between gap-2">
+                  <div className="text-left overflow-hidden">
+                    <div className="text-[10px] uppercase text-gray-500 font-medium">
+                      UPI ID (VPA)
+                    </div>
+                    <div className="text-xs font-mono font-bold text-gray-900 truncate">
+                      {upiId}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyUpi}
+                    className="flex-shrink-0 text-xs py-1 px-2.5"
+                  >
+                    {copiedUpi ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 mr-1" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 mr-1" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="text-left text-xs space-y-1 text-gray-500 pt-2 border-t border-gray-100">
+                  <div className="flex justify-between">
+                    <span>Payee Name:</span>
+                    <strong className="text-gray-900">{payeeName}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Exact Amount:</span>
+                    <strong className="text-emerald-600">₹{totalPrice.toLocaleString('en-IN')}</strong>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Seat Breakdown Card */}
-          <div className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-4 shadow-xl space-y-3">
-            <h4 className="text-xs uppercase tracking-wider font-bold text-[var(--color-text-muted)]">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-3">
+            <h4 className="text-xs uppercase tracking-wider font-bold text-gray-500">
               Seats in this Booking ({seats.length})
             </h4>
             <div className="space-y-2">
@@ -316,26 +361,26 @@ export function SeatedPaymentStage({
                 return (
                   <div
                     key={s.seat_id}
-                    className="flex items-center justify-between p-2 rounded-xl bg-[var(--color-surface-2)] text-xs border border-white/5"
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 text-xs border border-gray-200"
                   >
                     <div className="flex items-center gap-2">
                       <span
                         className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: s.category_color || '#18CFFC' }}
+                        style={{ backgroundColor: s.category_color || '#2563EB' }}
                       />
-                      <span className="font-bold text-[var(--color-text-primary)]">
+                      <span className="font-bold text-gray-900">
                         Seat {s.display_label}
                       </span>
-                      <span className="text-[var(--color-text-muted)]">
+                      <span className="text-gray-500">
                         ({s.category_name})
                       </span>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-[var(--color-text-primary)]">
+                      <div className="font-semibold text-gray-900">
                         ₹{s.price}
                       </div>
                       {p && (
-                        <div className="text-[10px] text-[var(--color-text-muted)]">
+                        <div className="text-[10px] text-gray-500">
                           {p.student_name}
                         </div>
                       )}
@@ -351,20 +396,20 @@ export function SeatedPaymentStage({
         <div className="lg:col-span-7">
           <form
             onSubmit={handleSubmit}
-            className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5"
+            className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 shadow-xs space-y-5"
           >
             <div>
-              <h3 className="text-base font-bold text-[var(--color-text-primary)]">
+              <h3 className="text-base font-bold text-gray-900">
                 Submit Payment Verification Proof
               </h3>
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 After completing the transfer in your UPI app, provide the 12-digit reference number and a clear screenshot.
               </p>
             </div>
 
             {/* UTR Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 UPI Reference / UTR Number *
               </label>
               <input
@@ -373,34 +418,34 @@ export function SeatedPaymentStage({
                 onChange={(e) => setUtrReference(e.target.value)}
                 placeholder="e.g. 332400192842"
                 maxLength={50}
-                className="w-full bg-[var(--color-surface-2)] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm font-mono text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]"
+                className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm font-mono text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
               {ocrMessage && (
-                <div className="flex items-center gap-1.5 text-xs text-[#18CFFC]">
+                <div className="flex items-center gap-1.5 text-xs text-blue-600">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{ocrMessage}</span>
                 </div>
               )}
-              <p className="text-[11px] text-[var(--color-text-muted)]">
+              <p className="text-[11px] text-gray-500">
                 Usually found under transaction details as UTR, UPI Ref ID, or Transaction ID.
               </p>
             </div>
 
             {/* Screenshot Upload */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Payment Screenshot *
               </label>
 
               {!previewUrl ? (
-                <label className="border-2 border-dashed border-white/15 hover:border-[#18CFFC]/50 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-[var(--color-surface-2)]/40 hover:bg-[var(--color-surface-2)]">
-                  <div className="w-10 h-10 rounded-full bg-[#18CFFC]/10 border border-[#18CFFC]/20 flex items-center justify-center text-[#18CFFC]">
+                <label className="border-2 border-dashed border-gray-300 hover:border-blue-500 rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-gray-50 hover:bg-blue-50/40">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
                     <Upload className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-semibold text-[var(--color-text-primary)]">
+                  <span className="text-xs font-semibold text-gray-900">
                     Click to upload payment screenshot
                   </span>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">
+                  <span className="text-[11px] text-gray-500">
                     PNG, JPG, WEBP up to 10MB
                   </span>
                   <input
@@ -411,22 +456,22 @@ export function SeatedPaymentStage({
                   />
                 </label>
               ) : (
-                <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[var(--color-surface-2)] p-2">
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 p-2">
                   <img
                     src={previewUrl}
                     alt="Payment Screenshot Preview"
-                    className="w-full max-h-52 object-contain rounded-xl"
+                    className="w-full max-h-52 object-contain rounded-lg"
                   />
                   <button
                     type="button"
                     onClick={handleClearFile}
-                    className="absolute top-4 right-4 p-1.5 rounded-full bg-black/70 hover:bg-red-600 text-white transition-colors"
+                    className="absolute top-3 right-3 p-1.5 rounded-full bg-gray-900/80 hover:bg-rose-600 text-white transition-colors"
                     title="Remove image"
                   >
                     <X className="w-4 h-4" />
                   </button>
                   {isExtractingOcr && (
-                    <div className="p-2 text-center text-xs text-[#18CFFC] animate-pulse">
+                    <div className="p-2 text-center text-xs text-blue-600 animate-pulse">
                       Analyzing screenshot for UTR...
                     </div>
                   )}
@@ -436,7 +481,7 @@ export function SeatedPaymentStage({
 
             {/* Student Notes */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Additional Notes (Optional)
               </label>
               <textarea
@@ -444,12 +489,12 @@ export function SeatedPaymentStage({
                 onChange={(e) => setStudentNotes(e.target.value)}
                 placeholder="Any special remarks or details for the host club..."
                 rows={2}
-                className="w-full bg-[var(--color-surface-2)] border border-white/10 rounded-xl px-3.5 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]"
+                className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100">
               <Button
                 type="button"
                 variant="outline"
@@ -465,8 +510,8 @@ export function SeatedPaymentStage({
                 type="submit"
                 variant="primary"
                 isLoading={isSubmitting}
-                disabled={isSubmitting || !utrReference.trim() || !proofFile}
-                className="w-full sm:w-auto bg-gradient-to-r from-emerald-400 to-[#18CFFC] text-black font-bold px-6"
+                disabled={!upiId || isSubmitting || !utrReference.trim() || !proofFile}
+                className="w-full sm:w-auto px-6"
               >
                 Submit Payment Proof
                 <ArrowRight className="w-4 h-4 ml-1.5" />

@@ -32,7 +32,7 @@ export function Step1RoomInfo({ config, onChange }: Props) {
             value={config.name}
             onChange={(e) => update({ name: e.target.value })}
             placeholder="e.g. Main Auditorium"
-            className="w-full px-3 py-2.5 bg-[var(--color-surface-2)] border border-white/10 rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] transition-colors"
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
           />
         </div>
 
@@ -45,7 +45,7 @@ export function Step1RoomInfo({ config, onChange }: Props) {
             value={config.venue_description}
             onChange={(e) => update({ venue_description: e.target.value })}
             placeholder="e.g. Ground Floor, Block C"
-            className="w-full px-3 py-2.5 bg-[var(--color-surface-2)] border border-white/10 rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] transition-colors"
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
           />
         </div>
 
@@ -60,7 +60,7 @@ export function Step1RoomInfo({ config, onChange }: Props) {
             max={60}
             value={config.hold_duration_minutes}
             onChange={(e) => update({ hold_duration_minutes: Math.max(5, Math.min(60, Number(e.target.value))) })}
-            className="w-full px-3 py-2.5 bg-[var(--color-surface-2)] border border-white/10 rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[#18CFFC] transition-colors"
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
           />
         </div>
 
@@ -75,7 +75,7 @@ export function Step1RoomInfo({ config, onChange }: Props) {
             max={20}
             value={config.max_seats_per_registration}
             onChange={(e) => update({ max_seats_per_registration: Math.max(1, Math.min(20, Number(e.target.value))) })}
-            className="w-full px-3 py-2.5 bg-[var(--color-surface-2)] border border-white/10 rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[#18CFFC] transition-colors"
+            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
           />
         </div>
       </div>
@@ -92,8 +92,8 @@ export function Step1RoomInfo({ config, onChange }: Props) {
               onClick={() => update({ stage_position: opt.value })}
               className={`p-3 rounded-xl border-2 text-left transition-all duration-200 ${
                 config.stage_position === opt.value
-                  ? 'border-[#18CFFC] bg-[#18CFFC]/10'
-                  : 'border-white/10 bg-[var(--color-surface-2)] hover:border-white/20'
+                  ? 'border-blue-600 bg-blue-50/70'
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300'
               }`}
             >
               <div className="text-sm font-medium text-[var(--color-text-primary)]">{opt.label}</div>

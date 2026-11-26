@@ -37,12 +37,10 @@ export function NotificationBell() {
 
   useEffect(() => {
     loadNotifications()
-    // Poll fallback notifications every 30 seconds
     const interval = setInterval(loadNotifications, 30000)
     return () => clearInterval(interval)
   }, [user])
 
-  // Real-time live notification listener
   useEffect(() => {
     if (!user) return
     const unsubscribe = subscribeToRealtimeNotifications(user.id, (newNotif) => {
@@ -51,7 +49,6 @@ export function NotificationBell() {
     return () => unsubscribe()
   }, [user])
 
-  // Close when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -87,18 +84,18 @@ export function NotificationBell() {
     switch (type) {
       case 'payment_approved':
       case 'registration':
-        return <CheckCircle2 size={16} className="text-emerald-400" />
+        return <CheckCircle2 size={15} className="text-emerald-600" />
       case 'payment_rejected':
-        return <AlertTriangle size={16} className="text-rose-400" />
+        return <AlertTriangle size={15} className="text-rose-600" />
       case 'payment_submitted':
-        return <Clock size={16} className="text-amber-400" />
+        return <Clock size={15} className="text-amber-600" />
       case 'team_invitation':
       case 'team_member_added':
-        return <Users2 size={16} className="text-[#ED47FC]" />
+        return <Users2 size={15} className="text-indigo-600" />
       case 'ticket_issued':
-        return <Ticket size={16} className="text-[#18CFFC]" />
+        return <Ticket size={15} className="text-blue-600" />
       default:
-        return <Sparkles size={16} className="text-[#18CFFC]" />
+        return <Sparkles size={15} className="text-blue-600" />
     }
   }
 
@@ -108,15 +105,14 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <motion.button
         type="button"
-        whileTap={{ scale: 0.92 }}
-        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.94 }}
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors cursor-pointer"
+        className="relative p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
         aria-label="Notifications"
       >
-        <Bell size={18} className={unreadCount > 0 ? 'text-[#18CFFC]' : ''} />
+        <Bell size={18} className={unreadCount > 0 ? 'text-gray-900' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-[10px] font-bold text-white flex items-center justify-center animate-pulse shadow-[0_0_8px_rgba(24,207,252,0.5)]">
+          <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-[10px] font-semibold text-white flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -129,15 +125,15 @@ export function NotificationBell() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-[var(--color-surface-1)] border border-[oklch(100%_0_0_/_0.12)] shadow-2xl p-4 z-50 text-left overflow-hidden flex flex-col gap-3"
+            className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-white border border-gray-200 shadow-xl p-3.5 z-50 text-left overflow-hidden flex flex-col gap-3"
           >
-            <div className="flex items-center justify-between border-b border-[var(--color-surface-3)] pb-2">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold font-display text-[var(--color-text-primary)]">
+                <span className="text-xs font-semibold font-display text-gray-900">
                   Notifications
                 </span>
                 {unreadCount > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#18CFFC]/15 text-[#18CFFC]">
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                     {unreadCount} new
                   </span>
                 )}
@@ -146,7 +142,7 @@ export function NotificationBell() {
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
-                  className="text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+                  className="text-[11px] font-medium text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <Check size={12} /> Mark all read
                 </button>
@@ -155,7 +151,7 @@ export function NotificationBell() {
 
             <div className="max-h-80 overflow-y-auto flex flex-col gap-1 pr-1">
               {notifications.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[var(--color-text-muted)]">
+                <div className="py-8 text-center text-xs text-gray-500">
                   No notifications yet.
                 </div>
               ) : (
@@ -164,28 +160,28 @@ export function NotificationBell() {
                     key={n.id}
                     type="button"
                     onClick={() => handleNotificationClick(n)}
-                    className={`w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 ${
+                    className={`w-full text-left p-2.5 rounded-lg transition-colors flex items-start gap-3 cursor-pointer ${
                       !n.is_read
-                        ? 'bg-[var(--color-surface-2)]/80 hover:bg-[var(--color-surface-3)]'
-                        : 'hover:bg-[var(--color-surface-1)] opacity-75'
+                        ? 'bg-blue-50/50 hover:bg-blue-50'
+                        : 'hover:bg-gray-50 opacity-80'
                     }`}
                   >
-                    <div className="p-2 rounded-xl bg-[var(--color-surface-3)] shrink-0 mt-0.5">
+                    <div className="p-2 rounded-lg bg-gray-100 shrink-0 mt-0.5">
                       {getIcon(n.type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-bold text-[var(--color-text-primary)] truncate">
+                        <span className="text-xs font-semibold text-gray-900 truncate">
                           {n.title}
                         </span>
-                        <span className="text-[10px] text-[var(--color-text-muted)] shrink-0">
+                        <span className="text-[10px] text-gray-400 shrink-0">
                           {new Date(n.created_at).toLocaleTimeString([], {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[var(--color-text-secondary)] line-clamp-2 mt-0.5 leading-relaxed">
+                      <p className="text-[11px] text-gray-600 line-clamp-2 mt-0.5 leading-relaxed">
                         {n.message}
                       </p>
                     </div>
@@ -194,15 +190,14 @@ export function NotificationBell() {
               )}
             </div>
 
-            {/* Footer with link to Full Notification Center */}
-            <div className="pt-2 border-t border-[var(--color-surface-3)]">
+            <div className="pt-2 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false)
                   navigate('/notifications')
                 }}
-                className="w-full py-2 px-3 rounded-xl text-center text-xs font-bold text-[#18CFFC] hover:bg-[#18CFFC]/10 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full py-2 px-3 rounded-lg text-center text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <span>Open Notification Center</span>
                 <ArrowRight size={13} />

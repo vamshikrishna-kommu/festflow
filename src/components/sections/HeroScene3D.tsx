@@ -40,7 +40,7 @@ function createFestivalPassTexture(): THREE.CanvasTexture {
   ctx.fillStyle = '#FFFFFF'
   ctx.font = '600 16px "JetBrains Mono", monospace'
   ctx.textAlign = 'right'
-  ctx.fillText('VIP PASS // 2026', 476, 72)
+  ctx.fillText('PASS PREVIEW', 476, 72)
   ctx.textAlign = 'left'
 
   // 3. Central Hologram Emblem
@@ -105,7 +105,7 @@ function createFestivalPassTexture(): THREE.CanvasTexture {
   ctx.fillStyle = '#FE7EE8'
   ctx.font = '600 13px "JetBrains Mono", monospace'
   ctx.textAlign = 'left'
-  ctx.fillText('TKT# FF-9821-X99', 200, 675)
+  ctx.fillText('SPECIMEN PASS PREVIEW', 200, 675)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.needsUpdate = true

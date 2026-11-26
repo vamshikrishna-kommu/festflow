@@ -302,21 +302,21 @@ export function EventOrganizerExperienceModal({
         <div className="flex flex-col gap-4 text-left">
           {/* Notice Feedback */}
           {notice && (
-            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-              <Check size={14} className="shrink-0" />
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+              <Check size={14} className="shrink-0 text-emerald-600" />
               <span>{notice}</span>
             </div>
           )}
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#14141A] border border-white/10 overflow-x-auto text-xs">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-gray-100 border border-gray-200 overflow-x-auto text-xs">
             <button
               type="button"
               onClick={() => setActiveTab('tiers')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'tiers'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Ticket size={13} /> Tickets ({tiers.length})
@@ -326,8 +326,8 @@ export function EventOrganizerExperienceModal({
               onClick={() => setActiveTab('schedule')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'schedule'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Calendar size={13} /> Schedule ({schedules.length})
@@ -337,8 +337,8 @@ export function EventOrganizerExperienceModal({
               onClick={() => setActiveTab('speakers')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'speakers'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Users size={13} /> Speakers ({speakers.length})
@@ -348,8 +348,8 @@ export function EventOrganizerExperienceModal({
               onClick={() => setActiveTab('gallery')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'gallery'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <ImageIcon size={13} /> Gallery ({gallery.length})
@@ -359,8 +359,8 @@ export function EventOrganizerExperienceModal({
               onClick={() => setActiveTab('announcements')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'announcements'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Megaphone size={13} /> Announcements ({announcements.length})
@@ -370,8 +370,8 @@ export function EventOrganizerExperienceModal({
               onClick={() => setActiveTab('leaderboard')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'leaderboard'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Trophy size={13} /> Scores ({leaderboard.length})
@@ -381,8 +381,8 @@ export function EventOrganizerExperienceModal({
               onClick={() => setActiveTab('virtual')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'virtual'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Video size={13} /> Virtual Portal
@@ -392,8 +392,8 @@ export function EventOrganizerExperienceModal({
               onClick={() => setActiveTab('addons')}
               className={`px-3 py-1.5 rounded-xl font-medium shrink-0 flex items-center gap-1.5 transition-all ${
                 activeTab === 'addons'
-                  ? 'bg-[#18CFFC] text-black font-bold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <ShoppingBag size={13} /> Merch ({addons.length})
@@ -403,29 +403,29 @@ export function EventOrganizerExperienceModal({
           {/* TAB 1: TICKET TIERS */}
           {activeTab === 'tiers' && (
             <div className="flex flex-col gap-4">
-              <div className="p-3.5 rounded-xl bg-[#14141A] border border-white/10 flex flex-col gap-3">
-                <span className="text-xs font-bold text-white">Create Ticket Category</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                <span className="text-xs font-bold text-gray-900">Create Ticket Category</span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <input
                     type="text"
                     value={tierName}
                     onChange={(e) => setTierName(e.target.value)}
                     placeholder="Tier Name (e.g. VIP Pass)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="number"
                     value={tierPrice}
                     onChange={(e) => setTierPrice(e.target.value)}
                     placeholder="Price (₹0 for Free)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="number"
                     value={tierCapacity}
                     onChange={(e) => setTierCapacity(e.target.value)}
                     placeholder="Capacity (e.g. 50)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
                 <input
@@ -433,7 +433,7 @@ export function EventOrganizerExperienceModal({
                   value={tierPerksInput}
                   onChange={(e) => setTierPerksInput(e.target.value)}
                   placeholder="Perks (comma-separated, e.g. Front row seat, Swag bag, Food voucher)"
-                  className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-[#18CFFC]"
+                  className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
                 <Button
                   variant="primary"
@@ -451,11 +451,11 @@ export function EventOrganizerExperienceModal({
                 {tiers.map((t) => (
                   <div
                     key={t.id}
-                    className="p-3 rounded-xl bg-[#0E0E12] border border-white/10 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <strong className="text-white block font-medium">{t.name}</strong>
-                      <span className="text-zinc-400">
+                      <strong className="text-gray-900 block font-medium">{t.name}</strong>
+                      <span className="text-gray-500">
                         ₹{t.price} • {t.sold_count}/{t.capacity} sold
                       </span>
                     </div>
@@ -465,7 +465,7 @@ export function EventOrganizerExperienceModal({
                         await deleteTicketTier(t.id)
                         onRefresh()
                       }}
-                      className="p-1.5 text-zinc-500 hover:text-rose-400"
+                      className="p-1.5 text-gray-400 hover:text-rose-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -478,35 +478,35 @@ export function EventOrganizerExperienceModal({
           {/* TAB 2: SCHEDULE */}
           {activeTab === 'schedule' && (
             <div className="flex flex-col gap-4">
-              <div className="p-3.5 rounded-xl bg-[#14141A] border border-white/10 flex flex-col gap-3">
-                <span className="text-xs font-bold text-white">Add Schedule Session</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                <span className="text-xs font-bold text-gray-900">Add Schedule Session</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <input
                     type="text"
                     value={scheduleTitle}
                     onChange={(e) => setScheduleTitle(e.target.value)}
                     placeholder="Session Title (e.g. Opening Keynote)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="datetime-local"
                     value={scheduleStartTime}
                     onChange={(e) => setScheduleStartTime(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="text"
                     value={scheduleSpeaker}
                     onChange={(e) => setScheduleSpeaker(e.target.value)}
                     placeholder="Speaker / Host Name"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="text"
                     value={scheduleStage}
                     onChange={(e) => setScheduleStage(e.target.value)}
                     placeholder="Venue / Room / Stage"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
                 <Button
@@ -524,11 +524,11 @@ export function EventOrganizerExperienceModal({
                 {schedules.map((s) => (
                   <div
                     key={s.id}
-                    className="p-3 rounded-xl bg-[#0E0E12] border border-white/10 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <strong className="text-white block font-medium">{s.title}</strong>
-                      <span className="text-zinc-400">
+                      <strong className="text-gray-900 block font-medium">{s.title}</strong>
+                      <span className="text-gray-500">
                         {new Date(s.start_time).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}{' '}
                         {s.venue_stage ? `• ${s.venue_stage}` : ''}
                       </span>
@@ -539,7 +539,7 @@ export function EventOrganizerExperienceModal({
                         await deleteEventSchedule(s.id)
                         onRefresh()
                       }}
-                      className="p-1.5 text-zinc-500 hover:text-rose-400"
+                      className="p-1.5 text-gray-400 hover:text-rose-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -552,29 +552,29 @@ export function EventOrganizerExperienceModal({
           {/* TAB 3: SPEAKERS */}
           {activeTab === 'speakers' && (
             <div className="flex flex-col gap-4">
-              <div className="p-3.5 rounded-xl bg-[#14141A] border border-white/10 flex flex-col gap-3">
-                <span className="text-xs font-bold text-white">Add Featured Speaker or Judge</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                <span className="text-xs font-bold text-gray-900">Add Featured Speaker or Judge</span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <input
                     type="text"
                     value={speakerName}
                     onChange={(e) => setSpeakerName(e.target.value)}
                     placeholder="Full Name"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="text"
                     value={speakerDesignation}
                     onChange={(e) => setSpeakerDesignation(e.target.value)}
                     placeholder="Designation / Role"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="text"
                     value={speakerOrg}
                     onChange={(e) => setSpeakerOrg(e.target.value)}
                     placeholder="Company / University"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
                 <textarea
@@ -582,7 +582,7 @@ export function EventOrganizerExperienceModal({
                   onChange={(e) => setSpeakerBio(e.target.value)}
                   placeholder="Short bio or background summary…"
                   rows={2}
-                  className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-[#18CFFC]"
+                  className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
                 <Button
                   variant="primary"
@@ -599,11 +599,11 @@ export function EventOrganizerExperienceModal({
                 {speakers.map((spk) => (
                   <div
                     key={spk.id}
-                    className="p-3 rounded-xl bg-[#0E0E12] border border-white/10 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <strong className="text-white block font-medium">{spk.name}</strong>
-                      <span className="text-zinc-400">
+                      <strong className="text-gray-900 block font-medium">{spk.name}</strong>
+                      <span className="text-gray-500">
                         {spk.designation || 'Speaker'} {spk.organization ? `• ${spk.organization}` : ''}
                       </span>
                     </div>
@@ -613,7 +613,7 @@ export function EventOrganizerExperienceModal({
                         await deleteEventSpeaker(spk.id)
                         onRefresh()
                       }}
-                      className="p-1.5 text-zinc-500 hover:text-rose-400"
+                      className="p-1.5 text-gray-400 hover:text-rose-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -626,22 +626,22 @@ export function EventOrganizerExperienceModal({
           {/* TAB 4: GALLERY */}
           {activeTab === 'gallery' && (
             <div className="flex flex-col gap-4">
-              <div className="p-3.5 rounded-xl bg-[#14141A] border border-white/10 flex flex-col gap-3">
-                <span className="text-xs font-bold text-white">Add Image URL to Gallery</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                <span className="text-xs font-bold text-gray-900">Add Image URL to Gallery</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <input
                     type="url"
                     value={galleryUrl}
                     onChange={(e) => setGalleryUrl(e.target.value)}
                     placeholder="https://images.unsplash.com/…"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="text"
                     value={galleryCaption}
                     onChange={(e) => setGalleryCaption(e.target.value)}
                     placeholder="Photo caption (e.g. Hackathon Kickoff)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
                 <Button
@@ -657,7 +657,7 @@ export function EventOrganizerExperienceModal({
 
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto">
                 {gallery.map((img) => (
-                  <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden group">
+                  <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden group border border-gray-200">
                     <img src={img.image_url} alt="" className="w-full h-full object-cover" />
                     <button
                       type="button"
@@ -665,7 +665,7 @@ export function EventOrganizerExperienceModal({
                         await deleteEventGalleryImage(img.id)
                         onRefresh()
                       }}
-                      className="absolute top-1 right-1 p-1 bg-black/70 rounded text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-white/90 rounded-lg text-rose-600 shadow-xs opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <Trash2 size={12} />
                     </button>
@@ -678,20 +678,20 @@ export function EventOrganizerExperienceModal({
           {/* TAB 5: ANNOUNCEMENTS */}
           {activeTab === 'announcements' && (
             <div className="flex flex-col gap-4">
-              <div className="p-3.5 rounded-xl bg-[#14141A] border border-white/10 flex flex-col gap-3">
-                <span className="text-xs font-bold text-white">Publish Live Announcement</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                <span className="text-xs font-bold text-gray-900">Publish Live Announcement</span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <input
                     type="text"
                     value={annTitle}
                     onChange={(e) => setAnnTitle(e.target.value)}
                     placeholder="Notice Title (e.g. Venue Change)"
-                    className="sm:col-span-2 px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="sm:col-span-2 px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <select
                     value={annPriority}
                     onChange={(e) => setAnnPriority(e.target.value as any)}
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   >
                     <option value="normal">General</option>
                     <option value="urgent">Urgent</option>
@@ -704,14 +704,14 @@ export function EventOrganizerExperienceModal({
                   onChange={(e) => setAnnContent(e.target.value)}
                   placeholder="Detailed announcement text for attendees…"
                   rows={2}
-                  className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-[#18CFFC]"
+                  className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
-                <label className="flex items-center gap-2 text-xs text-zinc-300">
+                <label className="flex items-center gap-2 text-xs text-gray-700">
                   <input
                     type="checkbox"
                     checked={annPinned}
                     onChange={(e) => setAnnPinned(e.target.checked)}
-                    className="rounded border-white/20"
+                    className="rounded border-gray-300 text-blue-600"
                   />
                   <span>Pin this announcement prominently to top of page</span>
                 </label>
@@ -730,11 +730,11 @@ export function EventOrganizerExperienceModal({
                 {announcements.map((a) => (
                   <div
                     key={a.id}
-                    className="p-3 rounded-xl bg-[#0E0E12] border border-white/10 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <strong className="text-white block font-medium">{a.title}</strong>
-                      <span className="text-zinc-400 line-clamp-1">{a.content}</span>
+                      <strong className="text-gray-900 block font-medium">{a.title}</strong>
+                      <span className="text-gray-500 line-clamp-1">{a.content}</span>
                     </div>
                     <button
                       type="button"
@@ -742,7 +742,7 @@ export function EventOrganizerExperienceModal({
                         await deleteEventAnnouncement(a.id)
                         onRefresh()
                       }}
-                      className="p-1.5 text-zinc-500 hover:text-rose-400"
+                      className="p-1.5 text-gray-400 hover:text-rose-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -755,36 +755,36 @@ export function EventOrganizerExperienceModal({
           {/* TAB 6: LEADERBOARD */}
           {activeTab === 'leaderboard' && (
             <div className="flex flex-col gap-4">
-              <div className="p-3.5 rounded-xl bg-[#14141A] border border-white/10 flex flex-col gap-3">
-                <span className="text-xs font-bold text-white">Add Participant Standing</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                <span className="text-xs font-bold text-gray-900">Add Participant Standing</span>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                   <input
                     type="text"
                     value={leadName}
                     onChange={(e) => setLeadName(e.target.value)}
                     placeholder="Participant / Lead"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="text"
                     value={leadTeam}
                     onChange={(e) => setLeadTeam(e.target.value)}
                     placeholder="Team Name"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="number"
                     value={leadScore}
                     onChange={(e) => setLeadScore(e.target.value)}
                     placeholder="Score (pts)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="number"
                     value={leadRank}
                     onChange={(e) => setLeadRank(e.target.value)}
                     placeholder="Rank"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
                 <Button
@@ -802,13 +802,13 @@ export function EventOrganizerExperienceModal({
                 {leaderboard.map((lb) => (
                   <div
                     key={lb.id}
-                    className="p-3 rounded-xl bg-[#0E0E12] border border-white/10 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <strong className="text-white block font-medium">
+                      <strong className="text-gray-900 block font-medium">
                         #{lb.rank} {lb.team_name || lb.participant_name}
                       </strong>
-                      <span className="text-zinc-400">{lb.score} pts</span>
+                      <span className="text-gray-500">{lb.score} pts</span>
                     </div>
                     <button
                       type="button"
@@ -816,7 +816,7 @@ export function EventOrganizerExperienceModal({
                         await deleteLeaderboardEntry(lb.id)
                         onRefresh()
                       }}
-                      className="p-1.5 text-zinc-500 hover:text-rose-400"
+                      className="p-1.5 text-gray-400 hover:text-rose-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -828,15 +828,15 @@ export function EventOrganizerExperienceModal({
 
           {/* TAB 7: VIRTUAL MEETING */}
           {activeTab === 'virtual' && (
-            <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-[#14141A] border border-white/10 text-xs">
-              <span className="font-bold text-white">Online Session Credentials</span>
+            <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs">
+              <span className="font-bold text-gray-900">Online Session Credentials</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[11px] text-zinc-400 block mb-1">Platform</label>
+                  <label className="text-[11px] text-gray-600 block mb-1">Platform</label>
                   <select
                     value={meetingPlatform}
                     onChange={(e) => setMeetingPlatform(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600"
                   >
                     <option value="google_meet">Google Meet</option>
                     <option value="zoom">Zoom</option>
@@ -847,19 +847,19 @@ export function EventOrganizerExperienceModal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] text-zinc-400 block mb-1">
+                  <label className="text-[11px] text-gray-600 block mb-1">
                     Access Unlock Window (minutes before start)
                   </label>
                   <input
                     type="number"
                     value={accessMinutes}
                     onChange={(e) => setAccessMinutes(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-[11px] text-zinc-400 block mb-1">
+                <label className="text-[11px] text-gray-600 block mb-1">
                   Private Meeting URL (Encrypted & restricted to confirmed attendees)
                 </label>
                 <input
@@ -867,11 +867,11 @@ export function EventOrganizerExperienceModal({
                   value={meetingUrl}
                   onChange={(e) => setMeetingUrl(e.target.value)}
                   placeholder="https://meet.google.com/xyz-abc"
-                  className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600"
                 />
               </div>
               <div>
-                <label className="text-[11px] text-zinc-400 block mb-1">
+                <label className="text-[11px] text-gray-600 block mb-1">
                   Joining Instructions / Meeting Passcode
                 </label>
                 <textarea
@@ -879,7 +879,7 @@ export function EventOrganizerExperienceModal({
                   onChange={(e) => setJoiningInstructions(e.target.value)}
                   placeholder="e.g. Passcode: 123456. Please join with your student college email."
                   rows={2}
-                  className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600"
                 />
               </div>
               <Button
@@ -896,29 +896,29 @@ export function EventOrganizerExperienceModal({
           {/* TAB 8: ADDONS */}
           {activeTab === 'addons' && (
             <div className="flex flex-col gap-4">
-              <div className="p-3.5 rounded-xl bg-[#14141A] border border-white/10 flex flex-col gap-3">
-                <span className="text-xs font-bold text-white">Add Merchandise or Kit</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
+                <span className="text-xs font-bold text-gray-900">Add Merchandise or Kit</span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <input
                     type="text"
                     value={addonName}
                     onChange={(e) => setAddonName(e.target.value)}
                     placeholder="Item Name (e.g. Official Fest T-shirt)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="number"
                     value={addonPrice}
                     onChange={(e) => setAddonPrice(e.target.value)}
                     placeholder="Price (₹)"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                   <input
                     type="number"
                     value={addonStock}
                     onChange={(e) => setAddonStock(e.target.value)}
                     placeholder="Available Stock"
-                    className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
                 <Button
@@ -936,11 +936,11 @@ export function EventOrganizerExperienceModal({
                 {addons.map((ad) => (
                   <div
                     key={ad.id}
-                    className="p-3 rounded-xl bg-[#0E0E12] border border-white/10 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs"
                   >
                     <div>
-                      <strong className="text-white block font-medium">{ad.name}</strong>
-                      <span className="text-zinc-400">
+                      <strong className="text-gray-900 block font-medium">{ad.name}</strong>
+                      <span className="text-gray-500">
                         ₹{ad.price} • {ad.stock_quantity - ad.sold_quantity} remaining
                       </span>
                     </div>
@@ -950,7 +950,7 @@ export function EventOrganizerExperienceModal({
                         await deleteEventAddon(ad.id)
                         onRefresh()
                       }}
-                      className="p-1.5 text-zinc-500 hover:text-rose-400"
+                      className="p-1.5 text-gray-400 hover:text-rose-600"
                     >
                       <Trash2 size={14} />
                     </button>

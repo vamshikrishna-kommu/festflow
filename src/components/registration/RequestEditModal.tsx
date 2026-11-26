@@ -97,12 +97,12 @@ export function RequestEditModal({
       <form onSubmit={handleSubmit}>
         <ModalBody>
           <div className="flex flex-col gap-4 text-left">
-            <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#18CFFC]/10 border border-[#18CFFC]/20 text-[#18CFFC]">
-              <Edit3 size={20} className="shrink-0 mt-0.5" />
-              <div className="text-xs leading-relaxed text-zinc-300">
-                <strong className="block font-semibold text-white mb-0.5">Verification Safeguard</strong>
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700">
+              <Edit3 size={20} className="shrink-0 mt-0.5 text-blue-600" />
+              <div className="text-xs leading-relaxed text-gray-600">
+                <strong className="block font-semibold text-gray-900 mb-0.5">Verification Safeguard</strong>
                 To protect event integrity and pass security, changes to registration details must be approved by the organizer of{' '}
-                <strong className="text-white">{eventTitle}</strong>.
+                <strong className="text-gray-900">{eventTitle}</strong>.
               </div>
             </div>
 
@@ -120,55 +120,55 @@ export function RequestEditModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Student Name</label>
+                <label className="text-xs font-semibold text-gray-700">Student Name</label>
                 <input
                   type="text"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
                   disabled={loading || success}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Phone Number</label>
+                <label className="text-xs font-semibold text-gray-700">Phone Number</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={loading || success}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">College / Institution</label>
+              <label className="text-xs font-semibold text-gray-700">College / Institution</label>
               <input
                 type="text"
                 value={college}
                 onChange={(e) => setCollege(e.target.value)}
                 disabled={loading || success}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
 
             {isLeader && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Team Name</label>
+                <label className="text-xs font-semibold text-gray-700">Team Name</label>
                 <input
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   disabled={loading || success}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                 />
               </div>
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">
-                Reason for Edit <span className="text-rose-400">*</span>
+              <label className="text-xs font-semibold text-gray-700">
+                Reason for Edit <span className="text-rose-500">*</span>
               </label>
               <textarea
                 value={reason}
@@ -176,7 +176,7 @@ export function RequestEditModal({
                 placeholder="Explain why these corrections are needed (e.g., typo in college name, updated contact number)..."
                 disabled={loading || success}
                 rows={2}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC] resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 resize-none"
               />
             </div>
           </div>

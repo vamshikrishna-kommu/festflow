@@ -102,10 +102,10 @@ export function LayoutEditor({ eventId, initialConfig, onSaved, onCancel }: Layo
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-br from-[#18CFFC] to-[#0D56FB] border-transparent text-white'
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
                       : isDone
-                      ? 'bg-[#18CFFC]/20 border-[#18CFFC] text-[#18CFFC]'
-                      : 'bg-[var(--color-surface-2)] border-[var(--color-surface-3)] text-[var(--color-text-muted)]'
+                      ? 'bg-blue-50 border-blue-600 text-blue-600'
+                      : 'bg-gray-50 border-gray-200 text-gray-400'
                   }`}
                 >
                   {isDone ? (
@@ -117,10 +117,10 @@ export function LayoutEditor({ eventId, initialConfig, onSaved, onCancel }: Layo
                 <span
                   className={`text-xs font-medium hidden sm:block ${
                     isActive
-                      ? 'text-[#18CFFC]'
+                      ? 'text-blue-600 font-semibold'
                       : isDone
-                      ? 'text-[var(--color-text-secondary)]'
-                      : 'text-[var(--color-text-muted)]'
+                      ? 'text-gray-700'
+                      : 'text-gray-400'
                   }`}
                 >
                   {s.label}
@@ -129,7 +129,7 @@ export function LayoutEditor({ eventId, initialConfig, onSaved, onCancel }: Layo
               {idx < STEPS.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 mx-2 transition-colors duration-300 ${
-                    step > s.id ? 'bg-[#18CFFC]' : 'bg-[var(--color-surface-3)]'
+                    step > s.id ? 'bg-blue-600' : 'bg-gray-200'
                   }`}
                 />
               )}
@@ -139,7 +139,7 @@ export function LayoutEditor({ eventId, initialConfig, onSaved, onCancel }: Layo
       </div>
 
       {/* Step content */}
-      <div className="bg-[var(--color-surface-1)] rounded-2xl border border-white/5 p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -159,7 +159,7 @@ export function LayoutEditor({ eventId, initialConfig, onSaved, onCancel }: Layo
 
       {/* Error */}
       {saveError && (
-        <p className="mt-3 text-sm text-red-400 text-center">{saveError}</p>
+        <p className="mt-3 text-sm text-rose-600 text-center">{saveError}</p>
       )}
 
       {/* Navigation */}

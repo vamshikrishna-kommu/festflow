@@ -156,15 +156,15 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <Layers size={18} className="text-[#18CFFC]" />
+          <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <Layers size={18} className="text-blue-600" />
             Visual Event Detail Page Builder
           </h3>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             Customize which sections appear on your public event page and reorder them via drag/arrows.
           </p>
         </div>
-        <Badge variant="cyan" className="text-xs">
+        <Badge variant="info" className="text-xs">
           {currentSections.filter((s) => s.enabled).length} Active Sections
         </Badge>
       </div>
@@ -172,7 +172,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Section List & Reordering */}
         <div className="lg:col-span-5 flex flex-col gap-2.5">
-          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider px-1">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
             Page Layout Sections
           </span>
 
@@ -187,10 +187,10 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                   key={section.id}
                   className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                     isSelected
-                      ? 'bg-[#18CFFC]/10 border-[#18CFFC]/40 shadow-lg'
+                      ? 'bg-blue-50/70 border-blue-200 shadow-xs'
                       : section.enabled
-                      ? 'bg-[#14141A] border-white/10 hover:border-white/20'
-                      : 'bg-white/[0.02] border-white/5 opacity-60'
+                      ? 'bg-white border-gray-200 hover:border-gray-300'
+                      : 'bg-gray-50 border-gray-200 opacity-60'
                   }`}
                 >
                   <div
@@ -199,21 +199,21 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                   >
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        section.enabled ? 'bg-[#18CFFC]/20 text-[#18CFFC]' : 'bg-white/5 text-zinc-500'
+                        section.enabled ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'
                       }`}
                     >
                       <Icon size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white truncate">
+                        <span className="text-xs font-bold text-gray-900 truncate">
                           {section.title || def?.title}
                         </span>
                         {!section.enabled && (
-                          <span className="text-[10px] text-zinc-500 font-mono">Hidden</span>
+                          <span className="text-[10px] text-gray-500 font-mono">Hidden</span>
                         )}
                       </div>
-                      <span className="text-[10px] text-zinc-400 truncate block">
+                      <span className="text-[10px] text-gray-500 truncate block">
                         {def?.description}
                       </span>
                     </div>
@@ -225,7 +225,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                       type="button"
                       disabled={idx === 0}
                       onClick={() => handleMoveUp(idx)}
-                      className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                      className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                       title="Move Up"
                     >
                       <ChevronUp size={14} />
@@ -234,7 +234,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                       type="button"
                       disabled={idx === currentSections.length - 1}
                       onClick={() => handleMoveDown(idx)}
-                      className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                      className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                       title="Move Down"
                     >
                       <ChevronDown size={14} />
@@ -244,8 +244,8 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                       onClick={() => handleToggleSection(section.id)}
                       className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold cursor-pointer transition-colors ${
                         section.enabled
-                          ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                       }`}
                     >
                       {section.enabled ? 'Active' : 'Off'}
@@ -258,17 +258,17 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
         </div>
 
         {/* Right Column: Active Section Editor */}
-        <div className="lg:col-span-7 p-5 rounded-3xl bg-[#14141A] border border-white/10 flex flex-col gap-4">
+        <div className="lg:col-span-7 p-5 rounded-3xl bg-white border border-gray-200 shadow-xs flex flex-col gap-4">
           {selectedSection ? (
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                 <div>
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                     <span>Edit Section:</span>
-                    <span className="text-[#18CFFC]">{selectedSection.title}</span>
+                    <span className="text-blue-600">{selectedSection.title}</span>
                   </h4>
-                  <span className="text-xs text-zinc-400">
-                    Type: <code className="text-zinc-300 font-mono">{selectedSection.type}</code>
+                  <span className="text-xs text-gray-500">
+                    Type: <code className="text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded font-mono">{selectedSection.type}</code>
                   </span>
                 </div>
                 <Badge variant={selectedSection.enabled ? 'success' : 'neutral'}>
@@ -279,7 +279,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
               {/* Dynamic Section Content Config */}
               {selectedSection.type === 'hero' && (
                 <div className="flex flex-col gap-3">
-                  <label className="text-xs font-semibold text-zinc-300">
+                  <label className="text-xs font-semibold text-gray-700">
                     Header Tagline / Accent
                   </label>
                   <input
@@ -287,9 +287,9 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                     value={selectedSection.content?.tagline || ''}
                     onChange={(e) => handleUpdateContent(selectedSection.id, { tagline: e.target.value })}
                     placeholder="e.g. 36-Hour National Flagship Hackathon"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#08080A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
-                  <label className="text-xs font-semibold text-zinc-300 mt-1">
+                  <label className="text-xs font-semibold text-gray-700 mt-1">
                     Highlight Pill Badge
                   </label>
                   <input
@@ -297,7 +297,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                     value={selectedSection.content?.highlightBadge || ''}
                     onChange={(e) => handleUpdateContent(selectedSection.id, { highlightBadge: e.target.value })}
                     placeholder="e.g. Official IEEE Fest 2026"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#08080A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                   />
                 </div>
               )}
@@ -305,7 +305,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
               {selectedSection.type === 'schedule' && (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-zinc-300">Schedule Sessions</span>
+                    <span className="text-xs font-semibold text-gray-700">Schedule Sessions</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -314,7 +314,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                           items: [...items, { time: '12:00 PM', title: 'New Session', venue: 'Campus' }],
                         })
                       }}
-                      className="text-xs text-[#18CFFC] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1 cursor-pointer font-medium"
                     >
                       <Plus size={12} /> Add Session
                     </button>
@@ -322,7 +322,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
 
                   <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
                     {(selectedSection.content?.items || []).map((item: any, i: number) => (
-                      <div key={i} className="p-2.5 rounded-xl bg-[#08080A] border border-white/10 flex items-center gap-2">
+                      <div key={i} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2">
                         <input
                           type="text"
                           value={item.time || ''}
@@ -332,7 +332,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                             handleUpdateContent(selectedSection.id, { items })
                           }}
                           placeholder="Time"
-                          className="w-24 px-2 py-1.5 rounded-lg bg-[#14141A] border border-white/10 text-[11px] text-white"
+                          className="w-24 px-2 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] text-gray-900 focus:outline-none focus:border-blue-600"
                         />
                         <input
                           type="text"
@@ -343,7 +343,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                             handleUpdateContent(selectedSection.id, { items })
                           }}
                           placeholder="Session Title"
-                          className="flex-1 px-2 py-1.5 rounded-lg bg-[#14141A] border border-white/10 text-[11px] text-white"
+                          className="flex-1 px-2 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] text-gray-900 focus:outline-none focus:border-blue-600"
                         />
                         <input
                           type="text"
@@ -354,7 +354,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                             handleUpdateContent(selectedSection.id, { items })
                           }}
                           placeholder="Venue"
-                          className="w-28 px-2 py-1.5 rounded-lg bg-[#14141A] border border-white/10 text-[11px] text-white"
+                          className="w-28 px-2 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] text-gray-900 focus:outline-none focus:border-blue-600"
                         />
                         <button
                           type="button"
@@ -362,7 +362,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                             const items = (selectedSection.content?.items || []).filter((_: any, idx: number) => idx !== i)
                             handleUpdateContent(selectedSection.id, { items })
                           }}
-                          className="p-1 text-zinc-500 hover:text-red-400 cursor-pointer"
+                          className="p-1 text-gray-400 hover:text-rose-600 cursor-pointer"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -375,7 +375,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
               {selectedSection.type === 'speakers' && (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-zinc-300">Speakers & Guests</span>
+                    <span className="text-xs font-semibold text-gray-700">Speakers & Guests</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -384,7 +384,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                           speakers: [...speakers, { name: 'New Speaker', role: 'Guest Speaker', topic: 'Keynote' }],
                         })
                       }}
-                      className="text-xs text-[#18CFFC] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1 cursor-pointer font-medium"
                     >
                       <Plus size={12} /> Add Speaker
                     </button>
@@ -392,7 +392,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
 
                   <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
                     {(selectedSection.content?.speakers || []).map((sp: any, i: number) => (
-                      <div key={i} className="p-2.5 rounded-xl bg-[#08080A] border border-white/10 flex flex-col gap-2">
+                      <div key={i} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
@@ -403,7 +403,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                               handleUpdateContent(selectedSection.id, { speakers })
                             }}
                             placeholder="Speaker Full Name"
-                            className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#14141A] border border-white/10 text-xs text-white"
+                            className="flex-1 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600"
                           />
                           <input
                             type="text"
@@ -414,7 +414,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                               handleUpdateContent(selectedSection.id, { speakers })
                             }}
                             placeholder="Designation / Org"
-                            className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#14141A] border border-white/10 text-xs text-white"
+                            className="flex-1 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600"
                           />
                           <button
                             type="button"
@@ -422,7 +422,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                               const speakers = (selectedSection.content?.speakers || []).filter((_: any, idx: number) => idx !== i)
                               handleUpdateContent(selectedSection.id, { speakers })
                             }}
-                            className="p-1 text-zinc-500 hover:text-red-400 cursor-pointer"
+                            className="p-1 text-gray-400 hover:text-rose-600 cursor-pointer"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -436,7 +436,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                             handleUpdateContent(selectedSection.id, { speakers })
                           }}
                           placeholder="Session Topic / Talk Title"
-                          className="w-full px-2.5 py-1 rounded-lg bg-[#14141A] border border-white/10 text-[11px] text-zinc-300"
+                          className="w-full px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-[11px] text-gray-700 focus:outline-none focus:border-blue-600"
                         />
                       </div>
                     ))}
@@ -447,7 +447,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
               {selectedSection.type === 'faqs' && (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-zinc-300">Frequently Asked Questions</span>
+                    <span className="text-xs font-semibold text-gray-700">Frequently Asked Questions</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -456,7 +456,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                           faqs: [...faqs, { question: 'New Question?', answer: 'Answer here.' }],
                         })
                       }}
-                      className="text-xs text-[#18CFFC] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1 cursor-pointer font-medium"
                     >
                       <Plus size={12} /> Add FAQ
                     </button>
@@ -464,7 +464,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
 
                   <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
                     {(selectedSection.content?.faqs || []).map((faq: any, i: number) => (
-                      <div key={i} className="p-2.5 rounded-xl bg-[#08080A] border border-white/10 flex flex-col gap-1.5">
+                      <div key={i} className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <input
                             type="text"
@@ -475,7 +475,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                               handleUpdateContent(selectedSection.id, { faqs })
                             }}
                             placeholder="Question"
-                            className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#14141A] border border-white/10 text-xs text-white font-medium"
+                            className="flex-1 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 font-medium focus:outline-none focus:border-blue-600"
                           />
                           <button
                             type="button"
@@ -483,7 +483,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                               const faqs = (selectedSection.content?.faqs || []).filter((_: any, idx: number) => idx !== i)
                               handleUpdateContent(selectedSection.id, { faqs })
                             }}
-                            className="p-1 text-zinc-500 hover:text-red-400 cursor-pointer"
+                            className="p-1 text-gray-400 hover:text-rose-600 cursor-pointer"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -497,7 +497,7 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
                             handleUpdateContent(selectedSection.id, { faqs })
                           }}
                           placeholder="Answer explanation..."
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-[#14141A] border border-white/10 text-[11px] text-zinc-300 resize-none"
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] text-gray-700 resize-none focus:outline-none focus:border-blue-600"
                         />
                       </div>
                     ))}
@@ -507,34 +507,34 @@ export function EventPageBuilder({ layout, onChange }: EventPageBuilderProps) {
 
               {selectedSection.type === 'cta' && (
                 <div className="flex flex-col gap-3">
-                  <label className="text-xs font-semibold text-zinc-300">Banner Headline</label>
+                  <label className="text-xs font-semibold text-gray-700">Banner Headline</label>
                   <input
                     type="text"
                     value={selectedSection.content?.ctaTitle || ''}
                     onChange={(e) => handleUpdateContent(selectedSection.id, { ctaTitle: e.target.value })}
                     placeholder="e.g. Seats are filling fast!"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#08080A] border border-white/10 text-xs text-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600"
                   />
-                  <label className="text-xs font-semibold text-zinc-300 mt-1">Banner Subtitle</label>
+                  <label className="text-xs font-semibold text-gray-700 mt-1">Banner Subtitle</label>
                   <input
                     type="text"
                     value={selectedSection.content?.ctaSubtitle || ''}
                     onChange={(e) => handleUpdateContent(selectedSection.id, { ctaSubtitle: e.target.value })}
                     placeholder="e.g. Join hundreds of students across campus."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#08080A] border border-white/10 text-xs text-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600"
                   />
                 </div>
               )}
 
-              <div className="pt-2 flex items-center justify-between text-xs text-zinc-500">
+              <div className="pt-2 flex items-center justify-between text-xs text-gray-500">
                 <span>All layout changes are saved with the event.</span>
-                <span className="flex items-center gap-1 text-emerald-400">
+                <span className="flex items-center gap-1 text-emerald-600 font-medium">
                   <CheckCircle2 size={12} /> Live preview ready
                 </span>
               </div>
             </div>
           ) : (
-            <div className="py-12 text-center text-zinc-500 text-xs">
+            <div className="py-12 text-center text-gray-500 text-xs">
               Select a section from the left column to customize its parameters.
             </div>
           )}

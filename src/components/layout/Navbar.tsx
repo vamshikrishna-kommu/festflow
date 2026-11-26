@@ -51,7 +51,7 @@ interface NavItem {
 
 const PUBLIC_NAV_LINKS: NavItem[] = [
   { label: 'Discover', href: '/discover' },
-  { label: 'Cinematic Story ✦', href: '/cinematic' },
+  { label: 'Product Story', href: '/cinematic' },
   { label: 'Community', href: '/community' },
   { label: 'For Clubs', href: '/club/signup' },
   { label: 'Contact', href: '/contact' },
@@ -59,7 +59,7 @@ const PUBLIC_NAV_LINKS: NavItem[] = [
 
 const STUDENT_NAV_LINKS: NavItem[] = [
   { label: 'Discover', href: '/discover' },
-  { label: 'Cinematic Story ✦', href: '/cinematic' },
+  { label: 'Product Story', href: '/cinematic' },
   { label: 'Community', href: '/community' },
   { label: 'My Dashboard', href: '/student/dashboard' },
 ]
@@ -92,7 +92,7 @@ export function Navbar() {
   } = useAuth()
 
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 24)
+    const handler = () => setScrolled(window.scrollY > 16)
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
@@ -130,7 +130,6 @@ export function Navbar() {
   const isClubWorkspace = activeWorkspace === 'club'
   const isStudentWorkspace = activeWorkspace === 'student'
 
-  // Determine current active navigation links based on active workspace and granular permissions
   const activeNavLinks = useMemo(() => {
     if (isLoading) return []
     if (!session) return PUBLIC_NAV_LINKS
@@ -167,13 +166,12 @@ export function Navbar() {
 
   return (
     <>
-      {/* Scroll progress bar */}
+      {/* Minimal scroll progress indicator */}
       <motion.div
-        className="fixed top-0 left-0 z-[60] h-[2px] origin-left pointer-events-none"
+        className="fixed top-0 left-0 z-[60] h-[2px] origin-left pointer-events-none bg-blue-600"
         style={{
           scaleX: progress,
           transformOrigin: '0%',
-          background: 'linear-gradient(90deg, #18CFFC, #07A4FC, #7F1AFB, #ED47FC)',
         }}
       />
 
@@ -181,15 +179,15 @@ export function Navbar() {
         variants={navbarSlide}
         initial="hidden"
         animate="visible"
-        className={`sticky top-0 z-50 w-full transition-all duration-300 border-b ${
+        className={`sticky top-0 z-50 w-full transition-all duration-200 border-b ${
           scrolled
-            ? 'glass border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]'
-            : 'bg-[#08080A]/90 backdrop-blur-md border-white/[0.06]'
+            ? 'bg-white/95 backdrop-blur-md border-gray-200 shadow-xs'
+            : 'bg-white/85 backdrop-blur-md border-gray-200/70'
         }`}
       >
         {isProduction && !isSupabaseConfigured && (
-          <div className="bg-rose-600/90 text-white text-[10px] sm:text-[11px] py-1.5 px-4 text-center font-medium flex items-center justify-center gap-2">
-            <AlertTriangle size={12} className="shrink-0 text-amber-200" />
+          <div className="bg-rose-600 text-white text-[11px] py-1.5 px-4 text-center font-medium flex items-center justify-center gap-2">
+            <AlertTriangle size={12} className="shrink-0 text-rose-100" />
             <span className="truncate">Supabase credentials missing — configure in hosting dashboard.</span>
           </div>
         )}
@@ -197,7 +195,7 @@ export function Navbar() {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav
             aria-label="Main navigation"
-            className="flex items-center justify-between h-16 sm:h-18"
+            className="flex items-center justify-between h-16"
           >
             {/* Logo */}
             <Link to="/" className="flex items-center shrink-0" aria-label="FestFlow home">
@@ -207,10 +205,9 @@ export function Navbar() {
             {/* Desktop links */}
             <ul className="hidden md:flex items-center gap-1" role="list">
               {isLoading ? (
-                // Smooth skeleton placeholder while session/role is resolving
                 <li className="flex items-center gap-2 px-3 py-1">
-                  <div className="h-6 w-20 rounded-lg bg-[var(--color-surface-2)]/70 animate-pulse" />
-                  <div className="h-6 w-20 rounded-lg bg-[var(--color-surface-2)]/70 animate-pulse" />
+                  <div className="h-6 w-20 rounded-md bg-gray-200 animate-pulse" />
+                  <div className="h-6 w-20 rounded-md bg-gray-200 animate-pulse" />
                 </li>
               ) : (
                 activeNavLinks.map((link) => (
@@ -218,28 +215,25 @@ export function Navbar() {
                     <NavLink
                       to={link.href}
                       className={({ isActive }) =>
-                        `relative px-3.5 py-2 rounded-xl text-sm font-medium transition-colors duration-200 inline-block ${
-                          isActive && (link.href === '/discover' || link.href === '/student/dashboard' || link.href === '/club/dashboard')
-                            ? 'text-white font-semibold'
-                            : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)]/60'
+                        `relative px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 inline-block ${
+                          isActive
+                            ? 'text-blue-600 font-semibold'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/70'
                         }`
                       }
                     >
-                      {({ isActive }) => {
-                        const isMainActive = isActive && (link.href === '/discover' || link.href === '/student/dashboard' || link.href === '/club/dashboard')
-                        return (
-                          <>
-                            {isMainActive && (
-                              <motion.span
-                                layoutId="nav-active-indicator"
-                                className="absolute inset-0 rounded-xl bg-[var(--color-surface-3)] border border-[oklch(100%_0_0_/_0.12)] shadow-sm -z-0"
-                                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                              />
-                            )}
-                            <span className="relative z-10">{link.label}</span>
-                          </>
-                        )
-                      }}
+                      {({ isActive }) => (
+                        <>
+                          {isActive && (
+                            <motion.span
+                              layoutId="nav-active-indicator"
+                              className="absolute inset-0 rounded-lg bg-blue-50/90 border border-blue-100 -z-0"
+                              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                            />
+                          )}
+                          <span className="relative z-10">{link.label}</span>
+                        </>
+                      )}
                     </NavLink>
                   </li>
                 ))
@@ -249,10 +243,9 @@ export function Navbar() {
             {/* Desktop auth area */}
             <div className="hidden md:flex items-center gap-2.5">
               {isLoading ? (
-                <div className="h-8 w-24 rounded-xl bg-[var(--color-surface-2)]/70 animate-pulse" />
+                <div className="h-8 w-24 rounded-lg bg-gray-200 animate-pulse" />
               ) : session ? (
                 <div className="flex items-center gap-2">
-                  {/* Premium Dual Workspace Switcher */}
                   <Suspense fallback={null}>
                     <WorkspaceSwitcher variant="desktop" />
                     <NotificationBell />
@@ -264,7 +257,6 @@ export function Navbar() {
                         variant="primary"
                         size="sm"
                         leftIcon={<Plus size={14} />}
-                        className="shine-on-hover shadow-sm"
                       >
                         New Event
                       </Button>
@@ -278,9 +270,9 @@ export function Navbar() {
                       onClick={() => setUserMenuOpen((p) => !p)}
                       aria-label="User account menu"
                       aria-expanded={userMenuOpen}
-                      className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-xl text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] border border-transparent hover:border-[oklch(100%_0_0_/_0.08)] transition-all cursor-pointer"
+                      className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-colors cursor-pointer"
                     >
-                      <span className="w-7 h-7 rounded-full gradient-brand text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-sm">
+                      <span className="w-7 h-7 rounded-full bg-gray-900 text-white text-xs font-semibold flex items-center justify-center shrink-0">
                         {userInitial}
                       </span>
                       <span className="max-w-[120px] truncate text-xs font-semibold">
@@ -288,7 +280,7 @@ export function Navbar() {
                       </span>
                       <ChevronDown
                         size={13}
-                        className={`text-[var(--color-text-muted)] transition-transform duration-200 ${
+                        className={`text-gray-400 transition-transform duration-200 ${
                           userMenuOpen ? 'rotate-180' : ''
                         }`}
                       />
@@ -301,19 +293,19 @@ export function Navbar() {
                           initial="hidden"
                           animate="visible"
                           exit="exit"
-                          className="absolute right-0 top-full mt-2 w-60 p-2 rounded-2xl glass-elevated shadow-2xl border border-[oklch(100%_0_0_/_0.12)] flex flex-col gap-1 z-50 text-left"
+                          className="absolute right-0 top-full mt-2 w-60 p-1.5 rounded-xl bg-white shadow-xl border border-gray-200 flex flex-col gap-0.5 z-50 text-left"
                         >
                           {/* User Identity Header */}
-                          <div className="px-3 py-2 border-b border-[oklch(100%_0_0_/_0.08)] mb-1">
-                            <p className="text-xs font-bold text-[var(--color-text-primary)] truncate">
+                          <div className="px-3 py-2 border-b border-gray-100 mb-1">
+                            <p className="text-xs font-semibold text-gray-900 truncate">
                               {userDisplayName}
                             </p>
-                            <p className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">
+                            <p className="text-[11px] text-gray-500 truncate mt-0.5">
                               {session.user.email}
                             </p>
                             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                               <Badge
-                                variant={isClubWorkspace ? 'purple' : 'cyan'}
+                                variant={isClubWorkspace ? 'violet' : 'blue'}
                                 className="text-[10px] py-0 px-2 font-medium"
                               >
                                 {isClubWorkspace
@@ -321,7 +313,7 @@ export function Navbar() {
                                   : 'Student'}
                               </Badge>
                               {isDualEligible && (
-                                <Badge variant="default" className="text-[9px] py-0 px-1.5 opacity-80">
+                                <Badge variant="default" className="text-[9px] py-0 px-1.5">
                                   Dual Access
                                 </Badge>
                               )}
@@ -330,7 +322,7 @@ export function Navbar() {
 
                           {/* Dual Workspace Quick Switcher Link in User Menu */}
                           {isDualEligible && (
-                            <div className="px-1 py-1 mb-1 border-b border-[oklch(100%_0_0_/_0.08)]">
+                            <div className="px-1 py-1 mb-1 border-b border-gray-100">
                               {isClubWorkspace ? (
                                 <button
                                   type="button"
@@ -338,10 +330,10 @@ export function Navbar() {
                                     setUserMenuOpen(false)
                                     switchWorkspace('student', navigate)
                                   }}
-                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10 transition-colors cursor-pointer text-left"
+                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer text-left"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <GraduationCap size={14} className="text-[var(--color-brand-cyan)]" />
+                                    <GraduationCap size={14} className="text-blue-600" />
                                     <span>Switch to Student Space</span>
                                   </div>
                                   <ChevronRight size={12} className="opacity-60" />
@@ -353,10 +345,10 @@ export function Navbar() {
                                     setUserMenuOpen(false)
                                     switchWorkspace('club', navigate)
                                   }}
-                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[#C084FC] hover:bg-[#7F1AFB]/10 transition-colors cursor-pointer text-left"
+                                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer text-left"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <Building2 size={14} className="text-[#7F1AFB]" />
+                                    <Building2 size={14} className="text-indigo-600" />
                                     <span>Switch to Club Space</span>
                                   </div>
                                   <ChevronRight size={12} className="opacity-60" />
@@ -367,14 +359,14 @@ export function Navbar() {
 
                           {/* Super Admin Portal Quick Link */}
                           {role === 'platform_admin' && (
-                            <div className="mb-2 pb-2 border-b border-[var(--color-surface-3)]">
+                            <div className="mb-1 pb-1 border-b border-gray-100">
                               <Link
                                 to="/admin/dashboard"
                                 onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#18CFFC] bg-[#18CFFC]/10 border border-[#18CFFC]/30 hover:bg-[#18CFFC]/20 transition-all"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
                               >
-                                <ShieldCheck size={14} className="text-[#18CFFC]" />
-                                <span>Super Admin Control Center</span>
+                                <ShieldCheck size={14} className="text-blue-600" />
+                                <span>Super Admin Console</span>
                               </Link>
                             </div>
                           )}
@@ -386,9 +378,9 @@ export function Navbar() {
                                 <Link
                                   to="/club/dashboard"
                                   onClick={() => setUserMenuOpen(false)}
-                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                                 >
-                                  <LayoutDashboard size={14} className="text-[var(--color-brand-violet)]" />
+                                  <LayoutDashboard size={14} className="text-gray-400" />
                                   <span>Club Dashboard</span>
                                 </Link>
                               )}
@@ -396,9 +388,9 @@ export function Navbar() {
                                 <Link
                                   to="/club/events"
                                   onClick={() => setUserMenuOpen(false)}
-                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                                 >
-                                  <Calendar size={14} className="text-[var(--color-brand-purple)]" />
+                                  <Calendar size={14} className="text-gray-400" />
                                   <span>Manage Events</span>
                                 </Link>
                               )}
@@ -406,9 +398,9 @@ export function Navbar() {
                                 <Link
                                   to="/club/payments"
                                   onClick={() => setUserMenuOpen(false)}
-                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                                 >
-                                  <CreditCard size={14} className="text-[var(--color-brand-cyan)]" />
+                                  <CreditCard size={14} className="text-gray-400" />
                                   <span>Payments & UPI</span>
                                 </Link>
                               )}
@@ -416,9 +408,9 @@ export function Navbar() {
                                 <Link
                                   to="/club/members"
                                   onClick={() => setUserMenuOpen(false)}
-                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                                 >
-                                  <Users size={14} className="text-[var(--color-brand-violet)]" />
+                                  <Users size={14} className="text-gray-400" />
                                   <span>Team & Roles</span>
                                 </Link>
                               )}
@@ -426,18 +418,18 @@ export function Navbar() {
                                 <Link
                                   to="/club/settings"
                                   onClick={() => setUserMenuOpen(false)}
-                                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                                 >
-                                  <Settings size={14} className="text-[var(--color-brand-pink)]" />
+                                  <Settings size={14} className="text-gray-400" />
                                   <span>Club Settings</span>
                                 </Link>
                               )}
                               <Link
                                 to="/messages"
                                 onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                               >
-                                <MessageSquare size={14} className="text-[#18CFFC]" />
+                                <MessageSquare size={14} className="text-gray-400" />
                                 <span>Messages</span>
                               </Link>
                             </>
@@ -446,41 +438,41 @@ export function Navbar() {
                               <Link
                                 to="/student/dashboard"
                                 onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
                               >
-                                <LayoutDashboard size={14} className="text-[var(--color-brand-violet)]" />
+                                <LayoutDashboard size={14} className="text-blue-600" />
                                 <span>Dashboard Overview</span>
                               </Link>
                               <Link
                                 to={`/profile/${profile?.id || session?.user?.id}`}
                                 onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                               >
-                                <User size={14} className="text-[var(--color-brand-cyan)]" />
+                                <User size={14} className="text-gray-400" />
                                 <span>My Public Profile</span>
                               </Link>
                               <Link
                                 to="/community/teammates"
                                 onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                               >
-                                <UserPlus size={14} className="text-[#ED47FC]" />
+                                <UserPlus size={14} className="text-gray-400" />
                                 <span>Find Teammates</span>
                               </Link>
                               <Link
                                 to="/messages"
                                 onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                               >
-                                <MessageSquare size={14} className="text-[#18CFFC]" />
+                                <MessageSquare size={14} className="text-gray-400" />
                                 <span>Messages</span>
                               </Link>
                               <Link
                                 to="/student/dashboard"
                                 onClick={() => setUserMenuOpen(false)}
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                               >
-                                <Ticket size={14} className="text-[var(--color-brand-cyan)]" />
+                                <Ticket size={14} className="text-gray-400" />
                                 <span>My Passes & Tickets</span>
                               </Link>
                               <button
@@ -489,9 +481,9 @@ export function Navbar() {
                                   setUserMenuOpen(false)
                                   setStudentSettingsOpen(true)
                                 }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors cursor-pointer text-left"
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                               >
-                                <Settings size={14} className="text-[var(--color-brand-cyan)]" />
+                                <Settings size={14} className="text-gray-400" />
                                 <span>Settings & Preferences</span>
                               </button>
                             </>
@@ -499,13 +491,13 @@ export function Navbar() {
                             <Link
                               to="/discover"
                               onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-3)] transition-colors"
+                              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                             >
                               <span>Explore Events</span>
                             </Link>
                           )}
 
-                          <div className="my-1 border-t border-[oklch(100%_0_0_/_0.08)]" />
+                          <div className="my-1 border-t border-gray-100" />
 
                           <button
                             type="button"
@@ -514,7 +506,7 @@ export function Navbar() {
                               await signOut()
                               navigate('/')
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
                           >
                             <LogOut size={14} />
                             <span>Sign Out</span>
@@ -548,41 +540,39 @@ export function Navbar() {
                           initial="hidden"
                           animate="visible"
                           exit="exit"
-                          className="absolute right-0 top-full mt-2 w-52 p-1.5 rounded-2xl glass-elevated shadow-xl border border-[oklch(100%_0_0_/_0.1)] flex flex-col gap-0.5 z-50"
+                          className="absolute right-0 top-full mt-2 w-56 p-1.5 rounded-xl bg-white shadow-xl border border-gray-200 flex flex-col gap-0.5 z-50"
                         >
                           <Link
                             to="/student/login"
                             onClick={() => setLoginMenu(false)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-900 hover:bg-gray-50 transition-colors"
                           >
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ background: 'oklch(72% 0.16 200 / 0.15)' }}>
-                              <GraduationCap size={14} className="text-[var(--color-brand-cyan)]" />
+                            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                              <GraduationCap size={14} />
                             </div>
                             <div>
                               <span className="font-semibold text-sm block">Student</span>
-                              <span className="text-[11px] text-[var(--color-text-muted)]">Find & attend events</span>
+                              <span className="text-[11px] text-gray-500">Find & attend events</span>
                             </div>
                           </Link>
                           <Link
                             to="/club/login"
                             onClick={() => setLoginMenu(false)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-900 hover:bg-gray-50 transition-colors"
                           >
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ background: 'rgba(127, 26, 251, 0.15)' }}>
-                              <Building2 size={14} className="text-[#7F1AFB]" />
+                            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                              <Building2 size={14} />
                             </div>
                             <div>
                               <span className="font-semibold text-sm block">Club Organizer</span>
-                              <span className="text-[11px] text-[var(--color-text-muted)]">Manage events & entry</span>
+                              <span className="text-[11px] text-gray-500">Manage events & entry</span>
                             </div>
                           </Link>
-                          <div className="my-1 border-t border-[oklch(100%_0_0_/_0.07)]" />
+                          <div className="my-1 border-t border-gray-100" />
                           <Link
                             to="/student/signup"
                             onClick={() => setLoginMenu(false)}
-                            className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[var(--color-brand-cyan)] hover:bg-[var(--color-surface-3)] transition-colors"
+                            className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
                           >
                             <span>New student? Sign up free</span>
                             <ChevronRight size={12} />
@@ -597,7 +587,6 @@ export function Navbar() {
                       variant="primary"
                       size="sm"
                       rightIcon={<ChevronRight size={14} />}
-                      className="shine-on-hover"
                     >
                       Start a Club
                     </Button>
@@ -609,7 +598,7 @@ export function Navbar() {
             {/* Mobile: avatar + notifications + hamburger */}
             <div className="flex items-center gap-1.5 md:hidden">
               {session && (
-                <span className="w-7 h-7 rounded-full gradient-brand text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-sm" aria-label={userDisplayName}>
+                <span className="w-7 h-7 rounded-full bg-gray-900 text-white text-[11px] font-semibold flex items-center justify-center shrink-0" aria-label={userDisplayName}>
                   {userInitial}
                 </span>
               )}
@@ -624,7 +613,7 @@ export function Navbar() {
                 aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu"
-                className="p-2 rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
+                className="p-2 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 onClick={() => setMobileOpen((v) => !v)}
               >
                 {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -645,22 +634,18 @@ export function Navbar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] md:hidden flex flex-col"
-            style={{ background: 'rgba(8, 8, 10, 0.98)' }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[60] md:hidden flex flex-col bg-white"
           >
-            {/* Backdrop blur */}
-            <div className="absolute inset-0 backdrop-blur-xl" />
-
-            {/* Mobile drawer dedicated top bar */}
-            <div className="relative z-10 flex items-center justify-between px-4 py-3.5 border-b border-[oklch(100%_0_0_/_0.08)] shrink-0">
+            {/* Mobile drawer top bar */}
+            <div className="relative z-10 flex items-center justify-between px-4 py-3.5 border-b border-gray-200 shrink-0">
               <Link to="/" onClick={() => setMobileOpen(false)} aria-label="FestFlow home">
                 <Logo variant="navbar" />
               </Link>
               <button
                 type="button"
                 aria-label="Close menu"
-                className="p-2 rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] transition-colors"
+                className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
                 <X size={20} />
@@ -668,29 +653,29 @@ export function Navbar() {
             </div>
 
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="relative z-10 flex flex-col flex-1 px-5 py-6 pb-safe overflow-y-auto"
             >
               {/* Authenticated User Header in Mobile Drawer */}
               {session && (
-                <div className="flex items-center gap-3 px-3 py-3 mb-3 rounded-2xl bg-[var(--color-surface-2)] border border-[oklch(100%_0_0_/_0.08)]">
-                  <span className="w-10 h-10 rounded-full gradient-brand text-white text-sm font-bold flex items-center justify-center shrink-0 shadow-sm">
+                <div className="flex items-center gap-3 px-3 py-3 mb-4 rounded-xl bg-gray-50 border border-gray-200">
+                  <span className="w-10 h-10 rounded-full bg-gray-900 text-white text-sm font-semibold flex items-center justify-center shrink-0">
                     {userInitial}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{userDisplayName}</p>
-                    <p className="text-xs text-[var(--color-text-muted)] truncate">{session.user.email}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{userDisplayName}</p>
+                    <p className="text-xs text-gray-500 truncate">{session.user.email}</p>
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <Badge variant={isClubWorkspace ? 'purple' : 'cyan'} className="text-[10px] py-0 px-2 font-medium">
+                      <Badge variant={isClubWorkspace ? 'violet' : 'blue'} className="text-[10px] py-0 px-2 font-medium">
                         {isClubWorkspace
                           ? (activeClubRole ? `Club: ${activeClubRole.replace('_', ' ')}` : 'Club Organizer')
                           : 'Student'}
                       </Badge>
                       {isDualEligible && (
-                        <Badge variant="default" className="text-[9px] py-0 px-1.5 opacity-80">
+                        <Badge variant="default" className="text-[9px] py-0 px-1.5">
                           Dual Access
                         </Badge>
                       )}
@@ -711,9 +696,9 @@ export function Navbar() {
                 {activeNavLinks.map((link, i) => (
                   <motion.li
                     key={link.href}
-                    initial={{ opacity: 0, x: -16 }}
+                    initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.05 + i * 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ delay: 0.03 + i * 0.03, duration: 0.2 }}
                   >
                     <NavLink
                       to={link.href}
@@ -721,17 +706,17 @@ export function Navbar() {
                         document.body.style.overflow = ''
                         setMobileOpen(false)
                       }}
-                      className="flex items-center justify-between px-4 py-3.5 min-h-[52px] rounded-2xl text-lg font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-2)] active:bg-[var(--color-surface-3)] transition-colors"
+                      className="flex items-center justify-between px-4 py-3.5 min-h-[50px] rounded-xl text-base font-semibold text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors"
                     >
                       {link.label}
-                      <ChevronRight size={18} className="text-[var(--color-text-muted)]" />
+                      <ChevronRight size={18} className="text-gray-400" />
                     </NavLink>
                   </motion.li>
                 ))}
               </ul>
 
               {/* Auth area actions */}
-              <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-[oklch(100%_0_0_/_0.08)]">
+              <div className="mt-auto flex flex-col gap-2.5 pt-6 border-t border-gray-200">
                 {session ? (
                   <>
                     {role === 'platform_admin' && (
@@ -739,7 +724,7 @@ export function Navbar() {
                         <Button
                           variant="outline"
                           size="lg"
-                          className="w-full text-[#18CFFC] border-[#18CFFC]/30 hover:bg-[#18CFFC]/10 mb-2"
+                          className="w-full text-blue-700 border-blue-200 bg-blue-50 hover:bg-blue-100 mb-1"
                           leftIcon={<ShieldCheck size={16} />}
                         >
                           Super Admin Console
@@ -781,7 +766,7 @@ export function Navbar() {
                     <Button
                       variant="ghost"
                       size="lg"
-                      className="w-full text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                      className="w-full text-rose-600 hover:bg-rose-50 cursor-pointer"
                       onClick={async () => {
                         setMobileOpen(false)
                         await signOut()
@@ -800,16 +785,16 @@ export function Navbar() {
                       </Button>
                     </Link>
                     <Link to="/club/login" onClick={() => setMobileOpen(false)}>
-                      <Button variant="ghost" size="lg" className="w-full border border-[oklch(100%_0_0_/_0.1)]" leftIcon={<Building2 size={16} />}>
+                      <Button variant="secondary" size="lg" className="w-full" leftIcon={<Building2 size={16} />}>
                         Club Login
                       </Button>
                     </Link>
                     <Link to="/club/signup" onClick={() => setMobileOpen(false)}>
-                      <Button variant="primary" size="lg" className="w-full shine-on-hover" rightIcon={<ChevronRight size={16} />}>
+                      <Button variant="primary" size="lg" className="w-full" rightIcon={<ChevronRight size={16} />}>
                         Start a Club — Free
                       </Button>
                     </Link>
-                    <Link to="/student/signup" onClick={() => setMobileOpen(false)} className="text-center text-sm text-[var(--color-brand-cyan)] hover:underline py-1">
+                    <Link to="/student/signup" onClick={() => setMobileOpen(false)} className="text-center text-sm font-medium text-blue-600 hover:underline py-1.5">
                       New student? Sign up free →
                     </Link>
                   </>
@@ -820,7 +805,7 @@ export function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Student Settings Modal (loaded on demand when opened) */}
+      {/* Student Settings Modal */}
       {studentSettingsOpen && (
         <Suspense fallback={null}>
           <StudentSettingsModal

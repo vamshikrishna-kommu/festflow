@@ -22,34 +22,29 @@ export function AdminMetricCard({
 }: AdminMetricCardProps) {
   const colorMap = {
     cyan: {
-      border: 'border-[#18CFFC]/20 hover:border-[#18CFFC]/50',
-      bgGlow: 'from-[#18CFFC]/10 to-transparent',
-      text: 'text-[#18CFFC]',
-      iconBg: 'bg-[#18CFFC]/10 text-[#18CFFC] border-[#18CFFC]/30',
+      border: 'border-gray-200 hover:border-blue-300',
+      text: 'text-blue-600',
+      iconBg: 'bg-blue-50 text-blue-600 border-blue-200',
     },
     violet: {
-      border: 'border-[#7F1AFB]/20 hover:border-[#7F1AFB]/50',
-      bgGlow: 'from-[#7F1AFB]/10 to-transparent',
-      text: 'text-[#7F1AFB]',
-      iconBg: 'bg-[#7F1AFB]/10 text-[#7F1AFB] border-[#7F1AFB]/30',
+      border: 'border-gray-200 hover:border-indigo-300',
+      text: 'text-indigo-600',
+      iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200',
     },
     magenta: {
-      border: 'border-[#ED47FC]/20 hover:border-[#ED47FC]/50',
-      bgGlow: 'from-[#ED47FC]/10 to-transparent',
-      text: 'text-[#ED47FC]',
-      iconBg: 'bg-[#ED47FC]/10 text-[#ED47FC] border-[#ED47FC]/30',
+      border: 'border-gray-200 hover:border-purple-300',
+      text: 'text-purple-600',
+      iconBg: 'bg-purple-50 text-purple-600 border-purple-200',
     },
     emerald: {
-      border: 'border-emerald-500/20 hover:border-emerald-500/50',
-      bgGlow: 'from-emerald-500/10 to-transparent',
-      text: 'text-emerald-400',
-      iconBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+      border: 'border-gray-200 hover:border-emerald-300',
+      text: 'text-emerald-600',
+      iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
     },
     amber: {
-      border: 'border-amber-500/20 hover:border-amber-500/50',
-      bgGlow: 'from-amber-500/10 to-transparent',
-      text: 'text-amber-400',
-      iconBg: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+      border: 'border-gray-200 hover:border-amber-300',
+      text: 'text-amber-600',
+      iconBg: 'bg-amber-50 text-amber-600 border-amber-200',
     },
   }
 
@@ -58,20 +53,12 @@ export function AdminMetricCard({
   return (
     <div
       className={`
-        relative overflow-hidden rounded-2xl bg-[#0D0E15] p-5 border transition-all duration-300
+        relative overflow-hidden rounded-2xl bg-white p-5 border shadow-xs transition-all duration-300
         ${styles.border} group
       `}
     >
-      {/* Background radial gradient glow */}
-      <div
-        className={`
-          absolute -right-10 -top-10 w-28 h-28 rounded-full bg-gradient-to-br ${styles.bgGlow}
-          blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500
-        `}
-      />
-
       <div className="flex items-center justify-between gap-3 mb-3">
-        <span className="text-xs font-medium text-white/50 tracking-wide uppercase font-mono">
+        <span className="text-xs font-medium text-gray-500 tracking-wide uppercase font-mono">
           {title}
         </span>
         <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${styles.iconBg}`}>
@@ -80,7 +67,7 @@ export function AdminMetricCard({
       </div>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight">
+        <span className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-mono tracking-tight">
           {typeof value === 'number' ? value.toLocaleString('en-IN') : value}
         </span>
         {delta && (
@@ -89,10 +76,10 @@ export function AdminMetricCard({
               text-[11px] font-mono font-medium px-2 py-0.5 rounded-full
               ${
                 trend === 'up'
-                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   : trend === 'down'
-                  ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
-                  : 'bg-white/10 text-white/60'
+                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                  : 'bg-gray-100 text-gray-600'
               }
             `}
           >
@@ -101,7 +88,7 @@ export function AdminMetricCard({
         )}
       </div>
 
-      {subtitle && <p className="text-[11px] text-white/40 mt-2 truncate">{subtitle}</p>}
+      {subtitle && <p className="text-[11px] text-gray-500 mt-2 truncate">{subtitle}</p>}
     </div>
   )
 }

@@ -1,160 +1,243 @@
-import { lazy, Suspense } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router'
-import { motion } from 'motion/react'
-import { ArrowRight, Sparkles, QrCode, Zap, Users } from 'lucide-react'
-import { Button, KineticHeading } from '@/components/ui'
-import { fadeUp, fadeIn, staggerContainer } from '@/lib/animations'
-import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { CharacterDuoFallback } from './CharacterDuoFallback'
-
-// Lazy-load Three.js WebGL canvas to allow hero content and CTAs to render with 0ms delay
-const HeroScene3D = lazy(() =>
-  import('./HeroScene3D').then((m) => ({ default: m.HeroScene3D }))
-)
+import {
+  ArrowRight,
+  QrCode,
+  Zap,
+  Users,
+  Calendar,
+  MapPin,
+  ShieldCheck,
+  CheckCircle2,
+  Armchair,
+} from 'lucide-react'
+import { Button } from '@/components/ui'
+import { useStaggerReveal } from '@/lib/motion'
 
 const CAPABILITIES = [
   { icon: Zap, label: '0% Platform Fee', subtext: 'Direct UPI to club bank' },
-  { icon: QrCode, label: 'Sub-Second Entry', subtext: 'Camera QR gate scanner' },
+  { icon: QrCode, label: 'Digital Passes', subtext: 'Sub-second gate check-in' },
   { icon: Users, label: 'Team Engine', subtext: 'Solo & roster verification' },
 ]
 
 export function HeroSection() {
-  const reduced = useReducedMotion()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+
+  useStaggerReveal(containerRef, '.hero-stagger', { y: 16, stagger: 0.06, immediate: true })
 
   return (
     <section
       aria-label="Hero"
-      className="relative min-h-[88dvh] flex flex-col justify-center overflow-hidden pt-6 sm:pt-10 pb-16 noise-overlay"
+      className="relative bg-white border-b border-gray-200/80 pt-10 sm:pt-16 pb-16 sm:pb-24 overflow-hidden"
     >
-      {/* Background radial warmth atmosphere */}
+      {/* Subtle architectural grid pattern */}
       <div
         aria-hidden="true"
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[700px] pointer-events-none -z-10"
-        style={{
-          background:
-            'radial-gradient(ellipse 65% 50% at 50% 12%, rgba(127, 26, 251, 0.16) 0%, rgba(24, 207, 252, 0.08) 50%, transparent 75%)',
-        }}
+        className="absolute inset-0 bg-[radial-gradient(#E5E7EB_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none"
       />
 
-      {/* Grid pattern */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 grid-pattern opacity-25 pointer-events-none -z-10"
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Editorial Headline & CTAs */}
-          <motion.div
-            variants={staggerContainer}
-            initial={reduced ? 'visible' : 'hidden'}
-            animate="visible"
-            className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left z-10"
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+          {/* Left Column: Crisp Editorial Headline & CTAs */}
+          <div
+            ref={containerRef}
+            className="lg:col-span-6 flex flex-col items-center lg:items-start text-center lg:text-left"
           >
-            {/* Platform Eyebrow Badge linking to Cinematic Product Story */}
-            <motion.div variants={reduced ? undefined : fadeIn} className="mb-4 sm:mb-5">
+            {/* Minimal Eyebrow Pill */}
+            <div className="hero-stagger mb-5">
               <Link
                 to="/cinematic"
-                className="group inline-flex items-center gap-2 rounded-full pl-2.5 pr-4 py-1.5 text-xs font-semibold text-[#18CFFC] bg-[#14141A] border border-[#18CFFC]/30 hover:border-[#18CFFC] shadow-[0_0_18px_rgba(24,207,252,0.20)] hover:shadow-[0_0_24px_rgba(24,207,252,0.35)] transition-all"
+                className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200/80 hover:bg-blue-100/70 transition-colors"
               >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] shrink-0 group-hover:scale-110 transition-transform">
-                  <Sparkles size={11} className="text-white" aria-hidden="true" />
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-semibold">
+                  NEW
                 </span>
-                <span>Experience FestFlow Cinematic Product Story →</span>
+                <span>Watch the FestFlow Product Tour →</span>
               </Link>
-            </motion.div>
-
-            {/* Cinematic Editorial Headline */}
-            <div className="mb-4 sm:mb-6 max-w-2xl w-full">
-              <KineticHeading
-                as="h1"
-                className="text-[1.85rem] sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl leading-[1.14] sm:leading-[1.12] tracking-tight"
-                lines={[
-                  { text: 'Discover, organize' },
-                  { text: '& ticket campus events', highlight: 'effortlessly.', gradientClass: 'gradient-text' },
-                ]}
-              />
             </div>
 
-            {/* Subheadline */}
-            <motion.p
-              variants={reduced ? undefined : fadeUp}
-              className="max-w-xl text-sm sm:text-base md:text-lg text-zinc-400 leading-relaxed mb-8 sm:mb-10 font-normal"
-            >
-              FestFlow gives college clubs an enterprise-grade command center. Build custom forms, collect direct UPI settlements with zero platform markup, issue cryptographically stamped passes, and scan attendees in real time.
-            </motion.p>
+            {/* Clean Display H1 */}
+            <h1 className="hero-stagger font-display font-bold text-gray-900 text-4xl sm:text-5xl lg:text-[3.25rem] leading-[1.08] tracking-tight mb-5">
+              Your campus.{' '}
+              <span className="text-blue-600">More happening.</span>
+            </h1>
 
-            {/* Dual CTAs */}
-            <motion.div
-              variants={reduced ? undefined : fadeUp}
-              className="flex flex-col sm:flex-row gap-3.5 sm:gap-4 w-full sm:w-auto mb-10 sm:mb-12"
-            >
-              <Link to="/club/signup" className="w-full sm:w-auto">
-                <Button
-                  id="hero-cta-primary"
-                  variant="primary"
-                  size="lg"
-                  className="w-full sm:w-auto min-h-[52px] px-8 justify-center text-sm sm:text-base font-semibold shine-on-hover shadow-[0_4px_24px_rgba(127,26,251,0.40)]"
-                  rightIcon={<ArrowRight size={18} />}
-                >
-                  Host an Event Free
-                </Button>
-              </Link>
+            {/* Subheadline */}
+            <p className="hero-stagger max-w-xl text-base sm:text-lg text-gray-600 leading-relaxed mb-8">
+              Discover campus hackathons, workshops, and cultural fests. Book reserved seats in seconds, pay clubs directly via UPI with zero platform markup, and check in with verified digital passes.
+            </p>
+
+            {/* Primary & Secondary CTAs */}
+            <div className="hero-stagger flex flex-col sm:flex-row gap-3 w-full sm:w-auto mb-10">
               <Link to="/discover" className="w-full sm:w-auto">
                 <Button
                   id="hero-cta-discover"
-                  variant="outline"
+                  variant="primary"
                   size="lg"
-                  className="w-full sm:w-auto min-h-[52px] px-7 justify-center text-sm sm:text-base font-medium"
+                  className="w-full sm:w-auto justify-center"
+                  rightIcon={<ArrowRight size={16} />}
                 >
-                  Explore Campus Events
+                  Explore events
                 </Button>
               </Link>
-            </motion.div>
+              <Link to="/club/signup" className="w-full sm:w-auto">
+                <Button
+                  id="hero-cta-primary"
+                  variant="secondary"
+                  size="lg"
+                  className="w-full sm:w-auto justify-center"
+                >
+                  For event organizers
+                </Button>
+              </Link>
+            </div>
 
-            {/* Micro Feature Telemetry Highlights */}
-            <motion.div
-              variants={reduced ? undefined : fadeUp}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg lg:max-w-none"
-            >
+            {/* Restrained Telemetry Pills */}
+            <div className="hero-stagger grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg lg:max-w-none pt-2 border-t border-gray-100">
               {CAPABILITIES.map(({ icon: Icon, label, subtext }) => (
                 <div
                   key={label}
-                  className="p-3.5 rounded-2xl bg-[#0E0E12] border border-white/[0.08] hover:border-[#18CFFC]/35 transition-colors flex items-center lg:items-start gap-3 text-left shadow-sm"
+                  className="flex items-center lg:items-start gap-2.5 pt-3 text-left"
                 >
-                  <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[#18CFFC]/15 text-[#18CFFC]"
-                  >
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200/80 text-gray-700 flex items-center justify-center shrink-0">
                     <Icon size={15} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white leading-tight">
+                    <h4 className="text-xs font-semibold text-gray-900 leading-tight">
                       {label}
                     </h4>
-                    <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">
+                    <p className="text-[11px] text-gray-500 leading-tight mt-0.5">
                       {subtext}
                     </p>
                   </div>
                 </div>
               ))}
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
-          {/* Right Column: Original 3D Sculpture Centerpiece */}
-          <div className="lg:col-span-5 flex items-center justify-center relative">
-            {/* Ambient lighting backdrop behind 3D object */}
-            <div
-              aria-hidden="true"
-              className="absolute w-80 h-80 rounded-full pointer-events-none -z-0"
-              style={{
-                background:
-                  'radial-gradient(circle, rgba(127, 26, 251, 0.25) 0%, rgba(24, 207, 252, 0.15) 50%, transparent 70%)',
-                filter: 'blur(35px)',
-              }}
-            />
-            <Suspense fallback={<CharacterDuoFallback />}>
-              <HeroScene3D />
-            </Suspense>
+          {/* Right Column: Clean Editorial SaaS Product UI Mockup */}
+          <div ref={previewRef} className="lg:col-span-6 w-full">
+            <div className="relative rounded-2xl border border-gray-200 bg-[#F7F8FA] p-3 sm:p-4 shadow-[0_20px_50px_-15px_rgba(17,24,39,0.1)]">
+              {/* Browser Window Top Bar */}
+              <div className="flex items-center justify-between px-3 py-2 mb-3 rounded-lg bg-white border border-gray-200/80">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                </div>
+                <span className="font-mono text-[11px] text-gray-500">
+                  festflow.online/events/...
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                  Preview
+                </span>
+              </div>
+
+              {/* Dual Card Product Interface Composition */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 text-left">
+                {/* Main Event & Seating Card */}
+                <div className="sm:col-span-7 bg-white rounded-xl border border-gray-200 p-4 flex flex-col justify-between shadow-xs">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        Event Category
+                      </span>
+                      <span className="text-[11px] font-semibold text-gray-900">
+                        Direct Club UPI
+                      </span>
+                    </div>
+
+                    <h3 className="font-display font-bold text-base text-gray-900 leading-snug mb-1">
+                      Campus Event Preview
+                    </h3>
+                    <div className="flex flex-col gap-1 text-[11px] text-gray-500 mb-4">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar size={12} className="text-gray-400" />
+                        Scheduled Date & Time
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <MapPin size={12} className="text-gray-400" />
+                        Main Campus Auditorium
+                      </span>
+                    </div>
+
+                    {/* Mini Auditorium Seat Selection Widget */}
+                    <div className="p-3 rounded-lg bg-[#F7F8FA] border border-gray-200/80 mb-3">
+                      <div className="flex items-center justify-between text-[10px] font-medium text-gray-600 mb-2">
+                        <span className="flex items-center gap-1">
+                          <Armchair size={12} className="text-blue-600" />
+                          Reserved Seat Selection
+                        </span>
+                        <span className="font-mono text-blue-700 font-semibold">Row A · Selected</span>
+                      </div>
+                      <div className="grid grid-cols-6 gap-1.5">
+                        {['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].map((seat) => {
+                          const isTaken = seat === 'A1' || seat === 'A2'
+                          const isSelected = seat === 'A4'
+                          return (
+                            <div
+                              key={seat}
+                              className={`h-6 rounded text-[10px] font-mono font-medium flex items-center justify-center border ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                  : isTaken
+                                  ? 'bg-gray-200 text-gray-400 border-gray-200'
+                                  : 'bg-white text-gray-700 border-gray-200'
+                              }`}
+                            >
+                              {seat}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-[11px]">
+                    <span className="flex items-center gap-1 text-gray-600 font-medium">
+                      <ShieldCheck size={13} className="text-blue-600" />
+                      Host Organization
+                    </span>
+                    <span className="text-blue-700 font-semibold">Live Availability</span>
+                  </div>
+                </div>
+
+                {/* Verified Digital Pass Card */}
+                <div className="sm:col-span-5 bg-white rounded-xl border border-gray-200 p-4 flex flex-col justify-between shadow-xs">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 mb-3">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                      DIGITAL PASS
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                      <CheckCircle2 size={10} /> Pass Preview
+                    </span>
+                  </div>
+
+                  {/* Clean crisp simulated QR badge */}
+                  <div className="bg-[#F7F8FA] border border-gray-200 rounded-lg p-3 flex flex-col items-center justify-center my-1">
+                    <div className="bg-white p-2 rounded-md border border-gray-200 shadow-2xs">
+                      <QrCode size={72} className="text-gray-900" strokeWidth={1.6} />
+                    </div>
+                    <span className="font-mono text-[10px] font-semibold text-gray-600 mt-2 tracking-wider">
+                      SAMPLE QR TOKEN
+                    </span>
+                  </div>
+
+                  <div className="pt-2.5 border-t border-gray-100 space-y-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-gray-500">Pass Holder</span>
+                      <span className="font-medium text-gray-900">Registered Student</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-gray-500">Check-In Gate</span>
+                      <span className="font-mono font-medium text-gray-900">Venue Entrance</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

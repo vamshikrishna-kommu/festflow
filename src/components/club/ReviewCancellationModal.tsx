@@ -107,10 +107,10 @@ export function ReviewCancellationModal({
             )}
 
             {/* Attendee & Request Context Card */}
-            <div className="p-4 rounded-2xl bg-[#14141A] border border-white/[0.08] flex flex-col gap-3">
+            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2 text-sm font-bold text-white">
-                  <User size={16} className="text-[#18CFFC]" />
+                <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                  <User size={16} className="text-blue-600" />
                   <span>{studentName}</span>
                 </div>
                 <Badge variant="amber" className="text-[10px] capitalize">
@@ -118,20 +118,20 @@ export function ReviewCancellationModal({
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-zinc-400">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600">
                 <div className="flex items-center gap-1.5 truncate">
-                  <Mail size={13} className="text-zinc-500 shrink-0" />
+                  <Mail size={13} className="text-gray-400 shrink-0" />
                   <span className="truncate">{studentEmail || 'Email unlisted'}</span>
                 </div>
                 <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                  <Ticket size={13} className="text-zinc-500 shrink-0" />
+                  <Ticket size={13} className="text-gray-400 shrink-0" />
                   <span>Pass: #{registration?.ticket_code || 'TICKET'} ({eventTitle})</span>
                 </div>
               </div>
 
               {request.explanation && (
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5 text-xs text-zinc-300">
-                  <span className="font-semibold text-zinc-400 block mb-0.5">Attendee Note:</span>
+                <div className="p-3 rounded-xl bg-white border border-gray-200 text-xs text-gray-700">
+                  <span className="font-semibold text-gray-500 block mb-0.5">Attendee Note:</span>
                   <p className="italic">"{request.explanation}"</p>
                 </div>
               )}
@@ -139,20 +139,20 @@ export function ReviewCancellationModal({
 
             {/* Refund Determination (Independent from cancellation approval) */}
             {isPaidEvent && (
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700">
                   <CreditCard size={15} />
                   <span>Manual UPI Refund Determination</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="flex flex-col gap-1">
-                    <label className="text-zinc-400 font-medium">Refund Policy Status</label>
+                    <label className="text-gray-700 font-medium">Refund Policy Status</label>
                     <select
                       value={refundStatus}
                       onChange={(e) => setRefundStatus(e.target.value as RefundStatus)}
                       disabled={loading}
-                      className="px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-emerald-600"
                     >
                       <option value="refund_approved">Refund Approved (Pending payout)</option>
                       <option value="refund_processing">Refund Processing</option>
@@ -163,26 +163,26 @@ export function ReviewCancellationModal({
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-zinc-400 font-medium">Refund Amount (₹)</label>
+                    <label className="text-gray-700 font-medium">Refund Amount (₹)</label>
                     <input
                       type="number"
                       value={refundAmount}
                       onChange={(e) => setRefundAmount(Number(e.target.value))}
                       disabled={loading}
-                      className="px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-500"
+                      className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-emerald-600"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1 text-xs">
-                  <label className="text-zinc-400 font-medium">Refund Reference / UTR (Optional)</label>
+                  <label className="text-gray-700 font-medium">Refund Reference / UTR (Optional)</label>
                   <input
                     type="text"
                     value={refundTransactionRef}
                     onChange={(e) => setRefundTransactionRef(e.target.value)}
                     placeholder="Enter UPI UTR or bank reference ID once transferred..."
                     disabled={loading}
-                    className="px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-500 placeholder-zinc-500"
+                    className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-emerald-600"
                   />
                 </div>
               </div>
@@ -190,14 +190,14 @@ export function ReviewCancellationModal({
 
             {/* Organizer Decision Note */}
             <div className="flex flex-col gap-1.5 text-xs">
-              <label className="text-zinc-300 font-semibold">Organizer Decision Notes</label>
+              <label className="text-gray-700 font-semibold">Organizer Decision Notes</label>
               <textarea
                 value={decisionNotes}
                 onChange={(e) => setDecisionNotes(e.target.value)}
                 placeholder="Add explanation for the attendee regarding approval or rejection..."
                 rows={2}
                 disabled={loading}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC] resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 resize-none"
               />
             </div>
           </div>

@@ -47,29 +47,24 @@ function setLocalStore<T>(key: string, data: T[]) {
 // ══════════════════════════════════════════════════════════════════════════════
 export async function getEventTicketTiers(eventId: string): Promise<EventTicketTier[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await db.from('event_ticket_tiers')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('sort_order', { ascending: true })
-        .order('price', { ascending: true })
+    const { data, error } = await db.from('event_ticket_tiers')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('sort_order', { ascending: true })
+      .order('price', { ascending: true })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data.map((t: any) => ({
-          ...t,
-          perks: Array.isArray(t.perks) ? t.perks : typeof t.perks === 'string' ? JSON.parse(t.perks) : [],
-        }))
-      }
-    } catch {
-      // fallback to local storage
+    if (error) {
+      console.warn('[EventExperience] Failed to load ticket tiers:', error.message)
+      return []
     }
+    return ((data as any[]) || []).map((t: any) => ({
+      ...t,
+      perks: Array.isArray(t.perks) ? t.perks : typeof t.perks === 'string' ? JSON.parse(t.perks) : [],
+    }))
   }
 
   const all = getLocalStore<EventTicketTier>(STORAGE_TIERS_KEY)
-  const filtered = all.filter((t) => t.event_id === eventId)
-  if (filtered.length > 0) return filtered
-
-  return []
+  return all.filter((t) => t.event_id === eventId)
 }
 
 export async function saveTicketTier(
@@ -105,14 +100,12 @@ export async function saveTicketTier(
         .select()
         .single()
 
-      if (!error && data) {
-        return { success: true, tier: data as EventTicketTier }
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Failed to save ticket tier.' }
       }
-      if (error) {
-        console.warn('Supabase tier save error:', error.message)
-      }
+      return { success: true, tier: data as EventTicketTier }
     } catch (e: any) {
-      console.warn('Supabase tier save exception:', e?.message)
+      return { success: false, error: e?.message || 'Failed to save ticket tier.' }
     }
   }
 
@@ -133,8 +126,9 @@ export async function deleteTicketTier(tierId: string): Promise<{ success: boole
     try {
       const { error } = await db.from('event_ticket_tiers').delete().eq('id', tierId)
       if (error) return { success: false, error: error.message }
-    } catch {
-      // proceed to fallback
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Failed to delete ticket tier.' }
     }
   }
 
@@ -148,20 +142,18 @@ export async function deleteTicketTier(tierId: string): Promise<{ success: boole
 // ══════════════════════════════════════════════════════════════════════════════
 export async function getEventSchedules(eventId: string): Promise<EventScheduleItem[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await db.from('event_schedules')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('day_number', { ascending: true })
-        .order('start_time', { ascending: true })
-        .order('sort_order', { ascending: true })
+    const { data, error } = await db.from('event_schedules')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('day_number', { ascending: true })
+      .order('start_time', { ascending: true })
+      .order('sort_order', { ascending: true })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data as EventScheduleItem[]
-      }
-    } catch {
-      // fallback
+    if (error) {
+      console.warn('[EventExperience] Failed to load event schedules:', error.message)
+      return []
     }
+    return (data as EventScheduleItem[]) || []
   }
 
   const all = getLocalStore<EventScheduleItem>(STORAGE_SCHEDULES_KEY)
@@ -197,11 +189,12 @@ export async function saveEventSchedule(
         .select()
         .single()
 
-      if (!error && data) {
-        return { success: true, item: data as EventScheduleItem }
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Failed to save schedule session.' }
       }
+      return { success: true, item: data as EventScheduleItem }
     } catch (e: any) {
-      console.warn('Schedule save exception:', e?.message)
+      return { success: false, error: e?.message || 'Failed to save schedule session.' }
     }
   }
 
@@ -218,8 +211,9 @@ export async function deleteEventSchedule(scheduleId: string): Promise<{ success
     try {
       const { error } = await db.from('event_schedules').delete().eq('id', scheduleId)
       if (error) return { success: false, error: error.message }
-    } catch {
-      // fallback
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Failed to delete schedule item.' }
     }
   }
 
@@ -233,18 +227,16 @@ export async function deleteEventSchedule(scheduleId: string): Promise<{ success
 // ══════════════════════════════════════════════════════════════════════════════
 export async function getEventSpeakers(eventId: string): Promise<EventSpeaker[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await db.from('event_speakers')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('sort_order', { ascending: true })
+    const { data, error } = await db.from('event_speakers')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('sort_order', { ascending: true })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data as EventSpeaker[]
-      }
-    } catch {
-      // fallback
+    if (error) {
+      console.warn('[EventExperience] Failed to load event speakers:', error.message)
+      return []
     }
+    return (data as EventSpeaker[]) || []
   }
 
   const all = getLocalStore<EventSpeaker>(STORAGE_SPEAKERS_KEY)
@@ -278,11 +270,12 @@ export async function saveEventSpeaker(
         .select()
         .single()
 
-      if (!error && data) {
-        return { success: true, speaker: data as EventSpeaker }
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Failed to save speaker profile.' }
       }
+      return { success: true, speaker: data as EventSpeaker }
     } catch (e: any) {
-      console.warn('Speaker save exception:', e?.message)
+      return { success: false, error: e?.message || 'Failed to save speaker profile.' }
     }
   }
 
@@ -299,8 +292,9 @@ export async function deleteEventSpeaker(speakerId: string): Promise<{ success: 
     try {
       const { error } = await db.from('event_speakers').delete().eq('id', speakerId)
       if (error) return { success: false, error: error.message }
-    } catch {
-      // fallback
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Failed to delete speaker.' }
     }
   }
 
@@ -314,19 +308,17 @@ export async function deleteEventSpeaker(speakerId: string): Promise<{ success: 
 // ══════════════════════════════════════════════════════════════════════════════
 export async function getEventGallery(eventId: string): Promise<EventGalleryImage[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await db.from('event_gallery_images')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false })
+    const { data, error } = await db.from('event_gallery_images')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data as EventGalleryImage[]
-      }
-    } catch {
-      // fallback
+    if (error) {
+      console.warn('[EventExperience] Failed to load event gallery:', error.message)
+      return []
     }
+    return (data as EventGalleryImage[]) || []
   }
 
   const all = getLocalStore<EventGalleryImage>(STORAGE_GALLERY_KEY)
@@ -357,11 +349,12 @@ export async function uploadEventGalleryImage(
         .select()
         .single()
 
-      if (!error && data) {
-        return { success: true, image: data as EventGalleryImage }
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Failed to add gallery image.' }
       }
+      return { success: true, image: data as EventGalleryImage }
     } catch (e: any) {
-      console.warn('Gallery save exception:', e?.message)
+      return { success: false, error: e?.message || 'Failed to add gallery image.' }
     }
   }
 
@@ -376,8 +369,9 @@ export async function deleteEventGalleryImage(imageId: string): Promise<{ succes
     try {
       const { error } = await db.from('event_gallery_images').delete().eq('id', imageId)
       if (error) return { success: false, error: error.message }
-    } catch {
-      // fallback
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Failed to delete gallery image.' }
     }
   }
 
@@ -391,19 +385,17 @@ export async function deleteEventGalleryImage(imageId: string): Promise<{ succes
 // ══════════════════════════════════════════════════════════════════════════════
 export async function getEventAnnouncements(eventId: string): Promise<EventAnnouncement[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await db.from('event_announcements')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false })
+    const { data, error } = await db.from('event_announcements')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data as EventAnnouncement[]
-      }
-    } catch {
-      // fallback
+    if (error) {
+      console.warn('[EventExperience] Failed to load announcements:', error.message)
+      return []
     }
+    return (data as EventAnnouncement[]) || []
   }
 
   const all = getLocalStore<EventAnnouncement>(STORAGE_ANNOUNCEMENTS_KEY)
@@ -437,34 +429,35 @@ export async function publishEventAnnouncement(
         .select()
         .single()
 
-      if (!error && data) {
-        // Dispatch in-app notifications to all registered students of this event
-        try {
-          const { data: attendees } = await db.from('registrations')
-            .select('student_id')
-            .eq('event_id', announcement.event_id)
-            .in('status', ['confirmed', 'pending_payment', 'pending_approval'])
-
-          if (Array.isArray(attendees) && attendees.length > 0) {
-            const notifs = attendees.map((att: any) => ({
-              user_id: att.student_id,
-              title: `📢 Event Update: ${payload.title}`,
-              message: payload.content.length > 140 ? `${payload.content.slice(0, 137)}...` : payload.content,
-              type: 'event_announcement',
-              link: `/events/${announcement.event_id}`,
-              is_read: false,
-              created_at: now,
-            }))
-            await db.from('in_app_notifications').insert(notifs)
-          }
-        } catch {
-          // ignore notification failure
-        }
-
-        return { success: true, announcement: data as EventAnnouncement }
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Failed to publish announcement.' }
       }
+      // Dispatch in-app notifications to all registered students of this event
+      try {
+        const { data: attendees } = await db.from('registrations')
+          .select('student_id')
+          .eq('event_id', announcement.event_id)
+          .in('status', ['confirmed', 'pending_payment', 'pending_approval'])
+
+        if (Array.isArray(attendees) && attendees.length > 0) {
+          const notifs = attendees.map((att: any) => ({
+            user_id: att.student_id,
+            title: `📢 Event Update: ${payload.title}`,
+            message: payload.content.length > 140 ? `${payload.content.slice(0, 137)}...` : payload.content,
+            type: 'event_announcement',
+            link: `/events/${announcement.event_id}`,
+            is_read: false,
+            created_at: now,
+          }))
+          await db.from('in_app_notifications').insert(notifs)
+        }
+      } catch {
+        // ignore notification failure
+      }
+
+      return { success: true, announcement: data as EventAnnouncement }
     } catch (e: any) {
-      console.warn('Announcement save exception:', e?.message)
+      return { success: false, error: e?.message || 'Failed to publish announcement.' }
     }
   }
 
@@ -481,8 +474,9 @@ export async function deleteEventAnnouncement(announcementId: string): Promise<{
     try {
       const { error } = await db.from('event_announcements').delete().eq('id', announcementId)
       if (error) return { success: false, error: error.message }
-    } catch {
-      // fallback
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Failed to delete announcement.' }
     }
   }
 
@@ -496,19 +490,17 @@ export async function deleteEventAnnouncement(announcementId: string): Promise<{
 // ══════════════════════════════════════════════════════════════════════════════
 export async function getEventLeaderboard(eventId: string): Promise<EventLeaderboardEntry[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await db.from('event_leaderboard_entries')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('rank', { ascending: true })
-        .order('score', { ascending: false })
+    const { data, error } = await db.from('event_leaderboard_entries')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('rank', { ascending: true })
+      .order('score', { ascending: false })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data as EventLeaderboardEntry[]
-      }
-    } catch {
-      // fallback
+    if (error) {
+      console.warn('[EventExperience] Failed to load leaderboard:', error.message)
+      return []
     }
+    return (data as EventLeaderboardEntry[]) || []
   }
 
   const all = getLocalStore<EventLeaderboardEntry>(STORAGE_LEADERBOARD_KEY)
@@ -544,11 +536,12 @@ export async function saveLeaderboardEntry(
         .select()
         .single()
 
-      if (!error && data) {
-        return { success: true, entry: data as EventLeaderboardEntry }
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Failed to save leaderboard entry.' }
       }
+      return { success: true, entry: data as EventLeaderboardEntry }
     } catch (e: any) {
-      console.warn('Leaderboard save exception:', e?.message)
+      return { success: false, error: e?.message || 'Failed to save leaderboard entry.' }
     }
   }
 
@@ -565,8 +558,9 @@ export async function deleteLeaderboardEntry(entryId: string): Promise<{ success
     try {
       const { error } = await db.from('event_leaderboard_entries').delete().eq('id', entryId)
       if (error) return { success: false, error: error.message }
-    } catch {
-      // fallback
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Failed to delete leaderboard entry.' }
     }
   }
 
@@ -580,18 +574,16 @@ export async function deleteLeaderboardEntry(entryId: string): Promise<{ success
 // ══════════════════════════════════════════════════════════════════════════════
 export async function getEventAddons(eventId: string): Promise<EventAddon[]> {
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await db.from('event_addons')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('price', { ascending: true })
+    const { data, error } = await db.from('event_addons')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('price', { ascending: true })
 
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data as EventAddon[]
-      }
-    } catch {
-      // fallback
+    if (error) {
+      console.warn('[EventExperience] Failed to load event addons:', error.message)
+      return []
     }
+    return (data as EventAddon[]) || []
   }
 
   const all = getLocalStore<EventAddon>(STORAGE_ADDONS_KEY)
@@ -625,11 +617,12 @@ export async function saveEventAddon(
         .select()
         .single()
 
-      if (!error && data) {
-        return { success: true, addon: data as EventAddon }
+      if (error || !data) {
+        return { success: false, error: error?.message || 'Failed to save event add-on.' }
       }
+      return { success: true, addon: data as EventAddon }
     } catch (e: any) {
-      console.warn('Addon save exception:', e?.message)
+      return { success: false, error: e?.message || 'Failed to save event add-on.' }
     }
   }
 
@@ -646,8 +639,9 @@ export async function deleteEventAddon(addonId: string): Promise<{ success: bool
     try {
       const { error } = await db.from('event_addons').delete().eq('id', addonId)
       if (error) return { success: false, error: error.message }
-    } catch {
-      // fallback
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Failed to delete event add-on.' }
     }
   }
 
@@ -679,11 +673,20 @@ export async function getEventMeetingDetails(
       const { data, error } = await (supabase.rpc as any)('get_event_meeting_details', {
         p_event_id: eventId,
       })
-      if (!error && data) {
-        return data as EventOnlineDetails
+      if (error || !data) {
+        return {
+          accessible: false,
+          error_code: 'DB_ERROR',
+          message: error?.message || 'Unable to verify virtual meeting access.',
+        }
       }
-    } catch {
-      // fallback
+      return data as EventOnlineDetails
+    } catch (e: any) {
+      return {
+        accessible: false,
+        error_code: 'NETWORK_ERROR',
+        message: e?.message || 'Unable to verify virtual meeting access.',
+      }
     }
   }
 

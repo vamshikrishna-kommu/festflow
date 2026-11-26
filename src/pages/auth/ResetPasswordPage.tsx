@@ -64,15 +64,15 @@ export default function ResetPasswordPage() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center text-center gap-4 py-2"
         >
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
-            <CheckCircle2 size={32} />
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+            <CheckCircle2 size={26} />
           </div>
 
           <div>
-            <h2 className="text-lg font-bold font-display text-[var(--color-text-primary)] mb-1">
+            <h2 className="text-lg font-bold font-display text-gray-900 mb-1">
               Password updated successfully!
             </h2>
-            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               Your FestFlow account password has been updated. You can now sign in with your new credentials.
             </p>
           </div>
@@ -89,9 +89,9 @@ export default function ResetPasswordPage() {
             <motion.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5"
+              className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5"
             >
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
               <span>{serverError}</span>
             </motion.div>
           )}

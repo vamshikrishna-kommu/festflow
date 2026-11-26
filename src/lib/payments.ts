@@ -498,19 +498,21 @@ export async function submitPaymentProof(params: {
   })
   saveLocalNotifications(notifs)
 
-  // Send payment submission email with dynamic recipient
-  const recipientEmail = targetReg?.participant_details?.email || 'student@campus.edu'
-  const recipientName = targetReg?.participant_details?.student_name || 'FestFlow Student'
+  // Send payment submission email with dynamic recipient when present
+  const recipientEmail = targetReg?.participant_details?.email
+  const recipientName = targetReg?.participant_details?.student_name || 'Attendee'
 
-  sendPaymentReceivedEmail({
-    to: recipientEmail,
-    name: recipientName,
-    eventTitle: eventRes.event?.title || 'Campus Event',
-    transactionReference: cleanRef,
-    amount: baseAmount,
-    registrationId,
-    eventId,
-  }).catch(() => {})
+  if (recipientEmail) {
+    sendPaymentReceivedEmail({
+      to: recipientEmail,
+      name: recipientName,
+      eventTitle: eventRes.event?.title || 'Campus Event',
+      transactionReference: cleanRef,
+      amount: baseAmount,
+      registrationId,
+      eventId,
+    }).catch(() => {})
+  }
 
   // Broadcast realtime status change
   broadcastStatusChange({
@@ -801,40 +803,42 @@ export async function reviewPaymentSubmission(params: {
   })
   saveLocalNotifications(notifs)
 
-  // Trigger lifecycle email with dynamic recipient
-  const reviewRecipientEmail = targetReg?.participant_details?.email || 'student@campus.edu'
-  const reviewRecipientName = targetReg?.participant_details?.student_name || 'FestFlow Student'
+  // Trigger lifecycle email with dynamic recipient when present
+  const reviewRecipientEmail = targetReg?.participant_details?.email
+  const reviewRecipientName = targetReg?.participant_details?.student_name || 'Attendee'
   const reviewEventTitle = 'Campus Event'
 
-  if (decision === 'approved') {
-    sendPaymentApprovedEmail({
-      to: reviewRecipientEmail,
-      name: reviewRecipientName,
-      eventTitle: reviewEventTitle,
-      ticketCode: issuedTicketCode || 'TKT-CONFIRMED',
-      venueName: 'Campus Venue',
-      registrationId: targetSub.registration_id,
-      eventId: targetSub.event_id,
-    }).catch(() => {})
+  if (reviewRecipientEmail) {
+    if (decision === 'approved') {
+      sendPaymentApprovedEmail({
+        to: reviewRecipientEmail,
+        name: reviewRecipientName,
+        eventTitle: reviewEventTitle,
+        ticketCode: issuedTicketCode || 'TKT-CONFIRMED',
+        venueName: 'Campus Venue',
+        registrationId: targetSub.registration_id,
+        eventId: targetSub.event_id,
+      }).catch(() => {})
 
-    sendTicketIssuedEmail({
-      to: reviewRecipientEmail,
-      name: reviewRecipientName,
-      eventTitle: reviewEventTitle,
-      ticketCode: issuedTicketCode || 'TKT-CONFIRMED',
-      venueName: 'Campus Venue',
-      registrationId: targetSub.registration_id,
-      eventId: targetSub.event_id,
-    }).catch(() => {})
-  } else {
-    sendPaymentRejectedEmail({
-      to: reviewRecipientEmail,
-      name: reviewRecipientName,
-      eventTitle: reviewEventTitle,
-      reason: notes || 'Transaction reference could not be verified in organizer account.',
-      registrationId: targetSub.registration_id,
-      eventId: targetSub.event_id,
-    }).catch(() => {})
+      sendTicketIssuedEmail({
+        to: reviewRecipientEmail,
+        name: reviewRecipientName,
+        eventTitle: reviewEventTitle,
+        ticketCode: issuedTicketCode || 'TKT-CONFIRMED',
+        venueName: 'Campus Venue',
+        registrationId: targetSub.registration_id,
+        eventId: targetSub.event_id,
+      }).catch(() => {})
+    } else {
+      sendPaymentRejectedEmail({
+        to: reviewRecipientEmail,
+        name: reviewRecipientName,
+        eventTitle: reviewEventTitle,
+        reason: notes || 'Transaction reference could not be verified in organizer account.',
+        registrationId: targetSub.registration_id,
+        eventId: targetSub.event_id,
+      }).catch(() => {})
+    }
   }
 
   // Broadcast realtime status change

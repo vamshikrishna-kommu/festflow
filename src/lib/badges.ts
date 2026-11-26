@@ -217,8 +217,8 @@ export async function calculateStudentStats(studentId: string): Promise<StudentS
   } else {
     // Local / Simulation Mode
     try {
-      const mockRegs = JSON.parse(localStorage.getItem('festflow_mock_registrations') || '[]')
-      const userRegs = mockRegs.filter((r: any) => r.student_id === studentId || r.user_id === studentId)
+      const localRegs = JSON.parse(localStorage.getItem('festflow_local_registrations') || '[]')
+      const userRegs = localRegs.filter((r: any) => r.student_id === studentId || r.user_id === studentId)
       totalRegistrations = userRegs.length
       attendedCount = userRegs.filter(
         (r: any) =>
@@ -348,16 +348,17 @@ export async function toggleBadgePin(
   studentId: string,
   badgeKey: string,
   isPinned: boolean
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('student_badges') as any)
+      const { error } = await (supabase.from('student_badges') as any)
         .update({ is_pinned: isPinned })
         .eq('student_id', studentId)
         .eq('badge_key', badgeKey)
+      if (error) return { success: false, error: error.message }
       return { success: true }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to update badge pin state.' }
     }
   }
 
@@ -377,16 +378,17 @@ export async function toggleBadgePrivacy(
   studentId: string,
   badgeKey: string,
   isPublic: boolean
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   if (isSupabaseConfigured) {
     try {
-      await (supabase.from('student_badges') as any)
+      const { error } = await (supabase.from('student_badges') as any)
         .update({ is_public: isPublic })
         .eq('student_id', studentId)
         .eq('badge_key', badgeKey)
+      if (error) return { success: false, error: error.message }
       return { success: true }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to update badge visibility.' }
     }
   }
 
@@ -406,13 +408,17 @@ export async function getStudentBadges(studentId: string): Promise<StudentBadgeR
   if (!studentId) return []
   if (isSupabaseConfigured) {
     try {
-      const { data } = await (supabase.from('student_badges') as any)
+      const { data, error } = await (supabase.from('student_badges') as any)
         .select('*')
         .eq('student_id', studentId)
         .order('created_at', { ascending: false })
-      if (data) return data as StudentBadgeRecord[]
+      if (error) {
+        console.warn('[Badges] Failed to load student badges:', error.message)
+        return []
+      }
+      return (data as StudentBadgeRecord[]) || []
     } catch {
-      // ignore
+      return []
     }
   }
   return getLocalBadges().filter((x) => x.student_id === studentId)

@@ -18,27 +18,25 @@ export default function NotFoundPage() {
           animate="visible"
           className="text-center max-w-md"
         >
-          {/* 404 Glyph */}
           <motion.div
             variants={reduced ? undefined : fadeUp}
             aria-hidden="true"
-            className="font-display font-extrabold text-[8rem] sm:text-[10rem] leading-none bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] bg-clip-text text-transparent select-none mb-2 tracking-tighter drop-shadow-[0_10px_30px_rgba(24,207,252,0.35)]"
+            className="font-display font-extrabold text-[7rem] sm:text-[9rem] leading-none text-gray-900 select-none mb-2 tracking-tighter"
           >
             404
           </motion.div>
 
           <motion.h1
             variants={reduced ? undefined : fadeUp}
-            className="font-display font-bold text-2xl text-[var(--color-text-primary)] mb-3"
+            className="font-display font-bold text-2xl text-gray-900 mb-3"
           >
             Page not found
           </motion.h1>
           <motion.p
             variants={reduced ? undefined : fadeUp}
-            className="text-[var(--color-text-secondary)] mb-8"
+            className="text-sm text-gray-600 mb-8"
           >
-            The page you're looking for doesn't exist or has been moved. Let's get you
-            back on track.
+            The page you&apos;re looking for doesn&apos;t exist or has been moved. Let&apos;s get you back on track.
           </motion.p>
 
           <motion.div
@@ -56,7 +54,7 @@ export default function NotFoundPage() {
             </Link>
             <Button
               id="404-back"
-              variant="outline"
+              variant="secondary"
               leftIcon={<ArrowLeft size={16} />}
               onClick={() => window.history.back()}
             >

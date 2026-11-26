@@ -61,37 +61,37 @@ export function ReportModal({
       <ModalBody className="p-4 sm:p-6 space-y-4">
         {success ? (
           <div className="py-6 text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 mx-auto flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 mx-auto flex items-center justify-center font-semibold">
               ✓
             </div>
-            <h4 className="text-sm font-bold text-white">Report Submitted</h4>
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <h4 className="text-sm font-semibold text-gray-900">Report Submitted</h4>
+            <p className="text-xs text-gray-500">
               Thank you for keeping our campus community safe. Our moderation team has been notified.
             </p>
           </div>
         ) : (
           <form id="report-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
-              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+              <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-600" />
               <span>
                 Reports are confidential and reviewed under campus safety guidelines. False reporting is prohibited.
               </span>
             </div>
 
             {(targetTitle || targetLabel) && (
-              <div className="text-xs text-[var(--color-text-muted)]">
-                Reporting: <strong className="text-white">{targetTitle || targetLabel}</strong>
+              <div className="text-xs text-gray-500">
+                Reporting: <strong className="text-gray-900 font-semibold">{targetTitle || targetLabel}</strong>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Reason for Reporting
               </label>
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.1] text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               >
                 <option value="spam">Spam or Unsolicited Promotion</option>
                 <option value="harassment">Harassment or Inappropriate Behavior</option>
@@ -102,7 +102,7 @@ export function ReportModal({
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--color-text-muted)] mb-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Additional Context (Optional)
               </label>
               <textarea
@@ -110,12 +110,12 @@ export function ReportModal({
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Provide any additional details to help our moderation team review this report..."
                 rows={3}
-                className="w-full p-3 rounded-xl bg-[var(--color-surface-2)] border border-white/[0.1] text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]"
+                className="w-full p-3 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               />
             </div>
 
             {error && (
-              <div className="text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20">
+              <div className="text-xs text-rose-700 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
                 {error}
               </div>
             )}

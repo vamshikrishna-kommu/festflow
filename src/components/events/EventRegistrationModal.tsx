@@ -465,26 +465,26 @@ export function EventRegistrationModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/40 backdrop-blur-sm overflow-hidden">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-xl max-h-[94dvh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-white/[0.1] shadow-2xl bg-[#0E0E12] text-left relative overflow-hidden"
+        className="w-full max-w-xl max-h-[94dvh] sm:max-h-[88vh] flex flex-col rounded-2xl border border-gray-200 shadow-2xl bg-white text-left relative overflow-hidden"
       >
         {/* ── Sticky Modal Header ─────────────────────────────────────────── */}
-        <div className="p-4 sm:p-5 border-b border-white/[0.08] shrink-0 bg-[#14141A]/90 backdrop-blur-md flex flex-col gap-3">
+        <div className="p-4 sm:p-5 border-b border-gray-200 shrink-0 bg-white flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 shadow-md shadow-[#18CFFC]/20">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
                 <Ticket size={18} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm sm:text-base font-bold font-heading text-white truncate">
+                <h3 className="text-sm sm:text-base font-bold font-heading text-gray-900 truncate">
                   {step === 6 ? 'Registration Reference' : event.title}
                 </h3>
-                <span className="text-[11px] text-zinc-400 block truncate font-sans">
+                <span className="text-[11px] text-gray-500 block truncate font-sans">
                   {event.is_free ? 'Free Campus Pass' : `Fee: ${event.currency || '₹'}${event.price}`} • {event.venue_name || 'Online'}
                 </span>
               </div>
@@ -494,7 +494,7 @@ export function EventRegistrationModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
               aria-label="Close dialog"
             >
               <X size={18} />
@@ -504,7 +504,7 @@ export function EventRegistrationModal({
           {/* Stepper Progress Bar (Steps 1 to 5) */}
           {step < 6 && (
             <div className="flex flex-col gap-1.5 pt-1">
-              <div className="flex items-center justify-between text-[11px] font-medium text-zinc-300">
+              <div className="flex items-center justify-between text-[11px] font-medium text-gray-700">
                 <span>
                   {step === 1 && '1. Event & Eligibility Review'}
                   {step === 2 && '2. Attendee Profile Details'}
@@ -512,13 +512,13 @@ export function EventRegistrationModal({
                   {step === 4 && '4. Organizer Questionnaire'}
                   {step === 5 && '5. Review & Final Agreement'}
                 </span>
-                <span className="text-zinc-500 font-mono text-[10px]">
+                <span className="text-gray-500 font-mono text-[10px]">
                   Step {step < 5 ? step : totalFlowSteps} of {totalFlowSteps}
                 </span>
               </div>
-              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#18CFFC] via-[#07A4FC] to-[#7F1AFB] transition-all duration-300 rounded-full"
+                  className="h-full bg-blue-600 transition-all duration-300 rounded-full"
                   style={{ width: `${currentStepProgress}%` }}
                 />
               </div>
@@ -527,7 +527,7 @@ export function EventRegistrationModal({
         </div>
 
         {/* ── Scrollable Body Content ─────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-xs text-[var(--color-text-primary)] overscroll-contain">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-xs text-gray-900 overscroll-contain">
           {errorNotice && (
             <Alert variant="error" dismissible onDismiss={() => setErrorNotice(null)}>
               {errorNotice}
@@ -537,34 +537,34 @@ export function EventRegistrationModal({
           {/* ──────────────── STEP 1: Event & Eligibility Review ───────────── */}
           {step === 1 && (
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-[var(--color-surface-2)]/70 border border-[var(--color-surface-3)] space-y-3">
+              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-xs font-bold font-display uppercase tracking-wider text-[var(--color-brand-cyan)]">
+                  <span className="text-xs font-bold font-display uppercase tracking-wider text-blue-600">
                     Event Overview
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <Badge variant={event.is_free ? 'cyan' : 'amber'}>
+                    <Badge variant={event.is_free ? 'info' : 'amber'}>
                       {event.is_free ? 'Free Pass' : `${event.currency || '₹'}${event.price}`}
                     </Badge>
-                    <Badge variant={hasTeam ? 'purple' : 'outline'}>
+                    <Badge variant={hasTeam ? 'indigo' : 'outline'}>
                       {hasTeam ? 'Team Event' : 'Individual Pass'}
                     </Badge>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-[var(--color-text-secondary)]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-600">
                   <div className="flex items-center gap-2">
-                    <Calendar size={13} className="text-[var(--color-brand-purple)] shrink-0" />
+                    <Calendar size={13} className="text-blue-600 shrink-0" />
                     <span>{formattedDate} at {formattedTime}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin size={13} className="text-[var(--color-brand-cyan)] shrink-0" />
+                    <MapPin size={13} className="text-blue-600 shrink-0" />
                     <span className="truncate">{event.venue_name || 'Online Event'}</span>
                   </div>
                 </div>
 
                 {event.summary && (
-                  <p className="text-xs text-[var(--color-text-muted)] leading-relaxed pt-1 border-t border-[var(--color-surface-3)]">
+                  <p className="text-xs text-gray-600 leading-relaxed pt-2 border-t border-gray-200">
                     {event.summary}
                   </p>
                 )}
@@ -572,18 +572,18 @@ export function EventRegistrationModal({
 
               {/* Eligibility Criteria Cards */}
               <div className="space-y-2.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-[var(--color-brand-purple)]" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-blue-600" />
                   Organizer Eligibility Rules
                 </h4>
 
-                <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)]/50 border border-[var(--color-surface-3)] space-y-2 text-[11px]">
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-[11px]">
                   {/* Department Restrictions */}
                   <div className="flex items-start justify-between gap-3">
-                    <span className="text-[var(--color-text-muted)] shrink-0 flex items-center gap-1">
+                    <span className="text-gray-500 shrink-0 flex items-center gap-1">
                       <Building2 size={12} /> Allowed Departments:
                     </span>
-                    <span className="font-semibold text-right text-[var(--color-text-primary)]">
+                    <span className="font-semibold text-right text-gray-900">
                       {event.allowed_departments && event.allowed_departments.length > 0
                         ? event.allowed_departments.join(', ')
                         : 'Open to All Departments'}
@@ -592,10 +592,10 @@ export function EventRegistrationModal({
 
                   {/* Batch / Year Restrictions */}
                   <div className="flex items-start justify-between gap-3">
-                    <span className="text-[var(--color-text-muted)] shrink-0 flex items-center gap-1">
+                    <span className="text-gray-500 shrink-0 flex items-center gap-1">
                       <GraduationCap size={12} /> Eligible Batches / Years:
                     </span>
-                    <span className="font-semibold text-right text-[var(--color-text-primary)] font-mono">
+                    <span className="font-semibold text-right text-gray-900 font-mono">
                       {event.allowed_years && event.allowed_years.length > 0
                         ? event.allowed_years.map((y) => `Class of ${y}`).join(', ')
                         : 'All Academic Years'}
@@ -604,11 +604,11 @@ export function EventRegistrationModal({
 
                   {/* Custom Eligibility Text */}
                   {event.eligibility && (
-                    <div className="pt-2 border-t border-[var(--color-surface-3)]">
-                      <span className="text-[10px] text-[var(--color-text-muted)] block uppercase font-bold">
+                    <div className="pt-2 border-t border-gray-200">
+                      <span className="text-[10px] text-gray-500 block uppercase font-bold">
                         Special Prerequisites:
                       </span>
-                      <p className="text-xs text-[var(--color-text-primary)] mt-0.5 leading-relaxed">
+                      <p className="text-xs text-gray-800 mt-0.5 leading-relaxed">
                         {event.eligibility}
                       </p>
                     </div>
@@ -616,11 +616,11 @@ export function EventRegistrationModal({
 
                   {/* Rules & Guidelines */}
                   {event.rules && (
-                    <div className="pt-2 border-t border-[var(--color-surface-3)]">
-                      <span className="text-[10px] text-[var(--color-text-muted)] block uppercase font-bold">
+                    <div className="pt-2 border-t border-gray-200">
+                      <span className="text-[10px] text-gray-500 block uppercase font-bold">
                         Event Guidelines:
                       </span>
-                      <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 leading-relaxed">
+                      <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
                         {event.rules}
                       </p>
                     </div>
@@ -630,12 +630,12 @@ export function EventRegistrationModal({
 
               {/* Team Participation Mode Rules */}
               {hasTeam && (
-                <div className="p-3.5 rounded-2xl bg-[#7F1AFB]/10 border border-[#7F1AFB]/25 space-y-2">
-                  <div className="flex items-center gap-2 text-[#C084FC]">
+                <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 space-y-2">
+                  <div className="flex items-center gap-2 text-indigo-700">
                     <Users size={16} />
                     <span className="text-xs font-bold">Team Participation Requirements</span>
                   </div>
-                  <ul className="text-[11px] text-[var(--color-text-secondary)] space-y-1 list-disc list-inside">
+                  <ul className="text-[11px] text-gray-700 space-y-1 list-disc list-inside">
                     <li>
                       <strong>Team Size:</strong> Minimum {event.min_team_size} to Maximum {event.max_team_size} members.
                     </li>
@@ -651,8 +651,8 @@ export function EventRegistrationModal({
 
               {/* Manual Approval Notice */}
               {event.approval_type === 'manual' && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-2">
-                  <Clock size={16} className="shrink-0 text-amber-400" />
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-center gap-2">
+                  <Clock size={16} className="shrink-0 text-amber-600" />
                   <span>
                     <strong>Host Approval Required:</strong> The organizer reviews each application before granting admission and issuing the final entrance pass.
                   </span>
@@ -662,10 +662,10 @@ export function EventRegistrationModal({
               {/* Eligibility Affirmation Checkbox */}
               <label
                 htmlFor="eligibility-affirmation"
-                className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
                   eligibilityConfirmed
-                    ? 'bg-[var(--color-brand-cyan)]/10 border-[var(--color-brand-cyan)]/40 text-[var(--color-text-primary)]'
-                    : 'bg-[var(--color-surface-2)]/60 border-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:border-[var(--color-surface-4)]'
+                    ? 'bg-blue-50 border-blue-300 text-gray-900'
+                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <input
@@ -676,7 +676,7 @@ export function EventRegistrationModal({
                     setEligibilityConfirmed(e.target.checked)
                     if (errorNotice) setErrorNotice(null)
                   }}
-                  className="mt-0.5 w-4 h-4 rounded border-[var(--color-surface-3)] text-[var(--color-brand-cyan)] focus:ring-0 cursor-pointer shrink-0"
+                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-0 cursor-pointer shrink-0"
                 />
                 <span className="text-xs leading-relaxed">
                   I have read and confirm that I meet the department, batch, and organizer eligibility requirements for this event.
@@ -688,8 +688,8 @@ export function EventRegistrationModal({
           {/* ──────────────── STEP 2: Attendee Information ────────────────── */}
           {step === 2 && (
             <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-[var(--color-brand-purple)]/10 border border-[var(--color-brand-purple)]/20 text-[var(--color-text-secondary)] text-[11px] flex items-center gap-2">
-                <ShieldCheck size={16} className="shrink-0 text-[var(--color-brand-cyan)]" />
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-gray-700 text-[11px] flex items-center gap-2">
+                <ShieldCheck size={16} className="shrink-0 text-blue-600" />
                 <span>
                   Please confirm the attendee details required by the event host. Passes are verified at the entrance.
                 </span>
@@ -697,8 +697,8 @@ export function EventRegistrationModal({
 
               {/* Full Name */}
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                  Full Name <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-gray-800">
+                  Full Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -709,24 +709,24 @@ export function EventRegistrationModal({
                   }}
                   placeholder="e.g. Priya Sharma"
                   autoComplete="name"
-                  className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
+                  className={`w-full px-3 py-2.5 rounded-xl bg-white border ${
                     fieldErrors.fullName
                       ? 'border-rose-500 ring-1 ring-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
+                      : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
+                  } text-xs text-gray-900 focus:outline-none transition-colors min-h-[44px]`}
                 />
                 {fieldErrors.fullName && (
-                  <span className="text-[10px] text-rose-400 block">{fieldErrors.fullName}</span>
+                  <span className="text-[10px] text-rose-600 block">{fieldErrors.fullName}</span>
                 )}
               </div>
 
               {/* Email (Read-only verified student email) */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                    Account Email <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-gray-800">
+                    Account Email <span className="text-rose-500">*</span>
                   </label>
-                  <span className="text-[10px] text-[var(--color-brand-cyan)] font-mono">
+                  <span className="text-[10px] text-blue-600 font-mono font-semibold">
                     Verified Account
                   </span>
                 </div>
@@ -734,7 +734,7 @@ export function EventRegistrationModal({
                   type="email"
                   value={user.email || ''}
                   disabled
-                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-3)]/40 border border-[var(--color-surface-3)] text-xs text-[var(--color-text-muted)] cursor-not-allowed select-none min-h-[44px]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-500 cursor-not-allowed select-none min-h-[44px]"
                 />
               </div>
 
@@ -765,11 +765,11 @@ export function EventRegistrationModal({
                 {/* Phone Number */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                      Phone Number {pRequirements.require_phone && <span className="text-rose-400">*</span>}
+                    <label className="block text-xs font-semibold text-gray-800">
+                      Phone Number {pRequirements.require_phone && <span className="text-rose-500">*</span>}
                     </label>
                     {!pRequirements.require_phone && (
-                      <span className="text-[10px] text-[var(--color-text-muted)]">Optional</span>
+                      <span className="text-[10px] text-gray-500">Optional</span>
                     )}
                   </div>
                   <input
@@ -782,25 +782,25 @@ export function EventRegistrationModal({
                       if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' })
                     }}
                     placeholder="e.g. +91 9876543210"
-                    className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
+                    className={`w-full px-3 py-2.5 rounded-xl bg-white border ${
                       fieldErrors.phone
                         ? 'border-rose-500 ring-1 ring-rose-500'
-                        : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                    } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
+                        : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
+                    } text-xs text-gray-900 focus:outline-none transition-colors min-h-[44px]`}
                   />
                   {fieldErrors.phone && (
-                    <span className="text-[10px] text-rose-400 block">{fieldErrors.phone}</span>
+                    <span className="text-[10px] text-rose-600 block">{fieldErrors.phone}</span>
                   )}
                 </div>
 
                 {/* Graduation Year */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                      Passing Year {pRequirements.require_grad_year && <span className="text-rose-400">*</span>}
+                    <label className="block text-xs font-semibold text-gray-800">
+                      Passing Year {pRequirements.require_grad_year && <span className="text-rose-500">*</span>}
                     </label>
                     {!pRequirements.require_grad_year && (
-                      <span className="text-[10px] text-[var(--color-text-muted)]">Optional</span>
+                      <span className="text-[10px] text-gray-500">Optional</span>
                     )}
                   </div>
                   <input
@@ -812,14 +812,14 @@ export function EventRegistrationModal({
                       if (fieldErrors.gradYear) setFieldErrors({ ...fieldErrors, gradYear: '' })
                     }}
                     placeholder="e.g. 2026"
-                    className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
+                    className={`w-full px-3 py-2.5 rounded-xl bg-white border ${
                       fieldErrors.gradYear
                         ? 'border-rose-500 ring-1 ring-rose-500'
-                        : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                    } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
+                        : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
+                    } text-xs text-gray-900 focus:outline-none transition-colors min-h-[44px]`}
                   />
                   {fieldErrors.gradYear && (
-                    <span className="text-[10px] text-rose-400 block">{fieldErrors.gradYear}</span>
+                    <span className="text-[10px] text-rose-600 block">{fieldErrors.gradYear}</span>
                   )}
                 </div>
               </div>
@@ -827,11 +827,11 @@ export function EventRegistrationModal({
               {/* Student ID / Roll Card */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                    Student ID / Roll Number {pRequirements.require_id_card && <span className="text-rose-400">*</span>}
+                  <label className="block text-xs font-semibold text-gray-800">
+                    Student ID / Roll Number {pRequirements.require_id_card && <span className="text-rose-500">*</span>}
                   </label>
                   {!pRequirements.require_id_card && (
-                    <span className="text-[10px] text-[var(--color-text-muted)]">Optional</span>
+                    <span className="text-[10px] text-gray-500">Optional</span>
                   )}
                 </div>
                 <input
@@ -843,14 +843,14 @@ export function EventRegistrationModal({
                     if (fieldErrors.studentIdCard) setFieldErrors({ ...fieldErrors, studentIdCard: '' })
                   }}
                   placeholder="e.g. 2022CS0148"
-                  className={`w-full px-3 py-2.5 rounded-xl bg-[var(--color-surface-2)] border ${
+                  className={`w-full px-3 py-2.5 rounded-xl bg-white border ${
                     fieldErrors.studentIdCard
                       ? 'border-rose-500 ring-1 ring-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[44px]`}
+                      : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
+                  } text-xs text-gray-900 focus:outline-none transition-colors min-h-[44px]`}
                 />
                 {fieldErrors.studentIdCard && (
-                  <span className="text-[10px] text-rose-400 block">{fieldErrors.studentIdCard}</span>
+                  <span className="text-[10px] text-rose-600 block">{fieldErrors.studentIdCard}</span>
                 )}
               </div>
             </div>
@@ -859,24 +859,24 @@ export function EventRegistrationModal({
           {/* ──────────────── STEP 3: Team Roster Configuration ──────────── */}
           {step === 3 && hasTeam && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-[var(--color-text-primary)] block">
+                  <span className="text-xs font-bold text-gray-900 block">
                     Team Participation Rules
                   </span>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">
+                  <span className="text-[11px] text-gray-500">
                     Required: Min {event.min_team_size} • Max {event.max_team_size} total members
                   </span>
                 </div>
-                <Badge variant="purple" className="text-[10px]">
+                <Badge variant="indigo" className="text-[10px]">
                   {teamMembers.length + (event.leader_counts_towards_size ? 1 : 0)} of {event.max_team_size}
                 </Badge>
               </div>
 
               {/* Team Name */}
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                  Team Name {event.require_team_name && <span className="text-rose-400">*</span>}
+                <label className="block text-xs font-semibold text-gray-800">
+                  Team Name {event.require_team_name && <span className="text-rose-500">*</span>}
                 </label>
                 <input
                   type="text"
@@ -886,43 +886,43 @@ export function EventRegistrationModal({
                     if (fieldErrors.teamName) setFieldErrors({ ...fieldErrors, teamName: '' })
                   }}
                   placeholder="e.g. Neural Ninjas"
-                  className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-2)] border ${
+                  className={`w-full px-3 py-2 rounded-xl bg-white border ${
                     fieldErrors.teamName
                       ? 'border-rose-500 ring-1 ring-rose-500'
-                      : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                  } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                      : 'border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15'
+                  } text-xs text-gray-900 focus:outline-none transition-colors min-h-[40px]`}
                 />
                 {fieldErrors.teamName && (
-                  <span className="text-[10px] text-rose-400 block">{fieldErrors.teamName}</span>
+                  <span className="text-[10px] text-rose-600 block">{fieldErrors.teamName}</span>
                 )}
               </div>
 
               {/* Leader Card */}
-              <div className="p-3.5 rounded-2xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--color-brand-cyan)] to-[var(--color-brand-purple)] text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
                     L
                   </div>
                   <div>
-                    <div className="font-semibold text-xs text-[var(--color-text-primary)]">
+                    <div className="font-semibold text-xs text-gray-900">
                       {fullName || user.email} (You)
                     </div>
-                    <span className="text-[10px] text-[var(--color-text-muted)]">
+                    <span className="text-[10px] text-gray-500">
                       Team Leader & Owner • {user.email}
                     </span>
                   </div>
                 </div>
-                <Badge variant="cyan" className="text-[10px]">Leader</Badge>
+                <Badge variant="info" className="text-[10px]">Leader</Badge>
               </div>
 
               {/* Explicit Acceptance Workflow Notice */}
-              <div className="p-3.5 rounded-2xl bg-[var(--color-brand-cyan)]/10 border border-[var(--color-brand-cyan)]/25 flex items-start gap-2.5 text-xs text-[var(--color-brand-cyan)]">
-                <Users size={16} className="shrink-0 mt-0.5 text-[var(--color-brand-cyan)]" />
+              <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-2.5 text-xs">
+                <Users size={16} className="shrink-0 mt-0.5 text-blue-600" />
                 <div className="space-y-0.5 leading-relaxed">
-                  <span className="font-semibold block text-[var(--color-text-primary)]">
+                  <span className="font-semibold block text-gray-900">
                     Secure Teammate Invitation Workflow
                   </span>
-                  <span className="text-[11px] text-[var(--color-text-secondary)] block">
+                  <span className="text-[11px] text-gray-600 block">
                     Teammates are invited via email and secure link. Every invited student must sign in to FestFlow and explicitly accept the invitation before becoming a confirmed team member and claiming their pass.
                   </span>
                 </div>
@@ -932,10 +932,10 @@ export function EventRegistrationModal({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-semibold text-[var(--color-text-primary)] block">
+                    <span className="text-xs font-semibold text-gray-900 block">
                       Invite Teammates ({teamMembers.length})
                     </span>
-                    <span className="text-[10px] text-[var(--color-text-muted)]">
+                    <span className="text-[10px] text-gray-500">
                       Capacity: 1 Leader + {teamMembers.length} Invited / {event.max_team_size || 5} Max
                     </span>
                   </div>
@@ -955,8 +955,8 @@ export function EventRegistrationModal({
                 </div>
 
                 {teamMembers.length === 0 && (
-                  <div className="p-6 rounded-2xl border border-dashed border-[var(--color-surface-3)] text-center text-[var(--color-text-muted)] space-y-2">
-                    <Users size={24} className="mx-auto text-[var(--color-text-muted)] opacity-50" />
+                  <div className="p-6 rounded-xl border border-dashed border-gray-300 text-center text-gray-500 space-y-2">
+                    <Users size={24} className="mx-auto text-gray-400" />
                     <p className="text-xs">
                       No teammates invited yet. Click &quot;Add Teammate&quot; to invite members by email, or you can invite them anytime after registration using your Squad Dashboard.
                     </p>
@@ -966,17 +966,17 @@ export function EventRegistrationModal({
                 {teamMembers.map((m, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-2xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] space-y-2.5 relative"
+                    className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2.5 relative"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[var(--color-brand-cyan)] flex items-center gap-1.5">
+                      <span className="text-[11px] font-bold text-blue-600 flex items-center gap-1.5">
                         <span>Invited Teammate #{idx + 1}</span>
                         <Badge variant="outline" className="text-[9px] py-0 px-1.5">Pending Invite</Badge>
                       </span>
                       <button
                         type="button"
                         onClick={() => handleRemoveTeamMember(idx)}
-                        className="text-rose-400 hover:text-rose-300 p-1 rounded-md transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
+                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded-md transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
                         title="Remove invitee"
                         aria-label={`Remove Teammate #${idx + 1}`}
                       >
@@ -991,14 +991,14 @@ export function EventRegistrationModal({
                           placeholder="Student Email Address *"
                           value={m.email}
                           onChange={(e) => handleUpdateTeamMember(idx, 'email', e.target.value)}
-                          className={`w-full px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-1)] border ${
+                          className={`w-full px-2.5 py-1.5 rounded-lg bg-white border ${
                             fieldErrors[`member_email_${idx}`]
                               ? 'border-rose-500'
-                              : 'border-[var(--color-surface-3)]'
-                          } text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] min-h-[38px]`}
+                              : 'border-gray-200 focus:border-blue-600'
+                          } text-xs text-gray-900 focus:outline-none min-h-[38px]`}
                         />
                         {fieldErrors[`member_email_${idx}`] && (
-                          <span className="text-[9px] text-rose-400 mt-0.5 block">
+                          <span className="text-[9px] text-rose-600 mt-0.5 block">
                             {fieldErrors[`member_email_${idx}`]}
                           </span>
                         )}
@@ -1010,7 +1010,7 @@ export function EventRegistrationModal({
                           placeholder="Full Name (optional)"
                           value={m.name}
                           onChange={(e) => handleUpdateTeamMember(idx, 'name', e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-surface-3)] text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-purple)] min-h-[38px]"
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 min-h-[38px]"
                         />
                       </div>
                     </div>
@@ -1023,11 +1023,11 @@ export function EventRegistrationModal({
           {/* ──────────────── STEP 4: Organizer Custom Questions ─────────── */}
           {step === 4 && hasQuestions && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)]">
-                <h4 className="text-xs font-bold text-[var(--color-text-primary)] mb-0.5">
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200">
+                <h4 className="text-xs font-bold text-gray-900 mb-0.5">
                   Organizer Questionnaire
                 </h4>
-                <p className="text-[11px] text-[var(--color-text-muted)]">
+                <p className="text-[11px] text-gray-500">
                   The hosting club requires the following information to prepare for your attendance.
                 </p>
               </div>
@@ -1035,10 +1035,10 @@ export function EventRegistrationModal({
               {(event.custom_questions as CustomQuestion[]).map((q) => (
                 <div
                   key={q.id}
-                  className="p-3.5 rounded-xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] space-y-1.5"
+                  className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-1.5"
                 >
-                  <label className="block text-xs font-semibold text-[var(--color-text-primary)]">
-                    {q.label} {q.required && <span className="text-rose-400">*</span>}
+                  <label className="block text-xs font-semibold text-gray-800">
+                    {q.label} {q.required && <span className="text-rose-500">*</span>}
                   </label>
 
                   {/* Text Input */}
@@ -1055,11 +1055,11 @@ export function EventRegistrationModal({
                         }
                       }}
                       placeholder={q.placeholder || 'Type your answer…'}
-                      className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-1)] border ${
+                      className={`w-full px-3 py-2 rounded-xl bg-white border ${
                         fieldErrors[q.id]
                           ? 'border-rose-500'
-                          : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                      } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                          : 'border-gray-200 focus:border-blue-600'
+                      } text-xs text-gray-900 focus:outline-none transition-colors min-h-[40px]`}
                     />
                   )}
 
@@ -1077,11 +1077,11 @@ export function EventRegistrationModal({
                         }
                       }}
                       placeholder={q.placeholder || 'Type your detailed response…'}
-                      className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-1)] border ${
+                      className={`w-full px-3 py-2 rounded-xl bg-white border ${
                         fieldErrors[q.id]
                           ? 'border-rose-500'
-                          : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                      } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors resize-none`}
+                          : 'border-gray-200 focus:border-blue-600'
+                      } text-xs text-gray-900 focus:outline-none transition-colors resize-none`}
                     />
                   )}
 
@@ -1097,11 +1097,11 @@ export function EventRegistrationModal({
                           setFieldErrors(n)
                         }
                       }}
-                      className={`w-full px-3 py-2 rounded-xl bg-[var(--color-surface-1)] border ${
+                      className={`w-full px-3 py-2 rounded-xl bg-white border ${
                         fieldErrors[q.id]
                           ? 'border-rose-500'
-                          : 'border-[var(--color-surface-3)] focus:border-[var(--color-brand-purple)]'
-                      } text-xs text-[var(--color-text-primary)] focus:outline-none transition-colors min-h-[40px]`}
+                          : 'border-gray-200 focus:border-blue-600'
+                      } text-xs text-gray-900 focus:outline-none transition-colors min-h-[40px]`}
                     >
                       <option value="">Select an option…</option>
                       {q.options?.map((opt) => (
@@ -1114,7 +1114,7 @@ export function EventRegistrationModal({
 
                   {/* Checkbox Agreement */}
                   {q.type === 'checkbox' && (
-                    <label className="flex items-center gap-2.5 pt-1 text-xs text-[var(--color-text-secondary)] cursor-pointer select-none">
+                    <label className="flex items-center gap-2.5 pt-1 text-xs text-gray-700 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={Boolean(customAnswers[q.id])}
@@ -1126,14 +1126,14 @@ export function EventRegistrationModal({
                             setFieldErrors(n)
                           }
                         }}
-                        className="rounded border-[var(--color-surface-3)] text-[var(--color-brand-purple)] focus:ring-[var(--color-brand-purple)] w-4 h-4 cursor-pointer"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
                       />
                       <span>{q.placeholder || 'Yes, I acknowledge and agree'}</span>
                     </label>
                   )}
 
                   {fieldErrors[q.id] && (
-                    <span className="text-[10px] text-rose-400 block mt-1">
+                    <span className="text-[10px] text-rose-600 block mt-1">
                       {fieldErrors[q.id]}
                     </span>
                   )}
@@ -1145,76 +1145,76 @@ export function EventRegistrationModal({
           {/* ──────────────── STEP 5: Application Review & Agreement ───────── */}
           {step === 5 && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-gradient-to-r from-[var(--color-brand-purple)]/15 via-transparent to-[var(--color-brand-cyan)]/15 border border-[var(--color-surface-3)] flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--color-text-primary)]">
+                  <h4 className="text-xs font-bold text-gray-900">
                     Application Summary
                   </h4>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">
+                  <span className="text-[11px] text-gray-500">
                     Review your application before submission
                   </span>
                 </div>
-                <Badge variant={event.is_free ? 'cyan' : 'amber'}>
+                <Badge variant={event.is_free ? 'info' : 'amber'}>
                   {event.is_free ? 'Free Pass' : `${event.currency || '₹'}${event.price}`}
                 </Badge>
               </div>
 
               {/* Attendee Details Summary */}
-              <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] space-y-2 text-[11px]">
-                <div className="flex justify-between items-center pb-1.5 border-b border-[var(--color-surface-3)]">
-                  <span className="text-[var(--color-text-muted)]">Primary Attendee:</span>
-                  <span className="font-semibold text-[var(--color-text-primary)]">{fullName}</span>
+              <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-[11px]">
+                <div className="flex justify-between items-center pb-1.5 border-b border-gray-200">
+                  <span className="text-gray-500">Primary Attendee:</span>
+                  <span className="font-semibold text-gray-900">{fullName}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)]">Email:</span>
-                  <span className="text-[var(--color-text-secondary)] font-mono">{user.email}</span>
+                  <span className="text-gray-500">Email:</span>
+                  <span className="text-gray-700 font-mono">{user.email}</span>
                 </div>
                 {collegeName && (
                   <div className="flex justify-between items-center">
-                    <span className="text-[var(--color-text-muted)]">College:</span>
-                    <span className="text-[var(--color-text-secondary)] truncate max-w-[200px]">
+                    <span className="text-gray-500">College:</span>
+                    <span className="text-gray-700 truncate max-w-[200px]">
                       {collegeName}
                     </span>
                   </div>
                 )}
                 {phone && (
                   <div className="flex justify-between items-center">
-                    <span className="text-[var(--color-text-muted)]">Phone:</span>
-                    <span className="text-[var(--color-text-secondary)]">{phone}</span>
+                    <span className="text-gray-500">Phone:</span>
+                    <span className="text-gray-700">{phone}</span>
                   </div>
                 )}
                 {studentIdCard && (
                   <div className="flex justify-between items-center">
-                    <span className="text-[var(--color-text-muted)]">Roll / ID:</span>
-                    <span className="text-[var(--color-text-secondary)] font-mono">{studentIdCard}</span>
+                    <span className="text-gray-500">Roll / ID:</span>
+                    <span className="text-gray-700 font-mono">{studentIdCard}</span>
                   </div>
                 )}
               </div>
 
               {/* Team Roster Summary (if team event) */}
               {hasTeam && (
-                <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] space-y-2 text-[11px]">
-                  <div className="flex justify-between items-center pb-1.5 border-b border-[var(--color-surface-3)]">
-                    <span className="text-[var(--color-text-muted)]">Team Name:</span>
-                    <span className="font-bold text-[var(--color-brand-purple)]">
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-[11px]">
+                  <div className="flex justify-between items-center pb-1.5 border-b border-gray-200">
+                    <span className="text-gray-500">Team Name:</span>
+                    <span className="font-bold text-indigo-700">
                       {teamName || 'Untitled Squad'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[var(--color-text-muted)]">Roster Size:</span>
-                    <span className="text-[var(--color-text-primary)] font-semibold">
+                    <span className="text-gray-500">Roster Size:</span>
+                    <span className="text-gray-900 font-semibold">
                       {teamMembers.length + (event.leader_counts_towards_size ? 1 : 0)} Members
                     </span>
                   </div>
                   {teamMembers.length > 0 && (
                     <div className="pt-1 space-y-1">
-                      <span className="text-[10px] text-[var(--color-text-muted)] block">
+                      <span className="text-[10px] text-gray-500 block">
                         Squad Members:
                       </span>
                       {teamMembers.map((m, i) => (
-                        <div key={i} className="flex justify-between text-[10px] text-[var(--color-text-secondary)]">
+                        <div key={i} className="flex justify-between text-[10px] text-gray-600">
                           <span>#{i + 1} {m.name}</span>
-                          <span className="font-mono text-[var(--color-text-muted)]">{m.email}</span>
+                          <span className="font-mono text-gray-500">{m.email}</span>
                         </div>
                       ))}
                     </div>
@@ -1224,16 +1224,16 @@ export function EventRegistrationModal({
 
               {/* Custom Questions Summary */}
               {hasQuestions && (
-                <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)]/60 border border-[var(--color-surface-3)] space-y-2 text-[11px]">
-                  <span className="font-bold text-[var(--color-text-primary)] block pb-1 border-b border-[var(--color-surface-3)]">
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-[11px]">
+                  <span className="font-bold text-gray-900 block pb-1 border-b border-gray-200">
                     Questionnaire Answers
                   </span>
                   {(event.custom_questions as CustomQuestion[]).map((q) => (
                     <div key={q.id} className="flex justify-between gap-2">
-                      <span className="text-[var(--color-text-muted)] truncate max-w-[180px]">
+                      <span className="text-gray-500 truncate max-w-[180px]">
                         {q.label}:
                       </span>
-                      <span className="text-[var(--color-text-secondary)] font-medium text-right truncate max-w-[180px]">
+                      <span className="text-gray-800 font-medium text-right truncate max-w-[180px]">
                         {q.type === 'checkbox'
                           ? customAnswers[q.id]
                             ? 'Confirmed'
@@ -1247,8 +1247,8 @@ export function EventRegistrationModal({
 
               {/* Host Review Notice */}
               {event.approval_type === 'manual' && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-2">
-                  <Clock size={16} className="shrink-0" />
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-center gap-2">
+                  <Clock size={16} className="shrink-0 text-amber-600" />
                   <span>
                     <strong>Host Approval:</strong> The organizer manually approves applications before issuing passes.
                   </span>
@@ -1260,8 +1260,8 @@ export function EventRegistrationModal({
                 htmlFor="terms-agreement-checkbox"
                 className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
                   agreeTerms
-                    ? 'bg-[var(--color-brand-purple)]/10 border-[var(--color-brand-purple)]/40 text-[var(--color-text-primary)]'
-                    : 'bg-[var(--color-surface-2)]/60 border-[var(--color-surface-3)] text-[var(--color-text-secondary)] hover:border-[var(--color-surface-4)]'
+                    ? 'bg-blue-50 border-blue-300 text-gray-900'
+                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <input
@@ -1269,7 +1269,7 @@ export function EventRegistrationModal({
                   type="checkbox"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-[var(--color-surface-3)] text-[var(--color-brand-purple)] focus:ring-0 cursor-pointer shrink-0"
+                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-0 cursor-pointer shrink-0"
                 />
                 <span className="text-xs leading-relaxed">
                   I agree that my pass is personal, non-transferable, and requires valid college verification at the entrance. All entered details are accurate.
@@ -1281,46 +1281,46 @@ export function EventRegistrationModal({
           {/* ──────────────── STEP 6: Reference & Next Actions ─────────────── */}
           {step === 6 && submissionResult && (
             <div className="py-2 flex flex-col items-center text-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
                 <CheckCircle2 size={32} />
               </div>
 
               <div>
-                <h3 className="text-lg sm:text-xl font-bold font-display text-[var(--color-text-primary)]">
+                <h3 className="text-lg sm:text-xl font-bold font-display text-gray-900">
                   {event.approval_type === 'manual'
                     ? 'Application Submitted!'
                     : submissionResult.is_free
                     ? 'Registration Confirmed!'
                     : 'Application Accepted!'}
                 </h3>
-                <p className="text-xs text-[var(--color-text-secondary)] mt-1 max-w-xs mx-auto">
+                <p className="text-xs text-gray-600 mt-1 max-w-xs mx-auto">
                   {submissionResult.message}
                 </p>
               </div>
 
               {/* Reference Box */}
-              <div className="w-full p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-surface-3)] text-xs flex flex-col gap-2.5">
+              <div className="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs flex flex-col gap-2.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)]">Registration Reference:</span>
+                  <span className="text-gray-500">Registration Reference:</span>
                   <button
                     type="button"
                     onClick={() => handleCopyTicketCode(submissionResult.ticket_code || '')}
-                    className="font-mono font-bold text-[var(--color-brand-cyan)] text-sm flex items-center gap-1.5 hover:underline"
+                    className="font-mono font-bold text-blue-600 text-sm flex items-center gap-1.5 hover:underline cursor-pointer"
                     title="Click to copy code"
                   >
                     <span>{submissionResult.ticket_code}</span>
-                    {copiedCode ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                    {copiedCode ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
                   </button>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)]">Current Status:</span>
+                  <span className="text-gray-500">Current Status:</span>
                   <Badge
                     variant={
                       submissionResult.status === 'confirmed'
                         ? 'success'
                         : submissionResult.status === 'pending_approval'
-                        ? 'purple'
+                        ? 'indigo'
                         : 'amber'
                     }
                   >
@@ -1333,32 +1333,32 @@ export function EventRegistrationModal({
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)]">Event:</span>
-                  <span className="font-semibold text-[var(--color-text-primary)] truncate max-w-[200px]">
+                  <span className="text-gray-500">Event:</span>
+                  <span className="font-semibold text-gray-900 truncate max-w-[200px]">
                     {event.title}
                   </span>
                 </div>
 
                 {hasTeam && teamName && (
                   <div className="flex justify-between items-center">
-                    <span className="text-[var(--color-text-muted)]">Team:</span>
-                    <span className="text-[var(--color-brand-purple)] font-semibold">
+                    <span className="text-gray-500">Team:</span>
+                    <span className="text-indigo-700 font-semibold">
                       {teamName} ({teamMembers.length + (event.leader_counts_towards_size ? 1 : 0)} members)
                     </span>
                   </div>
                 )}
 
                 {hasTeam && submissionResult.invite_code && (
-                  <div className="mt-2 p-3.5 rounded-2xl bg-gradient-to-r from-[var(--color-brand-purple)]/15 to-[var(--color-brand-cyan)]/15 border border-[var(--color-brand-purple)]/30 flex flex-col gap-2">
+                  <div className="mt-2 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 flex flex-col gap-2 text-left">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-brand-purple)]">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700">
                         Squad Invitation Code
                       </span>
-                      <span className="text-[10px] text-[var(--color-text-muted)]">Share with members</span>
+                      <span className="text-[10px] text-gray-500">Share with members</span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-base font-bold text-[var(--color-brand-cyan)] tracking-wider">
+                      <span className="font-mono text-base font-bold text-blue-700 tracking-wider">
                         {submissionResult.invite_code}
                       </span>
 
@@ -1366,16 +1366,16 @@ export function EventRegistrationModal({
                         <button
                           type="button"
                           onClick={() => handleCopyInviteCode(submissionResult.invite_code!)}
-                          className="px-2.5 py-1 rounded-lg bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-4)] text-[var(--color-text-primary)] text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                         >
-                          {copiedInvite ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                          {copiedInvite ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
                           <span>{copiedInvite ? 'Copied' : 'Copy'}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleShareInvite(submissionResult.invite_code!)}
-                          className="px-2.5 py-1 rounded-lg bg-[#7F1AFB] hover:bg-[#6814D0] text-white text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           <Share2 size={13} />
                           <span>Share</span>
@@ -1383,7 +1383,7 @@ export function EventRegistrationModal({
                       </div>
                     </div>
 
-                    <p className="text-[10px] text-[var(--color-text-muted)] leading-relaxed">
+                    <p className="text-[10px] text-gray-600 leading-relaxed">
                       Teammates can use this code on the event page to join your squad directly.
                     </p>
                   </div>
@@ -1402,7 +1402,7 @@ export function EventRegistrationModal({
                       <Button
                         variant="primary"
                         size="lg"
-                        className="w-full bg-gradient-to-r from-[var(--color-brand-cyan)] to-[var(--color-brand-violet)] text-white hover:opacity-95 border-none font-bold min-h-[44px]"
+                        className="w-full font-bold min-h-[44px]"
                         rightIcon={<ArrowRight size={18} />}
                       >
                         Pay via UPI ({event.currency || '₹'}{event.price})
@@ -1439,7 +1439,7 @@ export function EventRegistrationModal({
 
         {/* ── Sticky Modal Footer ─────────────────────────────────────────── */}
         {step < 6 && (
-          <div className="p-3 sm:p-5 border-t border-[var(--color-surface-3)] shrink-0 bg-[var(--color-surface-1)]/95 flex items-center justify-between gap-2 sm:gap-3">
+          <div className="p-3 sm:p-5 border-t border-gray-200 shrink-0 bg-white flex items-center justify-between gap-2 sm:gap-3">
             {step > 1 ? (
               <Button
                 type="button"

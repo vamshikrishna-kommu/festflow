@@ -392,8 +392,8 @@ export default function SeatBookingPage() {
     return (
       <PageShell>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-          <Loader2 className="w-8 h-8 text-[#18CFFC] animate-spin" />
-          <p className="text-sm text-[var(--color-text-muted)]">Loading reserved seating…</p>
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-sm text-gray-500">Loading reserved seating…</p>
         </div>
       </PageShell>
     )
@@ -403,9 +403,9 @@ export default function SeatBookingPage() {
     return (
       <PageShell>
         <div className="max-w-xl mx-auto py-16 px-4 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Event Not Available</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mb-6">{error || 'This event could not be found.'}</p>
+          <AlertCircle className="w-12 h-12 text-rose-600 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Event Not Available</h1>
+          <p className="text-sm text-gray-600 mb-6">{error || 'This event could not be found.'}</p>
           <Link to="/discover">
             <Button variant="primary">Browse Events</Button>
           </Link>
@@ -419,22 +419,21 @@ export default function SeatBookingPage() {
     return (
       <PageShell>
         <div className="max-w-md mx-auto py-16 px-4 text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+          <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-7 h-7 text-emerald-600" />
           </div>
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">You&apos;re Already Registered!</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mb-6">
+          <h1 className="text-xl font-bold text-gray-900 mb-2">You&apos;re Already Registered!</h1>
+          <p className="text-sm text-gray-600 mb-6">
             You already hold an active pass for {event.title}.
           </p>
           <div className="flex justify-center gap-3">
             <Link to={`/student/tickets/${existingReg.id}`}>
-              <Button variant="primary">
-                <Ticket className="w-4 h-4 mr-2" />
+              <Button variant="primary" leftIcon={<Ticket className="w-4 h-4" />}>
                 View Ticket
               </Button>
             </Link>
             <Link to="/student/dashboard">
-              <Button variant="outline">My Dashboard</Button>
+              <Button variant="secondary">My Dashboard</Button>
             </Link>
           </div>
         </div>
@@ -449,40 +448,40 @@ export default function SeatBookingPage() {
       seat_id: s.id,
       display_label: s.display_label,
       category_name: s.category?.name || 'Standard',
-      category_color: s.category?.color || '#18CFFC',
+      category_color: s.category?.color || '#2563EB',
       price: s.category?.price ?? 0,
     }))
 
   return (
     <PageShell>
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 text-left">
         {/* Navigation & Event Header */}
         <div className="mb-6">
           <Link
             to={`/events/${event.slug || event.id}`}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-muted)] hover:text-[#18CFFC] transition-colors mb-3"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Event Details
           </Link>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant="cyan">Reserved Seating</Badge>
+                <Badge variant="brand">Reserved Seating</Badge>
                 {event.club?.display_name && (
-                  <span className="text-xs text-[var(--color-text-muted)]">by {event.club.display_name}</span>
+                  <span className="text-xs text-gray-500">by {event.club.display_name}</span>
                 )}
               </div>
-              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">
+              <h1 className="text-2xl font-bold font-display text-gray-900 tracking-tight">
                 {event.title}
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600">
               {event.start_date && (
                 <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#18CFFC]" />
+                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
                   <span>
                     {new Date(event.start_date).toLocaleDateString('en-IN', {
                       weekday: 'short',
@@ -494,7 +493,7 @@ export default function SeatBookingPage() {
               )}
               {event.venue_name && (
                 <div className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#ED47FC]" />
+                  <MapPin className="w-3.5 h-3.5 text-gray-400" />
                   <span>{event.venue_name}</span>
                 </div>
               )}
@@ -510,14 +509,14 @@ export default function SeatBookingPage() {
           <div className="space-y-6">
             {/* Active Hold Banner if returning to /seats with valid hold */}
             {reservationResult && (
-              <div className="bg-[#18CFFC]/10 border border-[#18CFFC]/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <Clock className="w-5 h-5 text-[#18CFFC] flex-shrink-0" />
+                  <Clock className="w-5 h-5 text-blue-600 flex-shrink-0" />
                   <div>
-                    <div className="text-sm font-bold text-[var(--color-text-primary)]">
+                    <div className="text-sm font-semibold text-gray-900">
                       You currently hold Seat(s): {reservationResult.seats.map((s) => s.display_label).join(', ')}
                     </div>
-                    <div className="text-xs text-[var(--color-text-muted)]">
+                    <div className="text-xs text-gray-600">
                       Total: ₹{reservationResult.total_price} • Complete registration before timer expires.
                     </div>
                   </div>
@@ -525,7 +524,7 @@ export default function SeatBookingPage() {
 
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={handleClearSelection}
                     className="text-xs"
@@ -536,7 +535,7 @@ export default function SeatBookingPage() {
                     variant="primary"
                     size="sm"
                     onClick={() => navigate(`/events/${eventSlug}/seats/details`)}
-                    className="text-xs bg-[#18CFFC] text-black font-bold"
+                    className="text-xs"
                   >
                     Continue to Details →
                   </Button>
@@ -552,7 +551,7 @@ export default function SeatBookingPage() {
             )}
 
             {/* Seat Map */}
-            <div className="bg-[var(--color-surface-1)] rounded-2xl border border-white/5 p-4 sm:p-6 mb-24">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mb-24 shadow-xs">
               <SeatMap
                 eventId={event.id}
                 maxSelectableSeats={maxSeats}

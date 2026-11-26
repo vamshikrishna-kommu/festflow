@@ -79,15 +79,16 @@ export async function getConversations(
         .or(`participant_one.eq.${userId},participant_two.eq.${userId}`)
         .order('last_message_at', { ascending: false })
 
-      if (!error && data) {
-        const enriched = (data as any[]).map((c) => ({
-          ...c,
-          other_participant: c.participant_one === userId ? c.p2 : c.p1,
-        }))
-        return { success: true, conversations: enriched as ConversationRecord[] }
+      if (error) {
+        return { success: false, conversations: [], message: error.message }
       }
-    } catch {
-      // fallback
+      const enriched = ((data as any[]) || []).map((c) => ({
+        ...c,
+        other_participant: c.participant_one === userId ? c.p2 : c.p1,
+      }))
+      return { success: true, conversations: enriched as ConversationRecord[] }
+    } catch (err: any) {
+      return { success: false, conversations: [], message: err?.message || 'Failed to load conversations.' }
     }
   }
 
@@ -115,11 +116,12 @@ export async function getConversationMessages(
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
 
-      if (!error && data) {
-        return { success: true, messages: data as DirectMessageRecord[] }
+      if (error) {
+        return { success: false, messages: [], message: error.message }
       }
-    } catch {
-      // fallback
+      return { success: true, messages: (data as DirectMessageRecord[]) || [] }
+    } catch (err: any) {
+      return { success: false, messages: [], message: err?.message || 'Failed to load messages.' }
     }
   }
 

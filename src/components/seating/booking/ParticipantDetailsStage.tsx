@@ -248,24 +248,24 @@ export function ParticipantDetailsStage({
       className="space-y-6"
     >
       {/* Top Banner: Hold Countdown + Held Seats Summary */}
-      <div className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-4 sm:p-5 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
           <div>
-            <div className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] font-semibold mb-1">
+            <div className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5">
               Active Seat Hold
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {seats.map((seat) => (
                 <div
                   key={seat.seat_id}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--color-surface-2)] border border-white/10 text-xs font-semibold text-[var(--color-text-primary)]"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-900"
                 >
                   <span
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: seat.category_color || '#18CFFC' }}
+                    style={{ backgroundColor: seat.category_color || '#2563EB' }}
                   />
                   <span>{seat.display_label}</span>
-                  <span className="text-[var(--color-text-muted)] font-normal">
+                  <span className="text-gray-500 font-normal">
                     ({seat.category_name || 'Standard'} • ₹{seat.price})
                   </span>
                 </div>
@@ -275,16 +275,16 @@ export function ParticipantDetailsStage({
 
           <div className="flex sm:flex-col sm:items-end justify-between items-center">
             <HoldCountdown heldUntil={heldUntil} onExpired={onExpired} />
-            <div className="text-xs text-[var(--color-text-muted)] mt-1">
+            <div className="text-xs text-gray-500 mt-1">
               Total:{' '}
-              <strong className="text-[var(--color-text-primary)] text-sm">
+              <strong className="text-gray-900 text-sm">
                 {totalPrice === 0 ? 'Free' : `₹${totalPrice.toLocaleString('en-IN')}`}
               </strong>
             </div>
           </div>
         </div>
 
-        <p className="text-xs text-[var(--color-text-muted)] mt-3">
+        <p className="text-xs text-gray-500 mt-3">
           Your selected seat(s) are held while you complete attendee details. If the countdown expires before registration, the seats will be released back to the general booking pool.
         </p>
       </div>
@@ -299,65 +299,65 @@ export function ParticipantDetailsStage({
       {/* Main Registration Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Card 1: Lead Attendee (Seat 1) */}
-        <div className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl">
-          <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 shadow-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#18CFFC]/10 border border-[#18CFFC]/20 flex items-center justify-center text-[#18CFFC]">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
                 <User className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[var(--color-text-primary)]">
+                <h3 className="text-base font-bold text-gray-900">
                   Primary Attendee (Lead Booker)
                 </h3>
-                <p className="text-xs text-[var(--color-text-muted)]">
-                  Assigned Seat: <strong className="text-[#18CFFC]">{seats[0]?.display_label}</strong> ({seats[0]?.category_name || 'Standard'})
+                <p className="text-xs text-gray-500">
+                  Assigned Seat: <strong className="text-blue-600">{seats[0]?.display_label}</strong> ({seats[0]?.category_name || 'Standard'})
                 </p>
               </div>
             </div>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#18CFFC]/10 text-[#18CFFC] border border-[#18CFFC]/20 font-medium">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium">
               Lead Pass
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                 Full Name *
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-3 w-4 h-4 text-[var(--color-text-muted)]" />
+                <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. John Doe"
-                  className={`w-full bg-[var(--color-surface-2)] border ${
-                    fieldErrors.fullName ? 'border-red-500' : 'border-white/10'
-                  } rounded-xl pl-9 pr-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]`}
+                  className={`w-full bg-white border ${
+                    fieldErrors.fullName ? 'border-rose-500' : 'border-gray-200'
+                  } rounded-xl pl-9 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15`}
                 />
               </div>
               {fieldErrors.fullName && (
-                <p className="text-xs text-red-400 mt-1">{fieldErrors.fullName}</p>
+                <p className="text-xs text-rose-600 mt-1">{fieldErrors.fullName}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                 Email Address (Account Linked)
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 w-4 h-4 text-[var(--color-text-muted)]" />
+                <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <input
                   type="email"
                   value={email}
                   disabled
-                  className="w-full bg-[var(--color-surface-2)]/60 border border-white/5 rounded-xl pl-9 pr-3 py-2.5 text-sm text-[var(--color-text-muted)] cursor-not-allowed"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm text-gray-500 cursor-not-allowed"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                 College / Institution {pRequirements.require_college && '*'}
               </label>
               <CollegeSearchCombobox
@@ -373,68 +373,68 @@ export function ParticipantDetailsStage({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                 Contact Phone {pRequirements.require_phone && '*'}
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-3 w-4 h-4 text-[var(--color-text-muted)]" />
+                <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="10-digit mobile number"
-                  className={`w-full bg-[var(--color-surface-2)] border ${
-                    fieldErrors.phone ? 'border-red-500' : 'border-white/10'
-                  } rounded-xl pl-9 pr-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]`}
+                  className={`w-full bg-white border ${
+                    fieldErrors.phone ? 'border-rose-500' : 'border-gray-200'
+                  } rounded-xl pl-9 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15`}
                 />
               </div>
               {fieldErrors.phone && (
-                <p className="text-xs text-red-400 mt-1">{fieldErrors.phone}</p>
+                <p className="text-xs text-rose-600 mt-1">{fieldErrors.phone}</p>
               )}
             </div>
 
             {pRequirements.require_grad_year && (
               <div>
-                <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                   Graduation Year *
                 </label>
                 <div className="relative">
-                  <GraduationCap className="absolute left-3 top-3 w-4 h-4 text-[var(--color-text-muted)]" />
+                  <GraduationCap className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     value={gradYear}
                     onChange={(e) => setGradYear(e.target.value)}
                     placeholder="e.g. 2026"
-                    className={`w-full bg-[var(--color-surface-2)] border ${
-                      fieldErrors.gradYear ? 'border-red-500' : 'border-white/10'
-                    } rounded-xl pl-9 pr-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]`}
+                    className={`w-full bg-white border ${
+                      fieldErrors.gradYear ? 'border-rose-500' : 'border-gray-200'
+                    } rounded-xl pl-9 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15`}
                   />
                 </div>
                 {fieldErrors.gradYear && (
-                  <p className="text-xs text-red-400 mt-1">{fieldErrors.gradYear}</p>
+                  <p className="text-xs text-rose-600 mt-1">{fieldErrors.gradYear}</p>
                 )}
               </div>
             )}
 
             {pRequirements.require_id_card && (
               <div>
-                <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                   Student ID Card Number *
                 </label>
                 <div className="relative">
-                  <CreditCard className="absolute left-3 top-3 w-4 h-4 text-[var(--color-text-muted)]" />
+                  <CreditCard className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     value={idCardNumber}
                     onChange={(e) => setIdCardNumber(e.target.value)}
                     placeholder="e.g. 21CS042"
-                    className={`w-full bg-[var(--color-surface-2)] border ${
-                      fieldErrors.idCardNumber ? 'border-red-500' : 'border-white/10'
-                    } rounded-xl pl-9 pr-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]`}
+                    className={`w-full bg-white border ${
+                      fieldErrors.idCardNumber ? 'border-rose-500' : 'border-gray-200'
+                    } rounded-xl pl-9 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15`}
                   />
                 </div>
                 {fieldErrors.idCardNumber && (
-                  <p className="text-xs text-red-400 mt-1">{fieldErrors.idCardNumber}</p>
+                  <p className="text-xs text-rose-600 mt-1">{fieldErrors.idCardNumber}</p>
                 )}
               </div>
             )}
@@ -445,10 +445,10 @@ export function ParticipantDetailsStage({
         {additionalParticipants.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
                 Additional Seats Attendees ({additionalParticipants.length})
               </h3>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-xs text-gray-500">
                 Assign a named attendee to each additional ticket
               </span>
             </div>
@@ -458,29 +458,29 @@ export function ParticipantDetailsStage({
               return (
                 <div
                   key={ap.seat_id}
-                  className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-5 shadow-xl space-y-4"
+                  className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs space-y-4"
                 >
-                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div className="flex items-center gap-2">
                       <span
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: seat?.category_color || '#18CFFC' }}
+                        style={{ backgroundColor: seat?.category_color || '#2563EB' }}
                       />
-                      <h4 className="text-sm font-bold text-[var(--color-text-primary)]">
+                      <h4 className="text-sm font-bold text-gray-900">
                         Seat {seat?.display_label}
                       </h4>
-                      <span className="text-xs text-[var(--color-text-muted)]">
+                      <span className="text-xs text-gray-500">
                         ({seat?.category_name || 'Standard'} • ₹{seat?.price ?? 0})
                       </span>
                     </div>
-                    <span className="text-xs text-[var(--color-text-muted)]">
+                    <span className="text-xs text-gray-500 font-medium">
                       Attendee #{idx + 2}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                         Attendee Name *
                       </label>
                       <input
@@ -490,17 +490,17 @@ export function ParticipantDetailsStage({
                           updateAdditionalParticipant(idx, 'student_name', e.target.value)
                         }
                         placeholder="Full name of attendee"
-                        className={`w-full bg-[var(--color-surface-2)] border ${
-                          fieldErrors[`p_${idx}_name`] ? 'border-red-500' : 'border-white/10'
-                        } rounded-xl px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]`}
+                        className={`w-full bg-white border ${
+                          fieldErrors[`p_${idx}_name`] ? 'border-rose-500' : 'border-gray-200'
+                        } rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15`}
                       />
                       {fieldErrors[`p_${idx}_name`] && (
-                        <p className="text-xs text-red-400 mt-1">{fieldErrors[`p_${idx}_name`]}</p>
+                        <p className="text-xs text-rose-600 mt-1">{fieldErrors[`p_${idx}_name`]}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                         Attendee Email *
                       </label>
                       <input
@@ -510,17 +510,17 @@ export function ParticipantDetailsStage({
                           updateAdditionalParticipant(idx, 'email', e.target.value)
                         }
                         placeholder="Email for digital pass delivery"
-                        className={`w-full bg-[var(--color-surface-2)] border ${
-                          fieldErrors[`p_${idx}_email`] ? 'border-red-500' : 'border-white/10'
-                        } rounded-xl px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]`}
+                        className={`w-full bg-white border ${
+                          fieldErrors[`p_${idx}_email`] ? 'border-rose-500' : 'border-gray-200'
+                        } rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15`}
                       />
                       {fieldErrors[`p_${idx}_email`] && (
-                        <p className="text-xs text-red-400 mt-1">{fieldErrors[`p_${idx}_email`]}</p>
+                        <p className="text-xs text-rose-600 mt-1">{fieldErrors[`p_${idx}_email`]}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                         Mobile Phone (Optional)
                       </label>
                       <input
@@ -530,12 +530,12 @@ export function ParticipantDetailsStage({
                           updateAdditionalParticipant(idx, 'phone', e.target.value)
                         }
                         placeholder="10-digit number"
-                        className="w-full bg-[var(--color-surface-2)] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                         College / Institution (Optional)
                       </label>
                       <input
@@ -545,7 +545,7 @@ export function ParticipantDetailsStage({
                           updateAdditionalParticipant(idx, 'college_name', e.target.value)
                         }
                         placeholder={collegeName || 'College name'}
-                        className="w-full bg-[var(--color-surface-2)] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                       />
                     </div>
                   </div>
@@ -559,29 +559,29 @@ export function ParticipantDetailsStage({
         {event.custom_questions &&
           Array.isArray(event.custom_questions) &&
           event.custom_questions.length > 0 && (
-            <div className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-white/5">
-                <HelpCircle className="w-4 h-4 text-[#ED47FC]" />
-                <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider">
+            <div className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+                <HelpCircle className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
                   Event Specific Questions
                 </h3>
               </div>
 
               {event.custom_questions.map((q: any) => (
                 <div key={q.id} className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-[var(--color-text-secondary)]">
-                    {q.label} {q.required && <span className="text-red-400">*</span>}
+                  <label className="block text-xs font-semibold text-gray-700">
+                    {q.label} {q.required && <span className="text-rose-500">*</span>}
                   </label>
 
                   {q.type === 'checkbox' ? (
-                    <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[var(--color-text-muted)]">
+                    <label className="flex items-start gap-2.5 cursor-pointer text-xs text-gray-600">
                       <input
                         type="checkbox"
                         checked={Boolean(customAnswers[q.id])}
                         onChange={(e) =>
                           setCustomAnswers((prev) => ({ ...prev, [q.id]: e.target.checked }))
                         }
-                        className="mt-0.5 rounded border-white/20 bg-[var(--color-surface-2)] text-[#18CFFC] focus:ring-0"
+                        className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
                       />
                       <span>{q.description || q.label}</span>
                     </label>
@@ -591,7 +591,7 @@ export function ParticipantDetailsStage({
                       onChange={(e) =>
                         setCustomAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
                       }
-                      className="w-full bg-[var(--color-surface-2)] border border-white/10 rounded-xl px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[#18CFFC]"
+                      className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                     >
                       <option value="">Select an option</option>
                       {(q.options || []).map((opt: string) => (
@@ -608,12 +608,12 @@ export function ParticipantDetailsStage({
                         setCustomAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
                       }
                       placeholder={q.placeholder || ''}
-                      className="w-full bg-[var(--color-surface-2)] border border-white/10 rounded-xl px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC]"
+                      className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                     />
                   )}
 
                   {fieldErrors[`q_${q.id}`] && (
-                    <p className="text-xs text-red-400">{fieldErrors[`q_${q.id}`]}</p>
+                    <p className="text-xs text-rose-600">{fieldErrors[`q_${q.id}`]}</p>
                   )}
                 </div>
               ))}
@@ -621,35 +621,35 @@ export function ParticipantDetailsStage({
           )}
 
         {/* Card 4: Agreements */}
-        <div className="bg-[var(--color-surface-1)] border border-white/10 rounded-2xl p-5 shadow-xl space-y-3">
-          <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[var(--color-text-muted)]">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs space-y-3">
+          <label className="flex items-start gap-2.5 cursor-pointer text-xs text-gray-600">
             <input
               type="checkbox"
               checked={agreeRules}
               onChange={(e) => setAgreeRules(e.target.checked)}
-              className="mt-0.5 rounded border-white/20 bg-[var(--color-surface-2)] text-[#18CFFC] focus:ring-0"
+              className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
             />
             <span>
               I confirm that all entered attendee information is accurate, and all participants meet the eligibility criteria for this event.
             </span>
           </label>
           {fieldErrors.agreeRules && (
-            <p className="text-xs text-red-400 pl-6">{fieldErrors.agreeRules}</p>
+            <p className="text-xs text-rose-600 pl-6">{fieldErrors.agreeRules}</p>
           )}
 
-          <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[var(--color-text-muted)]">
+          <label className="flex items-start gap-2.5 cursor-pointer text-xs text-gray-600">
             <input
               type="checkbox"
               checked={agreeTerms}
               onChange={(e) => setAgreeTerms(e.target.checked)}
-              className="mt-0.5 rounded border-white/20 bg-[var(--color-surface-2)] text-[#18CFFC] focus:ring-0"
+              className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
             />
             <span>
               I agree to the FestFlow booking terms, seat assignment policy, and club event rules.
             </span>
           </label>
           {fieldErrors.agreeTerms && (
-            <p className="text-xs text-red-400 pl-6">{fieldErrors.agreeTerms}</p>
+            <p className="text-xs text-rose-600 pl-6">{fieldErrors.agreeTerms}</p>
           )}
         </div>
 
@@ -671,7 +671,7 @@ export function ParticipantDetailsStage({
             variant="primary"
             isLoading={isSubmitting}
             disabled={isSubmitting}
-            className="w-full sm:w-auto bg-gradient-to-r from-[#18CFFC] to-[#0D56FB] text-black font-bold px-6"
+            className="w-full sm:w-auto px-6"
           >
             {totalPrice > 0 ? (
               <>

@@ -73,13 +73,13 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
       <ModalBody>
         <div className="flex flex-col gap-5 py-2 text-left">
           {/* Preview snippet */}
-          <div className="p-3.5 rounded-2xl bg-[#14141A] border border-white/10 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shrink-0 font-bold">
+          <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0 font-bold">
               <Share2 size={20} />
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-bold text-white truncate font-display">{event.title}</h4>
-              <p className="text-xs text-zinc-400 truncate mt-0.5">
+              <h4 className="text-sm font-bold text-gray-900 truncate font-display">{event.title}</h4>
+              <p className="text-xs text-gray-500 truncate mt-0.5">
                 {event.clubName || 'FestFlow Campus'} {event.venue ? `• ${event.venue}` : ''}
               </p>
             </div>
@@ -87,19 +87,19 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
 
           {/* Quick Copy Link Bar */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-400">Direct Event Link</label>
+            <label className="text-xs font-semibold text-gray-700">Direct Event Link</label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={shareUrl}
-                className="flex-1 bg-[#0E0E12] border border-white/10 rounded-xl px-3 py-2 text-xs text-zinc-300 font-mono focus:outline-none focus:border-[#18CFFC]"
+                className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-700 font-mono focus:outline-none focus:border-blue-600"
               />
               <Button
                 size="sm"
                 variant={copied ? 'secondary' : 'primary'}
                 onClick={handleCopy}
-                leftIcon={copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                leftIcon={copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
               >
                 {copied ? 'Copied' : 'Copy'}
               </Button>
@@ -113,9 +113,9 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
               href={generateWhatsAppShareUrl(payload)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-semibold transition-all cursor-pointer"
             >
-              <span className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center font-bold">
+              <span className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center font-bold">
                 WA
               </span>
               <span>WhatsApp</span>
@@ -126,9 +126,9 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
               <button
                 type="button"
                 onClick={handleNativeShare}
-                className="flex items-center gap-2 p-2.5 rounded-xl bg-[#18CFFC]/10 hover:bg-[#18CFFC]/20 border border-[#18CFFC]/20 text-[#18CFFC] text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold transition-all cursor-pointer"
               >
-                <span className="w-7 h-7 rounded-lg bg-[#18CFFC]/20 flex items-center justify-center">
+                <span className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
                   <Share2 size={14} />
                 </span>
                 <span>Device Share</span>
@@ -140,9 +140,9 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
               href={generateTwitterShareUrl(payload)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-900 text-xs font-semibold transition-all cursor-pointer"
             >
-              <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center font-bold">
+              <span className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold">
                 𝕏
               </span>
               <span>Twitter / X</span>
@@ -153,9 +153,9 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
               href={generateLinkedInShareUrl(payload)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 p-2.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-2 p-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 text-xs font-semibold transition-all cursor-pointer"
             >
-              <span className="w-7 h-7 rounded-lg bg-sky-500/20 flex items-center justify-center font-bold">
+              <span className="w-7 h-7 rounded-lg bg-sky-100 flex items-center justify-center font-bold">
                 in
               </span>
               <span>LinkedIn</span>
@@ -163,14 +163,14 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
           </div>
 
           {/* Instagram Story Helper */}
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#7F1AFB]/10 to-[#ED47FC]/10 border border-[#7F1AFB]/20 flex flex-col gap-2">
+          <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-200 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Camera size={14} className="text-[#ED47FC]" /> Instagram Story Helper
+              <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                <Camera size={14} className="text-indigo-600" /> Instagram Story Helper
               </span>
-              <span className="text-[10px] text-zinc-400">Story Sticker</span>
+              <span className="text-[10px] text-gray-500">Story Sticker</span>
             </div>
-            <p className="text-[11px] text-zinc-300 leading-relaxed">
+            <p className="text-[11px] text-gray-600 leading-relaxed">
               Copy the caption teaser below and paste into your Instagram Story, then add a Link Sticker with your event URL!
             </p>
             <div className="flex items-center gap-2 pt-1">
@@ -178,7 +178,7 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
                 size="sm"
                 variant="outline"
                 onClick={handleCopyIgText}
-                leftIcon={igCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                leftIcon={igCopied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
                 className="text-[11px] h-8"
               >
                 {igCopied ? 'Caption Copied!' : 'Copy Story Caption'}
@@ -189,7 +189,7 @@ export function EventShareModal({ isOpen, onClose, event }: EventShareModalProps
                   target="_blank"
                   rel="noopener noreferrer"
                   download="event-poster.jpg"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 transition-colors"
                 >
                   <Download size={12} /> Poster
                 </a>

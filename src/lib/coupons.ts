@@ -3,56 +3,7 @@ import type { EventCouponRecord, CouponValidationResult } from '@/types'
 
 const LOCAL_STORAGE_COUPONS_KEY = 'festflow_local_event_coupons'
 
-export const DEFAULT_STARTER_COUPONS: EventCouponRecord[] = [
-  {
-    id: 'cpn_starter_fest20',
-    club_id: 'club_demo',
-    event_id: null,
-    code: 'FEST20',
-    discount_type: 'percentage',
-    discount_value: 20,
-    max_discount_amount: 150,
-    min_purchase_amount: null,
-    valid_from: null,
-    valid_until: null,
-    max_uses: null,
-    used_count: 0,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'cpn_starter_campus50',
-    club_id: 'club_demo',
-    event_id: null,
-    code: 'CAMPUS50',
-    discount_type: 'fixed',
-    discount_value: 50,
-    max_discount_amount: null,
-    min_purchase_amount: null,
-    valid_from: null,
-    valid_until: null,
-    max_uses: null,
-    used_count: 0,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'cpn_starter_tech20',
-    club_id: 'club_demo',
-    event_id: null,
-    code: 'TECH20',
-    discount_type: 'percentage',
-    discount_value: 20,
-    max_discount_amount: 100,
-    min_purchase_amount: null,
-    valid_from: null,
-    valid_until: null,
-    max_uses: null,
-    used_count: 0,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-]
+export const DEFAULT_STARTER_COUPONS: EventCouponRecord[] = []
 
 let inMemoryCoupons: EventCouponRecord[] | null = null
 
@@ -69,7 +20,7 @@ function getLocalCoupons(): EventCouponRecord[] {
   } catch {
     // fallback
   }
-  inMemoryCoupons = [...DEFAULT_STARTER_COUPONS]
+  inMemoryCoupons = []
   return inMemoryCoupons
 }
 

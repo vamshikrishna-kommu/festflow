@@ -58,27 +58,27 @@ export function EventVirtualJoinSection({
     : 'Virtual Meeting Room'
 
   return (
-    <div className="p-5 rounded-2xl bg-gradient-to-r from-[#18CFFC]/10 via-[#0E0E12] to-[#7F1AFB]/10 border border-[#18CFFC]/30 flex flex-col gap-3.5 shadow-sm text-left">
+    <div className="p-5 rounded-xl bg-blue-50/60 border border-blue-200 flex flex-col gap-3.5 shadow-xs text-left">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#18CFFC]/20 text-[#18CFFC] flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
             <Video size={18} />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
+            <h3 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
               <span>{platformName} Joining Portal</span>
-              <Badge variant="cyan" className="text-[10px]">
+              <Badge variant="info" className="text-[10px]">
                 {eventType === 'hybrid' ? 'Hybrid Stream' : 'Live Online'}
               </Badge>
             </h3>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-[11px] text-gray-500">
               Encrypted virtual attendance credentials
             </span>
           </div>
         </div>
 
         {details?.accessible && (
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
             <ShieldCheck size={12} /> Access Granted
           </span>
         )}
@@ -86,18 +86,18 @@ export function EventVirtualJoinSection({
 
       {/* Access Gate Logic */}
       {loading ? (
-        <div className="py-4 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
-          <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-[#18CFFC] animate-spin" />
+        <div className="py-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+          <div className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin" />
           <span>Verifying pass access credentials…</span>
         </div>
       ) : details?.accessible && details.meeting_url ? (
-        <div className="space-y-3 pt-2 border-t border-white/[0.08]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-black/40 border border-white/10">
+        <div className="space-y-3 pt-2 border-t border-blue-200/70">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-gray-200">
             <div className="min-w-0">
-              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-bold">
+              <span className="text-[10px] text-gray-500 uppercase tracking-wider block font-bold">
                 Direct Session Link
               </span>
-              <span className="text-xs font-mono text-zinc-300 truncate block">
+              <span className="text-xs font-mono text-gray-700 truncate block">
                 {details.meeting_url}
               </span>
             </div>
@@ -111,7 +111,6 @@ export function EventVirtualJoinSection({
               <Button
                 variant="primary"
                 size="sm"
-                className="bg-gradient-to-r from-[#18CFFC] to-[#07A4FC] text-black font-bold"
                 rightIcon={<ExternalLink size={14} />}
               >
                 Launch Virtual Room
@@ -120,20 +119,20 @@ export function EventVirtualJoinSection({
           </div>
 
           {details.joining_instructions && (
-            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs text-zinc-300 leading-relaxed font-sans">
-              <strong className="block text-white mb-0.5">Joining Instructions:</strong>
+            <div className="p-3 rounded-xl bg-white border border-gray-200 text-xs text-gray-600 leading-relaxed font-sans">
+              <strong className="block text-gray-900 mb-0.5">Joining Instructions:</strong>
               {details.joining_instructions}
             </div>
           )}
         </div>
       ) : (
-        <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-start gap-3 text-xs text-zinc-300">
-          <Lock size={16} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="p-3.5 rounded-xl bg-white border border-gray-200 flex items-start gap-3 text-xs text-gray-600">
+          <Lock size={16} className="text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <strong className="text-white block font-semibold mb-0.5">
+            <strong className="text-gray-900 block font-semibold mb-0.5">
               Protected Attendee Portal
             </strong>
-            <p className="text-zinc-400 leading-relaxed">
+            <p className="text-gray-600 leading-relaxed">
               {details?.message ||
                 (!userId
                   ? 'Please sign in to verify your registration and unlock the session meeting link.'

@@ -25,7 +25,7 @@ import {
   ChevronDown,
   Archive,
 } from 'lucide-react'
-import { Button, Badge, EmptyState } from '@/components/ui'
+import { Button, Badge, EmptyState, Alert } from '@/components/ui'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/context/AuthContext'
 import { Link, useNavigate } from 'react-router'
@@ -94,6 +94,7 @@ export default function ClubDashboardPage() {
   const [allRegistrations, setAllRegistrations] = useState<RegistrationRecord[]>([])
   const [seatReservations, setSeatReservations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Filter States
   const [dateRange, setDateRange] = useState<DateRangeFilter>('all')
@@ -139,15 +140,22 @@ export default function ClubDashboardPage() {
       setEvents([])
       setSubmissions([])
       setAllRegistrations([])
+      setLoadError(null)
       setLoading(false)
       return
     }
     setLoading(true)
+    setLoadError(null)
 
     const [eventsRes, paymentsRes] = await Promise.all([
       listClubEvents(clubId),
       canViewPayments ? getClubPaymentSubmissions(clubId) : Promise.resolve({ submissions: [], error: null }),
     ])
+
+    const initialError = eventsRes.error || (canViewPayments ? paymentsRes.error : null) || null
+    if (initialError) {
+      setLoadError(initialError)
+    }
 
     const loadedEvents = eventsRes.events || []
     setEvents(loadedEvents)
@@ -159,7 +167,10 @@ export default function ClubDashboardPage() {
       setAllRegistrations([])
       setSeatReservations([])
     } else {
-      const { registrations: clubRegs } = await getClubRegistrations(clubId, clubEventIds)
+      const { registrations: clubRegs, error: regError } = await getClubRegistrations(clubId, clubEventIds)
+      if (regError) {
+        setLoadError((prev) => prev || regError)
+      }
       setAllRegistrations(clubRegs || [])
 
       // Also query active/confirmed seat reservations for cinema reserved seating events
@@ -637,13 +648,13 @@ export default function ClubDashboardPage() {
     return (
       <div
         key={evt.id}
-        className={`p-5 rounded-3xl bg-[#0E0E12] border transition-all flex flex-col justify-between gap-4 shadow-xl ${
-          isArchive ? 'border-white/[0.05] opacity-90' : 'border-white/[0.08] hover:border-white/20'
+        className={`p-5 rounded-xl bg-white border transition-all flex flex-col justify-between gap-4 shadow-xs ${
+          isArchive ? 'border-gray-200 opacity-90' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
         }`}
       >
         <div>
           <div className="flex items-start justify-between gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#18CFFC]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
               {evt.category}
             </span>
             <Badge
@@ -654,30 +665,30 @@ export default function ClubDashboardPage() {
             </Badge>
           </div>
 
-          <h3 className="text-base font-bold font-heading text-white line-clamp-1">
+          <h3 className="text-base font-bold font-heading text-gray-900 line-clamp-1">
             {evt.title}
           </h3>
-          <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1 truncate">
-            <Calendar size={12} className="text-[#18CFFC] shrink-0" />
+          <p className="text-xs text-gray-600 flex items-center gap-1.5 mt-1 truncate">
+            <Calendar size={12} className="text-blue-600 shrink-0" />
             {formattedDate}
           </p>
-          <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1 truncate">
-            <MapPin size={12} className="text-[#18CFFC] shrink-0" />
+          <p className="text-xs text-gray-600 flex items-center gap-1.5 mt-1 truncate">
+            <MapPin size={12} className="text-blue-600 shrink-0" />
             {evt.venue_name || 'Campus Venue'}
           </p>
         </div>
 
         {/* Capacity Fill Bar */}
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-white/5">
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-400">Confirmed Passes:</span>
-            <span className="font-mono text-white">
+            <span className="text-gray-500">Confirmed Passes:</span>
+            <span className="font-mono text-gray-900">
               <strong>{evtConfirmed}</strong> pass{evtConfirmed === 1 ? '' : 'es'} ({evtSeats} seats • {fillPct}%)
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+          <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#18CFFC] to-[#0D56FB] rounded-full"
+              className="h-full bg-blue-600 rounded-full"
               style={{ width: `${fillPct}%` }}
             />
           </div>
@@ -691,7 +702,7 @@ export default function ClubDashboardPage() {
           const canOpenFeedback = canViewEventReports || canEditEventCard
 
           return (
-            <div className="flex items-center justify-between gap-1.5 pt-3 border-t border-white/5 flex-wrap">
+            <div className="flex items-center justify-between gap-1.5 pt-3 border-t border-gray-100 flex-wrap">
               {canViewEventRoster && (
                 <Link to={`/club/events/${evt.id}/registrations`} className="flex-1">
                   <Button size="sm" variant="primary" leftIcon={<Users size={13} />} className="w-full text-xs">
@@ -704,7 +715,7 @@ export default function ClubDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setDelegationModalEvent(evt)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-purple-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-2 rounded-lg bg-gray-100 hover:bg-indigo-50 text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
                   title="Staff Delegation"
                 >
                   <ShieldCheck size={14} />
@@ -715,7 +726,7 @@ export default function ClubDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setFeedbackModalEvent(evt)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-2 rounded-lg bg-gray-100 hover:bg-amber-50 text-amber-600 hover:text-amber-700 transition-colors cursor-pointer"
                   title="Feedback Reviews"
                 >
                   <Star size={14} />
@@ -726,7 +737,7 @@ export default function ClubDashboardPage() {
                 <Link to={`/club/events/${evt.id}/reports`}>
                   <button
                     type="button"
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-sky-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-2 rounded-lg bg-gray-100 hover:bg-sky-50 text-sky-600 hover:text-sky-700 transition-colors cursor-pointer"
                     title="Event Reports & Analytics"
                   >
                     <BarChart3 size={14} />
@@ -738,7 +749,7 @@ export default function ClubDashboardPage() {
                 <Link to={`/club/events/${evt.id}/edit`}>
                   <button
                     type="button"
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                     title={isArchive ? 'View Event Archive' : 'Edit Event Details'}
                   >
                     {isArchive ? <Archive size={14} /> : <Edit size={14} />}
@@ -755,43 +766,51 @@ export default function ClubDashboardPage() {
   return (
     <PageShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-7 text-left">
+        {loadError && (
+          <Alert variant="error">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-sm">Unable to load complete organizer dashboard data</p>
+                <p className="text-xs opacity-90">{loadError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadClubData}>
+                Retry
+              </Button>
+            </div>
+          </Alert>
+        )}
+
         {/* Top Header Card with Brand Identity & Shortcuts */}
         <motion.div
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="relative rounded-3xl border border-white/[0.08] p-5 sm:p-6 md:p-8 flex flex-col gap-6 shadow-2xl bg-gradient-to-b from-[#0E0E12] to-[#08080A] overflow-hidden"
+          className="relative rounded-2xl border border-gray-200 p-5 sm:p-6 md:p-8 flex flex-col gap-6 shadow-xs bg-white overflow-hidden"
         >
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden"
-            style={{ background: 'radial-gradient(ellipse at 15% 40%, rgba(24, 207, 252, 0.12) 0%, transparent 65%)' }}
-          />
-
           {/* Row 1: Brand Identity & Primary CTA */}
           <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-[#18CFFC]/20 shrink-0 border border-white/10 bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB]">
-                <Building2 size={32} className="sm:w-9 sm:h-9" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-blue-600 shrink-0 border border-blue-200 bg-blue-50">
+                <Building2 size={30} className="sm:w-8 sm:h-8" />
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-white truncate">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-gray-900 truncate">
                     {clubName}
                   </h1>
-                  <Badge variant="purple" className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs">
-                    <ShieldCheck size={12} className="text-[#18CFFC]" />
+                  <Badge variant="indigo" className="flex items-center gap-1.5 shrink-0 text-[10px] sm:text-xs">
+                    <ShieldCheck size={12} className="text-indigo-600" />
                     {activeClubRole ? ROLE_LABELS[activeClubRole] : 'Access Restricted'}
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-zinc-400 flex-wrap font-sans">
-                  <span>Lead: <strong className="text-white">{repName}</strong></span>
+                <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap font-sans">
+                  <span>Lead: <strong className="text-gray-900">{repName}</strong></span>
                   {profile?.email && (
                     <>
-                      <span className="text-zinc-600">•</span>
-                      <span className="text-zinc-500 truncate max-w-[220px]">
+                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-500 truncate max-w-[220px]">
                         {profile.email}
                       </span>
                     </>
@@ -804,7 +823,7 @@ export default function ClubDashboardPage() {
             {canCreateEvents && (
               <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                 <Link to="/club/events/new" className="w-full sm:w-auto shrink-0">
-                  <Button variant="primary" size="sm" leftIcon={<Plus size={15} />} className="w-full sm:w-auto min-h-[44px] justify-center whitespace-nowrap shadow-lg shadow-[#18CFFC]/20 font-bold">
+                  <Button variant="primary" size="sm" leftIcon={<Plus size={15} />} className="w-full sm:w-auto min-h-[44px] justify-center whitespace-nowrap font-semibold">
                     Create Event
                   </Button>
                 </Link>
@@ -813,7 +832,7 @@ export default function ClubDashboardPage() {
           </div>
 
           {/* Mobile Quick Actions Grid (sm:hidden) */}
-          <div className="sm:hidden grid grid-cols-2 gap-2 pt-3 border-t border-white/[0.08]">
+          <div className="sm:hidden grid grid-cols-2 gap-2 pt-3 border-t border-gray-200">
             {canViewPayments && (
               <Link to="/club/payments" className="w-full">
                 <Button
@@ -842,7 +861,7 @@ export default function ClubDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCouponsModalOpen(true)}
-                leftIcon={<Tag size={14} className="text-amber-400" />}
+                leftIcon={<Tag size={14} className="text-amber-600" />}
                 className="w-full min-h-[44px] justify-center text-xs"
               >
                 Coupons
@@ -854,7 +873,7 @@ export default function ClubDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setBrandingModalOpen(true)}
-                leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
+                leftIcon={<Sparkles size={14} className="text-blue-600" />}
                 className="w-full min-h-[44px] justify-center text-xs"
               >
                 Brand & Profile
@@ -863,7 +882,7 @@ export default function ClubDashboardPage() {
           </div>
 
           {/* Row 2: Comprehensive Action Toolbar with Responsive Wrapping (Desktop) */}
-          <div className="hidden sm:flex relative flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-white/[0.08] w-full">
+          <div className="hidden sm:flex relative flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-gray-200 w-full">
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               {canViewPayments && (
                 <Link to="/club/payments" className="shrink-0">
@@ -875,7 +894,7 @@ export default function ClubDashboardPage() {
                   >
                     Payments
                     {pendingPaymentsCount > 0 && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-black text-[10px] font-bold">
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-gray-900 text-[10px] font-bold">
                         {pendingPaymentsCount}
                       </span>
                     )}
@@ -889,7 +908,7 @@ export default function ClubDashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCouponsModalOpen(true)}
-                  leftIcon={<Tag size={14} className="text-amber-400" />}
+                  leftIcon={<Tag size={14} className="text-amber-600" />}
                   className="shrink-0 whitespace-nowrap"
                 >
                   Coupons
@@ -902,7 +921,7 @@ export default function ClubDashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setBrandingModalOpen(true)}
-                  leftIcon={<Sparkles size={14} className="text-[#ED47FC]" />}
+                  leftIcon={<Sparkles size={14} className="text-blue-600" />}
                   className="shrink-0 whitespace-nowrap"
                 >
                   Brand & Profile
@@ -924,7 +943,7 @@ export default function ClubDashboardPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    leftIcon={<Settings size={14} className="text-zinc-400" />}
+                    leftIcon={<Settings size={14} className="text-gray-500" />}
                     className="whitespace-nowrap"
                   >
                     Settings
@@ -937,7 +956,7 @@ export default function ClubDashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => switchWorkspace('student', navigate)}
-                  className="text-zinc-300 hover:text-white shrink-0 whitespace-nowrap"
+                  className="text-gray-700 hover:text-gray-900 shrink-0 whitespace-nowrap"
                   leftIcon={<GraduationCap size={15} />}
                 >
                   Student Space
@@ -948,7 +967,7 @@ export default function ClubDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => signOut()}
-                className="text-rose-400 hover:text-rose-300 hover:border-rose-500/30 shrink-0 whitespace-nowrap"
+                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-200 shrink-0 whitespace-nowrap"
               >
                 Sign Out
               </Button>
@@ -970,12 +989,12 @@ export default function ClubDashboardPage() {
             (showDraftsTask ? 1 : 0)
 
           return (
-            <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-3 shadow-lg">
+            <div className="p-4 sm:p-5 rounded-xl bg-amber-50 border border-amber-200 flex flex-col gap-3 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs uppercase font-bold tracking-wider text-amber-300 flex items-center gap-1.5">
-                  <AlertTriangle size={15} /> Action Items Requiring Attention
+                <span className="text-xs uppercase font-bold tracking-wider text-amber-800 flex items-center gap-1.5">
+                  <AlertTriangle size={15} className="text-amber-600" /> Action Items Requiring Attention
                 </span>
-                <span className="text-[11px] font-mono text-amber-200/80">
+                <span className="text-[11px] font-mono text-amber-700">
                   {taskCategoryCount} pending task categories
                 </span>
               </div>
@@ -983,14 +1002,14 @@ export default function ClubDashboardPage() {
               <div className="flex flex-wrap items-center gap-2.5">
                 {showPendingPaymentsTask && (
                   <Link to="/club/payments" className="flex-1 sm:flex-initial">
-                    <div className="p-3 rounded-xl bg-[#0E0E12] border border-amber-500/40 hover:border-amber-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                    <div className="p-3 rounded-xl bg-white border border-amber-200 hover:border-amber-400 flex items-center justify-between gap-3 text-xs transition-colors shadow-xs">
                       <div className="flex items-center gap-2">
-                        <CreditCard size={16} className="text-amber-400 shrink-0" />
-                        <span className="text-white font-semibold">
+                        <CreditCard size={16} className="text-amber-600 shrink-0" />
+                        <span className="text-gray-900 font-semibold">
                           {pendingPaymentsCount} Payment{pendingPaymentsCount > 1 ? 's' : ''} Awaiting Review
                         </span>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 shrink-0">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 shrink-0">
                         Verify UTR →
                       </span>
                     </div>
@@ -999,14 +1018,14 @@ export default function ClubDashboardPage() {
 
                 {showPendingCancellationsTask && (
                   <Link to="/club/events" className="flex-1 sm:flex-initial">
-                    <div className="p-3 rounded-xl bg-[#0E0E12] border border-rose-500/40 hover:border-rose-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                    <div className="p-3 rounded-xl bg-white border border-rose-200 hover:border-rose-400 flex items-center justify-between gap-3 text-xs transition-colors shadow-xs">
                       <div className="flex items-center gap-2">
-                        <Users size={16} className="text-rose-400 shrink-0" />
-                        <span className="text-white font-semibold">
+                        <Users size={16} className="text-rose-600 shrink-0" />
+                        <span className="text-gray-900 font-semibold">
                           {pendingCancellationsCount} Cancellation Request{pendingCancellationsCount > 1 ? 's' : ''}
                         </span>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 shrink-0">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
                         Review →
                       </span>
                     </div>
@@ -1015,14 +1034,14 @@ export default function ClubDashboardPage() {
 
                 {showDraftsTask && (
                   <Link to="/club/events" className="flex-1 sm:flex-initial">
-                    <div className="p-3 rounded-xl bg-[#0E0E12] border border-purple-500/40 hover:border-purple-400 flex items-center justify-between gap-3 text-xs transition-colors">
+                    <div className="p-3 rounded-xl bg-white border border-indigo-200 hover:border-indigo-400 flex items-center justify-between gap-3 text-xs transition-colors shadow-xs">
                       <div className="flex items-center gap-2">
-                        <Layers size={16} className="text-purple-400 shrink-0" />
-                        <span className="text-white font-semibold">
+                        <Layers size={16} className="text-indigo-600 shrink-0" />
+                        <span className="text-gray-900 font-semibold">
                           {draftCount} Draft Event{draftCount > 1 ? 's' : ''} Unpublished
                         </span>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 shrink-0">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 shrink-0">
                         Review →
                       </span>
                     </div>
@@ -1038,17 +1057,15 @@ export default function ClubDashboardPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="relative rounded-2xl overflow-hidden p-5 sm:p-6 border transition-all shadow-md bg-[#0E0E12] border-white/[0.08]"
+          className="relative rounded-xl overflow-hidden p-5 sm:p-6 border transition-all shadow-xs bg-white border-gray-200"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3.5">
               <div
-                className={`p-3 rounded-xl shrink-0 ${
+                className={`p-3 rounded-xl shrink-0 border ${
                   organizerNextAction.type === 'pending_payment'
-                    ? 'bg-amber-500/20 text-amber-300'
-                    : organizerNextAction.type === 'event_active'
-                    ? 'bg-[#18CFFC]/20 text-[#18CFFC]'
-                    : 'bg-[#14141A] text-[#18CFFC]'
+                    ? 'bg-amber-50 border-amber-200 text-amber-600'
+                    : 'bg-blue-50 border-blue-200 text-blue-600'
                 }`}
               >
                 {organizerNextAction.type === 'pending_payment' ? (
@@ -1066,10 +1083,10 @@ export default function ClubDashboardPage() {
                     {organizerNextAction.badge}
                   </Badge>
                 </div>
-                <h2 className="text-base sm:text-lg font-bold font-heading text-white">
+                <h2 className="text-base sm:text-lg font-bold font-heading text-gray-900">
                   {organizerNextAction.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 max-w-2xl leading-relaxed font-sans">
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5 max-w-2xl leading-relaxed font-sans">
                   {organizerNextAction.description}
                 </p>
               </div>
@@ -1088,9 +1105,9 @@ export default function ClubDashboardPage() {
         </motion.div>
 
         {/* ── Date Range & Event Filters ───────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white border border-gray-200 shadow-xs">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
-            <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1 mr-1">
+            <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1 mr-1">
               <Filter size={12} /> Timeframe:
             </span>
             {(['all', 'today', '7d', '30d'] as const).map((range) => (
@@ -1098,10 +1115,10 @@ export default function ClubDashboardPage() {
                 key={range}
                 type="button"
                 onClick={() => setDateRange(range)}
-                className={`px-3 py-1.5 rounded-xl font-medium transition-all capitalize cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all capitalize cursor-pointer ${
                   dateRange === range
-                    ? 'bg-[#18CFFC] text-black font-bold shadow-md shadow-[#18CFFC]/20'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 {range === 'all' ? 'All Time' : range === 'today' ? 'Today' : `Last ${range.toUpperCase()}`}
@@ -1110,11 +1127,11 @@ export default function ClubDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-400 whitespace-nowrap">Filter Event:</span>
+            <span className="text-xs text-gray-500 whitespace-nowrap">Filter Event:</span>
             <select
               value={selectedEventFilter}
               onChange={(e) => setSelectedEventFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl bg-[#08080A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600"
             >
               <option value="all">All Managed Events ({events.length})</option>
               {events.map((e) => (
@@ -1139,8 +1156,8 @@ export default function ClubDashboardPage() {
               value: loading ? '…' : totalRegistrationsCount.toString(),
               subtitle: `${confirmedCount} confirmed registrations`,
               icon: Users,
-              color: 'text-[#18CFFC]',
-              badgeStyle: 'bg-[#18CFFC]/10 border-[#18CFFC]/20 text-[#18CFFC]',
+              color: 'text-blue-600',
+              badgeStyle: 'bg-blue-50 border-blue-200 text-blue-600',
             },
             {
               label: 'Completed Events',
@@ -1150,8 +1167,8 @@ export default function ClubDashboardPage() {
                   ? `${cancelledEvents.length} cancelled also archived`
                   : 'Concluded event records',
               icon: Archive,
-              color: 'text-emerald-400',
-              badgeStyle: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+              color: 'text-emerald-600',
+              badgeStyle: 'bg-emerald-50 border-emerald-200 text-emerald-600',
               link: '/club/events',
             },
             ...(canViewPayments
@@ -1161,8 +1178,8 @@ export default function ClubDashboardPage() {
                     value: loading ? '…' : pendingPaymentsCount.toString(),
                     subtitle: 'UTR proofs awaiting verification',
                     icon: CreditCard,
-                    color: 'text-amber-400',
-                    badgeStyle: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+                    color: 'text-amber-600',
+                    badgeStyle: 'bg-amber-50 border-amber-200 text-amber-600',
                     link: '/club/payments',
                     highlight: pendingPaymentsCount > 0,
                   },
@@ -1171,8 +1188,8 @@ export default function ClubDashboardPage() {
                     value: loading ? '…' : `₹${grossVerifiedRevenue.toLocaleString()}`,
                     subtitle: `${approvedPayments.length} verified transactions`,
                     icon: TrendingUp,
-                    color: 'text-emerald-400',
-                    badgeStyle: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+                    color: 'text-emerald-600',
+                    badgeStyle: 'bg-emerald-50 border-emerald-200 text-emerald-600',
                     link: '/club/payments',
                   },
                 ]
@@ -1182,8 +1199,8 @@ export default function ClubDashboardPage() {
               value: loading ? '…' : activePublishedCount.toString(),
               subtitle: `${liveEvents.length} live now • ${upcomingEventsList.length} upcoming`,
               icon: Calendar,
-              color: 'text-[#18CFFC]',
-              badgeStyle: 'bg-[#18CFFC]/10 border-[#18CFFC]/20 text-[#18CFFC]',
+              color: 'text-blue-600',
+              badgeStyle: 'bg-blue-50 border-blue-200 text-blue-600',
               link: '/club/events',
             },
             {
@@ -1191,16 +1208,16 @@ export default function ClubDashboardPage() {
               value: loading ? '…' : draftCount.toString(),
               subtitle: 'Pending publication review',
               icon: Layers,
-              color: 'text-purple-400',
-              badgeStyle: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
+              color: 'text-indigo-600',
+              badgeStyle: 'bg-indigo-50 border-indigo-200 text-indigo-600',
             },
             {
               label: 'Capacity Fill Rate',
               value: loading ? '…' : `${capacityUtilization}%`,
               subtitle: `${totalSeatsOccupied} of ${totalCapacity} total seats`,
               icon: BarChart3,
-              color: 'text-sky-400',
-              badgeStyle: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
+              color: 'text-sky-600',
+              badgeStyle: 'bg-sky-50 border-sky-200 text-sky-600',
             },
             {
               label: 'Upcoming Scheduled',
@@ -1209,25 +1226,25 @@ export default function ClubDashboardPage() {
                 ? `Next: ${upcomingEventsList[0].title}`
                 : 'No upcoming dates scheduled',
               icon: Clock,
-              color: 'text-zinc-300',
-              badgeStyle: 'bg-white/10 border-white/15 text-zinc-300',
+              color: 'text-gray-700',
+              badgeStyle: 'bg-gray-100 border-gray-200 text-gray-600',
             },
           ].map((stat, i) => {
             const Icon = stat.icon
             const cardContent = (
               <motion.div variants={metricItem} className="h-full">
                 <div
-                  className={`p-4 sm:p-5 rounded-2xl bg-[#0E0E12] border flex flex-col justify-between gap-3 h-full transition-all duration-200 ${
+                  className={`p-4 sm:p-5 rounded-xl bg-white border flex flex-col justify-between gap-3 h-full transition-all duration-200 shadow-xs ${
                     stat.highlight
-                      ? 'border-amber-500/40 bg-amber-500/[0.04] shadow-[0_0_20px_rgba(245,158,11,0.15)]'
-                      : 'border-white/[0.08] hover:border-white/20'
+                      ? 'border-amber-300 bg-amber-50/40'
+                      : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-medium font-sans">
+                    <span className="text-xs text-gray-500 font-medium font-sans">
                       {stat.label}
                     </span>
-                    <div className={`p-2 rounded-xl border ${stat.badgeStyle}`}>
+                    <div className={`p-2 rounded-lg border ${stat.badgeStyle}`}>
                       <Icon size={16} />
                     </div>
                   </div>
@@ -1235,12 +1252,12 @@ export default function ClubDashboardPage() {
                   <div>
                     <span
                       className={`text-2xl sm:text-3xl font-extrabold font-heading font-mono ${
-                        stat.highlight ? 'text-amber-400' : 'text-white'
+                        stat.highlight ? 'text-amber-700' : 'text-gray-900'
                       }`}
                     >
                       {stat.value}
                     </span>
-                    <span className="text-[11px] text-zinc-500 block mt-0.5 truncate font-sans">
+                    <span className="text-[11px] text-gray-500 block mt-0.5 truncate font-sans">
                       {stat.subtitle}
                     </span>
                   </div>
@@ -1265,7 +1282,7 @@ export default function ClubDashboardPage() {
           <button
             type="button"
             onClick={() => setShowAllMetrics(!showAllMetrics)}
-            className="px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-xs text-gray-600 hover:text-gray-900 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
           >
             <span>{showAllMetrics ? 'Show Fewer Statistics' : 'Show All Statistics (+4 more)'}</span>
             <ChevronDown size={14} className={`transition-transform duration-200 ${showAllMetrics ? 'rotate-180' : ''}`} />
@@ -1275,18 +1292,18 @@ export default function ClubDashboardPage() {
         {/* ── Live Analytics & Velocity Trends (Part 3) ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Daily Registration Velocity Chart */}
-          <div className="lg:col-span-8 p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.08] flex flex-col justify-between gap-5 shadow-xl">
+          <div className="lg:col-span-8 p-5 sm:p-6 rounded-xl bg-white border border-gray-200 flex flex-col justify-between gap-5 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold font-heading text-white flex items-center gap-2">
-                  <Activity size={18} className="text-[#18CFFC]" />
+                <h3 className="text-base font-bold font-heading text-gray-900 flex items-center gap-2">
+                  <Activity size={18} className="text-blue-600" />
                   Registration Velocity (Last 14 Days)
                 </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Daily incoming student registrations across active club experiences
                 </p>
               </div>
-              <Badge variant="cyan" className="font-mono text-xs">
+              <Badge variant="info" className="font-mono text-xs">
                 Peak: {Math.max(...chartData.map((d) => d.count))} / day
               </Badge>
             </div>
@@ -1298,15 +1315,15 @@ export default function ClubDashboardPage() {
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative">
                     {/* Tooltip on Hover */}
-                    <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-white/20 px-2 py-0.5 rounded text-[10px] text-white font-mono whitespace-nowrap pointer-events-none z-10">
+                    <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 border border-gray-800 px-2 py-0.5 rounded text-[10px] text-white font-mono whitespace-nowrap pointer-events-none z-10 shadow-md">
                       {item.count} passes ({item.dateStr})
                     </div>
 
                     <div
-                      className="w-full rounded-t-lg bg-gradient-to-t from-[#0D56FB] to-[#18CFFC] group-hover:to-[#ED47FC] transition-all duration-300"
+                      className="w-full rounded-t-md bg-blue-600 group-hover:bg-blue-700 transition-all duration-300"
                       style={{ height: `${heightPct}%` }}
                     />
-                    <span className="text-[9px] text-zinc-500 font-mono truncate w-full text-center">
+                    <span className="text-[9px] text-gray-500 font-mono truncate w-full text-center">
                       {item.dayLabel.split(' ')[1]}
                     </span>
                   </div>
@@ -1314,42 +1331,42 @@ export default function ClubDashboardPage() {
               })}
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-white/5 text-xs text-zinc-500">
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-500">
               <span>Updated in real-time from active registrations</span>
-              <span className="text-[#18CFFC] font-mono">
+              <span className="text-blue-600 font-mono font-semibold">
                 Total in window: {chartData.reduce((s, c) => s + c.count, 0)}
               </span>
             </div>
           </div>
 
           {/* Recent Live Activity Stream (Part 15) */}
-          <div className="lg:col-span-4 p-5 sm:p-6 rounded-3xl bg-[#0E0E12] border border-white/[0.08] flex flex-col justify-between gap-4 shadow-xl">
+          <div className="lg:col-span-4 p-5 sm:p-6 rounded-xl bg-white border border-gray-200 flex flex-col justify-between gap-4 shadow-xs">
             <div>
-              <h3 className="text-base font-bold font-heading text-white flex items-center gap-2">
-                <Clock size={16} className="text-purple-400" />
+              <h3 className="text-base font-bold font-heading text-gray-900 flex items-center gap-2">
+                <Clock size={16} className="text-indigo-600" />
                 Recent Organizer Activity
               </h3>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 Real-time activity audit stream
               </p>
             </div>
 
             <div className="flex flex-col gap-2.5 max-h-56 overflow-y-auto pr-1">
               {recentActivities.length === 0 ? (
-                <div className="py-8 text-center text-xs text-zinc-500">
+                <div className="py-8 text-center text-xs text-gray-500">
                   No recent activity recorded yet.
                 </div>
               ) : (
                 recentActivities.map((act) => (
                   <div
                     key={act.id}
-                    className="p-2.5 rounded-xl bg-[#14141A] border border-white/5 flex items-center justify-between gap-2 text-xs"
+                    className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2 text-xs"
                   >
                     <div className="min-w-0">
-                      <span className="font-semibold text-white block truncate">
+                      <span className="font-semibold text-gray-900 block truncate">
                         {act.title}
                       </span>
-                      <span className="text-[10px] text-zinc-400 block truncate">
+                      <span className="text-[10px] text-gray-500 block truncate">
                         {act.subtitle}
                       </span>
                     </div>
@@ -1362,7 +1379,7 @@ export default function ClubDashboardPage() {
             </div>
 
             {canViewMembers && (
-              <Link to="/club/members" className="pt-2 border-t border-white/5 text-center text-xs text-[#18CFFC] hover:underline">
+              <Link to="/club/members" className="pt-2 border-t border-gray-100 text-center text-xs text-blue-600 font-medium hover:underline">
                 Inspect Full Team & Audit Trail →
               </Link>
             )}
@@ -1371,12 +1388,12 @@ export default function ClubDashboardPage() {
 
         {/* ── Managed Campus Events List ───────────────────────────────────── */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/[0.08]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-gray-200">
             <div>
-              <h2 className="text-xl font-bold font-heading text-white">
+              <h2 className="text-xl font-bold font-heading text-gray-900">
                 Managed Campus Events
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 Lifecycle tracking, registration rosters, reports, and attendee records for {clubName}
               </p>
             </div>
@@ -1397,18 +1414,18 @@ export default function ClubDashboardPage() {
                   key={tab}
                   type="button"
                   onClick={() => setEventLifecycleFilter(tab)}
-                  className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 min-h-[34px] flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 min-h-[34px] flex items-center gap-1.5 cursor-pointer ${
                     eventLifecycleFilter === tab
-                      ? 'bg-[#242430] text-white font-semibold border border-white/10'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                      ? 'bg-gray-900 text-white font-semibold shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <span>{DASHBOARD_LIFECYCLE_LABELS[tab]}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                       eventLifecycleFilter === tab
-                        ? 'bg-[#18CFFC] text-black font-bold'
-                        : 'bg-white/10 text-zinc-400'
+                        ? 'bg-white text-gray-900 font-bold'
+                        : 'bg-gray-200 text-gray-600'
                     }`}
                   >
                     {lifecycleTabCounts[tab]}
@@ -1434,8 +1451,8 @@ export default function ClubDashboardPage() {
               }
             />
           ) : displayedManagedEvents.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-[#0E0E12] border border-white/[0.08] text-center flex flex-col items-center gap-3">
-              <p className="text-sm text-zinc-300 font-medium">
+            <div className="p-8 rounded-xl bg-white border border-gray-200 text-center flex flex-col items-center gap-3 shadow-xs">
+              <p className="text-sm text-gray-700 font-medium">
                 No events currently in the {DASHBOARD_LIFECYCLE_LABELS[eventLifecycleFilter]} category.
               </p>
               <Button size="sm" variant="outline" onClick={() => setEventLifecycleFilter('all')}>
@@ -1448,16 +1465,16 @@ export default function ClubDashboardPage() {
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold font-heading text-white uppercase tracking-wider">
+                    <h3 className="text-sm font-bold font-heading text-gray-900 uppercase tracking-wider">
                       Active & Upcoming Events
                     </h3>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#18CFFC]/15 text-[#18CFFC] font-mono font-semibold">
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-mono font-semibold">
                       {activeAndUpcomingEvents.length}
                     </span>
                   </div>
                 </div>
                 {activeAndUpcomingEvents.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-[#0E0E12] border border-white/[0.06] text-xs text-zinc-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-6 rounded-xl bg-white border border-gray-200 text-xs text-gray-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <span>No active upcoming, ongoing, or draft events right now.</span>
                     {canCreateEvents && (
                       <Link to="/club/events/new">
@@ -1476,17 +1493,17 @@ export default function ClubDashboardPage() {
 
               {/* Completed Events History — Clearly separated from upcoming events */}
               {completedHistoryEvents.length > 0 && (
-                <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.08]">
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold font-heading text-zinc-200 uppercase tracking-wider">
+                      <h3 className="text-sm font-bold font-heading text-gray-700 uppercase tracking-wider">
                         Completed Events History
                       </h3>
                       <Badge variant="neutral" className="text-[10px]">
                         {completedHistoryEvents.length} Completed
                       </Badge>
                     </div>
-                    <p className="text-[11px] text-zinc-500">
+                    <p className="text-[11px] text-gray-500">
                       Concluded events preserved with registration rosters, payments, feedback, and reports.
                     </p>
                   </div>
@@ -1498,9 +1515,9 @@ export default function ClubDashboardPage() {
 
               {/* Cancelled Events — Kept separate from completed history */}
               {cancelledHistoryEvents.length > 0 && (
-                <div className="flex flex-col gap-3 pt-4 border-t border-white/[0.08]">
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold font-heading text-rose-300 uppercase tracking-wider">
+                    <h3 className="text-sm font-bold font-heading text-rose-700 uppercase tracking-wider">
                       Cancelled Events
                     </h3>
                     <Badge variant="danger" className="text-[10px]">

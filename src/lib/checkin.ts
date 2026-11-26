@@ -84,6 +84,7 @@ export async function getEventRegistrationsWithCheckIn(
   registrations: RegistrationWithCheckIn[]
   checkIns: CheckInRecord[]
   stats: CheckInStats
+  error?: string | null
 }> {
   const [regRes, eventRes, checkIns] = await Promise.all([
     getEventRegistrations(eventId),
@@ -135,5 +136,6 @@ export async function getEventRegistrationsWithCheckIn(
     registrations: enriched,
     checkIns,
     stats,
+    error: regRes.error || eventRes.error || null,
   }
 }

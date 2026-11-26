@@ -13,15 +13,15 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onAnima
 
 const variantClasses: Record<CardVariant, string> = {
   default:
-    'bg-[#0E0E12] border border-white/[0.07] shadow-[var(--shadow-card)]',
+    'bg-white border border-gray-200/90 shadow-[var(--shadow-card)]',
   glass:
-    'glass shadow-[var(--shadow-card)]',
+    'bg-white/90 backdrop-blur-md border border-gray-200/80 shadow-[var(--shadow-card)]',
   subtle:
-    'glass-subtle shadow-sm',
+    'bg-gray-50/80 border border-gray-200/70 shadow-none',
   elevated:
-    'glass-elevated shadow-[0_20px_50px_rgba(0,0,0,0.7)]',
+    'bg-white border border-gray-200 shadow-[var(--shadow-card-hover)]',
   interactive:
-    'bg-[#0E0E12] border border-white/[0.07] hover:border-white/20 hover:bg-[#14141A] hover:shadow-[0_16px_48px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,87,34,0.15)] cursor-pointer',
+    'bg-white border border-gray-200 hover:border-gray-300 hover:shadow-[var(--shadow-card-hover)] cursor-pointer transition-all duration-200',
 }
 
 export function Card({
@@ -41,10 +41,10 @@ export function Card({
     <motion.div
       whileHover={
         isInteractive
-          ? { y: -4, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }
+          ? { y: -2, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } }
           : undefined
       }
-      whileTap={isInteractive ? { scale: 0.99 } : undefined}
+      whileTap={isInteractive ? { scale: 0.995 } : undefined}
       className={`${base} ${surfaceClass} ${className}`}
       {...props}
     >

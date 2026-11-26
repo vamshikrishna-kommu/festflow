@@ -30,10 +30,8 @@ export function BottomNav() {
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false)
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
 
-  // Don't show bottom nav on full-screen flows like the multi-step event wizard
   const isFormRoute = location.pathname.includes('/club/events/new') || (location.pathname.includes('/club/events/') && location.pathname.includes('/edit'))
 
-  // Load unread count for notification badge
   useEffect(() => {
     if (!user?.id) return
     let active = true
@@ -67,32 +65,27 @@ export function BottomNav() {
     <>
       <nav
         aria-label="Mobile bottom navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-white/10 bg-[#08080A]/95 backdrop-blur-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.75)] pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-1 px-1 transition-all select-none"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.05)] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-1 px-1 transition-all select-none"
       >
         <div className="flex items-center justify-around max-w-md mx-auto">
           {!isLoading && session && isClub ? (
-            // ── Club Organizer Navigation (Gated by Active RBAC Permissions) ──
             <>
-              {/* 1. Dashboard / Overview */}
               {hasClubPermission('club.view') && (
                 <NavLink
                   to="/club/dashboard"
                   end
                   className={({ isActive }) =>
-                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                    `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                       isActive
-                        ? 'text-[#18CFFC] font-bold'
-                        : 'text-zinc-400 hover:text-zinc-200'
+                        ? 'text-blue-600 font-semibold'
+                        : 'text-gray-500 hover:text-gray-900'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
                       <div className="relative flex items-center justify-center">
-                        <LayoutDashboard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
-                        {isActive && (
-                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                        )}
+                        <LayoutDashboard size={20} className={isActive ? 'text-blue-600' : ''} />
                       </div>
                       <span className="text-[10px] leading-tight mt-1 tracking-tight">Overview</span>
                     </>
@@ -100,26 +93,22 @@ export function BottomNav() {
                 </NavLink>
               )}
 
-              {/* 2. Events */}
               {hasClubPermission('events.view') && (
                 <NavLink
                   to="/club/events"
                   end
                   className={({ isActive }) =>
-                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                    `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                       isActive
-                        ? 'text-[#7F1AFB] font-bold'
-                        : 'text-zinc-400 hover:text-zinc-200'
+                        ? 'text-blue-600 font-semibold'
+                        : 'text-gray-500 hover:text-gray-900'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
                       <div className="relative flex items-center justify-center">
-                        <Calendar size={20} className={isActive ? 'text-[#7F1AFB]' : ''} />
-                        {isActive && (
-                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
-                        )}
+                        <Calendar size={20} className={isActive ? 'text-blue-600' : ''} />
                       </div>
                       <span className="text-[10px] leading-tight mt-1 tracking-tight">Events</span>
                     </>
@@ -127,25 +116,21 @@ export function BottomNav() {
                 </NavLink>
               )}
 
-              {/* 3. Payments */}
               {hasClubPermission('payments.view') && (
                 <NavLink
                   to="/club/payments"
                   className={({ isActive }) =>
-                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                    `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                       isActive
-                        ? 'text-[#18CFFC] font-bold'
-                        : 'text-zinc-400 hover:text-zinc-200'
+                        ? 'text-blue-600 font-semibold'
+                        : 'text-gray-500 hover:text-gray-900'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
                       <div className="relative flex items-center justify-center">
-                        <CreditCard size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
-                        {isActive && (
-                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                        )}
+                        <CreditCard size={20} className={isActive ? 'text-blue-600' : ''} />
                       </div>
                       <span className="text-[10px] leading-tight mt-1 tracking-tight">Payments</span>
                     </>
@@ -153,25 +138,21 @@ export function BottomNav() {
                 </NavLink>
               )}
 
-              {/* 4. Settings / Profile */}
               {(hasClubPermission('club.manage') || hasClubPermission('payments.settings')) && (
                 <NavLink
                   to="/club/settings"
                   className={({ isActive }) =>
-                    `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                    `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                       isActive
-                        ? 'text-[#ED47FC] font-bold'
-                        : 'text-zinc-400 hover:text-zinc-200'
+                        ? 'text-blue-600 font-semibold'
+                        : 'text-gray-500 hover:text-gray-900'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
                       <div className="relative flex items-center justify-center">
-                        <Settings size={20} className={isActive ? 'text-[#ED47FC]' : ''} />
-                        {isActive && (
-                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#ED47FC] shadow-[0_0_8px_#ED47FC]" />
-                        )}
+                        <Settings size={20} className={isActive ? 'text-blue-600' : ''} />
                       </div>
                       <span className="text-[10px] leading-tight mt-1 tracking-tight">Settings</span>
                     </>
@@ -180,17 +161,15 @@ export function BottomNav() {
               )}
             </>
           ) : !isLoading && session && isStudent ? (
-            // ── Student Navigation (Home, Explore, My Passes, Alerts, Profile) ──
             <>
-              {/* 1. Home / Dashboard */}
               <NavLink
                 to="/student/dashboard"
                 end
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive && !location.search.includes('tab=upcoming')
-                      ? 'text-[#7F1AFB] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`
                 }
               >
@@ -199,10 +178,7 @@ export function BottomNav() {
                   return (
                     <>
                       <div className="relative flex items-center justify-center">
-                        <Home size={20} className={active ? 'text-[#7F1AFB]' : ''} />
-                        {active && (
-                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
-                        )}
+                        <Home size={20} className={active ? 'text-blue-600' : ''} />
                       </div>
                       <span className="text-[10px] leading-tight mt-1 tracking-tight">Home</span>
                     </>
@@ -210,38 +186,33 @@ export function BottomNav() {
                 }}
               </NavLink>
 
-              {/* 2. Explore / Discover */}
               <NavLink
                 to="/discover"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'text-[#18CFFC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <div className="relative flex items-center justify-center">
-                      <Compass size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                      )}
+                      <Compass size={20} className={isActive ? 'text-blue-600' : ''} />
                     </div>
                     <span className="text-[10px] leading-tight mt-1 tracking-tight">Explore</span>
                   </>
                 )}
               </NavLink>
 
-              {/* 3. My Passes / Tickets */}
               <NavLink
                 to="/student/dashboard?tab=upcoming"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive && location.search.includes('tab=upcoming')
-                      ? 'text-[#18CFFC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`
                 }
                 onClick={() => {
@@ -253,10 +224,7 @@ export function BottomNav() {
                   return (
                     <>
                       <div className="relative flex items-center justify-center">
-                        <Ticket size={20} className={active ? 'text-[#18CFFC]' : ''} />
-                        {active && (
-                          <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                        )}
+                        <Ticket size={20} className={active ? 'text-blue-600' : ''} />
                       </div>
                       <span className="text-[10px] leading-tight mt-1 tracking-tight">My Passes</span>
                     </>
@@ -264,17 +232,16 @@ export function BottomNav() {
                 }}
               </NavLink>
 
-              {/* 4. Notifications / Alerts */}
               <button
                 type="button"
                 onClick={() => setNotifDrawerOpen(true)}
-                className="relative flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all active:scale-90 cursor-pointer"
+                className="relative flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
                 aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
               >
                 <div className="relative flex items-center justify-center">
                   <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-md animate-pulse">
+                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -282,11 +249,10 @@ export function BottomNav() {
                 <span className="text-[10px] leading-tight mt-1 tracking-tight">Alerts</span>
               </button>
 
-              {/* 5. Profile & Settings */}
               <button
                 type="button"
                 onClick={() => setSettingsOpen(true)}
-                className="flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-0.5 rounded-2xl text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all active:scale-90 cursor-pointer"
+                className="flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
                 aria-label="Profile and Settings"
               >
                 <div className="relative flex items-center justify-center">
@@ -296,26 +262,22 @@ export function BottomNav() {
               </button>
             </>
           ) : (
-            // ── Guest Navigation (Home, Explore, Start Club, Sign In) ──
             <>
               <NavLink
                 to="/"
                 end
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'text-[#7F1AFB] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <div className="relative flex items-center justify-center">
-                      <Home size={20} className={isActive ? 'text-[#7F1AFB]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#7F1AFB] shadow-[0_0_8px_#7F1AFB]" />
-                      )}
+                      <Home size={20} className={isActive ? 'text-blue-600' : ''} />
                     </div>
                     <span className="text-[10px] leading-tight mt-1 tracking-tight">Home</span>
                   </>
@@ -325,20 +287,17 @@ export function BottomNav() {
               <NavLink
                 to="/discover"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'text-[#18CFFC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <div className="relative flex items-center justify-center">
-                      <Compass size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                      )}
+                      <Compass size={20} className={isActive ? 'text-blue-600' : ''} />
                     </div>
                     <span className="text-[10px] leading-tight mt-1 tracking-tight">Explore</span>
                   </>
@@ -348,20 +307,17 @@ export function BottomNav() {
               <NavLink
                 to="/club/signup"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'text-[#ED47FC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <div className="relative flex items-center justify-center">
-                      <Building2 size={20} className={isActive ? 'text-[#ED47FC]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#ED47FC] shadow-[0_0_8px_#ED47FC]" />
-                      )}
+                      <Building2 size={20} className={isActive ? 'text-blue-600' : ''} />
                     </div>
                     <span className="text-[10px] leading-tight mt-1 tracking-tight">For Clubs</span>
                   </>
@@ -371,20 +327,17 @@ export function BottomNav() {
               <NavLink
                 to="/student/login"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[50px] py-1 px-1 rounded-2xl text-xs font-medium transition-all active:scale-90 cursor-pointer ${
+                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'text-[#18CFFC] font-bold'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <div className="relative flex items-center justify-center">
-                      <LogIn size={20} className={isActive ? 'text-[#18CFFC]' : ''} />
-                      {isActive && (
-                        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#18CFFC] shadow-[0_0_8px_#18CFFC]" />
-                      )}
+                      <LogIn size={20} className={isActive ? 'text-blue-600' : ''} />
                     </div>
                     <span className="text-[10px] leading-tight mt-1 tracking-tight">Sign In</span>
                   </>
@@ -404,25 +357,25 @@ export function BottomNav() {
       {/* Notifications Bottom Drawer */}
       <AnimatePresence>
         {notifDrawerOpen && (
-          <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm">
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full max-h-[80dvh] flex flex-col rounded-t-3xl glass-elevated border-t border-white/15 bg-[#0E0E12] p-4 pb-safe text-left shadow-2xl"
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-h-[80dvh] flex flex-col rounded-t-2xl border-t border-gray-200 bg-white p-4 pb-safe text-left shadow-2xl"
             >
               {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--color-surface-3)]">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[var(--color-brand-cyan)]/15 text-[var(--color-brand-cyan)] flex items-center justify-center">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                     <Bell size={18} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-[var(--color-text-primary)]">
+                    <h3 className="font-semibold text-sm text-gray-900">
                       Campus Notifications
                     </h3>
-                    <span className="text-[10px] text-[var(--color-text-muted)]">
+                    <span className="text-[11px] text-gray-500">
                       {unreadCount} unread alert{unreadCount === 1 ? '' : 's'}
                     </span>
                   </div>
@@ -436,7 +389,7 @@ export function BottomNav() {
                         await markAllNotificationsRead(user.id)
                         setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
                       }}
-                      className="text-[11px] font-semibold text-[var(--color-brand-cyan)] hover:underline"
+                      className="text-xs font-medium text-blue-600 hover:underline cursor-pointer"
                     >
                       Mark all read
                     </button>
@@ -444,7 +397,8 @@ export function BottomNav() {
                   <button
                     type="button"
                     onClick={() => setNotifDrawerOpen(false)}
-                    className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-white"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                    aria-label="Close notifications"
                   >
                     <X size={18} />
                   </button>
@@ -452,11 +406,11 @@ export function BottomNav() {
               </div>
 
               {/* Notification List */}
-              <div className="overflow-y-auto max-h-[55vh] py-2 flex flex-col gap-2">
+              <div className="overflow-y-auto max-h-[55vh] py-3 flex flex-col gap-2">
                 {notifications.length === 0 ? (
-                  <div className="py-10 text-center flex flex-col items-center text-[var(--color-text-muted)]">
-                    <Bell size={28} className="opacity-30 mb-2" />
-                    <span className="text-xs">No notifications right now</span>
+                  <div className="py-10 text-center flex flex-col items-center text-gray-400">
+                    <Bell size={28} className="opacity-40 mb-2" />
+                    <span className="text-xs text-gray-500">No notifications right now</span>
                   </div>
                 ) : (
                   notifications.map((notif) => (
@@ -472,23 +426,23 @@ export function BottomNav() {
                         setNotifDrawerOpen(false)
                         if (notif.link) navigate(notif.link)
                       }}
-                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${
+                      className={`p-3 rounded-xl border transition-colors cursor-pointer flex items-start gap-3 ${
                         notif.is_read
-                          ? 'bg-[var(--color-surface-2)]/40 border-transparent text-[var(--color-text-muted)]'
-                          : 'bg-[var(--color-surface-2)] border-[var(--color-brand-cyan)]/30 text-[var(--color-text-primary)] shadow-sm'
+                          ? 'bg-gray-50/50 border-gray-100 text-gray-600'
+                          : 'bg-blue-50/40 border-blue-200 text-gray-900 shadow-xs'
                       }`}
                     >
                       <div className="mt-0.5">
-                        <CheckCircle2 size={16} className={notif.is_read ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-brand-cyan)]'} />
+                        <CheckCircle2 size={16} className={notif.is_read ? 'text-gray-400' : 'text-blue-600'} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-xs text-[var(--color-text-primary)]">
+                        <h4 className="font-semibold text-xs text-gray-900">
                           {notif.title}
                         </h4>
-                        <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 leading-relaxed">
+                        <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
                           {notif.message}
                         </p>
-                        <span className="text-[9px] text-[var(--color-text-muted)] block mt-1">
+                        <span className="text-[10px] text-gray-400 block mt-1">
                           {new Date(notif.created_at).toLocaleDateString()} at{' '}
                           {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
@@ -498,18 +452,17 @@ export function BottomNav() {
                 )}
               </div>
 
-              {/* Drawer Footer: Link to Full Center */}
-              <div className="pt-2.5 mt-1 border-t border-[var(--color-surface-3)] flex items-center justify-between">
+              <div className="pt-2.5 mt-1 border-t border-gray-100 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => {
                     setNotifDrawerOpen(false)
                     navigate('/notifications')
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-[#18CFFC] flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
+                  className="w-full py-2 px-3 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-xs font-semibold text-blue-600 flex items-center justify-center gap-1.5 transition-colors min-h-[42px]"
                 >
                   <span>Open Full Notification Center</span>
-                  <span className="text-[10px]">→</span>
+                  <span className="text-xs">→</span>
                 </button>
               </div>
             </motion.div>

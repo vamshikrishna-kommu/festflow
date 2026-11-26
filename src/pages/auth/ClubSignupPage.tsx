@@ -15,7 +15,6 @@ export default function ClubSignupPage() {
   const [searchParams] = useSearchParams()
   const { signUpClub, isLoading } = useAuth()
 
-  // Form fields
   const [representativeName, setRepresentativeName] = useState('')
   const [clubName, setClubName] = useState('')
   const [collegeId, setCollegeId] = useState<string | null>(null)
@@ -24,12 +23,10 @@ export default function ClubSignupPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  // State
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPendingVerification, setIsPendingVerification] = useState(false)
 
-  // Validation
   const validate = (): boolean => {
     const errs: Record<string, string> = {}
 
@@ -83,7 +80,6 @@ export default function ClubSignupPage() {
     } else if (res.requiresVerification) {
       setIsPendingVerification(true)
     } else {
-      // Direct session granted
       navigate('/club/dashboard', { replace: true })
     }
   }
@@ -127,9 +123,9 @@ export default function ClubSignupPage() {
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2 text-left"
+            className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 text-left"
           >
-            <AlertCircle size={15} className="shrink-0" />
+            <AlertCircle size={15} className="shrink-0 text-rose-600" />
             <span>{serverError}</span>
           </motion.div>
         )}
@@ -138,7 +134,7 @@ export default function ClubSignupPage() {
         <div className="flex flex-col gap-1.5 text-left">
           <label
             htmlFor="rep-name"
-            className="text-xs font-semibold text-[var(--color-text-secondary)]"
+            className="text-xs font-semibold text-gray-700"
           >
             Representative Full Name
           </label>
@@ -146,33 +142,33 @@ export default function ClubSignupPage() {
             <input
               id="rep-name"
               type="text"
-              placeholder="e.g. Alex Rivera"
+              placeholder="e.g. Representative Full Name"
               value={representativeName}
               onChange={(e) => {
                 setRepresentativeName(e.target.value)
                 if (errors.representativeName) setErrors((prev) => ({ ...prev, representativeName: '' }))
               }}
-              className={`w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
+              className={`w-full px-3.5 py-2.5 pl-10 rounded-lg text-sm bg-white text-gray-900 border transition-colors duration-150 outline-none placeholder:text-gray-400 ${
                 errors.representativeName
-                  ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  ? 'border-rose-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-500/15'
+                  : 'border-gray-200 hover:border-gray-300 focus:border-blue-600 focus:ring-3 focus:ring-blue-600/10'
               }`}
             />
             <User
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
           </div>
           {errors.representativeName && (
-            <p className="text-xs text-rose-400">{errors.representativeName}</p>
+            <p className="text-xs text-rose-600">{errors.representativeName}</p>
           )}
         </div>
 
-        {/* Club / Org Name */}
+        {/* Club Name */}
         <div className="flex flex-col gap-1.5 text-left">
           <label
             htmlFor="club-name"
-            className="text-xs font-semibold text-[var(--color-text-secondary)]"
+            className="text-xs font-semibold text-gray-700"
           >
             Club or Society Name
           </label>
@@ -186,23 +182,23 @@ export default function ClubSignupPage() {
                 setClubName(e.target.value)
                 if (errors.clubName) setErrors((prev) => ({ ...prev, clubName: '' }))
               }}
-              className={`w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
+              className={`w-full px-3.5 py-2.5 pl-10 rounded-lg text-sm bg-white text-gray-900 border transition-colors duration-150 outline-none placeholder:text-gray-400 ${
                 errors.clubName
-                  ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  ? 'border-rose-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-500/15'
+                  : 'border-gray-200 hover:border-gray-300 focus:border-blue-600 focus:ring-3 focus:ring-blue-600/10'
               }`}
             />
             <Building2
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
           </div>
           {errors.clubName && (
-            <p className="text-xs text-rose-400">{errors.clubName}</p>
+            <p className="text-xs text-rose-600">{errors.clubName}</p>
           )}
         </div>
 
-        {/* Educational Institution Affiliation */}
+        {/* Institution Affiliation */}
         <div className="text-left">
           <CollegeSearchCombobox
             label="Affiliated Educational Institution"
@@ -218,7 +214,7 @@ export default function ClubSignupPage() {
                 setCollegeName(rawName || '')
               }
             }}
-            helperText="Associate your club with your verified campus. Note: institutional affiliation does not bypass separate club verification."
+            helperText="Associate your club with your verified campus."
           />
         </div>
 
@@ -226,7 +222,7 @@ export default function ClubSignupPage() {
         <div className="flex flex-col gap-1.5 text-left">
           <label
             htmlFor="club-email"
-            className="text-xs font-semibold text-[var(--color-text-secondary)]"
+            className="text-xs font-semibold text-gray-700"
           >
             Club or Official Email
           </label>
@@ -240,19 +236,19 @@ export default function ClubSignupPage() {
                 setEmail(e.target.value)
                 if (errors.email) setErrors((prev) => ({ ...prev, email: '' }))
               }}
-              className={`w-full px-3.5 py-2.5 pl-10 rounded-xl text-sm bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border transition-all duration-200 outline-none placeholder:text-[var(--color-text-muted)] ${
+              className={`w-full px-3.5 py-2.5 pl-10 rounded-lg text-sm bg-white text-gray-900 border transition-colors duration-150 outline-none placeholder:text-gray-400 ${
                 errors.email
-                  ? 'border-rose-500/80 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-white/10 focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]'
+                  ? 'border-rose-400 focus:border-rose-500 focus:ring-3 focus:ring-rose-500/15'
+                  : 'border-gray-200 hover:border-gray-300 focus:border-blue-600 focus:ring-3 focus:ring-blue-600/10'
               }`}
             />
             <Mail
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-rose-400">{errors.email}</p>
+            <p className="text-xs text-rose-600">{errors.email}</p>
           )}
         </div>
 
@@ -281,15 +277,13 @@ export default function ClubSignupPage() {
           error={errors.confirmPassword}
         />
 
-        {/* Notice of direct signup */}
-        <div className="flex items-start gap-2 p-2.5 rounded-lg bg-[var(--color-surface-2)]/60 text-[11px] text-[var(--color-text-muted)] text-left">
-          <ShieldCheck size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-gray-50 border border-gray-200 text-[11px] text-gray-600 text-left">
+          <ShieldCheck size={14} className="text-emerald-600 shrink-0 mt-0.5" />
           <span>
-            FestFlow does not require institutional approval or Dean clearance to get started. You can begin publishing events immediately after email verification.
+            No institutional approval required to get started. Publish events immediately after email verification.
           </span>
         </div>
 
-        {/* Submit Button */}
         <Button
           type="submit"
           variant="primary"

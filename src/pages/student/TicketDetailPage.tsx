@@ -77,31 +77,31 @@ export default function TicketDetailPage() {
     <PageShell>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24 text-left">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 py-4 text-xs text-zinc-400 border-b border-white/[0.08] mb-8 flex-wrap">
+        <div className="flex items-center gap-2 py-4 text-xs text-gray-500 border-b border-gray-200 mb-8 flex-wrap">
           <Link
             to="/student/dashboard"
-            className="hover:text-white flex items-center gap-1 transition-colors"
+            className="hover:text-gray-900 flex items-center gap-1 transition-colors font-medium"
           >
             <ArrowLeft size={14} /> Back to My Passes
           </Link>
-          <span className="text-zinc-600">/</span>
-          <span className="text-white font-medium">Digital Pass</span>
+          <span className="text-gray-300">/</span>
+          <span className="text-gray-900 font-semibold">Digital Pass</span>
         </div>
 
         {loading ? (
           <div className="py-24 flex flex-col items-center justify-center">
-            <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-[#18CFFC] animate-spin mb-4" />
-            <span className="text-xs text-zinc-400 font-mono">
+            <div className="w-10 h-10 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin mb-4" />
+            <span className="text-xs text-gray-500 font-mono">
               Decrypting and verifying digital ticket…
             </span>
           </div>
         ) : error || !registration ? (
-          <div className="max-w-md mx-auto py-16 text-center flex flex-col items-center p-8 rounded-3xl bg-[#0E0E12] border border-white/[0.08] shadow-2xl">
-            <AlertCircle size={36} className="text-rose-400 mb-3" />
-            <h2 className="text-xl font-bold font-heading text-white mb-2">
+          <div className="max-w-md mx-auto py-16 text-center flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <AlertCircle size={36} className="text-rose-600 mb-3" />
+            <h2 className="text-xl font-bold font-display text-gray-900 mb-2">
               Pass Unavailable
             </h2>
-            <p className="text-xs text-zinc-400 mb-6 font-sans">
+            <p className="text-xs sm:text-sm text-gray-600 mb-6">
               {error || 'Unable to load digital ticket.'}
             </p>
             <Link to="/student/dashboard">
@@ -113,37 +113,37 @@ export default function TicketDetailPage() {
         ) : (
           <div className="flex flex-col items-center gap-6">
             {actionError && (
-              <div className="w-full max-w-md p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3 shadow-md">
+              <div className="w-full max-w-md p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <XCircle size={16} className="text-rose-400 shrink-0" />
+                  <XCircle size={16} className="text-rose-600 shrink-0" />
                   <span>{actionError}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActionError(null)}
-                  className="text-xs text-rose-300 hover:text-white"
+                  className="text-xs font-medium text-rose-700 hover:text-rose-900 cursor-pointer"
                 >
                   Dismiss
                 </button>
               </div>
             )}
             {isOffline && (
-              <div className="w-full max-w-md p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3 shadow-md">
+              <div className="w-full max-w-md p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0" />
                   <span><strong>Offline Pass Copy</strong> — Cached from previous session for viewing without internet access.</span>
                 </div>
               </div>
             )}
             {registration.team_name && (
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#14141A] border border-white/[0.08] text-xs mb-3 flex-wrap gap-2 w-full max-w-lg">
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-white border border-gray-200 text-xs mb-2 flex-wrap gap-2 w-full max-w-lg shadow-xs">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-[#18CFFC]/15 text-[#18CFFC]">
+                  <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-200">
                     <Users size={16} />
                   </div>
                   <div>
-                    <span className="font-bold text-white font-heading">{registration.team_name}</span>
-                    <span className="text-[11px] text-zinc-400 ml-2">
+                    <span className="font-semibold text-gray-900 font-display">{registration.team_name}</span>
+                    <span className="text-[11px] text-gray-500 ml-2">
                       {registration.team_role === 'leader' ? 'Team Leader' : 'Team Member'}
                     </span>
                   </div>
@@ -152,10 +152,10 @@ export default function TicketDetailPage() {
                 {registration.team_id && (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setShowTeamModal(true)}
-                    leftIcon={<Users size={14} className="text-[#18CFFC]" />}
+                    leftIcon={<Users size={14} className="text-blue-600" />}
                   >
                     Manage Squad Roster
                   </Button>
@@ -165,8 +165,8 @@ export default function TicketDetailPage() {
 
             {/* Cancellation or Review Status Banners */}
             {registration.cancellation_request_status === 'pending' && (
-              <div className="w-full max-w-lg p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-3 shadow-md">
-                <Clock size={18} className="shrink-0 text-amber-400" />
+              <div className="w-full max-w-lg p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-3">
+                <Clock size={18} className="shrink-0 text-amber-600" />
                 <div>
                   <strong className="block font-semibold">Cancellation Pending Organizer Review</strong>
                   <span>Your request to cancel this pass has been received and is being processed by the event organizer.</span>
@@ -175,8 +175,8 @@ export default function TicketDetailPage() {
             )}
 
             {registration.status === 'cancelled' && (
-              <div className="w-full max-w-lg p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3 shadow-md">
-                <XCircle size={18} className="shrink-0 text-rose-400" />
+              <div className="w-full max-w-lg p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center gap-3">
+                <XCircle size={18} className="shrink-0 text-rose-600" />
                 <div>
                   <strong className="block font-semibold">Pass Cancelled & Inactive</strong>
                   <span>This registration was cancelled. Entry cannot be granted with this digital ticket.</span>
@@ -195,7 +195,7 @@ export default function TicketDetailPage() {
             {registration.status !== 'cancelled' && (
               <div className="flex items-center gap-3 w-full max-w-lg justify-end">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   leftIcon={<Edit3 size={14} />}
                   onClick={() => setShowEditModal(true)}
@@ -206,7 +206,7 @@ export default function TicketDetailPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs"
+                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs"
                     onClick={() => setShowCancelModal(true)}
                   >
                     Request Cancellation

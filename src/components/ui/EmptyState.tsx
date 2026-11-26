@@ -24,32 +24,32 @@ export function EmptyState({
       return icon
     }
     const IconComponent = icon as ElementType
-    return <IconComponent size={28} className="text-[#18CFFC]" />
+    return <IconComponent size={24} className="text-gray-600" />
   }
 
   return (
     <div
-      className={`p-8 sm:p-14 rounded-3xl bg-[var(--color-surface-1)] text-center flex flex-col items-center justify-center gap-4 border border-[oklch(100%_0_0_/_0.07)] ${className}`}
+      className={`p-8 sm:p-12 rounded-2xl bg-white text-center flex flex-col items-center justify-center gap-3.5 border border-gray-200/90 shadow-sm ${className}`}
     >
       {icon && (
-        <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface-2)] text-[#18CFFC] flex items-center justify-center border border-[oklch(100%_0_0_/_0.06)] shadow-sm">
+        <div className="w-12 h-12 rounded-xl bg-gray-50 text-gray-700 flex items-center justify-center border border-gray-200/80 shadow-xs">
           {renderIcon()}
         </div>
       )}
 
-      <div className="space-y-1.5 max-w-md">
-        <h3 className="font-display font-bold text-base sm:text-lg text-[var(--color-text-primary)]">
+      <div className="space-y-1 max-w-md">
+        <h3 className="font-display font-semibold text-base text-gray-900">
           {title}
         </h3>
         {description && (
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
             {description}
           </p>
         )}
       </div>
 
       {(action || secondaryAction) && (
-        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
           {action}
           {secondaryAction}
         </div>

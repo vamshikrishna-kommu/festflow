@@ -71,12 +71,12 @@ export function RequestCancellationModal({
       <form onSubmit={handleSubmit}>
         <ModalBody>
           <div className="flex flex-col gap-4 text-left">
-            <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
-              <Clock size={20} className="shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+              <Clock size={20} className="shrink-0 mt-0.5 text-amber-600" />
               <div className="text-xs leading-relaxed">
-                <strong className="block font-semibold mb-0.5">Organizer Review Required</strong>
+                <strong className="block font-semibold text-amber-900 mb-0.5">Organizer Review Required</strong>
                 Cancellation requests must be reviewed and approved by the club organizing{' '}
-                <strong className="text-white">{eventTitle}</strong>. Your ticket remains active until an organizer confirms the request.
+                <strong className="text-gray-900">{eventTitle}</strong>. Your ticket remains active until an organizer confirms the request.
               </div>
             </div>
 
@@ -93,17 +93,17 @@ export function RequestCancellationModal({
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">
-                Reason for Cancellation <span className="text-rose-400">*</span>
+              <label className="text-xs font-semibold text-gray-700">
+                Reason for Cancellation <span className="text-rose-500">*</span>
               </label>
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value as CancellationReasonType)}
                 disabled={loading || success}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
               >
                 {CANCELLATION_REASONS.map((r) => (
-                  <option key={r.value} value={r.value} className="bg-[#14141A] text-white">
+                  <option key={r.value} value={r.value}>
                     {r.label}
                   </option>
                 ))}
@@ -111,8 +111,8 @@ export function RequestCancellationModal({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">
-                Additional Explanation <span className="text-zinc-500 font-normal">(Optional)</span>
+              <label className="text-xs font-semibold text-gray-700">
+                Additional Explanation <span className="text-gray-500 font-normal">(Optional)</span>
               </label>
               <textarea
                 value={explanation}
@@ -120,7 +120,7 @@ export function RequestCancellationModal({
                 placeholder="Provide any context or notes for the organizing team..."
                 disabled={loading || success}
                 rows={3}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#18CFFC] resize-none"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 resize-none"
               />
             </div>
           </div>

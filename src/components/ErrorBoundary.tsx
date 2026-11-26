@@ -37,33 +37,33 @@ export class ErrorBoundary extends Component<Props, State> {
       const isDev = Boolean(import.meta.env?.DEV)
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface-0)] p-4 sm:p-6">
-          <div className="w-full max-w-lg p-6 sm:p-8 glass rounded-[var(--radius-card)] border border-rose-500/20 text-center shadow-2xl space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/20 shadow-inner">
+        <div className="min-h-screen flex items-center justify-center bg-[var(--color-canvas)] p-4 sm:p-6">
+          <div className="w-full max-w-lg p-6 sm:p-8 bg-white rounded-[var(--radius-card)] border border-gray-200 text-center shadow-sm space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-200">
               <AlertTriangle size={32} />
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold font-display text-[var(--color-text-primary)] tracking-tight">
+              <h1 className="text-2xl font-bold font-display text-gray-900 tracking-tight">
                 Something went wrong
               </h1>
-              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-md mx-auto">
+              <p className="text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
                 FestFlow encountered an unexpected issue while loading this view. You can retry the action, discover upcoming campus events, or return home.
               </p>
             </div>
 
             {/* Development-only diagnostics (hidden in production) */}
             {isDev && this.state.error && (
-              <div className="text-left bg-rose-950/30 border border-rose-500/30 rounded-xl p-3.5 space-y-2">
-                <div className="text-[11px] font-semibold text-rose-300 uppercase tracking-wider flex items-center justify-between">
+              <div className="text-left bg-rose-50 border border-rose-200 rounded-xl p-3.5 space-y-2">
+                <div className="text-[11px] font-semibold text-rose-800 uppercase tracking-wider flex items-center justify-between">
                   <span>Development Diagnostics</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">DEV ONLY</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-800">DEV ONLY</span>
                 </div>
-                <div className="text-xs font-mono text-rose-200 break-words font-medium">
+                <div className="text-xs font-mono text-rose-800 break-words font-medium">
                   {this.state.error.name}: {this.state.error.message}
                 </div>
                 {this.state.error.stack && (
-                  <pre className="text-[10px] font-mono text-rose-400/90 overflow-x-auto max-h-36 overflow-y-auto whitespace-pre-wrap p-2 rounded bg-black/40">
+                  <pre className="text-[10px] font-mono text-rose-700 overflow-x-auto max-h-36 overflow-y-auto whitespace-pre-wrap p-2 rounded bg-white border border-rose-200">
                     {this.state.error.stack}
                   </pre>
                 )}
@@ -73,14 +73,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
                 variant="primary"
-                className="w-full justify-center gap-2 shine-on-hover"
+                className="w-full justify-center gap-2"
                 onClick={this.handleRetry}
               >
                 <RotateCcw size={15} /> Try Again
               </Button>
               <Button
                 variant="outline"
-                className="w-full justify-center gap-2 border-[#18CFFC]/30 text-[#18CFFC] hover:bg-[#18CFFC]/10"
+                className="w-full justify-center gap-2"
                 onClick={() => {
                   this.handleRetry()
                   window.location.href = '/discover'

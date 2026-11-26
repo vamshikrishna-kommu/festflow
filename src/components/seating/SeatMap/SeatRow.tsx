@@ -13,7 +13,7 @@ export function SeatRow({ rowIdentifier, seats, selectedSeatIds, onSeatClick, di
   return (
     <div className="flex items-center gap-1" role="row" aria-label={`Row ${rowIdentifier}`}>
       {/* Row label */}
-      <div className="w-5 sm:w-6 flex-shrink-0 text-center text-[10px] sm:text-xs font-bold text-[var(--color-text-muted)]" aria-hidden>
+      <div className="w-5 sm:w-6 flex-shrink-0 text-center text-[10px] sm:text-xs font-bold text-gray-500" aria-hidden>
         {rowIdentifier}
       </div>
       {/* Seats */}

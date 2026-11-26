@@ -1139,8 +1139,11 @@ export async function sendBulkEventUpdate(
   const rawRegs = localStorage.getItem('festflow_local_registrations')
   const localRegs = rawRegs ? JSON.parse(rawRegs) : []
   const confirmed = localRegs.filter((r: any) => r.event_id === eventId && r.status === 'confirmed')
+  let localCount = 0
   for (const reg of confirmed) {
-    const email = reg.participant_details?.email || 'student@campus.edu'
+    const email = reg.participant_details?.email
+    if (!email) continue
+    localCount++
     const name = reg.participant_details?.student_name || 'Attendee'
     sendEventUpdatedEmail({
       to: email,
@@ -1150,7 +1153,7 @@ export async function sendBulkEventUpdate(
       eventId,
     }).catch(() => {})
   }
-  return { success: true, count: confirmed.length, message: `${confirmed.length} update notification(s) queued for attendees.` }
+  return { success: true, count: localCount, message: `${localCount} update notification(s) queued for attendees.` }
 }
 
 /**
@@ -1193,8 +1196,11 @@ export async function sendBulkEventCancellation(
   const rawRegs = localStorage.getItem('festflow_local_registrations')
   const localRegs = rawRegs ? JSON.parse(rawRegs) : []
   const confirmed = localRegs.filter((r: any) => r.event_id === eventId && r.status === 'confirmed')
+  let localCancelCount = 0
   for (const reg of confirmed) {
-    const email = reg.participant_details?.email || 'student@campus.edu'
+    const email = reg.participant_details?.email
+    if (!email) continue
+    localCancelCount++
     const name = reg.participant_details?.student_name || 'Attendee'
     sendEventCancelledEmail({
       to: email,
@@ -1204,7 +1210,7 @@ export async function sendBulkEventCancellation(
       eventId,
     }).catch(() => {})
   }
-  return { success: true, count: confirmed.length, message: `${confirmed.length} cancellation notification(s) queued for attendees.` }
+  return { success: true, count: localCancelCount, message: `${localCancelCount} cancellation notification(s) queued for attendees.` }
 }
 
 /**

@@ -145,19 +145,19 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
     : null
 
   return (
-    <div className={`relative flex flex-col rounded-3xl border border-white/[0.08] bg-[#08080A] overflow-hidden shadow-2xl ${className}`}>
+    <div className={`relative flex flex-col rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-xs ${className}`}>
       {/* ── Top Map Controls & Category Filter ───────────────────────────── */}
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5 bg-gradient-to-b from-[#0E0E12]/95 to-[#0E0E12]/80 backdrop-blur-md border-b border-white/[0.08]">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] flex items-center justify-center text-white shadow-md">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5 bg-white border-b border-gray-200">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
             <Compass size={16} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white font-display flex items-center gap-1.5">
+            <h3 className="text-sm font-bold text-gray-900 font-display flex items-center gap-1.5">
               Campus Event Radar
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </h3>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-[11px] text-gray-500">
               {filteredPhysical.length} campus venues plotted
             </span>
           </div>
@@ -172,8 +172,8 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
               onClick={() => setSelectedCategory(cat)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer capitalize ${
                 selectedCategory === cat
-                  ? 'bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] text-white shadow-sm'
-                  : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/5'
+                  ? 'bg-gray-900 text-white shadow-xs'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 border border-gray-200'
               }`}
             >
               {cat}
@@ -184,7 +184,7 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
             <button
               type="button"
               onClick={() => setShowOnlineDrawer(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#18CFFC]/10 hover:bg-[#18CFFC]/20 text-[#18CFFC] border border-[#18CFFC]/30 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all cursor-pointer"
             >
               <Globe size={11} /> Virtual Events ({onlineEvents.length})
             </button>
@@ -193,15 +193,15 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
       </div>
 
       {/* ── Interactive Radar Canvas ──────────────────────────────────────── */}
-      <div className="relative w-full h-[420px] sm:h-[480px] bg-[#08080A] overflow-hidden select-none">
+      <div className="relative w-full h-[420px] sm:h-[480px] bg-slate-50 overflow-hidden select-none">
         {/* Subtle Radar Background Grid & Rings */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 pointer-events-none opacity-20"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: `radial-gradient(circle at 50% 50%, rgba(24, 207, 252, 0.15) 0%, transparent 60%),
-                              linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.08) 0%, transparent 62%),
+                              linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px)`,
             backgroundSize: '100% 100%, 40px 40px, 40px 40px',
           }}
         />
@@ -209,19 +209,19 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
         {/* Radar concentric sweep rings */}
         <div
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] sm:w-[480px] sm:h-[480px] rounded-full border border-[#18CFFC]/15 pointer-events-none"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] sm:w-[480px] sm:h-[480px] rounded-full border border-blue-200 pointer-events-none"
         />
         <div
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] sm:w-[260px] sm:h-[260px] rounded-full border border-[#7F1AFB]/20 pointer-events-none"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[180px] sm:w-[260px] sm:h-[260px] rounded-full border border-indigo-200 pointer-events-none"
         />
 
         {/* Map Zoom Controls */}
-        <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-[#0E0E12]/90 border border-white/10 rounded-xl p-1 shadow-lg backdrop-blur-md">
+        <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-white/95 border border-gray-200 rounded-xl p-1 shadow-md backdrop-blur-md">
           <button
             type="button"
             onClick={() => setZoomLevel((z) => Math.min(z + 0.25, 1.75))}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+            className="p-1.5 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
             title="Zoom In"
             aria-label="Zoom in"
           >
@@ -230,7 +230,7 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
           <button
             type="button"
             onClick={() => setZoomLevel((z) => Math.max(z - 0.25, 0.75))}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+            className="p-1.5 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
             title="Zoom Out"
             aria-label="Zoom out"
           >
@@ -239,7 +239,7 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
           <button
             type="button"
             onClick={() => { setZoomLevel(1); setSelectedEventId(null) }}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+            className="p-1.5 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
             title="Reset View"
             aria-label="Reset map"
           >
@@ -262,29 +262,29 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
                 className="absolute -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer group"
                 onClick={() => setSelectedEventId(evt.id)}
               >
-                {/* Glowing Radar Pulse on Pin */}
+                {/* Radar Pulse on Pin */}
                 <div
                   className={`absolute -inset-3 rounded-full transition-opacity duration-300 pointer-events-none ${
-                    isSelected ? 'opacity-100 animate-ping bg-[#18CFFC]/30' : 'opacity-0 group-hover:opacity-60 bg-[#7F1AFB]/20'
+                    isSelected ? 'opacity-100 animate-ping bg-blue-500/25' : 'opacity-0 group-hover:opacity-60 bg-blue-500/15'
                   }`}
                 />
 
                 {/* Marker Pin */}
                 <div
-                  className={`relative flex items-center justify-center rounded-2xl transition-all duration-200 shadow-xl ${
+                  className={`relative flex items-center justify-center rounded-xl transition-all duration-200 shadow-md ${
                     isSelected
-                      ? 'w-10 h-10 bg-gradient-to-br from-[#18CFFC] to-[#7F1AFB] text-white scale-125 ring-4 ring-[#18CFFC]/30'
-                      : 'w-8 h-8 bg-[#14141A] border border-white/20 text-[#18CFFC] group-hover:scale-110 group-hover:border-[#18CFFC]'
+                      ? 'w-10 h-10 bg-blue-600 text-white scale-115 ring-4 ring-blue-600/20'
+                      : 'w-8 h-8 bg-white border border-gray-300 text-blue-600 group-hover:scale-110 group-hover:border-blue-600'
                   }`}
                 >
                   <MapPin size={isSelected ? 18 : 15} />
                 </div>
 
                 {/* Hover Label */}
-                <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 rounded-md bg-[#0E0E12]/95 border border-white/15 text-[10px] font-semibold text-white whitespace-nowrap shadow-md pointer-events-none transition-opacity duration-150 ${
+                <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2.5 py-0.5 rounded-md bg-white border border-gray-200 text-[10px] font-semibold text-gray-900 whitespace-nowrap shadow-md pointer-events-none transition-opacity duration-150 ${
                   isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 }`}>
-                  <span className="text-[#18CFFC] mr-1">•</span>
+                  <span className="text-blue-600 mr-1">•</span>
                   {evt.title}
                 </div>
               </div>
@@ -299,7 +299,7 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="absolute bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:max-w-md z-30 p-4 rounded-2xl bg-[#0E0E12]/95 border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_24px_rgba(24,207,252,0.15)] backdrop-blur-xl text-left"
+              className="absolute bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:max-w-md z-30 p-4 rounded-xl bg-white/95 border border-gray-200 shadow-xl backdrop-blur-md text-left"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-1.5 flex-wrap items-center mb-1">
@@ -309,28 +309,28 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
                 <button
                   type="button"
                   onClick={() => setSelectedEventId(null)}
-                  className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
                   aria-label="Close preview"
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              <h4 className="text-base font-bold text-white font-display line-clamp-1 mt-1">
+              <h4 className="text-base font-bold text-gray-900 font-display line-clamp-1 mt-1">
                 {selectedEvent.title}
               </h4>
 
-              <div className="flex flex-col gap-1 text-xs text-zinc-400 mt-2">
+              <div className="flex flex-col gap-1 text-xs text-gray-600 mt-2">
                 <div className="flex items-center gap-1.5 truncate">
-                  <Building2 size={12} className="text-[#18CFFC] shrink-0" />
+                  <Building2 size={12} className="text-blue-600 shrink-0" />
                   <span className="truncate">{selectedEvent.clubName}</span>
                 </div>
                 <div className="flex items-center gap-1.5 truncate">
-                  <MapPin size={12} className="text-zinc-500 shrink-0" />
+                  <MapPin size={12} className="text-gray-400 shrink-0" />
                   <span className="truncate">{selectedEvent.venue || selectedEvent.location}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Calendar size={12} className="text-[#ED47FC] shrink-0" />
+                  <Calendar size={12} className="text-indigo-600 shrink-0" />
                   <span>
                     {selectedEvent.date ? new Date(selectedEvent.date).toLocaleDateString('en-IN', {
                       weekday: 'short',
@@ -341,10 +341,10 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-white/10">
-                <span className="text-xs font-bold text-white">
+              <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-gray-100">
+                <span className="text-xs font-bold text-gray-900">
                   {selectedEvent.isFree ? (
-                    <span className="text-emerald-400 font-bold">FREE ENTRY</span>
+                    <span className="text-emerald-600 font-bold">FREE ENTRY</span>
                   ) : (
                     <span>₹{selectedEvent.price}</span>
                   )}
@@ -367,19 +367,19 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-5 bg-[#0E0E12] border-t border-white/10 text-left flex flex-col gap-3"
+            className="p-5 bg-white border-t border-gray-200 text-left flex flex-col gap-3"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Globe size={16} className="text-[#18CFFC]" />
-                <h4 className="text-sm font-bold text-white font-display">
+                <Globe size={16} className="text-blue-600" />
+                <h4 className="text-sm font-bold text-gray-900 font-display">
                   Virtual & Online Campus Events ({onlineEvents.length})
                 </h4>
               </div>
               <button
                 type="button"
                 onClick={() => setShowOnlineDrawer(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 <X size={15} />
               </button>
@@ -390,14 +390,14 @@ export function EventDiscoveryMap({ events, className = '' }: EventDiscoveryMapP
                 <Link
                   key={evt.id}
                   to={`/events/${evt.slug}`}
-                  className="p-3 rounded-xl bg-[#14141A] hover:bg-[#1A1A22] border border-white/10 transition-all flex flex-col gap-1.5"
+                  className="p-3 rounded-xl bg-gray-50 hover:bg-white border border-gray-200 hover:border-blue-300 transition-all flex flex-col gap-1.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <CategoryBadge category={evt.category} />
-                    <span className="text-[10px] font-bold text-emerald-400">ONLINE</span>
+                    <span className="text-[10px] font-bold text-emerald-600">ONLINE</span>
                   </div>
-                  <h5 className="text-xs font-bold text-white line-clamp-1">{evt.title}</h5>
-                  <span className="text-[11px] text-zinc-400 truncate">{evt.clubName}</span>
+                  <h5 className="text-xs font-bold text-gray-900 line-clamp-1">{evt.title}</h5>
+                  <span className="text-[11px] text-gray-500 truncate">{evt.clubName}</span>
                 </Link>
               ))}
             </div>

@@ -7,11 +7,11 @@ const FOOTER_LINKS = {
   Platform: [
     { label: 'Discover Events', href: '/discover' },
     { label: 'For College Clubs', href: '/club/signup' },
-    { label: 'Features', href: '/#scene-03-journey' },
+    { label: 'Platform Features', href: '/#features' },
     { label: 'Club Login', href: '/club/login' },
   ],
   Community: [
-    { label: 'About FestFlow', href: '/#scene-05-final' },
+    { label: 'Cinematic Story', href: '/cinematic' },
     { label: 'Student Login', href: '/student/login' },
     { label: 'Help & Support', href: '/contact' },
     { label: 'Contact Team', href: '/contact' },
@@ -19,60 +19,47 @@ const FOOTER_LINKS = {
   Legal: [
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Terms of Service', href: '/terms' },
-    { label: 'Security', href: '/privacy' },
+    { label: 'Security & RLS', href: '/privacy' },
   ],
 }
 
 const SOCIALS = [
   { icon: Globe,  label: 'Discover Events', href: '/discover' },
   { icon: Share2, label: 'Contact Support', href: '/contact' },
-  { icon: Rss,    label: 'Platform Features', href: '/#scene-03-journey' },
+  { icon: Rss,    label: 'Platform Features', href: '/#features' },
 ]
 
 export function Footer() {
   return (
     <footer
-      className="relative mt-0 border-t border-white/[0.07] overflow-hidden"
-      style={{ background: '#08080A' }}
+      className="relative mt-auto border-t border-gray-200/80 bg-white"
       aria-label="Site footer"
     >
-      {/* Gradient top line */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] max-w-full h-px pointer-events-none"
-        style={{ background: 'linear-gradient(90deg, transparent, #18CFFC, #7F1AFB, #ED47FC, transparent)' }}
-        aria-hidden="true"
-      />
-
-      {/* Subtle background glow */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at top, rgba(127, 26, 251, 0.12) 0%, rgba(24, 207, 252, 0.05) 50%, transparent 70%)' }}
-        aria-hidden="true"
-      />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-16 pb-10">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 lg:gap-12 mb-12 sm:mb-14">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-10">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12 mb-12 sm:mb-14">
           {/* Brand column */}
-          <div className="col-span-2">
+          <div className="col-span-2 space-y-4">
             <Link
               to="/"
-              className="inline-flex items-center mb-5 group"
+              className="inline-flex items-center group"
               aria-label="FestFlow home"
             >
               <Logo variant="footer" />
             </Link>
-            <p className="text-sm text-[var(--color-text-muted)] leading-relaxed max-w-[230px] mb-4">
-              The 100% free event platform built for college clubs and their student communities.
+            <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
+              The modern, unified event platform built for campus clubs, student communities, and verified event ticketing.
             </p>
-            <a
-              href={OFFICIAL_SUPPORT_MAILTO}
-              className="inline-flex items-center gap-2 text-xs font-medium text-[#18CFFC] hover:text-white transition-colors mb-5"
-            >
-              <Mail size={13} />
-              <span>{OFFICIAL_CONTACT_EMAIL}</span>
-            </a>
+            <div>
+              <a
+                href={OFFICIAL_SUPPORT_MAILTO}
+                className="inline-flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <Mail size={13} />
+                <span>{OFFICIAL_CONTACT_EMAIL}</span>
+              </a>
+            </div>
             {/* Socials */}
-            <div className="flex gap-2.5">
+            <div className="flex gap-2 pt-1">
               {SOCIALS.map(({ icon: Icon, label, href }) =>
                 href.startsWith('http') ? (
                   <a
@@ -81,18 +68,18 @@ export function Footer() {
                     aria-label={label}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--color-surface-3)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)] hover:scale-105 transition-all duration-200"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200 transition-colors"
                   >
-                    <Icon size={15} />
+                    <Icon size={14} />
                   </a>
                 ) : (
                   <Link
                     key={label}
                     to={href}
                     aria-label={label}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--color-surface-3)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-4)] hover:scale-105 transition-all duration-200"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200 transition-colors"
                   >
-                    <Icon size={15} />
+                    <Icon size={14} />
                   </Link>
                 )
               )}
@@ -101,8 +88,8 @@ export function Footer() {
 
           {/* Link columns */}
           {Object.entries(FOOTER_LINKS).map(([group, links]) => (
-            <div key={group}>
-              <h3 className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-4">
+            <div key={group} className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-900">
                 {group}
               </h3>
               <ul className="space-y-2.5" role="list">
@@ -110,7 +97,7 @@ export function Footer() {
                   <li key={label}>
                     <Link
                       to={href}
-                      className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:translate-x-0.5 inline-block transition-all duration-200"
+                      className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors inline-block"
                     >
                       {label}
                     </Link>
@@ -122,15 +109,15 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-6 border-t border-[oklch(100%_0_0_/_0.06)] flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-[var(--color-text-muted)]">
+        <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+          <p>
             © {new Date().getFullYear()} FestFlow. All rights reserved.
           </p>
-          <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5">
-            Built with{' '}
+          <p className="flex items-center gap-1.5">
+            Crafted with{' '}
             <Heart
               size={11}
-              className="text-[var(--color-brand-fuchsia)] fill-[var(--color-brand-fuchsia)]"
+              className="text-rose-500 fill-rose-500"
               aria-label="love"
             />{' '}
             for campus communities

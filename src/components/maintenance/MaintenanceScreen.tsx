@@ -53,40 +53,35 @@ export function MaintenanceScreen() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#07080D] text-white flex flex-col justify-between relative overflow-hidden select-none">
-      {/* Dynamic ambient lighting gradients */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[450px] bg-gradient-to-tr from-[#18CFFC]/10 via-purple-600/10 to-transparent blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[350px] h-[350px] bg-rose-500/5 blur-[120px] pointer-events-none" />
-
+    <div className="min-h-screen w-full bg-[var(--color-canvas)] text-gray-900 flex flex-col justify-between relative overflow-hidden select-none">
       {/* Top Header */}
       <header className="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between z-10">
         <Logo variant="navbar" />
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold tracking-wide uppercase">
-          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold tracking-wide uppercase">
+          <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
           <span>Platform Maintenance</span>
         </div>
       </header>
 
       {/* Main Hero Notice */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 text-center max-w-2xl mx-auto z-10">
-        {/* Animated Icon Badge */}
+        {/* Icon Badge */}
         <div className="relative mb-8">
-          <div className="absolute inset-0 bg-[#18CFFC]/20 rounded-3xl blur-xl animate-pulse" />
-          <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 flex items-center justify-center shadow-2xl backdrop-blur-md">
-            <Wrench className="w-9 h-9 text-[#18CFFC] animate-[spin_10s_linear_infinite]" />
+          <div className="relative w-20 h-20 rounded-3xl bg-white border border-gray-200 flex items-center justify-center shadow-sm">
+            <Wrench className="w-9 h-9 text-blue-600 animate-[spin_10s_linear_infinite]" />
           </div>
         </div>
 
         {/* Heading */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-display tracking-tight text-white mb-4">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-display tracking-tight text-gray-900 mb-4">
           Under Scheduled <br className="hidden sm:inline" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#18CFFC] via-cyan-200 to-white">
+          <span className="text-blue-600">
             Maintenance
           </span>
         </h1>
 
         {/* Description */}
-        <p className="text-sm sm:text-base text-white/60 leading-relaxed mb-8 max-w-lg">
+        <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-8 max-w-lg">
           FestFlow is currently undergoing essential infrastructure enhancements and database optimization to improve your campus festival experience. Services will be restored shortly.
         </p>
 
@@ -96,7 +91,7 @@ export function MaintenanceScreen() {
             type="button"
             onClick={handleRefresh}
             disabled={isChecking}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-[#18CFFC] to-[#0EA5E9] text-[#07080D] font-bold text-sm shadow-lg shadow-[#18CFFC]/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-xs active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${isChecking ? 'animate-spin' : ''}`} />
             <span>{isChecking ? 'Checking Platform Status...' : 'Check Status Again'}</span>
@@ -105,29 +100,29 @@ export function MaintenanceScreen() {
 
         {/* Notice feedback */}
         {refreshNotice && (
-          <div className="mt-4 px-4 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-xs text-cyan-300 animate-fade-in flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <div className="mt-4 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-800 animate-fade-in flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
             <span>{refreshNotice}</span>
           </div>
         )}
 
         {/* Help / Support Links */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-xs text-white/40 border-t border-white/5 pt-6 w-full">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-xs text-gray-500 border-t border-gray-200 pt-6 w-full">
           {supportEmail && (
             <a
               href={`mailto:${supportEmail}`}
-              className="flex items-center gap-2 hover:text-white transition-colors"
+              className="flex items-center gap-2 hover:text-gray-900 transition-colors"
             >
-              <Mail className="w-3.5 h-3.5 text-[#18CFFC]" />
+              <Mail className="w-3.5 h-3.5 text-blue-600" />
               <span>{supportEmail}</span>
             </a>
           )}
           {supportPhone && (
             <a
               href={`tel:${supportPhone}`}
-              className="flex items-center gap-2 hover:text-white transition-colors"
+              className="flex items-center gap-2 hover:text-gray-900 transition-colors"
             >
-              <Phone className="w-3.5 h-3.5 text-emerald-400" />
+              <Phone className="w-3.5 h-3.5 text-emerald-600" />
               <span>{supportPhone}</span>
             </a>
           )}
@@ -141,17 +136,17 @@ export function MaintenanceScreen() {
             <button
               type="button"
               onClick={() => setShowAdminLogin(true)}
-              className="text-[11px] text-white/30 hover:text-white/70 transition-colors flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+              className="text-[11px] text-gray-500 hover:text-gray-900 transition-colors flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
             >
               <Shield className="w-3 h-3" />
               <span>Administrator Portal Access</span>
             </button>
           </div>
         ) : (
-          <div className="bg-[#0D0E15]/90 border border-white/10 rounded-2xl p-5 shadow-2xl backdrop-blur-xl animate-fade-in">
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-md animate-fade-in">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                <Lock className="w-3.5 h-3.5 text-[#18CFFC]" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-gray-900">
+                <Lock className="w-3.5 h-3.5 text-blue-600" />
                 <span>Platform Administrator Sign-In</span>
               </div>
               <button
@@ -160,22 +155,22 @@ export function MaintenanceScreen() {
                   setShowAdminLogin(false)
                   setLoginError(null)
                 }}
-                className="text-xs text-white/40 hover:text-white cursor-pointer"
+                className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
               >
                 Cancel
               </button>
             </div>
 
             {user && role !== 'platform_admin' && (
-              <div className="mb-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="mb-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div>Signed in as <strong>{user.email}</strong> ({role || 'attendee'}).</div>
-                  <div className="text-[10px] text-amber-400/70 mt-0.5">Please sign out and sign in with an administrator account.</div>
+                  <div className="text-[10px] text-amber-700 mt-0.5">Please sign out and sign in with an administrator account.</div>
                   <button
                     type="button"
                     onClick={() => signOut()}
-                    className="mt-1.5 text-[11px] underline text-amber-200 hover:text-white font-medium cursor-pointer"
+                    className="mt-1.5 text-[11px] underline text-amber-900 hover:text-amber-700 font-medium cursor-pointer"
                   >
                     Sign Out
                   </button>
@@ -184,41 +179,41 @@ export function MaintenanceScreen() {
             )}
 
             {loginError && (
-              <div className="mb-3 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <div className="mb-3 p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                 <span>{loginError}</span>
               </div>
             )}
 
             <form onSubmit={handleAdminSignIn} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-medium text-white/60 mb-1">Admin Email</label>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Admin Email</label>
                 <input
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
                   placeholder="admin@festflow.online"
                   required
-                  className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-xs focus:outline-none focus:border-[#18CFFC] transition-colors"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-white/60 mb-1">Password</label>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Password</label>
                 <input
                   type="password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-xs focus:outline-none focus:border-[#18CFFC] transition-colors"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-900 text-xs focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full py-2.5 rounded-xl bg-white text-black font-bold text-xs hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-xs hover:bg-gray-800 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <span>{loginLoading ? 'Authenticating...' : 'Sign In as Administrator'}</span>
                 {!loginLoading && <ArrowRight className="w-3.5 h-3.5" />}

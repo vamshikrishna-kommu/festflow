@@ -89,14 +89,14 @@ const AdminAutomationPage    = lazy(() => import('@/pages/admin/AdminAutomationP
 function PageLoader() {
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-[var(--color-surface-0)] z-50"
+      className="fixed inset-0 flex items-center justify-center bg-[var(--color-canvas)] z-50"
       aria-label="Loading page"
       role="status"
     >
       <div className="flex flex-col items-center gap-4 animate-pulse">
         <Logo variant="navbar" />
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <div className="w-3.5 h-3.5 rounded-full border-2 border-[#18CFFC] border-t-transparent animate-spin" />
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
           <span>Loading FestFlow…</span>
         </div>
       </div>

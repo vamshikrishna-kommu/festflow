@@ -49,19 +49,19 @@ export async function getEventDiscussions(
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: true })
 
-      if (!error && data) {
-        // Assemble tree: Top-level questions and nested replies
-        const all = data as EventDiscussionRecord[]
-        const rootItems = all.filter((d) => !d.parent_id)
-        const replies = all.filter((d) => !!d.parent_id)
-
-        for (const root of rootItems) {
-          root.replies = replies.filter((r) => r.parent_id === root.id)
-        }
-        return { success: true, discussions: rootItems }
+      if (error) {
+        return { success: false, discussions: [], message: error.message }
       }
-    } catch {
-      // fallback
+      const all = (data as EventDiscussionRecord[]) || []
+      const rootItems = all.filter((d) => !d.parent_id)
+      const replies = all.filter((d) => !!d.parent_id)
+
+      for (const root of rootItems) {
+        root.replies = replies.filter((r) => r.parent_id === root.id)
+      }
+      return { success: true, discussions: rootItems }
+    } catch (err: any) {
+      return { success: false, discussions: [], message: err?.message || 'Failed to load discussions.' }
     }
   }
 

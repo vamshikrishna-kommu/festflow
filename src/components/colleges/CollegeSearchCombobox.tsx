@@ -199,11 +199,11 @@ export function CollegeSearchCombobox({
     <div className={`space-y-1.5 relative ${className}`} ref={containerRef}>
       {/* Label & District Hint */}
       <div className="flex items-center justify-between">
-        <label className="block text-xs font-semibold text-white/80">
-          {label} {required && <span className="text-rose-400">*</span>}
+        <label className="block text-xs font-semibold text-gray-700">
+          {label} {required && <span className="text-rose-500">*</span>}
         </label>
-        <span className="text-[10px] text-white/40 font-mono">
-          Hyderabad • Medchal • Rangareddy • Sangareddy
+        <span className="text-[10px] text-gray-400 font-mono">
+          Hyderabad · Medchal · Rangareddy · Sangareddy
         </span>
       </div>
 
@@ -212,13 +212,13 @@ export function CollegeSearchCombobox({
         <div
           onClick={() => !disabled && setIsOpen(true)}
           className={`
-            p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3
+            p-3 rounded-xl border transition-colors cursor-pointer flex items-center justify-between gap-3
             ${
               selectedRecord.verification_status === 'verified'
-                ? 'bg-emerald-500/[0.04] border-emerald-500/30 hover:border-emerald-500/50'
+                ? 'bg-emerald-50/60 border-emerald-200 hover:border-emerald-300'
                 : selectedRecord.verification_status === 'pending'
-                ? 'bg-amber-500/[0.04] border-amber-500/30 hover:border-amber-500/50'
-                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+                ? 'bg-amber-50/60 border-amber-200 hover:border-amber-300'
+                : 'bg-gray-50 border-gray-200 hover:border-gray-300'
             }
             ${disabled ? 'opacity-60 cursor-not-allowed' : ''}
           `}
@@ -229,10 +229,10 @@ export function CollegeSearchCombobox({
                 w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border
                 ${
                   selectedRecord.verification_status === 'verified'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    ? 'bg-emerald-100 border-emerald-200 text-emerald-700'
                     : selectedRecord.verification_status === 'pending'
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                    : 'bg-[#18CFFC]/10 border-[#18CFFC]/20 text-[#18CFFC]'
+                    ? 'bg-amber-100 border-amber-200 text-amber-700'
+                    : 'bg-blue-50 border-blue-200 text-blue-600'
                 }
               `}
             >
@@ -241,20 +241,20 @@ export function CollegeSearchCombobox({
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-white truncate">
+                <span className="text-xs font-semibold text-gray-900 truncate">
                   {selectedRecord.official_name || selectedRecord.name}
                 </span>
                 {selectedRecord.short_name && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/10 text-white/80">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-200 text-gray-700">
                     {selectedRecord.short_name}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap text-[11px] text-white/50">
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap text-[11px] text-gray-500">
                 {selectedRecord.locality && (
                   <span className="flex items-center gap-1">
-                    <MapPin size={11} className="text-white/40" />
+                    <MapPin size={11} className="text-gray-400" />
                     {selectedRecord.locality}, {selectedRecord.district}
                   </span>
                 )}
@@ -262,15 +262,14 @@ export function CollegeSearchCombobox({
                   <span>{selectedRecord.district} District</span>
                 )}
 
-                {/* Verification Badge */}
                 {selectedRecord.verification_status === 'verified' && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-semibold">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 font-mono text-[9px] font-semibold">
                     <ShieldCheck size={10} />
                     Verified {selectedRecord.aishe_code ? `AISHE: ${selectedRecord.aishe_code}` : ''}
                   </span>
                 )}
                 {selectedRecord.verification_status === 'pending' && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[9px]">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 font-mono text-[9px]">
                     Verification Pending
                   </span>
                 )}
@@ -283,7 +282,7 @@ export function CollegeSearchCombobox({
               <button
                 type="button"
                 onClick={handleClearSelection}
-                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200/70 transition-colors cursor-pointer"
                 title="Change institution"
               >
                 <X size={15} />
@@ -292,18 +291,17 @@ export function CollegeSearchCombobox({
           </div>
         </div>
       ) : (
-        /* Search Combobox Input */
         <div className="relative">
           <div
             onClick={() => !disabled && setIsOpen(true)}
             className={`
-              flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.04] border text-xs text-white min-h-[44px] transition-all
-              ${error ? 'border-rose-500/50 focus-within:border-rose-500' : 'border-white/10 focus-within:border-[#18CFFC]'}
-              ${isOpen ? 'ring-1 ring-[#18CFFC]/30 border-[#18CFFC]' : ''}
-              ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-text'}
+              flex items-center gap-2 px-3 py-2 rounded-lg bg-white border text-xs text-gray-900 min-h-[40px] transition-colors
+              ${error ? 'border-rose-400 focus-within:border-rose-500' : 'border-gray-200 hover:border-gray-300 focus-within:border-blue-600'}
+              ${isOpen ? 'ring-3 ring-blue-600/10 border-blue-600' : ''}
+              ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'cursor-text'}
             `}
           >
-            <Search size={16} className="text-white/40 shrink-0" />
+            <Search size={15} className="text-gray-400 shrink-0" />
             <input
               type="text"
               disabled={disabled}
@@ -314,14 +312,14 @@ export function CollegeSearchCombobox({
               }}
               onFocus={() => setIsOpen(true)}
               placeholder={placeholder}
-              className="w-full bg-transparent border-none text-xs text-white placeholder-white/30 focus:outline-none"
+              className="w-full bg-transparent border-none text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
             />
             {isLoading && (
-              <div className="w-4 h-4 border-2 border-[#18CFFC] border-t-transparent rounded-full animate-spin shrink-0" />
+              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
             )}
             <ChevronDown
-              size={16}
-              className={`text-white/40 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              size={15}
+              className={`text-gray-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
             />
           </div>
         </div>
@@ -329,22 +327,22 @@ export function CollegeSearchCombobox({
 
       {/* Helper text or validation error */}
       {error ? (
-        <p className="text-[11px] text-rose-400">{error}</p>
+        <p className="text-[11px] text-rose-600">{error}</p>
       ) : helperText ? (
-        <p className="text-[11px] text-white/40">{helperText}</p>
+        <p className="text-[11px] text-gray-500">{helperText}</p>
       ) : null}
 
       {/* Dropdown Menu */}
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-[#0F111A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[380px] flex flex-col">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-[380px] flex flex-col">
           {/* District Pills Filter */}
-          <div className="p-2 border-b border-white/5 bg-white/[0.01] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => setSelectedDistrict('all')}
               className={`
-                px-2.5 py-1 rounded-lg text-[10px] font-mono transition-colors whitespace-nowrap
-                ${selectedDistrict === 'all' ? 'bg-[#18CFFC] text-black font-semibold' : 'text-white/60 hover:text-white bg-white/5'}
+                px-2.5 py-1 rounded-md text-[10px] font-mono transition-colors whitespace-nowrap cursor-pointer
+                ${selectedDistrict === 'all' ? 'bg-blue-600 text-white font-semibold' : 'text-gray-600 hover:text-gray-900 bg-white border border-gray-200'}
               `}
             >
               All Districts
@@ -355,8 +353,8 @@ export function CollegeSearchCombobox({
                 type="button"
                 onClick={() => setSelectedDistrict(dist)}
                 className={`
-                  px-2 py-1 rounded-lg text-[10px] font-mono transition-colors whitespace-nowrap
-                  ${selectedDistrict === dist ? 'bg-[#18CFFC] text-black font-semibold' : 'text-white/60 hover:text-white bg-white/5'}
+                  px-2 py-1 rounded-md text-[10px] font-mono transition-colors whitespace-nowrap cursor-pointer
+                  ${selectedDistrict === dist ? 'bg-blue-600 text-white font-semibold' : 'text-gray-600 hover:text-gray-900 bg-white border border-gray-200'}
                 `}
               >
                 {dist.replace('-Malkajgiri', '')}
@@ -365,18 +363,18 @@ export function CollegeSearchCombobox({
           </div>
 
           {/* Type Filter Dropdown & Results Counter */}
-          <div className="px-3 py-1.5 border-b border-white/5 flex items-center justify-between text-[11px] text-white/40 bg-white/[0.01]">
+          <div className="px-3 py-1.5 border-b border-gray-100 flex items-center justify-between text-[11px] text-gray-500 bg-gray-50/50">
             <span>{results.length} institutions available</span>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as any)}
-              className="bg-transparent border-none text-[10px] text-white/60 focus:outline-none cursor-pointer"
+              className="bg-transparent border-none text-[11px] text-gray-700 font-medium focus:outline-none cursor-pointer"
             >
-              <option value="all" className="bg-[#0F111A] text-white">
+              <option value="all" className="bg-white text-gray-900">
                 All Institution Types
               </option>
               {Object.entries(INSTITUTION_TYPE_LABELS).map(([k, label]) => (
-                <option key={k} value={k} className="bg-[#0F111A] text-white">
+                <option key={k} value={k} className="bg-white text-gray-900">
                   {label}
                 </option>
               ))}
@@ -384,22 +382,22 @@ export function CollegeSearchCombobox({
           </div>
 
           {/* College Results List */}
-          <div className="overflow-y-auto flex-1 divide-y divide-white/5">
+          <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
             {results.length === 0 ? (
               <div className="p-6 text-center space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mx-auto text-white/40">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mx-auto text-gray-400">
                   <Building2 size={20} />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-white/80">No matching colleges found</p>
-                  <p className="text-[11px] text-white/40">
+                  <p className="text-xs font-semibold text-gray-800">No matching colleges found</p>
+                  <p className="text-[11px] text-gray-500">
                     Try searching by common acronym (e.g. CBIT, GRIET) or campus locality.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setRequestModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-xs text-[#18CFFC] hover:underline font-medium"
+                  className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-medium cursor-pointer"
                 >
                   <PlusCircle size={14} /> My college is not listed — Request addition
                 </button>
@@ -413,7 +411,7 @@ export function CollegeSearchCombobox({
                     onClick={() => handleSelectCollege(col)}
                     className={`
                       p-3 flex items-start justify-between gap-3 cursor-pointer transition-colors
-                      ${isSelected ? 'bg-[#18CFFC]/10 text-white' : 'hover:bg-white/[0.03] text-white/90'}
+                      ${isSelected ? 'bg-blue-50/70 text-gray-900' : 'hover:bg-gray-50 text-gray-800'}
                     `}
                   >
                     <div className="flex items-start gap-2.5 min-w-0">
@@ -422,8 +420,8 @@ export function CollegeSearchCombobox({
                           w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border
                           ${
                             col.verification_status === 'verified'
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                              : 'bg-white/5 border-white/10 text-white/60'
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                              : 'bg-gray-50 border-gray-200 text-gray-500'
                           }
                         `}
                       >
@@ -432,27 +430,27 @@ export function CollegeSearchCombobox({
 
                       <div className="min-w-0 space-y-0.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-semibold text-white truncate">
+                          <span className="text-xs font-semibold text-gray-900 truncate">
                             {col.official_name || col.name}
                           </span>
                           {col.short_name && (
-                            <span className="px-1 py-0.2 rounded text-[9px] font-mono font-bold bg-white/10 text-[#18CFFC]">
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-gray-100 text-blue-700 border border-gray-200">
                               {col.short_name}
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-[10px] text-white/50 flex-wrap">
+                        <div className="flex items-center gap-2 text-[10px] text-gray-500 flex-wrap">
                           {col.locality && (
                             <span className="flex items-center gap-1">
-                              <MapPin size={10} className="text-white/30" />
+                              <MapPin size={10} className="text-gray-400" />
                               {col.locality}, {col.district}
                             </span>
                           )}
                           {!col.locality && <span>{col.district}</span>}
 
                           {col.institution_type && (
-                            <span className="text-white/40 font-mono">
+                            <span className="text-gray-400 font-mono">
                               • {INSTITUTION_TYPE_LABELS[col.institution_type] || col.institution_type}
                             </span>
                           )}
@@ -462,13 +460,13 @@ export function CollegeSearchCombobox({
 
                     <div className="flex items-center gap-2 shrink-0">
                       {col.verification_status === 'verified' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[9px]">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-[9px]">
                           <ShieldCheck size={10} />
                           {col.aishe_code || 'Verified'}
                         </span>
                       )}
 
-                      {isSelected && <CheckCircle2 size={16} className="text-[#18CFFC]" />}
+                      {isSelected && <CheckCircle2 size={16} className="text-blue-600" />}
                     </div>
                   </div>
                 )
@@ -476,13 +474,12 @@ export function CollegeSearchCombobox({
             )}
           </div>
 
-          {/* Bottom Bar: "My College is Not Listed" Button */}
-          <div className="p-2.5 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-xs">
-            <span className="text-[11px] text-white/40">Can't find your educational institution?</span>
+          <div className="p-2.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs">
+            <span className="text-[11px] text-gray-500">Can&apos;t find your educational institution?</span>
             <button
               type="button"
               onClick={() => setRequestModalOpen(true)}
-              className="inline-flex items-center gap-1 text-[11px] text-[#18CFFC] hover:underline font-semibold"
+              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-semibold cursor-pointer"
             >
               <PlusCircle size={13} /> Request College Addition
             </button>

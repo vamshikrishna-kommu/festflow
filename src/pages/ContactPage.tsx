@@ -1,5 +1,5 @@
 import { PageShell } from '@/components/layout/PageShell'
-import { Card, Badge, Button } from '@/components/ui'
+import { Card, Badge, Button, Input, Textarea } from '@/components/ui'
 import { Mail, MessageSquare, HelpCircle, Send, CheckCircle2 } from 'lucide-react'
 import { useState } from 'react'
 import { OFFICIAL_CONTACT_EMAIL, OFFICIAL_SUPPORT_MAILTO, buildOfficialMailto } from '@/lib/brandConfig'
@@ -22,77 +22,77 @@ export default function ContactPage() {
 
   return (
     <PageShell>
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left">
         <div className="flex items-center gap-3 mb-3">
           <Badge variant="brand">Support & Inquiries</Badge>
-          <span className="text-xs text-[var(--color-text-muted)]">Campus Help Desk</span>
+          <span className="text-xs text-gray-500 font-medium">Campus Help Desk</span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white mb-4">
+        <h1 className="text-3xl sm:text-4xl font-bold font-display text-gray-900 tracking-tight mb-3">
           Get in Touch
         </h1>
-        <p className="text-sm text-[var(--color-text-secondary)] mb-8 max-w-xl">
+        <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-xl leading-relaxed">
           Have questions about onboarding your college club, attendee ticketing, or payment verification? Our team is here to assist.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-5 flex flex-col items-start gap-3 border-white/10 hover:border-[#18CFFC]/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC] flex items-center justify-center border border-[#18CFFC]/20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+          <Card variant="default" className="p-5 flex flex-col items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
               <Mail size={18} />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-white">Email Support</h3>
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">General inquiries & organizer assistance</p>
-              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-xs text-[#18CFFC] hover:text-[#18CFFC] mt-2 inline-block font-medium transition-colors">
+              <h3 className="font-semibold text-sm text-gray-900">Email Support</h3>
+              <p className="text-xs text-gray-500 mt-1">General inquiries & organizer assistance</p>
+              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-xs text-blue-600 hover:underline mt-2 inline-block font-medium">
                 {OFFICIAL_CONTACT_EMAIL}
               </a>
             </div>
           </Card>
 
-          <Card className="p-5 flex flex-col items-start gap-3 border-white/10 hover:border-[#18CFFC]/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-[#18CFFC]/15 text-[#18CFFC] flex items-center justify-center border border-[#18CFFC]/20">
+          <Card variant="default" className="p-5 flex flex-col items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
               <MessageSquare size={18} />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-white">Club Onboarding</h3>
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">Direct support for student councils & clubs</p>
-              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-xs text-[#18CFFC] hover:text-[#18CFFC] mt-2 inline-block font-medium transition-colors">
+              <h3 className="font-semibold text-sm text-gray-900">Club Onboarding</h3>
+              <p className="text-xs text-gray-500 mt-1">Direct support for student councils & clubs</p>
+              <a href={OFFICIAL_SUPPORT_MAILTO} className="text-xs text-blue-600 hover:underline mt-2 inline-block font-medium">
                 {OFFICIAL_CONTACT_EMAIL}
               </a>
             </div>
           </Card>
 
-          <Card className="p-5 flex flex-col items-start gap-3 border-white/10 hover:border-amber-500/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+          <Card variant="default" className="p-5 flex flex-col items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
               <HelpCircle size={18} />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-white">Documentation</h3>
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">Setup guides, Edge Functions & migrations</p>
-              <span className="text-xs text-amber-400 mt-2 inline-block font-medium">
+              <h3 className="font-semibold text-sm text-gray-900">Help Resources</h3>
+              <p className="text-xs text-gray-500 mt-1">Platform guides, setup & troubleshooting</p>
+              <span className="text-xs text-gray-700 mt-2 inline-block font-mono font-medium">
                 festflow.online/contact
               </span>
             </div>
           </Card>
         </div>
 
-        <Card className="p-6 sm:p-8 border-white/10">
-          <h2 className="text-lg font-bold text-white mb-2">Send Us a Direct Message</h2>
-          <p className="text-xs text-[var(--color-text-muted)] mb-6">
+        <Card variant="default" className="p-6 sm:p-8">
+          <h2 className="text-lg font-display font-bold text-gray-900 mb-1.5">Send Us a Direct Message</h2>
+          <p className="text-xs sm:text-sm text-gray-500 mb-6">
             We typically respond within one business day during campus operating hours.
           </p>
 
           {submitted ? (
-            <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
-              <CheckCircle2 size={36} className="text-emerald-400 mx-auto" />
-              <h3 className="font-bold text-sm text-emerald-200">Email Draft Prepared</h3>
-              <p className="text-xs text-emerald-300/80 max-w-md mx-auto leading-relaxed">
-                Thank you, {name}! Your email client has been prepared to dispatch your message to <span className="font-semibold text-white">{OFFICIAL_CONTACT_EMAIL}</span>. If your mail app did not open automatically, you can send it directly.
+            <div className="p-6 rounded-xl bg-emerald-50 border border-emerald-200 text-center space-y-3">
+              <CheckCircle2 size={32} className="text-emerald-600 mx-auto" />
+              <h3 className="font-semibold text-sm text-emerald-950">Email Draft Prepared</h3>
+              <p className="text-xs text-emerald-800 max-w-md mx-auto leading-relaxed">
+                Thank you, {name}! Your email client has been prepared to dispatch your message to <span className="font-semibold text-emerald-950">{OFFICIAL_CONTACT_EMAIL}</span>.
               </p>
               <div className="pt-2">
                 <a
                   href={inquiryMailtoUrl}
-                  className="text-xs font-semibold text-[#18CFFC] hover:text-[#18CFFC] underline"
+                  className="text-xs font-semibold text-blue-600 hover:underline"
                 >
                   Click here to re-open mail client
                 </a>
@@ -101,44 +101,35 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Your Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Priyanshu Sharma"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@campus.edu"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Message or Query</label>
-                <textarea
+                <Input
+                  label="Your Name"
+                  type="text"
                   required
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="How can we help your club or event?"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#18CFFC] focus:ring-1 focus:ring-[#18CFFC] resize-none"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Priyanshu Sharma"
+                />
+                <Input
+                  label="Email Address"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@campus.edu"
                 />
               </div>
 
-              <Button type="submit" variant="primary" className="gap-2 bg-gradient-to-r from-[#18CFFC] to-[#7F1AFB] hover:brightness-110 text-white font-semibold shadow-[0_4px_16px_rgba(24,207,252,0.3)]">
-                <Send size={15} /> Send Inquiry
+              <Textarea
+                label="Message or Query"
+                required
+                rows={4}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="How can we help your club or event?"
+              />
+
+              <Button type="submit" variant="primary" leftIcon={<Send size={15} />}>
+                Send Inquiry
               </Button>
             </form>
           )}

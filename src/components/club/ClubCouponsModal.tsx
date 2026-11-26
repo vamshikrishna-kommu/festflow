@@ -126,7 +126,7 @@ export function ClubCouponsModal({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-gray-600">
                 Create promotional discount codes for {eventTitle ? `"${eventTitle}"` : 'all your club events'}.
               </p>
             </div>
@@ -146,8 +146,8 @@ export function ClubCouponsModal({
             <div
               className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
                 notice.isError
-                  ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
-                  : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                  ? 'bg-rose-50 border border-rose-200 text-rose-700'
+                  : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
               }`}
             >
               <AlertCircle size={14} />
@@ -159,17 +159,17 @@ export function ClubCouponsModal({
           {showAddForm && (
             <form
               onSubmit={handleCreateCoupon}
-              className="p-4 rounded-2xl bg-[#0E0E12] border border-[#18CFFC]/30 flex flex-col gap-3 shadow-xl"
+              className="p-4 rounded-xl bg-gray-50 border border-blue-200 flex flex-col gap-3"
             >
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Tag size={13} className="text-[#18CFFC]" />
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                  <Tag size={13} className="text-blue-600" />
                   Create Promo Code
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="text-zinc-500 hover:text-white cursor-pointer"
+                  className="text-gray-400 hover:text-gray-900 cursor-pointer"
                 >
                   <X size={14} />
                 </button>
@@ -177,7 +177,7 @@ export function ClubCouponsModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-700 block mb-1">
                     Coupon Code *
                   </label>
                   <input
@@ -186,18 +186,18 @@ export function ClubCouponsModal({
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
                     placeholder="e.g. FESTPASS20"
-                    className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs font-mono font-bold text-white placeholder-zinc-500 uppercase focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-mono font-bold text-gray-900 placeholder:text-gray-400 uppercase focus:outline-none focus:border-blue-600"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-700 block mb-1">
                     Discount Type
                   </label>
                   <select
                     value={discountType}
                     onChange={(e) => setDiscountType(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600"
                   >
                     <option value="percentage">Percentage Off (%)</option>
                     <option value="fixed">Fixed Amount (₹)</option>
@@ -207,7 +207,7 @@ export function ClubCouponsModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-700 block mb-1">
                     Value * ({discountType === 'percentage' ? '%' : '₹'})
                   </label>
                   <input
@@ -217,12 +217,12 @@ export function ClubCouponsModal({
                     max={discountType === 'percentage' ? 100 : undefined}
                     value={discountValue}
                     onChange={(e) => setDiscountValue(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-700 block mb-1">
                     Max Redemptions
                   </label>
                   <input
@@ -231,26 +231,26 @@ export function ClubCouponsModal({
                     value={maxUses}
                     onChange={(e) => setMaxUses(e.target.value)}
                     placeholder="100"
-                    className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-700 block mb-1">
                     Expiry Date
                   </label>
                   <input
                     type="date"
                     value={validUntil}
                     onChange={(e) => setValidUntil(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-700 block mb-1">
                     Min Purchase (₹)
                   </label>
                   <input
@@ -259,11 +259,11 @@ export function ClubCouponsModal({
                     value={minPurchase}
                     onChange={(e) => setMinPurchase(e.target.value)}
                     placeholder="0"
-                    className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-700 block mb-1">
                     Max Discount Cap (₹)
                   </label>
                   <input
@@ -272,12 +272,12 @@ export function ClubCouponsModal({
                     value={maxDiscount}
                     onChange={(e) => setMaxDiscount(e.target.value)}
                     placeholder="Optional cap for % off"
-                    className="w-full px-3 py-2 rounded-xl bg-[#14141A] border border-white/10 text-xs text-white focus:outline-none focus:border-[#18CFFC]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-600"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-200">
                 <Button
                   size="sm"
                   variant="ghost"
@@ -301,9 +301,9 @@ export function ClubCouponsModal({
           {/* Coupons List */}
           <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-1">
             {loading ? (
-              <div className="py-8 text-center text-xs text-zinc-400">Loading coupons...</div>
+              <div className="py-8 text-center text-xs text-gray-500">Loading coupons...</div>
             ) : coupons.length === 0 ? (
-              <div className="py-8 text-center text-xs text-zinc-500">
+              <div className="py-8 text-center text-xs text-gray-500">
                 No discount coupons created yet. Click "New Coupon" above to offer promotional ticket discounts.
               </div>
             ) : (
@@ -314,37 +314,37 @@ export function ClubCouponsModal({
                 return (
                   <div
                     key={coupon.id}
-                    className={`p-3 rounded-2xl border flex items-center justify-between gap-3 ${
+                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
                       !coupon.is_active || isExpired || isLimitReached
-                        ? 'bg-white/[0.02] border-white/5 opacity-70'
-                        : 'bg-[#14141A] border-white/10'
+                        ? 'bg-gray-50 border-gray-200 opacity-65'
+                        : 'bg-white border-gray-200 shadow-xs'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#18CFFC]/10 text-[#18CFFC] flex items-center justify-center font-mono font-bold text-xs">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center font-mono font-bold text-xs">
                         {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm text-white tracking-wider">
+                          <span className="font-mono font-bold text-sm text-gray-900 tracking-wider">
                             {coupon.code}
                           </span>
                           <button
                             type="button"
                             onClick={() => handleCopy(coupon.code)}
-                            className="text-zinc-500 hover:text-white cursor-pointer"
+                            className="text-gray-400 hover:text-gray-900 cursor-pointer"
                             title="Copy Code"
                           >
                             {copiedCode === coupon.code ? (
-                              <Check size={12} className="text-emerald-400" />
+                              <Check size={12} className="text-emerald-600" />
                             ) : (
                               <Copy size={12} />
                             )}
                           </button>
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-400">
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500">
                           <span>
-                            Used: <strong className="text-white">{coupon.used_count}</strong> / {coupon.max_uses}
+                            Used: <strong className="text-gray-900">{coupon.used_count}</strong> / {coupon.max_uses}
                           </span>
                           {coupon.valid_until && (
                             <span>
@@ -369,20 +369,20 @@ export function ClubCouponsModal({
                       <button
                         type="button"
                         onClick={() => handleToggle(coupon.id, coupon.is_active)}
-                        className="text-zinc-400 hover:text-white cursor-pointer p-1"
+                        className="text-gray-400 hover:text-gray-900 cursor-pointer p-1"
                         title={coupon.is_active ? 'Deactivate' : 'Activate'}
                       >
                         {coupon.is_active ? (
-                          <ToggleRight size={20} className="text-[#18CFFC]" />
+                          <ToggleRight size={20} className="text-blue-600" />
                         ) : (
-                          <ToggleLeft size={20} className="text-zinc-600" />
+                          <ToggleLeft size={20} className="text-gray-400" />
                         )}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleDelete(coupon.id)}
-                        className="text-zinc-500 hover:text-rose-400 cursor-pointer p-1"
+                        className="text-gray-400 hover:text-rose-600 cursor-pointer p-1"
                         title="Delete Coupon"
                       >
                         <Trash2 size={14} />
