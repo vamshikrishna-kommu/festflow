@@ -67,11 +67,7 @@ export default function AdminTeamPage() {
     if (!editAdmin) return
     setActionError(null)
     try {
-      const res = await updateAdminRole(editAdmin.id, selectedRole, selectedPermissions, currentAdminEmail)
-      if (res && res.success === false) {
-        setActionError(res.error || 'Failed to update administrator permissions.')
-        return
-      }
+      await updateAdminRole(editAdmin.id, selectedRole, selectedPermissions, currentAdminEmail)
       setEditAdmin(null)
       await loadData()
     } catch (err: any) {
