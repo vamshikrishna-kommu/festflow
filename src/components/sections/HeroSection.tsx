@@ -58,7 +58,7 @@ export function HeroSection() {
             </div>
 
             {/* Clean Display H1 */}
-            <h1 className="hero-stagger font-display font-bold text-gray-900 text-4xl sm:text-5xl lg:text-[3.25rem] leading-[1.08] tracking-tight mb-5">
+            <h1 className="hero-stagger font-display font-bold text-gray-900 text-[2rem] sm:text-5xl lg:text-[3.25rem] leading-[1.08] tracking-tight mb-5">
               Your campus.{' '}
               <span className="text-blue-600">More happening.</span>
             </h1>

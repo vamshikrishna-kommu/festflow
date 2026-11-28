@@ -115,7 +115,7 @@ export async function joinEventWaitlist(params: {
           team_name: newReg.team_name,
           participant_details: newReg.participant_details,
         })
-        .select()
+        .select('id, event_id, student_id, ticket_code, status, team_name, participant_details, created_at')
         .single()
 
       if (error || !data) {

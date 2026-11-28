@@ -238,14 +238,14 @@ function GettingStartedSection() {
       aria-labelledby="cta-heading"
       className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
     >
-      <div className="p-8 sm:p-14 rounded-2xl bg-gray-950 text-white border border-gray-800 shadow-xl text-center relative overflow-hidden">
+      <div className="p-6 sm:p-14 rounded-2xl bg-gray-950 text-white border border-gray-800 shadow-xl text-center relative overflow-hidden">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-blue-300 bg-blue-950/60 border border-blue-800/60 mb-5">
           100% Free for Campus Communities
         </span>
 
         <h2
           id="cta-heading"
-          className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-white tracking-tight max-w-2xl mx-auto leading-tight"
+          className="font-display font-bold text-2xl sm:text-4xl md:text-5xl text-white tracking-tight max-w-2xl mx-auto leading-tight"
         >
           Ready to elevate your campus events?
         </h2>
@@ -270,11 +270,11 @@ function GettingStartedSection() {
           <Link to="/student/signup" className="w-full sm:w-auto flex-1">
             <Button
               id="landing-cta-student"
-              variant="outline"
+              variant="outline-dark"
               size="lg"
               leftIcon={<GraduationCap size={16} />}
               rightIcon={<ChevronRight size={16} />}
-              className="w-full justify-center border-gray-700 text-white hover:bg-gray-900"
+              className="w-full justify-center"
             >
               Join as Student
             </Button>

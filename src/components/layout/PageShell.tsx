@@ -19,12 +19,6 @@ export function PageShell({ children, fullbleed: _fullbleed = false, noBottomNav
 
   return (
     <div className="w-full min-h-dvh flex flex-col bg-[var(--color-canvas)] text-[var(--color-text-primary)]">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-semibold"
-      >
-        Skip to content
-      </a>
       <Navbar />
       <motion.main
         id="main-content"
@@ -33,11 +27,11 @@ export function PageShell({ children, fullbleed: _fullbleed = false, noBottomNav
         initial="initial"
         animate="animate"
         exit="exit"
-        className={`w-full flex-1 ${noBottomNavOffset ? '' : 'pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-0'}`}
+        className="w-full flex-1 focus:outline-none"
       >
         {children}
       </motion.main>
-      <Footer />
+      <Footer className={noBottomNavOffset ? '' : 'pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-0'} />
       <BottomNav />
     </div>
   )

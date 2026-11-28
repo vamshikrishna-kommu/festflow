@@ -153,7 +153,7 @@ export function HorizontalEventJourney() {
               return (
                 <div
                   key={event.id}
-                  className="w-[300px] sm:w-[360px] rounded-xl bg-white border border-gray-200/90 hover:border-gray-300 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.08)] transition-all duration-200 flex flex-col justify-between shrink-0 snap-start group overflow-hidden"
+                  className="w-[min(300px,calc(100vw-2.5rem))] sm:w-[360px] rounded-xl bg-white border border-gray-200/90 hover:border-gray-300 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.08)] transition-all duration-200 flex flex-col justify-between shrink-0 snap-start group overflow-hidden"
                 >
                   {/* Top Banner Image */}
                   <div className="h-44 w-full relative overflow-hidden bg-gray-100 border-b border-gray-100">

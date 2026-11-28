@@ -1332,7 +1332,36 @@ export async function getClubRegistrations(
         return { registrations: primaryRes.data as unknown as RegistrationRecord[], error: null }
       }
 
-      // Tier 2: Resilient query without foreign key alias or optional columns
+      // Tier 2: Pre-061 column-grant-safe query with student profile join (drops post-046 columns)
+      const joinedSafeRes = await supabase
+        .from('registrations')
+        .select(`
+          id,
+          event_id,
+          student_id,
+          ticket_code,
+          status,
+          team_name,
+          team_id,
+          team_members,
+          participant_details,
+          unit_price,
+          created_at,
+          updated_at,
+          student:profiles!registrations_student_id_fkey (
+            display_name,
+            email,
+            avatar_url
+          )
+        `)
+        .in('event_id', targetEventIds)
+        .order('created_at', { ascending: false })
+
+      if (!joinedSafeRes.error && joinedSafeRes.data) {
+        return { registrations: joinedSafeRes.data as unknown as RegistrationRecord[], error: null }
+      }
+
+      // Tier 3: Resilient query without foreign key alias or optional columns
       const fallbackRes = await supabase
         .from('registrations')
         .select(`
@@ -1346,7 +1375,6 @@ export async function getClubRegistrations(
           team_members,
           participant_details,
           unit_price,
-          seat_reservation_id,
           created_at,
           updated_at
         `)
@@ -1357,7 +1385,7 @@ export async function getClubRegistrations(
         return { registrations: fallbackRes.data as unknown as RegistrationRecord[], error: null }
       }
 
-      // Tier 3: Core minimal query (guaranteed columns)
+      // Tier 4: Core minimal query (guaranteed columns)
       const minimalRes = await supabase
         .from('registrations')
         .select('id, event_id, student_id, ticket_code, status, created_at')
@@ -1370,7 +1398,7 @@ export async function getClubRegistrations(
 
       return {
         registrations: [],
-        error: primaryRes.error?.message || fallbackRes.error?.message || minimalRes.error?.message || 'Failed to fetch registrations',
+        error: primaryRes.error?.message || joinedSafeRes.error?.message || fallbackRes.error?.message || minimalRes.error?.message || 'Failed to fetch registrations',
       }
     } catch (err) {
       console.warn('[FestFlow] getClubRegistrations note:', err)

@@ -30,7 +30,7 @@ export function StoryControllerHUD({
         {/* Logo and Mode Badge */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2 group">
-            <Logo variant="navbar" />
+            <Logo variant="emblem" />
             <span className="font-extrabold text-base sm:text-lg text-white group-hover:text-[#18CFFC] transition-colors">
               FestFlow
             </span>

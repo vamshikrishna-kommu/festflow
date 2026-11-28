@@ -65,9 +65,9 @@ export function BottomNav() {
     <>
       <nav
         aria-label="Mobile bottom navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.05)] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-1 px-1 transition-all select-none"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.05)] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-1 px-1.5 transition-all select-none"
       >
-        <div className="flex items-center justify-around max-w-md mx-auto">
+        <div className="flex items-center justify-around max-w-md mx-auto gap-0.5">
           {!isLoading && session && isClub ? (
             <>
               {hasClubPermission('club.view') && (
@@ -96,9 +96,8 @@ export function BottomNav() {
               {hasClubPermission('events.view') && (
                 <NavLink
                   to="/club/events"
-                  end
                   className={({ isActive }) =>
-                    `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    `flex flex-col items-center justify-center flex-1 min-w-0 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
                       isActive
                         ? 'text-blue-600 font-semibold'
                         : 'text-gray-500 hover:text-gray-900'
@@ -110,7 +109,7 @@ export function BottomNav() {
                       <div className="relative flex items-center justify-center">
                         <Calendar size={20} className={isActive ? 'text-blue-600' : ''} />
                       </div>
-                      <span className="text-[10px] leading-tight mt-1 tracking-tight">Events</span>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight whitespace-nowrap">Events</span>
                     </>
                   )}
                 </NavLink>
@@ -235,30 +234,36 @@ export function BottomNav() {
               <button
                 type="button"
                 onClick={() => setNotifDrawerOpen(true)}
-                className="relative flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                aria-pressed={notifDrawerOpen}
+                className={`relative flex flex-col items-center justify-center flex-1 min-w-0 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  notifDrawerOpen ? 'text-blue-600 font-semibold' : 'text-gray-500 hover:text-gray-900'
+                }`}
                 aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
               >
                 <div className="relative flex items-center justify-center">
-                  <Bell size={20} />
+                  <Bell size={20} className={notifDrawerOpen ? 'text-blue-600' : ''} />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] leading-tight mt-1 tracking-tight">Alerts</span>
+                <span className="text-[10px] leading-tight mt-1 tracking-tight whitespace-nowrap">Alerts</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSettingsOpen(true)}
-                className="flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                aria-pressed={settingsOpen}
+                className={`flex flex-col items-center justify-center flex-1 min-w-0 min-h-[48px] py-1 px-0.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  settingsOpen ? 'text-blue-600 font-semibold' : 'text-gray-500 hover:text-gray-900'
+                }`}
                 aria-label="Profile and Settings"
               >
                 <div className="relative flex items-center justify-center">
-                  <User size={20} />
+                  <User size={20} className={settingsOpen ? 'text-blue-600' : ''} />
                 </div>
-                <span className="text-[10px] leading-tight mt-1 tracking-tight">Profile</span>
+                <span className="text-[10px] leading-tight mt-1 tracking-tight whitespace-nowrap">Profile</span>
               </button>
             </>
           ) : (
@@ -326,22 +331,32 @@ export function BottomNav() {
 
               <NavLink
                 to="/student/login"
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                    isActive
-                      ? 'text-blue-600 font-semibold'
-                      : 'text-gray-500 hover:text-gray-900'
+                className={({ isActive }) => {
+                  const active =
+                    isActive ||
+                    location.pathname.startsWith('/club/login') ||
+                    location.pathname.startsWith('/student/signup') ||
+                    location.pathname === '/login'
+                  return `flex flex-col items-center justify-center flex-1 min-w-0 min-h-[48px] py-1 px-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    active ? 'text-blue-600 font-semibold' : 'text-gray-500 hover:text-gray-900'
                   }`
-                }
+                }}
               >
-                {({ isActive }) => (
-                  <>
-                    <div className="relative flex items-center justify-center">
-                      <LogIn size={20} className={isActive ? 'text-blue-600' : ''} />
-                    </div>
-                    <span className="text-[10px] leading-tight mt-1 tracking-tight">Sign In</span>
-                  </>
-                )}
+                {({ isActive }) => {
+                  const active =
+                    isActive ||
+                    location.pathname.startsWith('/club/login') ||
+                    location.pathname.startsWith('/student/signup') ||
+                    location.pathname === '/login'
+                  return (
+                    <>
+                      <div className="relative flex items-center justify-center">
+                        <LogIn size={20} className={active ? 'text-blue-600' : ''} />
+                      </div>
+                      <span className="text-[10px] leading-tight mt-1 tracking-tight whitespace-nowrap">Sign In</span>
+                    </>
+                  )
+                }}
               </NavLink>
             </>
           )}

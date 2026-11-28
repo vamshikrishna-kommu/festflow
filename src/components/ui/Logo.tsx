@@ -1,85 +1,80 @@
-import { type ImgHTMLAttributes } from 'react'
+export type LogoVariant =
+  | 'navbar'
+  | 'hero'
+  | 'footer'
+  | 'ticket'
+  | 'emblem'
+  | 'auth'
+  | 'compact'
 
-export interface LogoProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt'> {
-  /**
-   * Presets for standard locations across the application
-   */
-  variant?: 'navbar' | 'auth' | 'footer' | 'hero' | 'ticket' | 'emblem' | 'compact' | 'custom'
-  /**
-   * Meaningful accessibility label, defaults to 'FestFlow logo'
-   */
-  alt?: string
-  /**
-   * Optional wrapper container classes
-   */
-  containerClassName?: string
+export interface LogoProps {
+  variant?: LogoVariant
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  tone?: 'light' | 'dark'
+  className?: string
 }
 
-const VARIANT_CONTAINER_CLASSES: Record<NonNullable<LogoProps['variant']>, string> = {
-  navbar:
-    'h-9 sm:h-10 w-auto max-w-[145px] flex items-center justify-center rounded-lg bg-gray-950 px-2.5 py-1.5 border border-gray-900 shadow-xs transition-colors duration-150 hover:bg-black',
-  auth:
-    'w-[160px] sm:w-[180px] max-w-full flex items-center justify-center rounded-xl bg-gray-950 p-2.5 border border-gray-900 shadow-md',
-  footer:
-    'w-[120px] sm:w-[135px] max-w-full flex items-center justify-center rounded-lg bg-gray-950 px-2 py-1.5 border border-gray-900 shadow-xs',
-  hero:
-    'w-[180px] sm:w-[210px] max-w-full flex items-center justify-center rounded-2xl bg-gray-950 p-3 border border-gray-900 shadow-xl',
-  ticket:
-    'h-8 sm:h-9 w-auto max-w-[90px] flex items-center justify-center rounded-md bg-gray-950 px-2 py-1 border border-gray-900 shadow-inner',
-  emblem:
-    'w-8 h-8 max-w-full flex items-center justify-center rounded-lg bg-gray-950 p-1 border border-gray-900 shadow-xs',
-  compact:
-    'w-7 h-7 max-w-full flex items-center justify-center rounded-md bg-gray-950 p-0.5 border border-gray-900 shadow-xs',
-  custom: '',
+const SIZE_MAP: Record<
+  NonNullable<LogoProps['size']>,
+  { mark: string; text: string; gap: string }
+> = {
+  sm: { mark: 'h-6 w-6', text: 'text-[17px]', gap: 'gap-2' },
+  md: { mark: 'h-7 w-7 sm:h-8 sm:w-8', text: 'text-[19px] sm:text-[21px]', gap: 'gap-2.5' },
+  lg: { mark: 'h-9 w-9', text: 'text-2xl', gap: 'gap-3' },
+  xl: { mark: 'h-11 w-11', text: 'text-[28px]', gap: 'gap-3.5' },
 }
 
-const VARIANT_DIMENSIONS: Record<NonNullable<LogoProps['variant']>, { width: number; height: number }> = {
-  navbar: { width: 140, height: 40 },
-  auth: { width: 180, height: 44 },
-  footer: { width: 130, height: 38 },
-  hero: { width: 210, height: 50 },
-  ticket: { width: 90, height: 32 },
-  emblem: { width: 32, height: 32 },
-  compact: { width: 28, height: 28 },
-  custom: { width: 140, height: 40 },
+const VARIANT_DEFAULT_SIZE: Record<LogoVariant, NonNullable<LogoProps['size']>> = {
+  navbar: 'md',
+  footer: 'lg',
+  auth: 'lg',
+  hero: 'xl',
+  emblem: 'md',
+  ticket: 'sm',
+  compact: 'sm',
 }
 
+const ICON_ONLY_VARIANTS = new Set<LogoVariant>(['emblem', 'ticket', 'compact'])
+
+/**
+ * FestFlow Brand Lockup
+ * Uses the transparent gradient ribbon "F" emblem paired with crisp SaaS typography.
+ * Full variants ("navbar", "footer", "auth", "hero") render mark + wordmark;
+ * compact variants ("emblem", "ticket", "compact") render only the emblem mark.
+ */
 export function Logo({
   variant = 'navbar',
-  alt = 'FestFlow logo',
+  size,
+  tone = 'light',
   className = '',
-  containerClassName = '',
-  ...imgProps
 }: LogoProps) {
-  const isEmblem = variant === 'emblem' || variant === 'compact'
-  const pngSrc = isEmblem ? '/festflow-emblem.png' : '/festflow-logo.png'
-  const webpSrc = isEmblem ? '/festflow-emblem.webp' : '/festflow-logo.webp'
-  const containerClasses = VARIANT_CONTAINER_CLASSES[variant]
-  const dims = VARIANT_DIMENSIONS[variant]
-
-  const imageElement = (
-    <picture className="contents">
-      <source srcSet={webpSrc} type="image/webp" />
-      <img
-        src={pngSrc}
-        alt={alt}
-        width={dims.width}
-        height={dims.height}
-        loading="eager"
-        decoding="async"
-        className={`w-auto h-auto max-h-full max-w-full object-contain shrink-0 select-none ${className}`}
-        {...imgProps}
-      />
-    </picture>
-  )
-
-  if (variant === 'custom' && !containerClassName) {
-    return imageElement
-  }
+  const resolvedSize = size || VARIANT_DEFAULT_SIZE[variant]
+  const tokens = SIZE_MAP[resolvedSize]
+  const isIconOnly = ICON_ONLY_VARIANTS.has(variant)
+  const textColorClass = tone === 'dark' ? 'text-white' : 'text-gray-950'
 
   return (
-    <div className={`relative inline-flex items-center justify-center overflow-hidden ${containerClasses} ${containerClassName}`}>
-      {imageElement}
-    </div>
+    <span
+      className={`inline-flex items-center ${isIconOnly ? '' : tokens.gap} select-none shrink-0 ${className}`.trim()}
+    >
+      <img
+        src="/festflow-mark.png"
+        alt={isIconOnly ? 'FestFlow' : ''}
+        aria-hidden={isIconOnly ? undefined : true}
+        width={44}
+        height={44}
+        decoding="async"
+        className={`${tokens.mark} object-contain shrink-0 block`}
+      />
+      {!isIconOnly && (
+        <span
+          className={`font-display font-bold tracking-[-0.03em] leading-none ${tokens.text} ${textColorClass}`}
+        >
+          FestFlow
+        </span>
+      )}
+    </span>
   )
 }
+
+export default Logo

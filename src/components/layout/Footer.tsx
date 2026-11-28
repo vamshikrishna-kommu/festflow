@@ -29,10 +29,14 @@ const SOCIALS = [
   { icon: Rss,    label: 'Platform Features', href: '/#features' },
 ]
 
-export function Footer() {
+export interface FooterProps {
+  className?: string
+}
+
+export function Footer({ className = '' }: FooterProps) {
   return (
     <footer
-      className="relative mt-auto border-t border-gray-200/80 bg-white"
+      className={`relative mt-auto border-t border-gray-200/80 bg-white ${className}`.trim()}
       aria-label="Site footer"
     >
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-10">

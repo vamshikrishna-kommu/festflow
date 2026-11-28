@@ -570,7 +570,7 @@ export interface NavLink {
 
 export type BadgeVariant = 'default' | 'purple' | 'pink' | 'amber' | 'cyan' | 'success' | 'outline' | 'danger' | 'neutral' | 'brand' | 'violet' | 'magenta' | 'blue' | 'info' | 'indigo'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'outline-dark' | 'danger'
 
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 

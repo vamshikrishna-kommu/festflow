@@ -222,9 +222,9 @@ function RootLayout() {
           return loc.pathname
         }}
       />
-      <main id="main-content">
+      <div className="w-full min-h-dvh">
         <Outlet />
-      </main>
+      </div>
     </>
   )
 }

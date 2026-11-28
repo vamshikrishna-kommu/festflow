@@ -32,6 +32,8 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-transparent text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F4F6] active:bg-[#E5E7EB]',
   outline:
     'border border-[#E5E7EB] bg-white text-[#111827] hover:border-[#D1D5DB] hover:bg-[#F9FAFB] active:bg-[#F3F4F6] shadow-xs',
+  'outline-dark':
+    'border border-gray-700 bg-gray-900/75 text-white hover:border-gray-500 hover:bg-gray-800 active:bg-gray-950 focus-visible:ring-offset-gray-950 shadow-xs',
   danger:
     'bg-[#EF4444] text-white hover:bg-[#DC2626] border border-red-600/20 shadow-xs active:bg-[#B91C1C]',
 }

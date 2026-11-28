@@ -70,7 +70,11 @@ export function AuthCard({ title, subtitle, role, mode, children }: AuthCardProp
           </div>
 
           {/* Right form panel */}
-          <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center text-left w-full min-w-0 bg-white">
+          <div
+            id="main-content"
+            tabIndex={-1}
+            className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center text-left w-full min-w-0 bg-white focus:outline-none"
+          >
             {/* Mobile logo header */}
             <div className="lg:hidden mb-6 flex flex-col items-center text-center gap-2">
               <Link to="/" aria-label="FestFlow home">

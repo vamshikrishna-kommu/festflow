@@ -577,7 +577,6 @@ export async function reviewPaymentSubmission(params: {
               registrations (
                 id,
                 ticket_code,
-                qr_token,
                 participant_details,
                 team_name,
                 team_id,
@@ -887,7 +886,30 @@ export async function getClubPaymentSubmissions(
           *,
           student:profiles!payment_submissions_student_id_fkey(display_name, email, avatar_url),
           event:events!payment_submissions_event_id_fkey(*),
-          registration:registrations!payment_submissions_registration_id_fkey(*)
+          registration:registrations!payment_submissions_registration_id_fkey(
+            id,
+            event_id,
+            student_id,
+            ticket_code,
+            status,
+            team_name,
+            team_role,
+            team_id,
+            team_members,
+            custom_responses,
+            participant_details,
+            ticket_tier_id,
+            ticket_tier_name,
+            unit_price,
+            coupon_id,
+            discount_amount,
+            approval_status,
+            rejection_reason,
+            waitlist_offer_expires_at,
+            ticket_issued_at,
+            created_at,
+            updated_at
+          )
         `)
         .order('submitted_at', { ascending: false })
 

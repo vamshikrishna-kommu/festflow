@@ -163,7 +163,18 @@ export default function ClubDashboardPage() {
 
     // Load registrations across this club's events using resilient multi-tier queries
     const clubEventIds = loadedEvents.map((e) => e.id)
-    if (clubEventIds.length === 0) {
+    const canViewAnyRegistrations =
+      canViewRegistrationsClub ||
+      canViewPayments ||
+      canViewReportsClub ||
+      loadedEvents.some(
+        (ev) =>
+          hasEventPermission(ev.id, 'registrations.view') ||
+          hasEventPermission(ev.id, 'payments.view') ||
+          hasEventPermission(ev.id, 'reports.view'),
+      )
+
+    if (clubEventIds.length === 0 || !canViewAnyRegistrations) {
       setAllRegistrations([])
       setSeatReservations([])
     } else {
@@ -769,11 +780,11 @@ export default function ClubDashboardPage() {
         {loadError && (
           <Alert variant="error">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-sm">Unable to load complete organizer dashboard data</p>
-                <p className="text-xs opacity-90">{loadError}</p>
+                <p className="text-xs opacity-90 break-words">{loadError}</p>
               </div>
-              <Button variant="outline" size="sm" onClick={loadClubData}>
+              <Button variant="outline" size="sm" onClick={loadClubData} className="shrink-0 self-start sm:self-center">
                 Retry
               </Button>
             </div>
@@ -834,23 +845,23 @@ export default function ClubDashboardPage() {
           {/* Mobile Quick Actions Grid (sm:hidden) */}
           <div className="sm:hidden grid grid-cols-2 gap-2 pt-3 border-t border-gray-200">
             {canViewPayments && (
-              <Link to="/club/payments" className="w-full">
+              <Link to="/club/payments" className="w-full min-w-0">
                 <Button
                   variant={pendingPaymentsCount > 0 ? 'primary' : 'outline'}
                   size="sm"
                   leftIcon={<CreditCard size={15} />}
-                  className="w-full min-h-[44px] justify-center text-xs"
+                  className="w-full min-h-[44px] justify-center text-xs px-2.5 whitespace-nowrap"
                 >
                   Payments {pendingPaymentsCount > 0 && `(${pendingPaymentsCount})`}
                 </Button>
               </Link>
             )}
-            <Link to="/club/events" className="w-full">
+            <Link to="/club/events" className="w-full min-w-0">
               <Button
                 variant="outline"
                 size="sm"
                 leftIcon={<Calendar size={15} />}
-                className="w-full min-h-[44px] justify-center text-xs"
+                className="w-full min-h-[44px] justify-center text-xs px-2.5 whitespace-nowrap"
               >
                 Events ({activePublishedCount})
               </Button>
@@ -861,8 +872,8 @@ export default function ClubDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCouponsModalOpen(true)}
-                leftIcon={<Tag size={14} className="text-amber-600" />}
-                className="w-full min-h-[44px] justify-center text-xs"
+                leftIcon={<Tag size={14} className="text-amber-600 shrink-0" />}
+                className="w-full min-h-[44px] justify-center text-xs px-2.5 whitespace-nowrap"
               >
                 Coupons
               </Button>
@@ -873,10 +884,10 @@ export default function ClubDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setBrandingModalOpen(true)}
-                leftIcon={<Sparkles size={14} className="text-blue-600" />}
-                className="w-full min-h-[44px] justify-center text-xs"
+                leftIcon={<Sparkles size={14} className="text-blue-600 shrink-0" />}
+                className="w-full min-h-[44px] justify-center text-xs px-2.5 whitespace-nowrap"
               >
-                Brand & Profile
+                <span>Brand</span>
               </Button>
             )}
           </div>
@@ -1107,7 +1118,7 @@ export default function ClubDashboardPage() {
         {/* ── Date Range & Event Filters ───────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white border border-gray-200 shadow-xs">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
-            <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1 mr-1">
+            <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1 mr-1 whitespace-nowrap shrink-0">
               <Filter size={12} /> Timeframe:
             </span>
             {(['all', 'today', '7d', '30d'] as const).map((range) => (
@@ -1115,7 +1126,7 @@ export default function ClubDashboardPage() {
                 key={range}
                 type="button"
                 onClick={() => setDateRange(range)}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-all capitalize cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all capitalize cursor-pointer whitespace-nowrap shrink-0 ${
                   dateRange === range
                     ? 'bg-blue-600 text-white font-semibold shadow-xs'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -1126,12 +1137,12 @@ export default function ClubDashboardPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 whitespace-nowrap">Filter Event:</span>
+          <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto">
+            <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Filter Event:</span>
             <select
               value={selectedEventFilter}
               onChange={(e) => setSelectedEventFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600"
+              className="w-full min-w-0 flex-1 sm:w-auto sm:max-w-[240px] px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 truncate"
             >
               <option value="all">All Managed Events ({events.length})</option>
               {events.map((e) => (
@@ -1234,24 +1245,24 @@ export default function ClubDashboardPage() {
             const cardContent = (
               <motion.div variants={metricItem} className="h-full">
                 <div
-                  className={`p-4 sm:p-5 rounded-xl bg-white border flex flex-col justify-between gap-3 h-full transition-all duration-200 shadow-xs ${
+                  className={`p-3.5 sm:p-5 rounded-xl bg-white border flex flex-col justify-between gap-2.5 sm:gap-3 h-full min-w-0 transition-all duration-200 shadow-xs ${
                     stat.highlight
                       ? 'border-amber-300 bg-amber-50/40'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 font-medium font-sans">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] sm:text-xs text-gray-500 font-medium font-sans leading-snug min-w-0">
                       {stat.label}
                     </span>
-                    <div className={`p-2 rounded-lg border ${stat.badgeStyle}`}>
-                      <Icon size={16} />
+                    <div className={`p-1.5 sm:p-2 rounded-lg border shrink-0 ${stat.badgeStyle}`}>
+                      <Icon size={15} />
                     </div>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <span
-                      className={`text-2xl sm:text-3xl font-extrabold font-heading font-mono ${
+                      className={`text-xl sm:text-3xl font-extrabold font-heading font-mono block truncate ${
                         stat.highlight ? 'text-amber-700' : 'text-gray-900'
                       }`}
                     >
@@ -1292,24 +1303,24 @@ export default function ClubDashboardPage() {
         {/* ── Live Analytics & Velocity Trends (Part 3) ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Daily Registration Velocity Chart */}
-          <div className="lg:col-span-8 p-5 sm:p-6 rounded-xl bg-white border border-gray-200 flex flex-col justify-between gap-5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="lg:col-span-8 p-4 sm:p-6 rounded-xl bg-white border border-gray-200 flex flex-col justify-between gap-5 shadow-xs min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
                 <h3 className="text-base font-bold font-heading text-gray-900 flex items-center gap-2">
-                  <Activity size={18} className="text-blue-600" />
-                  Registration Velocity (Last 14 Days)
+                  <Activity size={18} className="text-blue-600 shrink-0" />
+                  <span>Registration Velocity (Last 14 Days)</span>
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Daily incoming student registrations across active club experiences
                 </p>
               </div>
-              <Badge variant="info" className="font-mono text-xs">
+              <Badge variant="info" className="font-mono text-xs shrink-0">
                 Peak: {Math.max(...chartData.map((d) => d.count))} / day
               </Badge>
             </div>
 
             {/* Interactive SVG Bar Chart */}
-            <div className="h-44 w-full flex items-end gap-2 pt-6 pb-2 px-1">
+            <div className="h-44 w-full flex items-end gap-1 sm:gap-2 pt-6 pb-2 px-0.5 sm:px-1 overflow-hidden">
               {chartData.map((item, idx) => {
                 const heightPct = Math.max(8, Math.round((item.count / maxChartCount) * 100))
                 return (

@@ -88,6 +88,7 @@
     scroll-behavior: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
     -webkit-text-size-adjust: 100%;
     background-color: var(--color-surface-0);
@@ -298,4 +299,34 @@
   .ticker-track {
     animation: none !important;
   }
+}
+
+/* ─── Skip Navigation Link (hidden until keyboard focus) ───────────────── */
+.skip-link {
+  position: fixed;
+  top: -9999px;
+  left: 0.75rem;
+  z-index: 10000;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.25);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0.75rem;
+  clip-path: inset(0);
+  overflow: visible;
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
 }
